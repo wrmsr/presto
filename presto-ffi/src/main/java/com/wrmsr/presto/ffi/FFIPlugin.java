@@ -1,11 +1,10 @@
 package com.wrmsr.presto.ffi;
 
-import com.facebook.presto.metadata.FunctionFactory;
-import com.facebook.presto.ml.type.ClassifierParametricType;
+// import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
-import com.facebook.presto.type.ParametricType;
+// import com.facebook.presto.type.ParametricType;
 import com.google.common.collect.ImmutableList;
 
 import javax.inject.Inject;
@@ -13,8 +12,6 @@ import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 
-import static com.facebook.presto.ml.type.ModelType.MODEL;
-import static com.facebook.presto.ml.type.RegressorType.REGRESSOR;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class FFIPlugin
