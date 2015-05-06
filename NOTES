@@ -1,0 +1,22 @@
+es driver
+auto jdbc partitioning
+further jdbc predicate pushdown
+jdbc aggregate pushdown
+yarn
+(python) ffi
+event sources
+memcache
+general-purpose decoding
+random access stores
+first layer caching
+vitess shit
+nashorn stored procs
+tachyon temp spilling
+
+schema tracker interface
+carbide's full ddl parser impl
+service impl
+
+yaml config + velocity templating
+
+BLOOM FILTER PREDICATE PUSHDOWN
