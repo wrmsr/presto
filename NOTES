@@ -20,3 +20,4 @@ service impl
 yaml config + velocity templating
 
 BLOOM FILTER PREDICATE PUSHDOWN
+ - no, TEMP TABLES :D engine=memory, pk clustered + indices
