@@ -20,3 +20,4 @@ service impl
 yaml config + velocity templating
 
 BLOOM FILTER PREDICATE PUSHDOWN
+ - naw temp tables - engine=memory, index(), pk
