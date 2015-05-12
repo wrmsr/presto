@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import org.testng.annotations.Test;
 
+import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 
@@ -32,6 +33,12 @@ public class TestJSPlugin
     {
         ScriptEngine engine = new ScriptEngineManager().getEngineByName("nashorn");
         engine.eval("print('Hello World!');");
+        Object o = engine.eval("function f(x) { return x + 1 }");
+        System.out.println(o);
+        Invocable inv = (Invocable) engine;
+
+        Object y = inv.invokeFunction("f", 10);
+        System.out.println(y);
     }
 
     private static LocalQueryRunner createLocalQueryRunner()
