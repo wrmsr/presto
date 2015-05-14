@@ -27,7 +27,25 @@ BLOOM FILTER PREDICATE PUSHDOWN
  - no, TEMP TABLES :D engine=memory, pk clustered + indices
 
 move kafka decoder to base?
+ - no, allow cross-plugin dep, recursive plugin loading
+  - dag?
 
 necessary for chunked operation:
 bounded in-clause pushdown
 occasional join pushdown
+view inlining
+
+connector capability enumeration
+ - crud
+ - complex tuple domains
+   - joins, bitwise
+   - nested disjuncts?
+
+whitebox / blackbox plugins?
+
+
+rbr tailing
+integrate carbide ddl parser to directly modify metadata (WOW)
+
+
+nested types? subtables? disjoint? untyped?
