@@ -1,6 +1,7 @@
 package com.wrmsr.presto.ffi;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.byteCode.DynamicClassLoader;
 import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.testing.LocalQueryRunner;
@@ -9,11 +10,24 @@ import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.type.ParametricType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
 import org.testng.annotations.Test;
+
+import javax.script.Invocable;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.Method;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
 import static java.util.Locale.ENGLISH;
+import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.Opcodes.ACC_ABSTRACT;
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 
 public class TestFFIPlugin
         extends AbstractTestQueryFramework
@@ -25,10 +39,59 @@ public class TestFFIPlugin
 
     @Test
     public void testSanity()
-            throws Exception
+            throws Throwable
     {
         // queryRunner.execute("select true");
-        queryRunner.execute("select * from lineitem inner join orders on orders.orderkey = lineitem.orderkey inner join customer on orders.custkey = customer.custkey limit 10");
+        //queryRunner.execute("select * from lineitem inner join orders on orders.orderkey = lineitem.orderkey inner join customer on orders.custkey = customer.custkey limit 10");
+
+        ScriptEngine engine = new ScriptEngineManager().getEngineByName("nashorn");
+        engine.eval("print('Hello World!');");
+        Object o = engine.eval("function f(x) { return x + 1 }");
+        System.out.println(o);
+        Invocable inv = (Invocable) engine;
+        // Int2Int iface;// = inv.getInterface(engine.getContext().getBindings(ScriptContext.ENGINE_SCOPE).get("f"), Int2Int.class);
+
+        String className = "dyn/Int2Int";
+        ClassWriter cw = new ClassWriter(0);
+        cw.visit(
+                V1_7,
+                ACC_PUBLIC+ACC_ABSTRACT+ACC_INTERFACE,
+                className,    // class name
+                null,
+                "java/lang/Object", // super class
+                null               // interfaces
+        );   // source file
+
+        cw.visitMethod(
+                ACC_PUBLIC+ACC_ABSTRACT,
+                "f",                // method name
+                "(I)I", // method descriptor
+                null,                    // exceptions
+                null);                   // method attributes
+
+        cw.visitEnd();
+
+        byte[] bytecode = cw.toByteArray();
+        Class ifaceCls = (new DynamicClassLoader()).defineClass("dyn.Int2Int", bytecode);
+
+
+        Object iface = inv.getInterface(ifaceCls);
+        Method m = ifaceCls.getDeclaredMethod("f", int.class);
+        System.out.println(m.invoke(iface, 10));
+        MethodHandle mh = MethodHandles.lookup().unreflect(m);
+        // FIXME this.class + invokeExact
+        MethodHandle mh2 = mh.asType(MethodType.methodType(int.class, int.class));
+        System.out.println(mh2.invoke(100));
+        /*
+        o = engine.getContext().getBindings(javax.script.ScriptContext.ENGINE_SCOPE).get("f");
+        MethodHandle mh = ScriptObjectAccess.getScriptFunctionObjectHandle(
+                ScriptObjectAccess.getScriptObjectMirrorTarget(o), "f", MethodType.methodType(int.class, int.class));
+        System.out.println(mh.invoke(20));
+        */
+
+
+        Object y = inv.invokeFunction("f", 10);
+        System.out.println(y);
     }
 
     private static LocalQueryRunner createLocalQueryRunner()
