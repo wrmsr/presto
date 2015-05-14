@@ -11,7 +11,9 @@ random access stores
 first layer caching
 vitess shit
 nashorn stored procs
+
 tachyon temp spilling
+sorted [leveldb] join storage
 
 schema tracker interface
 carbide's full ddl parser impl
@@ -23,3 +25,9 @@ BLOOM FILTER PREDICATE PUSHDOWN
 <<<<<<< HEAD
  - naw temp tables - engine=memory, index(), pk
  - no, TEMP TABLES :D engine=memory, pk clustered + indices
+
+move kafka decoder to base?
+
+necessary for chunked operation:
+bounded in-clause pushdown
+occasional join pushdown
