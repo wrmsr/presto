@@ -7,14 +7,12 @@
         <version>0.103-SNAPSHOT</version>
     </parent>
 
-    <artifactId>presto-elasticsearch</artifactId>
-    <description>Presto - Elasticsearch Connector</description>
+    <artifactId>presto-materializer</artifactId>
+    <description>Presto - Materializer Plugin</description>
     <packaging>presto-plugin</packaging>
 
     <properties>
         <air.main.basedir>${project.parent.basedir}</air.main.basedir>
-        <elasticsearch.version>1.4.4</elasticsearch.version>
-        <jest.version>0.1.5</jest.version>
     </properties>
 
     <dependencies>
@@ -102,28 +100,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <dependency>
-            <groupId>io.searchbox</groupId>
-            <artifactId>jest</artifactId>
-            <version>${jest.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.commons</groupId>
-                    <artifactId>commons-lang3</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
-            <version>${elasticsearch.version}</version>
-        </dependency>
-
         <!-- for testing -->
         <dependency>
             <groupId>org.testng</groupId>
@@ -150,8 +126,21 @@
         </dependency>
 
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-tests</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-tpch</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-main</artifactId>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
     </dependencies>

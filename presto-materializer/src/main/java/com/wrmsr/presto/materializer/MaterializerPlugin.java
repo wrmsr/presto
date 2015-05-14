@@ -1,6 +1,5 @@
-package com.wrmsr.presto.js;
+package com.wrmsr.presto.materializer;
 
-// TODO this is generic jsr223 and just merge with -ffi
 // import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.type.Type;
@@ -15,7 +14,7 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class JSPlugin
+public class MaterializerPlugin
         implements Plugin
 {
     private TypeManager typeManager;

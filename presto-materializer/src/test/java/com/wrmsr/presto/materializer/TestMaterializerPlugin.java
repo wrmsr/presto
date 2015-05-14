@@ -1,4 +1,4 @@
-package com.wrmsr.presto.ffi;
+package com.wrmsr.presto.materializer;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.metadata.FunctionFactory;
@@ -15,10 +15,10 @@ import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
 import static java.util.Locale.ENGLISH;
 
-public class TestFFIPlugin
+public class TestMaterializerPlugin
         extends AbstractTestQueryFramework
 {
-    public TestFFIPlugin()
+    public TestMaterializerPlugin()
     {
         super(createLocalQueryRunner());
     }
@@ -27,7 +27,6 @@ public class TestFFIPlugin
     public void testSanity()
             throws Exception
     {
-        // queryRunner.execute("select true");
         queryRunner.execute("select * from lineitem inner join orders on orders.orderkey = lineitem.orderkey inner join customer on orders.custkey = customer.custkey limit 10");
     }
 
@@ -42,25 +41,27 @@ public class TestFFIPlugin
                 .setLocale(ENGLISH)
                 .build();
 
-        LocalQueryRunner localQueryRunner = new LocalQueryRunner(defaultSession);
+        LocalQueryRunner queryRunner = new LocalQueryRunner(defaultSession);
 
         // add the tpch catalog
         // local queries run directly against the generator
-        localQueryRunner.createCatalog(
+        queryRunner.createCatalog(
                 defaultSession.getCatalog(),
-                new TpchConnectorFactory(localQueryRunner.getNodeManager(), 1),
+                new TpchConnectorFactory(queryRunner.getNodeManager(), 1),
                 ImmutableMap.<String, String>of());
 
-        FFIPlugin plugin = new FFIPlugin();
-        plugin.setTypeManager(localQueryRunner.getTypeManager());
+        MaterializerPlugin plugin = new MaterializerPlugin();
+        plugin.setTypeManager(queryRunner.getTypeManager());
+        /*
         for (Type type : plugin.getServices(Type.class)) {
-            localQueryRunner.getTypeManager().addType(type);
+            queryRunner.getTypeManager().addType(type);
         }
         for (ParametricType parametricType : plugin.getServices(ParametricType.class)) {
-            localQueryRunner.getTypeManager().addParametricType(parametricType);
+            queryRunner.getTypeManager().addParametricType(parametricType);
         }
-        // localQueryRunner.getMetadata().getFunctionRegistry().addFunctions(Iterables.getOnlyElement(plugin.getServices(FunctionFactory.class)).listFunctions());
+        */
+        // queryRunner.getMetadata().getFunctionRegistry().addFunctions(Iterables.getOnlyElement(plugin.getServices(FunctionFactory.class)).listFunctions());
 
-        return localQueryRunner;
+        return queryRunner;
     }
 }

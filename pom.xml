@@ -81,6 +81,7 @@
         <module>presto-client</module>
         <module>presto-parser</module>
         <module>presto-main</module>
+        <module>presto-materializer</module>
         <module>presto-ml</module>
         <module>presto-benchmark</module>
         <module>presto-tests</module>
