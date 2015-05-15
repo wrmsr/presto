@@ -10,6 +10,7 @@ import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.type.ParametricType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.io.CharStreams;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.testng.annotations.Test;
@@ -17,10 +18,14 @@ import org.testng.annotations.Test;
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+import java.io.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
@@ -28,6 +33,7 @@ import static java.util.Locale.ENGLISH;
 import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Opcodes.ACC_ABSTRACT;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class TestFFIPlugin
         extends AbstractTestQueryFramework
@@ -125,5 +131,124 @@ public class TestFFIPlugin
         // localQueryRunner.getMetadata().getFunctionRegistry().addFunctions(Iterables.getOnlyElement(plugin.getServices(FunctionFactory.class)).listFunctions());
 
         return localQueryRunner;
+    }
+
+    // need thread per process :/
+    // *or* jnr-process https://github.com/jnr/jnr-process
+    // https://github.com/jnr/jnr-enxio/blob/master/src/main/java/jnr/enxio/example/TCPServer.java
+    // lolll https://github.com/jnr/jnr-invoke
+    @Test
+    public void testSubprocess()
+        throws Throwable {
+        ProcessBuilder pb = new ProcessBuilder("/usr/bin/env", "sh", "-c", "sleep 3 ; echo hi");
+        pb.redirectError();
+        Process p;
+        try {
+            p = pb.start();
+        }
+        catch (IOException e) {
+            throw new RuntimeException("failed to start", e);
+        }
+        // wait for command to exit
+        int exitCode = p.waitFor();
+        System.out.println(exitCode);
+        String s = CharStreams.toString(new InputStreamReader(p.getInputStream(), UTF_8));
+        System.out.println(s);
+    }
+
+    public static class Main {
+
+        static final ByteBuffer buf = ByteBuffer.allocate(4096);
+
+        public static void main(String[] args) {
+
+            long timeout = 1000 * 5;
+
+            try {
+                InputStream in = extract(System.in);
+                if (! (in instanceof FileInputStream))
+                    throw new RuntimeException(
+                            "Could not extract a FileInputStream from STDIN.");
+
+                try {
+                    int ret = maybeAvailable((FileInputStream)in, timeout);
+                    System.out.println(
+                            Integer.toString(ret) + " bytes were read.");
+
+                } finally {
+                    in.close();
+                }
+
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+
+        /* unravels all layers of FilterInputStream wrappers to get to the
+         * core InputStream
+         */
+        public static InputStream extract(InputStream in)
+                throws NoSuchFieldException, IllegalAccessException {
+
+            Field f = FilterInputStream.class.getDeclaredField("in");
+            f.setAccessible(true);
+
+            while( in instanceof FilterInputStream )
+                in = (InputStream)f.get((FilterInputStream)in);
+
+            return in;
+        }
+
+        /* Returns the number of bytes which could be read from the stream,
+         * timing out after the specified number of milliseconds.
+         * Returns 0 on timeout (because no bytes could be read)
+         * and -1 for end of stream.
+         */
+        public static int maybeAvailable(final FileInputStream in, long timeout)
+                throws IOException, InterruptedException {
+
+            final int[] dataReady = {0};
+            final IOException[] maybeException = {null};
+            final Thread reader = new Thread() {
+                public void run() {
+                    try {
+                        dataReady[0] = in.getChannel().read(buf);
+                    } catch (ClosedByInterruptException e) {
+                        System.err.println("Reader interrupted.");
+                    } catch (IOException e) {
+                        maybeException[0] = e;
+                    }
+                }
+            };
+
+            Thread interruptor = new Thread() {
+                public void run() {
+                    reader.interrupt();
+                }
+            };
+
+            reader.start();
+            for(;;) {
+
+                reader.join(timeout);
+                if (!reader.isAlive())
+                    break;
+
+                interruptor.start();
+                interruptor.join(1000);
+                reader.join(1000);
+                if (!reader.isAlive())
+                    break;
+
+                System.err.println("We're hung");
+                System.exit(1);
+            }
+
+            if ( maybeException[0] != null )
+                throw maybeException[0];
+
+            return dataReady[0];
+        }
     }
 }
