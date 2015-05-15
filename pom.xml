@@ -70,8 +70,6 @@
         <module>presto-hive-cdh4</module>
         <module>presto-hive-cdh5</module>
         <module>presto-example-http</module>
-        <module>presto-elasticsearch</module>
-        <module>presto-ffi</module>
         <module>presto-tpch</module>
         <module>presto-raptor</module>
         <module>presto-base-jdbc</module>
@@ -80,7 +78,6 @@
         <module>presto-client</module>
         <module>presto-parser</module>
         <module>presto-main</module>
-        <module>presto-materializer</module>
         <module>presto-ml</module>
         <module>presto-benchmark</module>
         <module>presto-tests</module>
@@ -90,6 +87,10 @@
         <module>presto-server</module>
         <module>presto-docs</module>
         <module>presto-verifier</module>
+        <module>presto-wrmsr-decoder</module>
+        <module>presto-wrmsr-elasticsearch</module>
+        <module>presto-wrmsr-ffi</module>
+        <module>presto-wrmsr-materializer</module>
     </modules>
 
     <dependencyManagement>

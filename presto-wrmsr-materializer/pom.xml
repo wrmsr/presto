@@ -7,8 +7,8 @@
         <version>0.103</version>
     </parent>
 
-    <artifactId>presto-ffi</artifactId>
-    <description>Presto - FFI Plugin</description>
+    <artifactId>presto-wrmsr-materializer</artifactId>
+    <description>Presto - Materializer Plugin</description>
     <packaging>presto-plugin</packaging>
 
     <properties>

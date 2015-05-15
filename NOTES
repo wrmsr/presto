@@ -52,3 +52,8 @@ nested types? subtables? disjoint? untyped?
 
 
 collection aggregates (windows? subselects? typed?)
+
+
+presto decoder = generic connector wrapper, given a bytes col or single col
+ - support for disjoints ala dot-separated column names
+ - col regexes? select r(x.*)?
