@@ -49,3 +49,6 @@ integrate carbide ddl parser to directly modify metadata (WOW)
 
 
 nested types? subtables? disjoint? untyped?
+
+
+collection aggregates (windows? subselects? typed?)
