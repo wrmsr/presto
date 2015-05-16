@@ -3,6 +3,7 @@ auto jdbc partitioning
 further jdbc predicate pushdown
 jdbc aggregate pushdown
 yarn
+ - http://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/WritingYarnApplications.html
 (python) ffi
 event sources
 memcache
@@ -22,7 +23,6 @@ service impl
 yaml config + velocity templating
 
 BLOOM FILTER PREDICATE PUSHDOWN
-<<<<<<< HEAD
  - naw temp tables - engine=memory, index(), pk
  - no, TEMP TABLES :D engine=memory, pk clustered + indices
 
@@ -57,3 +57,9 @@ collection aggregates (windows? subselects? typed?)
 presto decoder = generic connector wrapper, given a bytes col or single col
  - support for disjoints ala dot-separated column names
  - col regexes? select r(x.*)?
+ - schema validation
+ - + ffi = http plugin?
+
+wrmsr-packaging? bootstrap?
+ - full shading
+ - JAVA_HOME
