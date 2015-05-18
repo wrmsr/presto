@@ -15,89 +15,93 @@
         <air.main.basedir>${project.parent.basedir}</air.main.basedir>
     </properties>
 
+    <!--
+
+        <artifact id="${project.groupId}:presto-main:${project.version}" />
+        <artifact id="${project.groupId}:presto-cassandra:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-example-http:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-hive-cdh4:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-hive-cdh5:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-hive-hadoop1:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-hive-hadoop2:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-kafka:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-ml:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-mysql:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-postgresql:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-raptor:zip:${project.version}">
+        <artifact id="${project.groupId}:presto-tpch:zip:${project.version}">
+
+    -->
+
     <dependencies>
         <dependency>
             <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-main</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
             <artifactId>presto-spi</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>bootstrap</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>json</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>log</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>units</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>configuration</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.airlift</groupId>
-            <artifactId>slice</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <!-- for testing -->

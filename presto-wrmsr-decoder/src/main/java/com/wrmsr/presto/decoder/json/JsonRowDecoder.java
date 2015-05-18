@@ -13,21 +13,21 @@
  */
 package com.wrmsr.presto.decoder.json;
 
-import com.wrmsr.presto.decoder.DecoderColumnHandle;
-import com.wrmsr.presto.decoder.FieldDecoder;
-import com.wrmsr.presto.decoder.FieldValueProvider;
-import com.wrmsr.presto.decoder.RowDecoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.google.common.base.Splitter;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
+import com.wrmsr.presto.decoder.FieldDecoder;
+import com.wrmsr.presto.decoder.FieldValueProvider;
+import com.wrmsr.presto.decoder.RowDecoder;
 
 import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * JSON specific  row decoder.

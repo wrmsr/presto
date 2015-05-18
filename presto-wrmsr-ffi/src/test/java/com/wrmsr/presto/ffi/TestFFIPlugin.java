@@ -1,24 +1,38 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.wrmsr.presto.ffi;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.byteCode.DynamicClassLoader;
-import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.type.ParametricType;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.io.CharStreams;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
 import org.testng.annotations.Test;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -29,11 +43,12 @@ import java.nio.channels.ClosedByInterruptException;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
-import static java.util.Locale.ENGLISH;
-import static org.objectweb.asm.Opcodes.*;
-import static org.objectweb.asm.Opcodes.ACC_ABSTRACT;
-import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Locale.ENGLISH;
+import static org.objectweb.asm.Opcodes.ACC_ABSTRACT;
+import static org.objectweb.asm.Opcodes.ACC_INTERFACE;
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static org.objectweb.asm.Opcodes.V1_7;
 
 public class TestFFIPlugin
         extends AbstractTestQueryFramework
@@ -61,7 +76,7 @@ public class TestFFIPlugin
         ClassWriter cw = new ClassWriter(0);
         cw.visit(
                 V1_7,
-                ACC_PUBLIC+ACC_ABSTRACT+ACC_INTERFACE,
+                ACC_PUBLIC + ACC_ABSTRACT + ACC_INTERFACE,
                 className,    // class name
                 null,
                 "java/lang/Object", // super class
@@ -69,7 +84,7 @@ public class TestFFIPlugin
         );   // source file
 
         cw.visitMethod(
-                ACC_PUBLIC+ACC_ABSTRACT,
+                ACC_PUBLIC + ACC_ABSTRACT,
                 "f",                // method name
                 "(I)I", // method descriptor
                 null,                    // exceptions
@@ -79,7 +94,6 @@ public class TestFFIPlugin
 
         byte[] bytecode = cw.toByteArray();
         Class ifaceCls = (new DynamicClassLoader()).defineClass("dyn.Int2Int", bytecode);
-
 
         Object iface = inv.getInterface(ifaceCls);
         Method m = ifaceCls.getDeclaredMethod("f", int.class);
@@ -94,7 +108,6 @@ public class TestFFIPlugin
                 ScriptObjectAccess.getScriptObjectMirrorTarget(o), "f", MethodType.methodType(int.class, int.class));
         System.out.println(mh.invoke(20));
         */
-
 
         Object y = inv.invokeFunction("f", 10);
         System.out.println(y);
@@ -139,7 +152,8 @@ public class TestFFIPlugin
     // lolll https://github.com/jnr/jnr-invoke
     @Test
     public void testSubprocess()
-        throws Throwable {
+            throws Throwable
+    {
         ProcessBuilder pb = new ProcessBuilder("/usr/bin/env", "sh", "-c", "sleep 3 ; echo hi");
         pb.redirectError();
         Process p;
@@ -156,30 +170,33 @@ public class TestFFIPlugin
         System.out.println(s);
     }
 
-    public static class Main {
-
+    public static class Main
+    {
         static final ByteBuffer buf = ByteBuffer.allocate(4096);
 
-        public static void main(String[] args) {
-
+        public static void main(String[] args)
+        {
             long timeout = 1000 * 5;
 
             try {
                 InputStream in = extract(System.in);
-                if (! (in instanceof FileInputStream))
+                if (!(in instanceof FileInputStream)) {
                     throw new RuntimeException(
                             "Could not extract a FileInputStream from STDIN.");
+                }
 
                 try {
-                    int ret = maybeAvailable((FileInputStream)in, timeout);
+                    int ret = maybeAvailable((FileInputStream) in, timeout);
                     System.out.println(
                             Integer.toString(ret) + " bytes were read.");
 
-                } finally {
+                }
+                finally {
                     in.close();
                 }
 
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 throw new RuntimeException(e);
             }
 
@@ -189,13 +206,14 @@ public class TestFFIPlugin
          * core InputStream
          */
         public static InputStream extract(InputStream in)
-                throws NoSuchFieldException, IllegalAccessException {
-
+                throws NoSuchFieldException, IllegalAccessException
+        {
             Field f = FilterInputStream.class.getDeclaredField("in");
             f.setAccessible(true);
 
-            while( in instanceof FilterInputStream )
-                in = (InputStream)f.get((FilterInputStream)in);
+            while (in instanceof FilterInputStream) {
+                in = (InputStream) f.get((FilterInputStream) in);
+            }
 
             return in;
         }
@@ -206,47 +224,55 @@ public class TestFFIPlugin
          * and -1 for end of stream.
          */
         public static int maybeAvailable(final FileInputStream in, long timeout)
-                throws IOException, InterruptedException {
-
+                throws IOException, InterruptedException
+        {
             final int[] dataReady = {0};
             final IOException[] maybeException = {null};
-            final Thread reader = new Thread() {
-                public void run() {
+            final Thread reader = new Thread()
+            {
+                public void run()
+                {
                     try {
                         dataReady[0] = in.getChannel().read(buf);
-                    } catch (ClosedByInterruptException e) {
+                    }
+                    catch (ClosedByInterruptException e) {
                         System.err.println("Reader interrupted.");
-                    } catch (IOException e) {
+                    }
+                    catch (IOException e) {
                         maybeException[0] = e;
                     }
                 }
             };
 
-            Thread interruptor = new Thread() {
-                public void run() {
+            Thread interruptor = new Thread()
+            {
+                public void run()
+                {
                     reader.interrupt();
                 }
             };
 
             reader.start();
-            for(;;) {
-
+            while (true) {
                 reader.join(timeout);
-                if (!reader.isAlive())
+                if (!reader.isAlive()) {
                     break;
+                }
 
                 interruptor.start();
                 interruptor.join(1000);
                 reader.join(1000);
-                if (!reader.isAlive())
+                if (!reader.isAlive()) {
                     break;
+                }
 
                 System.err.println("We're hung");
                 System.exit(1);
             }
 
-            if ( maybeException[0] != null )
+            if (maybeException[0] != null) {
                 throw maybeException[0];
+            }
 
             return dataReady[0];
         }

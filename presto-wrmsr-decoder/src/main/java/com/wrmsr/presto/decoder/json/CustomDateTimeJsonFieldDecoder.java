@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.decoder.json;
 
-import com.facebook.presto.spi.ColumnHandle;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.decoder.DecoderColumnHandle;

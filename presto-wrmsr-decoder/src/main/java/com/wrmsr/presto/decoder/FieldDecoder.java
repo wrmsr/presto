@@ -13,8 +13,6 @@
  */
 package com.wrmsr.presto.decoder;
 
-import com.facebook.presto.spi.ColumnHandle;
-
 import java.util.Set;
 
 /**

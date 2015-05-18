@@ -13,19 +13,18 @@
  */
 package com.wrmsr.presto.decoder.dummy;
 
-import com.wrmsr.presto.decoder.DecoderColumnHandle;
-import com.wrmsr.presto.decoder.FieldDecoder;
 import com.facebook.presto.spi.PrestoException;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
+import com.wrmsr.presto.decoder.FieldDecoder;
 import com.wrmsr.presto.decoder.FieldValueProvider;
 import io.airlift.slice.Slice;
 
 import java.util.Set;
 
-import static java.lang.String.format;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.decoder.ErrorCode.CONVERSION_NOT_SUPPORTED;
+import static java.lang.String.format;
 
 /**
  * Default 'decoder' for the dummy format. Can not decode anything. This is intentional.

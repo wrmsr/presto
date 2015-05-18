@@ -13,19 +13,18 @@
  */
 package com.wrmsr.presto.decoder.json;
 
-import com.wrmsr.presto.decoder.DecoderColumnHandle;
-import com.wrmsr.presto.decoder.FieldDecoder;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.type.Type;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
+import com.wrmsr.presto.decoder.FieldDecoder;
 import com.wrmsr.presto.decoder.FieldValueProvider;
 import io.airlift.slice.Slice;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static com.wrmsr.presto.decoder.ErrorCode.CONVERSION_NOT_SUPPORTED;
 import static com.facebook.presto.spi.type.DateTimeEncoding.packDateTimeWithZone;
 import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.TimeType.TIME;
@@ -33,6 +32,7 @@ import static com.facebook.presto.spi.type.TimeWithTimeZoneType.TIME_WITH_TIME_Z
 import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
 import static com.facebook.presto.spi.type.TimestampWithTimeZoneType.TIMESTAMP_WITH_TIME_ZONE;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.wrmsr.presto.decoder.ErrorCode.CONVERSION_NOT_SUPPORTED;
 import static io.airlift.slice.Slices.EMPTY_SLICE;
 import static io.airlift.slice.Slices.utf8Slice;
 import static java.lang.String.format;

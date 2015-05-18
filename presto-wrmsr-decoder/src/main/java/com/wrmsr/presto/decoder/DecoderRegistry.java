@@ -25,10 +25,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static com.wrmsr.presto.decoder.FieldDecoder.DEFAULT_FIELD_DECODER_NAME;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.wrmsr.presto.decoder.FieldDecoder.DEFAULT_FIELD_DECODER_NAME;
 import static java.lang.String.format;
 
 /**

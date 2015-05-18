@@ -13,15 +13,15 @@
  */
 package com.wrmsr.presto.decoder;
 
-import com.wrmsr.presto.decoder.csv.CsvDecoderModule;
-import com.wrmsr.presto.decoder.dummy.DummyDecoderModule;
-import com.wrmsr.presto.decoder.json.JsonDecoderModule;
-import com.wrmsr.presto.decoder.raw.RawDecoderModule;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.decoder.csv.CsvDecoderModule;
+import com.wrmsr.presto.decoder.dummy.DummyDecoderModule;
+import com.wrmsr.presto.decoder.json.JsonDecoderModule;
+import com.wrmsr.presto.decoder.raw.RawDecoderModule;
 
 /**
  *  decoder specific module. Installs the registry and all known decoder submodules.

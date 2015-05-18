@@ -13,12 +13,12 @@
  */
 package com.wrmsr.presto.decoder.raw;
 
-import com.wrmsr.presto.decoder.DecoderColumnHandle;
-import com.wrmsr.presto.decoder.FieldDecoder;
 import com.facebook.presto.spi.PrestoException;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
+import com.wrmsr.presto.decoder.FieldDecoder;
 import com.wrmsr.presto.decoder.FieldValueProvider;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
@@ -28,9 +28,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import static com.wrmsr.presto.decoder.ErrorCode.CONVERSION_NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.wrmsr.presto.decoder.ErrorCode.CONVERSION_NOT_SUPPORTED;
 import static java.lang.String.format;
 
 /**

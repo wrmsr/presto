@@ -13,9 +13,9 @@
  */
 package com.wrmsr.presto.decoder.csv;
 
+import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.decoder.DecoderColumnHandle;
 import com.wrmsr.presto.decoder.FieldDecoder;
-import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.decoder.FieldValueProvider;
 import io.airlift.slice.Slice;
 
