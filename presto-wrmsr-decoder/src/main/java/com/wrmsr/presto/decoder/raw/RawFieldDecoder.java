@@ -13,13 +13,13 @@
  */
 package com.wrmsr.presto.decoder.raw;
 
-import com.facebook.presto.ColumnHandle;
-import com.facebook.presto.FieldValueProvider;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
 import com.wrmsr.presto.decoder.FieldDecoder;
 import com.facebook.presto.spi.PrestoException;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.decoder.FieldValueProvider;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import static com.facebook.presto.ErrorCode.KAFKA_CONVERSION_NOT_SUPPORTED;
+import static com.wrmsr.presto.decoder.ErrorCode.CONVERSION_NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
@@ -93,7 +93,7 @@ public class RawFieldDecoder
     }
 
     @Override
-    public FieldValueProvider decode(byte[] value, ColumnHandle columnHandle)
+    public FieldValueProvider decode(byte[] value, DecoderColumnHandle columnHandle)
     {
         checkNotNull(columnHandle, "columnHandle is null");
         checkNotNull(value, "value is null");
@@ -131,11 +131,11 @@ public class RawFieldDecoder
             extends FieldValueProvider
     {
         protected final ByteBuffer value;
-        protected final ColumnHandle columnHandle;
+        protected final DecoderColumnHandle columnHandle;
         protected final FieldType fieldType;
         protected final int size;
 
-        public RawValueProvider(ByteBuffer value, ColumnHandle columnHandle, FieldType fieldType)
+        public RawValueProvider(ByteBuffer value, DecoderColumnHandle columnHandle, FieldType fieldType)
         {
             this.columnHandle = checkNotNull(columnHandle, "columnHandle is null");
             this.fieldType = checkNotNull(fieldType, "fieldType is null");
@@ -145,7 +145,7 @@ public class RawFieldDecoder
         }
 
         @Override
-        public final boolean accept(ColumnHandle columnHandle)
+        public final boolean accept(DecoderColumnHandle columnHandle)
         {
             return this.columnHandle.equals(columnHandle);
         }
@@ -172,7 +172,7 @@ public class RawFieldDecoder
                 case LONG:
                     return value.getLong() != 0;
                 default:
-                    throw new PrestoException(KAFKA_CONVERSION_NOT_SUPPORTED, format("conversion %s to boolean not supported", fieldType));
+                    throw new PrestoException(CONVERSION_NOT_SUPPORTED, format("conversion %s to boolean not supported", fieldType));
             }
         }
 
@@ -192,7 +192,7 @@ public class RawFieldDecoder
                 case LONG:
                     return value.getLong();
                 default:
-                    throw new PrestoException(KAFKA_CONVERSION_NOT_SUPPORTED, format("conversion %s to long not supported", fieldType));
+                    throw new PrestoException(CONVERSION_NOT_SUPPORTED, format("conversion %s to long not supported", fieldType));
             }
         }
 
@@ -208,7 +208,7 @@ public class RawFieldDecoder
                 case DOUBLE:
                     return value.getDouble();
                 default:
-                    throw new PrestoException(KAFKA_CONVERSION_NOT_SUPPORTED, format("conversion %s to double not supported", fieldType));
+                    throw new PrestoException(CONVERSION_NOT_SUPPORTED, format("conversion %s to double not supported", fieldType));
             }
         }
 
@@ -223,7 +223,7 @@ public class RawFieldDecoder
                 return Slices.wrappedBuffer(value.slice());
             }
 
-            throw new PrestoException(KAFKA_CONVERSION_NOT_SUPPORTED, format("conversion %s to Slice not supported", fieldType));
+            throw new PrestoException(CONVERSION_NOT_SUPPORTED, format("conversion %s to Slice not supported", fieldType));
         }
     }
 }

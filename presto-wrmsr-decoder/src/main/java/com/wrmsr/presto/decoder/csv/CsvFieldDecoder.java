@@ -13,14 +13,15 @@
  */
 package com.wrmsr.presto.decoder.csv;
 
-import com.facebook.presto.ColumnHandle;
-import com.facebook.presto.FieldValueProvider;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
 import com.wrmsr.presto.decoder.FieldDecoder;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.decoder.FieldValueProvider;
 import io.airlift.slice.Slice;
 
 import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static io.airlift.slice.Slices.EMPTY_SLICE;
 import static io.airlift.slice.Slices.utf8Slice;
 import static java.lang.String.format;
@@ -51,14 +52,14 @@ public class CsvFieldDecoder
     }
 
     @Override
-    public FieldValueProvider decode(final String value, final ColumnHandle columnHandle)
+    public FieldValueProvider decode(final String value, final DecoderColumnHandle columnHandle)
     {
         checkNotNull(columnHandle, "columnHandle is null");
 
         return new FieldValueProvider()
         {
             @Override
-            public boolean accept(ColumnHandle handle)
+            public boolean accept(DecoderColumnHandle handle)
             {
                 return columnHandle.equals(handle);
             }

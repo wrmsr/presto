@@ -38,8 +38,8 @@ view inlining
 connector capability enumeration
  - crud
  - complex tuple domains
-   - joins, bitwise
-   - nested disjuncts?
+  - joins, bitwise
+  - nested disjuncts?
 
 whitebox / blackbox plugins?
 
@@ -63,3 +63,6 @@ presto decoder = generic connector wrapper, given a bytes col or single col
 wrmsr-packaging? bootstrap?
  - full shading
  - JAVA_HOME
+
+
+http://qubole-eng.quora.com/Caching-in-Presto

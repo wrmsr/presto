@@ -13,11 +13,11 @@
  */
 package com.wrmsr.presto.decoder.json;
 
-import com.facebook.presto.ColumnHandle;
-import com.facebook.presto.FieldValueProvider;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
+import com.wrmsr.presto.decoder.FieldValueProvider;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import org.joda.time.format.DateTimeFormatter;
@@ -59,7 +59,7 @@ public class SecondsSinceEpochJsonFieldDecoder
     }
 
     @Override
-    public FieldValueProvider decode(JsonNode value, ColumnHandle columnHandle)
+    public FieldValueProvider decode(JsonNode value, DecoderColumnHandle columnHandle)
     {
         checkNotNull(columnHandle, "columnHandle is null");
         checkNotNull(value, "value is null");
@@ -70,7 +70,7 @@ public class SecondsSinceEpochJsonFieldDecoder
     public static class SecondsSinceEpochJsonValueProvider
             extends DateTimeJsonValueProvider
     {
-        public SecondsSinceEpochJsonValueProvider(JsonNode value, ColumnHandle columnHandle)
+        public SecondsSinceEpochJsonValueProvider(JsonNode value, DecoderColumnHandle columnHandle)
         {
             super(value, columnHandle);
         }

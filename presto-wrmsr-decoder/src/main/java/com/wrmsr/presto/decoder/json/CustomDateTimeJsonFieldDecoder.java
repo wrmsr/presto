@@ -16,6 +16,7 @@ package com.wrmsr.presto.decoder.json;
 import com.facebook.presto.spi.ColumnHandle;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
 import com.wrmsr.presto.decoder.FieldValueProvider;
 import io.airlift.slice.Slice;
 import org.joda.time.format.DateTimeFormat;
@@ -49,7 +50,7 @@ public class CustomDateTimeJsonFieldDecoder
     }
 
     @Override
-    public FieldValueProvider decode(JsonNode value, ColumnHandle columnHandle)
+    public FieldValueProvider decode(JsonNode value, DecoderColumnHandle columnHandle)
     {
         checkNotNull(columnHandle, "columnHandle is null");
         checkNotNull(value, "value is null");
@@ -60,7 +61,7 @@ public class CustomDateTimeJsonFieldDecoder
     public static class CustomDateTimeJsonValueProvider
             extends DateTimeJsonValueProvider
     {
-        public CustomDateTimeJsonValueProvider(JsonNode value, ColumnHandle columnHandle)
+        public CustomDateTimeJsonValueProvider(JsonNode value, DecoderColumnHandle columnHandle)
         {
             super(value, columnHandle);
         }

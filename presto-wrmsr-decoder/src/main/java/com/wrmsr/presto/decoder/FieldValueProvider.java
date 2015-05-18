@@ -23,7 +23,7 @@ import static com.wrmsr.presto.decoder.ErrorCode.CONVERSION_NOT_SUPPORTED;
  */
 public abstract class FieldValueProvider
 {
-    public abstract boolean accept(KafkaColumnHandle columnHandle);
+    public abstract boolean accept(DecoderColumnHandle columnHandle);
 
     public boolean getBoolean()
     {

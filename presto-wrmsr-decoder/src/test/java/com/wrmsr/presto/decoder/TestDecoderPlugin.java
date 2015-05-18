@@ -18,7 +18,7 @@ import static java.util.Locale.ENGLISH;
 public class TestDecoderPlugin
         extends AbstractTestQueryFramework
 {
-    public TestMaterializerPlugin()
+    public TestDecoderPlugin()
     {
         super(createLocalQueryRunner());
     }

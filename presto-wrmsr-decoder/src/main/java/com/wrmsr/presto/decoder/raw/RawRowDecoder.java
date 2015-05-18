@@ -13,9 +13,9 @@
  */
 package com.wrmsr.presto.decoder.raw;
 
-import com.facebook.presto.ColumnHandle;
-import com.facebook.presto.FieldValueProvider;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
 import com.wrmsr.presto.decoder.FieldDecoder;
+import com.wrmsr.presto.decoder.FieldValueProvider;
 import com.wrmsr.presto.decoder.RowDecoder;
 
 import java.util.List;
@@ -37,9 +37,9 @@ public class RawRowDecoder
     }
 
     @Override
-    public boolean decodeRow(byte[] data, Set<FieldValueProvider> fieldValueProviders, List<ColumnHandle> columnHandles, Map<ColumnHandle, FieldDecoder<?>> fieldDecoders)
+    public boolean decodeRow(byte[] data, Set<FieldValueProvider> fieldValueProviders, List<DecoderColumnHandle> columnHandles, Map<DecoderColumnHandle, FieldDecoder<?>> fieldDecoders)
     {
-        for (ColumnHandle columnHandle : columnHandles) {
+        for (DecoderColumnHandle columnHandle : columnHandles) {
             if (columnHandle.isInternal()) {
                 continue;
             }

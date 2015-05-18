@@ -13,17 +13,19 @@
  */
 package com.wrmsr.presto.decoder.dummy;
 
-import com.facebook.presto.ColumnHandle;
-import com.facebook.presto.FieldValueProvider;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
 import com.wrmsr.presto.decoder.FieldDecoder;
 import com.facebook.presto.spi.PrestoException;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.decoder.FieldValueProvider;
 import io.airlift.slice.Slice;
 
 import java.util.Set;
 
-import static com.facebook.presto.ErrorCode.KAFKA_CONVERSION_NOT_SUPPORTED;
 import static java.lang.String.format;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.wrmsr.presto.decoder.ErrorCode.CONVERSION_NOT_SUPPORTED;
 
 /**
  * Default 'decoder' for the dummy format. Can not decode anything. This is intentional.
@@ -50,14 +52,14 @@ public class DummyFieldDecoder
     }
 
     @Override
-    public FieldValueProvider decode(Void value, ColumnHandle columnHandle)
+    public FieldValueProvider decode(Void value, DecoderColumnHandle columnHandle)
     {
         checkNotNull(columnHandle, "columnHandle is null");
 
         return new FieldValueProvider()
         {
             @Override
-            public boolean accept(ColumnHandle handle)
+            public boolean accept(DecoderColumnHandle handle)
             {
                 return false;
             }
@@ -65,7 +67,7 @@ public class DummyFieldDecoder
             @Override
             public boolean isNull()
             {
-                throw new PrestoException(KAFKA_CONVERSION_NOT_SUPPORTED, "is null check not supported");
+                throw new PrestoException(CONVERSION_NOT_SUPPORTED, "is null check not supported");
             }
         };
     }

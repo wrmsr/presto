@@ -13,19 +13,19 @@
  */
 package com.wrmsr.presto.decoder.json;
 
-import com.facebook.presto.ColumnHandle;
-import com.facebook.presto.FieldValueProvider;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
 import com.wrmsr.presto.decoder.FieldDecoder;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.type.Type;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.decoder.FieldValueProvider;
 import io.airlift.slice.Slice;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static com.facebook.presto.ErrorCode.KAFKA_CONVERSION_NOT_SUPPORTED;
+import static com.wrmsr.presto.decoder.ErrorCode.CONVERSION_NOT_SUPPORTED;
 import static com.facebook.presto.spi.type.DateTimeEncoding.packDateTimeWithZone;
 import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.TimeType.TIME;
@@ -62,7 +62,7 @@ public class JsonFieldDecoder
     }
 
     @Override
-    public FieldValueProvider decode(JsonNode value, ColumnHandle columnHandle)
+    public FieldValueProvider decode(JsonNode value, DecoderColumnHandle columnHandle)
     {
         checkNotNull(columnHandle, "columnHandle is null");
         checkNotNull(value, "value is null");
@@ -80,16 +80,16 @@ public class JsonFieldDecoder
             extends FieldValueProvider
     {
         protected final JsonNode value;
-        protected final ColumnHandle columnHandle;
+        protected final DecoderColumnHandle columnHandle;
 
-        public JsonValueProvider(JsonNode value, ColumnHandle columnHandle)
+        public JsonValueProvider(JsonNode value, DecoderColumnHandle columnHandle)
         {
             this.value = value;
             this.columnHandle = columnHandle;
         }
 
         @Override
-        public final boolean accept(ColumnHandle columnHandle)
+        public final boolean accept(DecoderColumnHandle columnHandle)
         {
             return this.columnHandle.equals(columnHandle);
         }
@@ -129,7 +129,7 @@ public class JsonFieldDecoder
     public abstract static class DateTimeJsonValueProvider
             extends JsonValueProvider
     {
-        protected DateTimeJsonValueProvider(JsonNode value, ColumnHandle columnHandle)
+        protected DateTimeJsonValueProvider(JsonNode value, DecoderColumnHandle columnHandle)
         {
             super(value, columnHandle);
         }
@@ -137,13 +137,13 @@ public class JsonFieldDecoder
         @Override
         public boolean getBoolean()
         {
-            throw new PrestoException(KAFKA_CONVERSION_NOT_SUPPORTED, "conversion to boolean not supported");
+            throw new PrestoException(CONVERSION_NOT_SUPPORTED, "conversion to boolean not supported");
         }
 
         @Override
         public double getDouble()
         {
-            throw new PrestoException(KAFKA_CONVERSION_NOT_SUPPORTED, "conversion to double not supported");
+            throw new PrestoException(CONVERSION_NOT_SUPPORTED, "conversion to double not supported");
         }
 
         @Override

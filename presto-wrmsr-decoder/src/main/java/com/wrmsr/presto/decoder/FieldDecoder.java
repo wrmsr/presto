@@ -49,5 +49,5 @@ public interface FieldDecoder<T>
      * @param columnHandle The column for which the value is decoded.
      * @return A {@link FieldValueProvider} instance which returns a captured value for this specific column.
      */
-    FieldValueProvider decode(T value, ColumnHandle columnHandle);
+    FieldValueProvider decode(T value, DecoderColumnHandle columnHandle);
 }

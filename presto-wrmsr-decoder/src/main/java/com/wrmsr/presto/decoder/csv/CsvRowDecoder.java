@@ -14,9 +14,9 @@
 package com.wrmsr.presto.decoder.csv;
 
 import au.com.bytecode.opencsv.CSVParser;
-import com.facebook.presto.ColumnHandle;
-import com.facebook.presto.FieldValueProvider;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
 import com.wrmsr.presto.decoder.FieldDecoder;
+import com.wrmsr.presto.decoder.FieldValueProvider;
 import com.wrmsr.presto.decoder.RowDecoder;
 
 import javax.inject.Inject;
@@ -24,6 +24,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Decode a  message as CSV. This is an extremely primitive CSV decoder using {@link au.com.bytecode.opencsv.CSVParser]}.
@@ -47,7 +50,7 @@ public class CsvRowDecoder
     }
 
     @Override
-    public boolean decodeRow(byte[] data, Set<FieldValueProvider> fieldValueProviders, List<ColumnHandle> columnHandles, Map<ColumnHandle, FieldDecoder<?>> fieldDecoders)
+    public boolean decodeRow(byte[] data, Set<FieldValueProvider> fieldValueProviders, List<DecoderColumnHandle> columnHandles, Map<DecoderColumnHandle, FieldDecoder<?>> fieldDecoders)
     {
         String[] fields;
         try {
@@ -60,7 +63,7 @@ public class CsvRowDecoder
             return true;
         }
 
-        for (ColumnHandle columnHandle : columnHandles) {
+        for (DecoderColumnHandle columnHandle : columnHandles) {
             if (columnHandle.isInternal()) {
                 continue;
             }

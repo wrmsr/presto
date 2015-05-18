@@ -13,14 +13,16 @@
  */
 package com.wrmsr.presto.decoder.json;
 
-import com.facebook.presto.ColumnHandle;
-import com.facebook.presto.FieldValueProvider;
+import com.wrmsr.presto.decoder.DecoderColumnHandle;
 import com.wrmsr.presto.decoder.FieldDecoder;
+import com.wrmsr.presto.decoder.FieldValueProvider;
 import com.wrmsr.presto.decoder.RowDecoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.google.common.base.Splitter;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -50,7 +52,7 @@ public class JsonRowDecoder
     }
 
     @Override
-    public boolean decodeRow(byte[] data, Set<FieldValueProvider> fieldValueProviders, List<ColumnHandle> columnHandles, Map<ColumnHandle, FieldDecoder<?>> fieldDecoders)
+    public boolean decodeRow(byte[] data, Set<FieldValueProvider> fieldValueProviders, List<DecoderColumnHandle> columnHandles, Map<DecoderColumnHandle, FieldDecoder<?>> fieldDecoders)
     {
         JsonNode tree;
 
@@ -61,7 +63,7 @@ public class JsonRowDecoder
             return true;
         }
 
-        for (ColumnHandle columnHandle : columnHandles) {
+        for (DecoderColumnHandle columnHandle : columnHandles) {
             if (columnHandle.isInternal()) {
                 continue;
             }
@@ -77,7 +79,7 @@ public class JsonRowDecoder
         return false;
     }
 
-    private static JsonNode locateNode(JsonNode tree, ColumnHandle columnHandle)
+    private static JsonNode locateNode(JsonNode tree, DecoderColumnHandle columnHandle)
     {
         String mapping = columnHandle.getMapping();
         checkState(mapping != null, "No mapping for %s", columnHandle.getName());

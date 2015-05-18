@@ -13,9 +13,6 @@
  */
 package com.wrmsr.presto.decoder;
 
-import com.facebook.presto.ColumnHandle;
-import com.facebook.presto.FieldValueProvider;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +39,6 @@ public interface RowDecoder
     boolean decodeRow(
             byte[] data,
             Set<FieldValueProvider> fieldValueProviders,
-            List<ColumnHandle> columnHandles,
-            Map<ColumnHandle, FieldDecoder<?>> fieldDecoders);
+            List<DecoderColumnHandle> columnHandles,
+            Map<DecoderColumnHandle, FieldDecoder<?>> fieldDecoders);
 }
