@@ -32,6 +32,40 @@
         <artifact id="${project.groupId}:presto-raptor:zip:${project.version}">
         <artifact id="${project.groupId}:presto-tpch:zip:${project.version}">
 
+        <module>presto-spi</module>
+        <module>presto-kafka</module>
+        <module>presto-cassandra</module>
+        <module>presto-orc</module>
+        <module>presto-hive</module>
+        <module>presto-hive-hadoop1</module>
+        <module>presto-hive-hadoop2</module>
+        <module>presto-hive-cdh4</module>
+        <module>presto-hive-cdh5</module>
+        <module>presto-example-http</module>
+        <module>presto-tpch</module>
+        <module>presto-raptor</module>
+        <module>presto-base-jdbc</module>
+        <module>presto-mysql</module>
+        <module>presto-postgresql</module>
+        <module>presto-client</module>
+        <module>presto-parser</module>
+        <module>presto-main</module>
+        <module>presto-ml</module>
+        <module>presto-benchmark</module>
+        <module>presto-tests</module>
+        <module>presto-jdbc</module>
+        <module>presto-cli</module>
+        <module>presto-benchmark-driver</module>
+        <module>presto-server</module>
+        <module>presto-docs</module>
+        <module>presto-verifier</module>
+        <module>presto-wrmsr-decoder</module>
+        <module>presto-wrmsr-elasticsearch</module>
+        <module>presto-wrmsr-ffi</module>
+        <module>presto-wrmsr-materializer</module>
+        <module>presto-wrmsr-wrapper</module>
+        <module>presto-wrmsr-yarn</module>
+
     -->
 
     <dependencies>

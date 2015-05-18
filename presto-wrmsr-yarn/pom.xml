@@ -9,7 +9,7 @@
 
     <artifactId>presto-wrmsr-yarn</artifactId>
     <description>Presto - YARN Plugin</description>
-    <packaging>jar</packaging>
+    <packaging>presto-plugin</packaging>
 
     <properties>
         <air.main.basedir>${project.parent.basedir}</air.main.basedir>
