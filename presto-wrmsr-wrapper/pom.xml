@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.facebook.presto</groupId>
@@ -17,6 +18,7 @@
     </properties>
 
     <!--
+        http://stackoverflow.com/questions/15524995/adding-another-projects-jar-as-a-resource-using-maven
 
         <artifact id="${project.groupId}:presto-main:${project.version}" />
         <artifact id="${project.groupId}:presto-cassandra:zip:${project.version}">
@@ -74,6 +76,7 @@
             <artifactId>presto-main</artifactId>
         </dependency>
 
+        <!--
         <dependency>
             <groupId>com.facebook.presto</groupId>
             <artifactId>presto-spi</artifactId>
@@ -138,6 +141,7 @@
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>
         </dependency>
+        -->
 
         <!-- for testing -->
         <dependency>
@@ -146,6 +150,7 @@
             <scope>test</scope>
         </dependency>
 
+        <!--
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>testing</artifactId>
@@ -182,10 +187,61 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+        -->
     </dependencies>
 
     <build>
         <plugins>
+            <!--
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.facebook.presto</groupId>
+                                    <artifactId>presto-cli</artifactId>
+                                    <outputDirectory>${project.build.outputDirectory}/classes</outputDirectory>
+                                    <destFileName>presto-cli.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            -->
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.facebook.presto</groupId>
+                                    <artifactId>presto-cli</artifactId>
+                                    <outputDirectory>${project.build.outputDirectory}/jars</outputDirectory>
+                                    <destFileName>presto-cli.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -199,7 +255,8 @@
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>executable</shadedClassifierName>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
                                         <Main-Class>${main-class}</Main-Class>
                                     </manifestEntries>

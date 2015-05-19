@@ -13,6 +13,8 @@
  */
 package com.wrmsr.presto.wrapper;
 
+import com.facebook.presto.server.PrestoServer;
+
 public class PrestoWrapper
 {
     private PrestoWrapper()
@@ -21,6 +23,6 @@ public class PrestoWrapper
 
     public static void main(String[] args) throws Throwable
     {
-        System.out.println("sup bitch");
+        PrestoServer.main(args);
     }
 }
