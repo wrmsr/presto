@@ -71,3 +71,6 @@ http://qubole-eng.quora.com/Caching-in-Presto
 ** make wrapper hierarchical poms like hadoop does, one per shaded subdep
 
 https://github.com/apache/hadoop-common/tree/trunk/hadoop-yarn-project/hadoop-yarn/hadoop-yarn-applications/hadoop-yarn-applications-distributedshell/src/main/java/org/apache/hadoop/yarn/applications/distributedshell
+
+https://github.com/shyiko/mysql-binlog-connector-java
+https://github.com/addthis/stream-lib

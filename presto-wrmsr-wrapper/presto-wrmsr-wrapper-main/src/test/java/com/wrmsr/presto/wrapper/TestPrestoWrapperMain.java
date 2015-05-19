@@ -13,16 +13,17 @@
  */
 package com.wrmsr.presto.wrapper;
 
-import com.facebook.presto.server.PrestoServer;
+import org.testng.annotations.Test;
 
-public class PrestoWrapper
+public class TestPrestoWrapperMain
 {
-    private PrestoWrapper()
+    public TestPrestoWrapperMain()
     {
     }
 
-    public static void main(String[] args) throws Throwable
+    @Test
+    public void testSanity()
+            throws Exception
     {
-        PrestoServer.main(args);
     }
 }

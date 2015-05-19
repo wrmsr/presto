@@ -91,6 +91,7 @@
         <module>presto-wrmsr-elasticsearch</module>
         <module>presto-wrmsr-ffi</module>
         <module>presto-wrmsr-materializer</module>
+        <module>presto-wrmsr-splitter</module>
         <module>presto-wrmsr-wrapper</module>
         <module>presto-wrmsr-yarn</module>
     </modules>
