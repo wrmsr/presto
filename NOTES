@@ -74,3 +74,5 @@ https://github.com/apache/hadoop-common/tree/trunk/hadoop-yarn-project/hadoop-ya
 
 https://github.com/shyiko/mysql-binlog-connector-java
 https://github.com/addthis/stream-lib
+
+http://blog.sonatype.com/2008/04/how-to-share-resources-across-projects-in-maven/
