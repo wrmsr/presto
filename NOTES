@@ -82,3 +82,5 @@ http://blog.sonatype.com/2008/04/how-to-share-resources-across-projects-in-maven
     <artifactId>rocksdbjni</artifactId>
     <version>3.10.1</version>
 </dependency>
+
+REDSHIFT
