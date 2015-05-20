@@ -13,8 +13,6 @@
  */
 package com.wrmsr.presto.wrapper;
 
-import com.facebook.presto.server.PrestoServer;
-
 public class PrestoWrapperMain
 {
     private PrestoWrapperMain()
@@ -24,6 +22,5 @@ public class PrestoWrapperMain
     public static void main(String[] args) throws Throwable
     {
         System.out.println("hi");
-        PrestoServer.main(args);
     }
 }
