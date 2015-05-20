@@ -144,7 +144,8 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <outputFile>${project.build.directory}/${project.artifactId}.jar</outputFile>
                         </configuration>
                     </execution>
                 </executions>

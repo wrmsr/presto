@@ -117,6 +117,8 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <outputFile>${project.build.directory}/${project.artifactId}.jar</outputFile>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>executable</shadedClassifierName>
                             <transformers>

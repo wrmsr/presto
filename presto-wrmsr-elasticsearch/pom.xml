@@ -168,8 +168,8 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>executable</shadedClassifierName>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <outputFile>${project.build.directory}/${project.artifactId}.jar</outputFile>
                         </configuration>
                     </execution>
                 </executions>

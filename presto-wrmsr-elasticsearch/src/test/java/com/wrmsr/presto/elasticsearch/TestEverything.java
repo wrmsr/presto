@@ -14,7 +14,6 @@
 package com.wrmsr.presto.elasticsearch;
 
 import com.wrmsr.presto.elasticsearch.util.ElasticsearchTestHelper;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -22,7 +21,7 @@ import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.attribute.FileAttribute;
+import java.nio.file.Path;
 import java.util.Map;
 
 public class TestEverything
@@ -32,8 +31,7 @@ public class TestEverything
     @BeforeClass
     public void setElasticsearchDataDir() throws IOException
     {
-        Files.createTempDirectory(null);
-
+        Path dataPath = Files.createTempDirectory(null);
     }
 
     @BeforeMethod
