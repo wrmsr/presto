@@ -139,6 +139,7 @@
                 <configuration>
                     <flags>-Xmx1G</flags>
                     <classifier>executable</classifier>
+                    <programFile>${project.build.directory}/${project.artifactId}.jar</programFile>
                 </configuration>
                 <executions>
                     <execution>

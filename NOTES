@@ -64,6 +64,9 @@ wrmsr-packaging? bootstrap?
  - full shading
  - JAVA_HOME
 
+jython
+ - a fucking sqlalchemy connector why not
+
 
 http://qubole-eng.quora.com/Caching-in-Presto
 
@@ -86,3 +89,17 @@ http://blog.sonatype.com/2008/04/how-to-share-resources-across-projects-in-maven
 REDSHIFT
 
 eek need on-board views
+
+
+
+* dumb flat json file output
+
+
+prepared statements / plan caching
+
+
+
+constants?
+ - can impl cheap via fns that just return a #, can transform to literals via MH lookup or iface introspection or something
+
+https://github.com/wrmsr/presto-streaming omfg
