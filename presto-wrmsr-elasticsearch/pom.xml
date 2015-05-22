@@ -119,13 +119,14 @@
             </exclusions>
         </dependency>
 
+        <!-- for testing -->
         <dependency>
             <groupId>org.elasticsearch</groupId>
             <artifactId>elasticsearch</artifactId>
             <version>${elasticsearch.version}</version>
+            <scope>test</scope>
         </dependency>
 
-        <!-- for testing -->
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
