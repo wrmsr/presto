@@ -11,19 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.ql.io.orc;
+package com.facebook.presto.operator.aggregation.state;
 
-public final class OrcUtil
+public interface RegressionState
+        extends CovarianceState
 {
-    private OrcUtil()
-    {
-    }
+    double getSumXSquare();
 
-    public static Object getFieldValue(OrcStruct orcStruct, int column)
-    {
-        if (column >= orcStruct.getNumFields()) {
-            return null;
-        }
-        return orcStruct.getFieldValue(column);
-    }
+    void setSumXSquare(double value);
 }
