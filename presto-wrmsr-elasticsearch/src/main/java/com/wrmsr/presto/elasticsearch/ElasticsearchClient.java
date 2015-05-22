@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 import io.airlift.json.JsonCodec;
+import io.searchbox.client.http.JestHttpClient;
 
 import javax.inject.Inject;
 
@@ -74,6 +75,7 @@ public class ElasticsearchClient
     {
         checkNotNull(schema, "schema is null");
         checkNotNull(tableName, "tableName is null");
+        new JestHttpClient();
         Map<String, ElasticsearchTable> tables = schemas.get().get(schema);
         if (tables == null) {
             return null;

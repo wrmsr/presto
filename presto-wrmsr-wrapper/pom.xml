@@ -5,9 +5,10 @@
     <parent>
         <groupId>com.facebook.presto</groupId>
         <artifactId>presto-root</artifactId>
-        <version>0.103</version>
+        <version>0.105-SNAPSHOT</version>
     </parent>
 
+    <groupId>com.wrmsr.presto</groupId>
     <artifactId>presto-wrmsr-wrapper</artifactId>
     <description>Presto - Wrapper</description>
     <packaging>jar</packaging>
@@ -15,55 +16,11 @@
     <!--
         http://stackoverflow.com/questions/15524995/adding-another-projects-jar-as-a-resource-using-maven
 
-        <artifact id="${project.groupId}:presto-main:${project.version}" />
-        <artifact id="${project.groupId}:presto-cassandra:zip:${project.version}">
-        <artifact id="${project.groupId}:presto-kafka:zip:${project.version}">
-        <artifact id="${project.groupId}:presto-ml:zip:${project.version}">
-        <artifact id="${project.groupId}:presto-mysql:zip:${project.version}">
-        <artifact id="${project.groupId}:presto-postgresql:zip:${project.version}">
-        <artifact id="${project.groupId}:presto-raptor:zip:${project.version}">
-        <artifact id="${project.groupId}:presto-tpch:zip:${project.version}">
-
         <artifact id="${project.groupId}:presto-example-http:zip:${project.version}">
         <artifact id="${project.groupId}:presto-hive-cdh4:zip:${project.version}">
         <artifact id="${project.groupId}:presto-hive-cdh5:zip:${project.version}">
         <artifact id="${project.groupId}:presto-hive-hadoop1:zip:${project.version}">
         <artifact id="${project.groupId}:presto-hive-hadoop2:zip:${project.version}">
-
-        <module>presto-spi</module>
-        <module>presto-kafka</module>
-        <module>presto-cassandra</module>
-        <module>presto-orc</module>
-        <module>presto-hive</module>
-        <module>presto-hive-hadoop1</module>
-        <module>presto-hive-hadoop2</module>
-        <module>presto-hive-cdh4</module>
-        <module>presto-hive-cdh5</module>
-        <module>presto-example-http</module>
-        <module>presto-tpch</module>
-        <module>presto-raptor</module>
-        <module>presto-base-jdbc</module>
-        <module>presto-mysql</module>
-        <module>presto-postgresql</module>
-        <module>presto-client</module>
-        <module>presto-parser</module>
-        <module>presto-main</module>
-        <module>presto-ml</module>
-        <module>presto-benchmark</module>
-        <module>presto-tests</module>
-        <module>presto-jdbc</module>
-        <module>presto-cli</module>
-        <module>presto-benchmark-driver</module>
-        <module>presto-server</module>
-        <module>presto-docs</module>
-        <module>presto-verifier</module>
-        <module>presto-wrmsr-decoder</module>
-        <module>presto-wrmsr-elasticsearch</module>
-        <module>presto-wrmsr-ffi</module>
-        <module>presto-wrmsr-materializer</module>
-        <module>presto-wrmsr-wrapper</module>
-        <module>presto-wrmsr-yarn</module>
-
     -->
 
     <properties>
@@ -72,6 +29,104 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-cassandra</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-kafka</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-main</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-ml</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-mysql</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-postgresql</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-raptor</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-tpch</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-decoder</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-elasticsearch</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-ffi</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-materializer</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-splitter</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-yarn</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <!--
         <dependency>
             <groupId>com.facebook.presto</groupId>
@@ -248,6 +303,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>executable</shadedClassifierName>
                             <transformers>
@@ -269,6 +325,7 @@
                 <configuration>
                     <flags>-Xmx1G</flags>
                     <classifier>executable</classifier>
+                    <programFile>${project.artifactId}.jar</programFile>
                 </configuration>
                 <executions>
                     <execution>

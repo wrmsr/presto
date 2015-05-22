@@ -4,9 +4,10 @@
     <parent>
         <groupId>com.facebook.presto</groupId>
         <artifactId>presto-root</artifactId>
-        <version>0.103</version>
+        <version>0.105-SNAPSHOT</version>
     </parent>
 
+    <groupId>com.wrmsr.presto</groupId>
     <artifactId>presto-wrmsr-elasticsearch</artifactId>
     <description>Presto - Elasticsearch Connector</description>
     <packaging>presto-plugin</packaging>

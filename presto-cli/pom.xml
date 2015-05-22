@@ -118,7 +118,6 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <outputFile>${project.build.directory}/${project.artifactId}.jar</outputFile>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>executable</shadedClassifierName>
                             <transformers>
@@ -139,7 +138,7 @@
                 <configuration>
                     <flags>-Xmx1G</flags>
                     <classifier>executable</classifier>
-                    <programFile>${project.build.directory}/${project.artifactId}.jar</programFile>
+                    <programFile>${project.artifactId}.jar</programFile>
                 </configuration>
                 <executions>
                     <execution>
