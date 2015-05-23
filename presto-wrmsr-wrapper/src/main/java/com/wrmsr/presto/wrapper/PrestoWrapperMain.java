@@ -48,7 +48,7 @@ public class PrestoWrapperMain
                 .put("node.environment", "production")
                 .put("node.id", "ffffffff-ffff-ffff-ffff-ffffffffffff")
                 .put("node.data-dir", "/Users/wtimoney/presto/data/")
-                .put("presto.version", "0.103")
+                .put("presto.version", "0.105-SNAPSHOT")
                 .put("coordinator", "true")
                 .put("node-scheduler.include-coordinator", "true")
                 .put("http-server.http.port", "8080")
@@ -62,24 +62,40 @@ public class PrestoWrapperMain
 
         File cwd = new File(System.getProperty("user.dir"));
 
-        ArtifactResolver resolver = new ArtifactResolver(
-                ArtifactResolver.USER_LOCAL_REPO,
-                ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
-        List<Artifact> artifacts = resolver.resolvePom(new File(cwd, "presto-main/pom.xml"));
-
-        List<File> files = Lists.newArrayList(new File(cwd, "presto-main/target/classes/"));
-        for (Artifact a : artifacts) {
-            files.add(a.getFile());
-        }
-
         List<URL> urls = Lists.newArrayList();
-        for (File file : files) {
-            if (!file.exists()) {
-                throw new IllegalStateException(file.getAbsolutePath());
+        boolean isShaded = true;
+
+        if (isShaded) {
+            File shaded = new File(cwd, "presto-main/target/presto-main.jar");
+            if (!shaded.exists()) {
+                throw new IllegalStateException(shaded.getAbsolutePath());
             }
-            URL url = new URL("file:" + file.getAbsolutePath() + (file.isDirectory() ? "/" : ""));
-            System.out.println(url);
+            URL url = new URL("file:" + shaded.getAbsolutePath());
             urls.add(url);
+
+        } else {
+            ArtifactResolver resolver = new ArtifactResolver(
+                    ArtifactResolver.USER_LOCAL_REPO,
+                    ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
+
+            List<Artifact> artifacts = resolver.resolvePom(new File(cwd, "presto-main/pom.xml"));
+
+            List<File> files = Lists.newArrayList(
+                    new File(cwd, "presto-main/target/presto-main.jar"),
+                    new File(cwd, "presto-main/target/classes/")
+            );
+            for (Artifact a : artifacts) {
+                files.add(a.getFile());
+            }
+
+            for (File file : files) {
+                if (!file.exists()) {
+                    // throw new IllegalStateException(file.getAbsolutePath());
+                }
+                URL url = new URL("file:" + file.getAbsolutePath() + (file.isDirectory() ? "/" : ""));
+                System.out.println(url);
+                urls.add(url);
+            }
         }
 
         ClassLoader cl = new ParentLastURLClassLoader(urls);
