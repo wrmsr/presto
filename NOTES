@@ -93,6 +93,7 @@ eek need on-board views
 
 
 * dumb flat json file output
+ - complicated by clustering, can just dump to dirs with uuid names as write-only
 
 
 prepared statements / plan caching
@@ -103,3 +104,9 @@ constants?
  - can impl cheap via fns that just return a #, can transform to literals via MH lookup or iface introspection or something
 
 https://github.com/wrmsr/presto-streaming omfg
+
+
+bitwise operators
+
+hierarchical config - can just fucking redundantly serialize to fit into map<str,str>'s
+
