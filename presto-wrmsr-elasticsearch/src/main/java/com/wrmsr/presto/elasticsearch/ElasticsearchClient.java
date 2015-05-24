@@ -22,16 +22,23 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 import io.airlift.json.JsonCodec;
+import io.searchbox.client.JestClient;
+import io.searchbox.client.JestClientFactory;
+import io.searchbox.client.JestResult;
+import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.client.http.JestHttpClient;
+import io.searchbox.indices.mapping.GetMapping;
 
 import javax.inject.Inject;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
@@ -46,6 +53,8 @@ public class ElasticsearchClient
      */
     private final Supplier<Map<String, Map<String, ElasticsearchTable>>> schemas;
 
+    private final JestClient jestClient;
+
     @Inject
     public ElasticsearchClient(ElasticsearchConfig config, JsonCodec<Map<String, List<ElasticsearchTable>>> catalogCodec)
             throws IOException
@@ -53,7 +62,32 @@ public class ElasticsearchClient
         checkNotNull(config, "config is null");
         checkNotNull(catalogCodec, "catalogCodec is null");
 
-        schemas = Suppliers.memoize(schemasSupplier(catalogCodec, config.getMetadata()));
+
+        HttpClientConfig.Builder httpClientConfigBuilder = new HttpClientConfig.Builder(
+                        Arrays.asList(config.getHttpUri().split(",")));
+        if (config.getMaxTotalConnections() != null) {
+            httpClientConfigBuilder.maxTotalConnection(config.getMaxTotalConnections());
+        }
+        if (config.getDiscoveryFrequency() != null) {
+            httpClientConfigBuilder.discoveryFrequency(config.getDiscoveryFrequency(), TimeUnit.MILLISECONDS);
+        }
+        httpClientConfigBuilder.discoveryEnabled(config.getDiscoveryEnabled());
+        httpClientConfigBuilder.multiThreaded(config.getMultiThreaded());
+        if (config.getConnTimeout() != null) {
+            httpClientConfigBuilder.connTimeout(config.getConnTimeout());
+        }
+        if (config.getReadTimeout() != null) {
+            httpClientConfigBuilder.readTimeout(config.getReadTimeout());
+        }
+        if (config.getMaxConnectionIdleTime() != null) {
+            httpClientConfigBuilder.maxConnectionIdleTime(config.getMaxConnectionIdleTime(), TimeUnit.MILLISECONDS);
+        }
+
+        JestClientFactory clientFactory = new JestClientFactory();
+        clientFactory.setHttpClientConfig(httpClientConfigBuilder.build());
+        jestClient = clientFactory.getObject();
+
+        schemas = Suppliers.memoize(schemasSupplier(catalogCodec));
     }
 
     public Set<String> getSchemaNames()
@@ -83,26 +117,30 @@ public class ElasticsearchClient
         return tables.get(tableName);
     }
 
-    private static Supplier<Map<String, Map<String, ElasticsearchTable>>> schemasSupplier(final JsonCodec<Map<String, List<ElasticsearchTable>>> catalogCodec, final URI metadataUri)
+    private Supplier<Map<String, Map<String, ElasticsearchTable>>> schemasSupplier(final JsonCodec<Map<String, List<ElasticsearchTable>>> catalogCodec)
     {
         return () -> {
             try {
-                return lookupSchemas(metadataUri, catalogCodec);
+                return lookupSchemas(catalogCodec);
             }
-            catch (IOException e) {
+            catch (Exception e) {
                 throw Throwables.propagate(e);
             }
         };
     }
 
-    private static Map<String, Map<String, ElasticsearchTable>> lookupSchemas(URI metadataUri, JsonCodec<Map<String, List<ElasticsearchTable>>> catalogCodec)
-            throws IOException
+    private Map<String, Map<String, ElasticsearchTable>> lookupSchemas(JsonCodec<Map<String, List<ElasticsearchTable>>> catalogCodec)
+            throws Exception
     {
+        JestResult result = jestClient.execute(new GetMapping.Builder().build());
+        /*
         URL result = metadataUri.toURL();
         String json = Resources.toString(result, UTF_8);
         Map<String, List<ElasticsearchTable>> catalog = catalogCodec.fromJson(json);
 
         return ImmutableMap.copyOf(transformValues(catalog, resolveAndIndexTables(metadataUri)));
+        */
+        throw new IllegalStateException();
     }
 
     private static Function<List<ElasticsearchTable>, Map<String, ElasticsearchTable>> resolveAndIndexTables(final URI metadataUri)

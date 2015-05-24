@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.materializer;
+package com.wrmsr.presto.reactor;
 
 // import com.facebook.presto.metadata.FunctionFactory;
 
@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 // import com.facebook.presto.type.ParametricType;
 
-public class MaterializerPlugin
+public class ReactorPlugin
         implements Plugin
 {
     private TypeManager typeManager;

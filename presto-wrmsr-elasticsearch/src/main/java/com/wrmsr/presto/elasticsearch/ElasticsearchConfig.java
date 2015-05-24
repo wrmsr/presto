@@ -21,18 +21,95 @@ import java.net.URI;
 
 public class ElasticsearchConfig
 {
-    private URI metadata;
+    private String httpUri;
 
     @NotNull
-    public URI getMetadata()
+    public String getHttpUri()
     {
-        return metadata;
+        return httpUri;
     }
 
-    @Config("metadata-uri")
-    public ElasticsearchConfig setMetadata(URI metadata)
+    @Config("http-uri")
+    public ElasticsearchConfig setHttpUri(String httpUri)
     {
-        this.metadata = metadata;
+        this.httpUri = httpUri;
         return this;
+    }
+
+    private Integer maxTotalConnections;
+
+    public Integer getMaxTotalConnections() {
+        return maxTotalConnections;
+    }
+
+    @Config("client-max-connections")
+    public void setMaxTotalConnections(Integer maxTotalConnections) {
+        this.maxTotalConnections = maxTotalConnections;
+    }
+
+    private Integer discoveryFrequency;
+
+    public Integer getDiscoveryFrequency() {
+        return discoveryFrequency;
+    }
+
+    @Config("client-discovery-frequency")
+    public void setDiscoveryFrequency(Integer discoveryFrequency) {
+        this.discoveryFrequency = discoveryFrequency;
+    }
+
+    private boolean discoveryEnabled;
+
+    public boolean getDiscoveryEnabled() {
+        return discoveryEnabled;
+    }
+
+    @Config("client-discovery-enabled")
+    public void setDiscoveryEnabled(boolean discoveryEnabled) {
+        this.discoveryEnabled = discoveryEnabled;
+    }
+
+    private boolean multiThreaded;
+
+    public boolean getMultiThreaded() {
+        return multiThreaded;
+    }
+
+    @Config("client-multithreaded")
+    public void setMultiThreaded(boolean multiThreaded) {
+        this.multiThreaded = multiThreaded;
+    }
+
+    private Integer connTimeout;
+
+    public Integer getConnTimeout() {
+        return connTimeout;
+    }
+
+    @Config("client-multithreaded")
+    public void setConnTimeout(Integer connTimeout) {
+        this.connTimeout = connTimeout;
+    }
+
+    private Integer readTimeout;
+
+    public Integer getReadTimeout() {
+        return readTimeout;
+    }
+
+    @Config("client-read-timeout")
+    public void setReadTimeout(Integer readTimeout) {
+        this.readTimeout = readTimeout;
+    }
+
+    private Integer maxConnectionIdleTime;
+
+    public Integer getMaxConnectionIdleTime() {
+        return maxConnectionIdleTime;
+    }
+
+    @Config("client-connection-idle-time")
+    public void setMaxConnectionIdleTime(Integer maxConnectionIdleTime) {
+        this.maxConnectionIdleTime = maxConnectionIdleTime;
     }
 }

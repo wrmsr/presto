@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.materializer;
+package com.wrmsr.presto.reactor;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.testing.LocalQueryRunner;
@@ -24,10 +24,10 @@ import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
 import static java.util.Locale.ENGLISH;
 
-public class TestMaterializerPlugin
+public class TestReactorPlugin
         extends AbstractTestQueryFramework
 {
-    public TestMaterializerPlugin()
+    public TestReactorPlugin()
     {
         super(createLocalQueryRunner());
     }
@@ -59,7 +59,7 @@ public class TestMaterializerPlugin
                 new TpchConnectorFactory(queryRunner.getNodeManager(), 1),
                 ImmutableMap.<String, String>of());
 
-        MaterializerPlugin plugin = new MaterializerPlugin();
+        ReactorPlugin plugin = new ReactorPlugin();
         plugin.setTypeManager(queryRunner.getTypeManager());
         /*
         for (Type type : plugin.getServices(Type.class)) {

@@ -41,7 +41,7 @@ public class ElasticsearchConnectorFactory
     @Override
     public String getName()
     {
-        return "example-http";
+        return "elasticsearch";
     }
 
     @Override
@@ -56,7 +56,7 @@ public class ElasticsearchConnectorFactory
                     new JsonModule(),
                     new ElasticsearchModule(connectorId, typeManager));
 
-        Injector injector = app
+            Injector injector = app
                     .strictConfig()
                     .doNotInitializeLogging()
                     .setRequiredConfigurationProperties(requiredConfig)

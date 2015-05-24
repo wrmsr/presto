@@ -1,4 +1,5 @@
 es driver
+ - jest + transportclient
 auto jdbc partitioning
 further jdbc predicate pushdown
 jdbc aggregate pushdown
@@ -12,6 +13,12 @@ random access stores
 first layer caching
 vitess shit
 nashorn stored procs
+salesforce connector?
+
+local fs / hive configurator
+
+https://www.simba.com/data-access/apache-drill-data-sources-file-types
+SELECT name1[‘nestedname1’][‘nestednestedname1’] FROM <schema>.<filename>.json
 
 tachyon temp spilling
 sorted [leveldb] join storage
@@ -67,6 +74,10 @@ wrmsr-packaging? bootstrap?
 jython
  - a fucking sqlalchemy connector why not
 
+mvel
+java
+jsr223 artifact resolver?
+bulk funcs
 
 http://qubole-eng.quora.com/Caching-in-Presto
 
@@ -110,3 +121,39 @@ bitwise operators
 
 hierarchical config - can just fucking redundantly serialize to fit into map<str,str>'s
 
+
+
+<dependency>
+    <groupId>org.python</groupId>
+    <artifactId>jython</artifactId>
+    <version>2.7.0</version>
+</dependency>
+
+<dependency>
+    <groupId>org.mvel</groupId>
+    <artifactId>mvel2</artifactId>
+    <version>2.2.4.Final</version>
+</dependency>
+
+<dependency>
+    <groupId>org.jruby</groupId>
+    <artifactId>jruby</artifactId>
+    <version>1.7.20</version>
+</dependency>
+
+
+streams + sqs + gearman
+
+
+
+
+
+
+lucene analysis scalars
+
+explode/deagg
+
+
+https://github.com/elastic/elasticsearch-hadoop
+https://github.com/elastic/stream2es
+https://github.com/elastic/elasticsearch-aws

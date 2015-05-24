@@ -32,7 +32,6 @@ import static org.testng.Assert.assertFalse;
 
 public class TestElasticsearchRecordSet
 {
-    private ExampleHttpServer exampleHttpServer;
     private URI dataUri;
 
     @Test
@@ -104,30 +103,5 @@ public class TestElasticsearchRecordSet
                 .put("eleven", 11L)
                 .put("twelve", 12L)
                 .build());
-    }
-
-    //
-    // TODO: your code should also have tests for all types that you support and for the state machine of your cursor
-    //
-
-    //
-    // Start http server for testing
-    //
-
-    @BeforeClass
-    public void setUp()
-            throws Exception
-    {
-        exampleHttpServer = new ExampleHttpServer();
-        dataUri = exampleHttpServer.resolve("/example-data/numbers-2.csv");
-    }
-
-    @AfterClass
-    public void tearDown()
-            throws Exception
-    {
-        if (exampleHttpServer != null) {
-            exampleHttpServer.stop();
-        }
     }
 }

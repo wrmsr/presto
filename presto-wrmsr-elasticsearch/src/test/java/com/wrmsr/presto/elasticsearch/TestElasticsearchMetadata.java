@@ -54,7 +54,7 @@ public class TestElasticsearchMetadata
         URL metadataUrl = Resources.getResource(TestElasticsearchClient.class, "/example-data/example-metadata.json");
         assertNotNull(metadataUrl, "metadataUrl is null");
         metadataUri = metadataUrl.toURI();
-        ElasticsearchClient client = new ElasticsearchClient(new ElasticsearchConfig().setMetadata(metadataUri), MetadataUtil.CATALOG_CODEC);
+        ElasticsearchClient client = new ElasticsearchClient(new ElasticsearchConfig(), MetadataUtil.CATALOG_CODEC);
         metadata = new ElasticsearchMetadata(new ElasticsearchConnectorId(CONNECTOR_ID), client);
     }
 
