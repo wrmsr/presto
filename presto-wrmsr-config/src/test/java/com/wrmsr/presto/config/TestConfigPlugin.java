@@ -18,7 +18,11 @@ import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.configuration.*;
 import org.testng.annotations.Test;
+
+import java.io.File;
+import java.util.Properties;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
@@ -37,6 +41,27 @@ public class TestConfigPlugin
             throws Exception
     {
         queryRunner.execute("select * from lineitem inner join orders on orders.orderkey = lineitem.orderkey inner join customer on orders.custkey = customer.custkey limit 10");
+    }
+
+    @Test
+    public void testConfig()
+            throws Exception
+    {
+        /*
+        // Parameters params = new Parameters();
+        FileBasedConfigurationBuilder<PropertiesConfiguration> builder =
+                new FileBasedConfigurationBuilder<PropertiesConfiguration>(PropertiesConfiguration.class)
+                        .configure(params.fileBased()
+                                .setFile(new File("config.properties"));
+        PropertiesConfiguration flatConfig = builder.getConfiguration();
+        */
+        Configuration c = new MapConfiguration(ImmutableMap.<String, String>builder().put("a.b.c", "hi").build());
+        HierarchicalConfiguration hc = ConfigurationUtils.convertToHierarchical(c);
+        System.out.println(hc);
+        Properties p = ConfigurationConverter.getProperties(hc);
+        System.out.println(p);
+        p = ConfigurationConverter.getProperties(hc.configurationAt("a"));
+        System.out.println(p);
     }
 
     private static LocalQueryRunner createLocalQueryRunner()

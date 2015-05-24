@@ -57,6 +57,10 @@ public class TestEverything
     public void setElasticsearchDataDir() throws IOException
     {
         Path dataPath = Files.createTempDirectory(null);
+        helper.putDefaultSettings(
+                ImmutableSettings.settingsBuilder()
+                .put("path.data", dataPath.toFile().getAbsolutePath())
+                .build());
     }
 
     @BeforeMethod
