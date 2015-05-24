@@ -110,8 +110,8 @@
         <artifact id="com.wrmsr.presto:presto-wrmsr-ffi:jar:${project.version}" />
     </artifactSet>
 
-    <artifactSet to="plugin/materializer">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-materializer:jar:${project.version}" />
+    <artifactSet to="plugin/reactor">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-reactor:jar:${project.version}" />
     </artifactSet>
 
     <artifactSet to="plugin/splitter">

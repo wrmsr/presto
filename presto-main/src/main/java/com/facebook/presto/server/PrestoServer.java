@@ -28,7 +28,6 @@ import io.airlift.discovery.client.Announcer;
 import io.airlift.discovery.client.DiscoveryModule;
 import io.airlift.discovery.client.ServiceAnnouncement;
 import io.airlift.event.client.EventClient;
-import io.airlift.event.client.EventType;
 import io.airlift.event.client.HttpEventModule;
 import io.airlift.event.client.JsonEventModule;
 import io.airlift.http.server.HttpServerModule;
@@ -42,7 +41,6 @@ import io.airlift.node.NodeModule;
 import io.airlift.tracetoken.TraceTokenModule;
 import org.weakref.jmx.guice.MBeanModule;
 
-import javax.annotation.concurrent.Immutable;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -72,12 +70,6 @@ public class PrestoServer
     public PrestoServer(SqlParserOptions sqlParserOptions)
     {
         this.sqlParserOptions = checkNotNull(sqlParserOptions, "sqlParserOptions is null");
-    }
-
-    @Immutable
-    @EventType("CatalogInitialized")
-    public static final class CatalogInitializedEvent
-    {
     }
 
     @Override
@@ -113,9 +105,11 @@ public class PrestoServer
 
             injector.getInstance(PluginManager.class).loadPlugins();
 
+            injector.getInstance(EventClient.class).post(new PluginsInitializedEvent()).get();
+
             injector.getInstance(CatalogManager.class).loadCatalogs();
 
-            injector.getInstance(EventClient.class).post(new CatalogInitializedEvent());
+            injector.getInstance(EventClient.class).post(new CatalogInitializedEvent()).get();
 
             // TODO: remove this huge hack
             updateDatasources(

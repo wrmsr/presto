@@ -141,6 +141,7 @@ hierarchical config - can just fucking redundantly serialize to fit into map<str
     <version>1.7.20</version>
 </dependency>
 
+http://jyni.org/
 
 streams + sqs + gearman
 
@@ -187,3 +188,12 @@ http://phoenix.apache.org/
 https://github.com/facebook/presto/pull/2896
 
 https://commons.apache.org/proper/commons-configuration/userguide/howto_utilities.html
+
+
+
+
+https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF#LanguageManualUDF-Built-inTable-GeneratingFunctions(UDTF)
+
+
+wrapper will dedupe unshaded jars, write nested classloader
+

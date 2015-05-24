@@ -15,11 +15,16 @@ package com.wrmsr.presto.config;
 
 // import com.facebook.presto.metadata.FunctionFactory;
 
+import com.facebook.presto.server.PluginsInitializedEvent;
+import com.facebook.presto.server.RelayEventClient;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Injector;
+import io.airlift.event.client.AbstractEventClient;
 
 import javax.inject.Inject;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +36,18 @@ public class ConfigPlugin
         implements Plugin
 {
     private TypeManager typeManager;
+
+    @Inject
+    public void setRelayEventClient(RelayEventClient relayEventClient) {
+        relayEventClient.addClient(new AbstractEventClient() {
+            @Override
+            protected <T> void postEvent(T event) throws IOException {
+                if (event instanceof PluginsInitializedEvent) {
+                    System.out.println("plugins initialized");
+                }
+            }
+        });
+    }
 
     @Override
     public void setOptionalConfig(Map<String, String> optionalConfig)
