@@ -157,3 +157,18 @@ explode/deagg
 https://github.com/elastic/elasticsearch-hadoop
 https://github.com/elastic/stream2es
 https://github.com/elastic/elasticsearch-aws
+
+
+es bulk by length
+https://github.com/elastic/elasticsearch-hadoop/tree/master/mr/src/main/java/org/elasticsearch/hadoop
+https://github.com/elastic/elasticsearch-hadoop/tree/master/hive/src/main/java/org/elasticsearch/hadoop/hive
+https://github.com/elastic/elasticsearch-hadoop/tree/master/yarn
+
+
+
+https://github.com/searchbox-io/Jest/tree/master/jest
+
+
+https://developer.salesforce.com/page/Streaming_API
+http://www.salesforce.com/us/developer/docs/api_rest/index_Left.htm#StartTopic=Content/quickstart.htm
+

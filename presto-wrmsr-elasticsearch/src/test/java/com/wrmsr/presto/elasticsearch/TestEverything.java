@@ -14,6 +14,8 @@
 package com.wrmsr.presto.elasticsearch;
 
 import com.beust.jcommander.internal.Maps;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.elasticsearch.util.ElasticsearchTestHelper;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
@@ -41,6 +43,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+
+import static com.facebook.presto.spi.type.BigintType.BIGINT;
+import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
 public class TestEverything
 {
@@ -154,6 +161,20 @@ public class TestEverything
 
         res = client.execute(new GetMapping.Builder().build());
 
+        /*
+        ElasticsearchClient client = new ElasticsearchClient(
+                new ElasticsearchConfig().setHttpUri("http://localhost:" + port),
+                MetadataUtil.CATALOG_CODEC);
+        assertEquals(client.getSchemaNames(), ImmutableSet.of("example", "tpch"));
+        assertEquals(client.getTableNames("example"), ImmutableSet.of("numbers"));
+        assertEquals(client.getTableNames("tpch"), ImmutableSet.of("orders", "lineitem"));
+
+        ElasticsearchTable table = client.getTable("example", "numbers");
+        assertNotNull(table, "table is null");
+        assertEquals(table.getName(), "numbers");
+        assertEquals(table.getColumns(), ImmutableList.of(new ElasticsearchColumn("text", VARCHAR), new ElasticsearchColumn("value", BIGINT)));
+        assertEquals(table.getSources(), ImmutableList.of(metadata.resolve("numbers-1.csv"), metadata.resolve("numbers-2.csv")));
+        */
 
         /*
         Settings settings = ImmutableSettings.settingsBuilder()
