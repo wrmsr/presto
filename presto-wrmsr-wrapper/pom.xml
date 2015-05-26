@@ -95,13 +95,6 @@
 
         <dependency>
             <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-decoder</artifactId>
-            <version>${project.parent.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.wrmsr.presto</groupId>
             <artifactId>presto-wrmsr-elasticsearch</artifactId>
             <version>${project.parent.version}</version>
             <scope>test</scope>
@@ -116,14 +109,14 @@
 
         <dependency>
             <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-materializer</artifactId>
+            <artifactId>presto-wrmsr-metaconnectors</artifactId>
             <version>${project.parent.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-splitter</artifactId>
+            <artifactId>presto-wrmsr-reactor</artifactId>
             <version>${project.parent.version}</version>
             <scope>test</scope>
         </dependency>

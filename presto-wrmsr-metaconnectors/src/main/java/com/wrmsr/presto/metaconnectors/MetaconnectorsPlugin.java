@@ -15,9 +15,12 @@ package com.wrmsr.presto.metaconnectors;
 
 // import com.facebook.presto.metadata.FunctionFactory;
 
+import com.facebook.presto.spi.ConnectorFactory;
+import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.metaconnectors.splitter.SplitterConnectorFactory;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -31,6 +34,14 @@ public class MetaconnectorsPlugin
         implements Plugin
 {
     private TypeManager typeManager;
+
+    private NodeManager nodeManager;
+
+    @Inject
+    public void setNodeManager(NodeManager nodeManager)
+    {
+        this.nodeManager = nodeManager;
+    }
 
     @Override
     public void setOptionalConfig(Map<String, String> optionalConfig)
@@ -46,6 +57,10 @@ public class MetaconnectorsPlugin
     @Override
     public <T> List<T> getServices(Class<T> type)
     {
+        if (type == ConnectorFactory.class) {
+            checkNotNull(nodeManager, "nodeManager is null");
+            return ImmutableList.of(type.cast(new SplitterConnectorFactory(nodeManager)));
+        }
 //        if (type == FunctionFactory.class) {
 //            return ImmutableList.of(type.cast(new MLFunctionFactory(typeManager)));
 //        }

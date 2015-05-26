@@ -15,8 +15,6 @@ package com.wrmsr.presto.config;
 
 // import com.facebook.presto.metadata.FunctionFactory;
 
-import com.facebook.presto.server.PluginsInitializedEvent;
-import com.facebook.presto.server.RelayEventClient;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
@@ -37,6 +35,7 @@ public class ConfigPlugin
 {
     private TypeManager typeManager;
 
+    /*
     @Inject
     public void setRelayEventClient(RelayEventClient relayEventClient) {
         relayEventClient.addClient(new AbstractEventClient() {
@@ -48,6 +47,7 @@ public class ConfigPlugin
             }
         });
     }
+    */
 
     @Override
     public void setOptionalConfig(Map<String, String> optionalConfig)

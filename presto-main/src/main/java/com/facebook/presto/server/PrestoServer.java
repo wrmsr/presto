@@ -27,7 +27,6 @@ import io.airlift.bootstrap.Bootstrap;
 import io.airlift.discovery.client.Announcer;
 import io.airlift.discovery.client.DiscoveryModule;
 import io.airlift.discovery.client.ServiceAnnouncement;
-import io.airlift.event.client.EventClient;
 import io.airlift.event.client.HttpEventModule;
 import io.airlift.event.client.JsonEventModule;
 import io.airlift.http.server.HttpServerModule;
@@ -105,11 +104,11 @@ public class PrestoServer
 
             injector.getInstance(PluginManager.class).loadPlugins();
 
-            injector.getInstance(EventClient.class).post(new PluginsInitializedEvent()).get();
+            //injector.getInstance(EventClient.class).post(new PluginsInitializedEvent()).get();
 
             injector.getInstance(CatalogManager.class).loadCatalogs();
 
-            injector.getInstance(EventClient.class).post(new CatalogInitializedEvent()).get();
+            //injector.getInstance(EventClient.class).post(new CatalogInitializedEvent()).get();
 
             // TODO: remove this huge hack
             updateDatasources(
