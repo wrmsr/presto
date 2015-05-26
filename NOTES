@@ -196,4 +196,6 @@ https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF#LanguageManu
 
 
 wrapper will dedupe unshaded jars, write nested classloader
+- http://one-jar.sourceforge.net/
 
+rsync powered jarsync bash/py script pls

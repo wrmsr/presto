@@ -89,11 +89,10 @@
         <module>presto-verifier</module>
         <module>presto-wrmsr-common</module>
         <module>presto-wrmsr-config</module>
-        <module>presto-wrmsr-decoder</module>
         <module>presto-wrmsr-elasticsearch</module>
         <module>presto-wrmsr-ffi</module>
+        <module>presto-wrmsr-metaconnectors</module>
         <module>presto-wrmsr-reactor</module>
-        <module>presto-wrmsr-splitter</module>
         <module>presto-wrmsr-wrapper</module>
         <module>presto-wrmsr-yarn</module>
     </modules>
