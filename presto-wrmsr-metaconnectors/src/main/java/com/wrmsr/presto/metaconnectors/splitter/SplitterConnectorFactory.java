@@ -1,5 +1,6 @@
 package com.wrmsr.presto.metaconnectors.splitter;
 
+import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.ConnectorHandleResolver;
@@ -15,6 +16,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class SplitterConnectorFactory implements ConnectorFactory
 {
+    private final ConnectorManager connectorManager;
     private final NodeManager nodeManager;
     private final int defaultSplitsPerNode;
 
@@ -75,5 +77,20 @@ public class SplitterConnectorFactory implements ConnectorFactory
         catch (NumberFormatException e) {
             throw new IllegalArgumentException("Invalid property tpch.splits-per-node");
         }
+    }
+
+    private void loadCatalog(File file)
+            throws Exception
+    {
+        log.info("-- Loading catalog %s --", file);
+        Map<String, String> properties = new HashMap<>(loadProperties(file));
+
+        String connectorName = properties.remove("connector.name");
+        checkState(connectorName != null, "Catalog configuration %s does not contain connector.name", file.getAbsoluteFile());
+
+        String catalogName = Files.getNameWithoutExtension(file.getName());
+
+        connectorManager.createConnection(catalogName, connectorName, ImmutableMap.copyOf(properties));
+        log.info("-- Added catalog %s using connector %s --", catalogName, connectorName);
     }
 }
