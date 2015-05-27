@@ -11,18 +11,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.config;
+package com.wrmsr.presto.metaconnectors;
 
 // import com.facebook.presto.metadata.FunctionFactory;
 
+import com.facebook.presto.spi.ConnectorFactory;
+import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
-import com.google.inject.Injector;
-import io.airlift.event.client.AbstractEventClient;
+import com.wrmsr.presto.metaconnectors.splitter.SplitterConnectorFactory;
 
 import javax.inject.Inject;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -30,24 +30,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 // import com.facebook.presto.type.ParametricType;
 
-public class ConfigPlugin
+public class MetaconnectorsPlugin
         implements Plugin
 {
     private TypeManager typeManager;
 
-    /*
+    private NodeManager nodeManager;
+
     @Inject
-    public void setRelayEventClient(RelayEventClient relayEventClient) {
-        relayEventClient.addClient(new AbstractEventClient() {
-            @Override
-            protected <T> void postEvent(T event) throws IOException {
-                if (event instanceof PluginsInitializedEvent) {
-                    System.out.println("plugins initialized");
-                }
-            }
-        });
+    public void setNodeManager(NodeManager nodeManager)
+    {
+        this.nodeManager = nodeManager;
     }
-    */
 
     @Override
     public void setOptionalConfig(Map<String, String> optionalConfig)
@@ -63,6 +57,10 @@ public class ConfigPlugin
     @Override
     public <T> List<T> getServices(Class<T> type)
     {
+        if (type == ConnectorFactory.class) {
+            checkNotNull(nodeManager, "nodeManager is null");
+            return ImmutableList.of(type.cast(new SplitterConnectorFactory(nodeManager)));
+        }
 //        if (type == FunctionFactory.class) {
 //            return ImmutableList.of(type.cast(new MLFunctionFactory(typeManager)));
 //        }

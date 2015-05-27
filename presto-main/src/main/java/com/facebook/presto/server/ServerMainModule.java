@@ -91,7 +91,6 @@ import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.MapBinder;
 import io.airlift.configuration.AbstractConfigurationAwareModule;
 import io.airlift.discovery.client.ServiceDescriptor;
-import io.airlift.event.client.EventClient;
 import io.airlift.slice.Slice;
 import io.airlift.units.Duration;
 
