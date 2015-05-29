@@ -228,6 +228,11 @@ public class LocalQueryRunner
         connectorManager.createConnection(catalogName, connectorFactory, properties);
     }
 
+    public ConnectorManager getConnectorManager()
+    {
+        return connectorManager;
+    }
+
     @Override
     public void installPlugin(Plugin plugin)
     {

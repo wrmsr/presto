@@ -15,6 +15,7 @@ package com.wrmsr.presto.metaconnectors;
 
 // import com.facebook.presto.metadata.FunctionFactory;
 
+import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
@@ -33,19 +34,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class MetaconnectorsPlugin
         implements Plugin
 {
+    private ConnectorManager connectorManager;
     private TypeManager typeManager;
-
     private NodeManager nodeManager;
 
     @Inject
-    public void setNodeManager(NodeManager nodeManager)
+    public void setConnectorManager(ConnectorManager connectorManager)
     {
-        this.nodeManager = nodeManager;
-    }
-
-    @Override
-    public void setOptionalConfig(Map<String, String> optionalConfig)
-    {
+        this.connectorManager = connectorManager;
     }
 
     @Inject
@@ -54,12 +50,23 @@ public class MetaconnectorsPlugin
         this.typeManager = checkNotNull(typeManager, "typeManager is null");
     }
 
+    @Inject
+    public void setNodeManager(NodeManager nodeManager)
+    {
+        this.nodeManager = checkNotNull(nodeManager, "nodeManager is null");
+    }
+
+    @Override
+    public void setOptionalConfig(Map<String, String> optionalConfig)
+    {
+    }
+
     @Override
     public <T> List<T> getServices(Class<T> type)
     {
         if (type == ConnectorFactory.class) {
             checkNotNull(nodeManager, "nodeManager is null");
-            return ImmutableList.of(type.cast(new SplitterConnectorFactory(nodeManager)));
+            return ImmutableList.of(type.cast(new SplitterConnectorFactory(connectorManager, nodeManager)));
         }
 //        if (type == FunctionFactory.class) {
 //            return ImmutableList.of(type.cast(new MLFunctionFactory(typeManager)));

@@ -55,13 +55,16 @@ public class TestConfigPlugin
                                 .setFile(new File("config.properties"));
         PropertiesConfiguration flatConfig = builder.getConfiguration();
         */
-        Configuration c = new MapConfiguration(ImmutableMap.<String, String>builder().put("a.b.c", "hi").build());
+        Configuration c = new MapConfiguration(ImmutableMap.<String, String>builder().put("a.b.c.d", "hi").build());
         HierarchicalConfiguration hc = ConfigurationUtils.convertToHierarchical(c);
         System.out.println(hc);
         Properties p = ConfigurationConverter.getProperties(hc);
         System.out.println(p);
         p = ConfigurationConverter.getProperties(hc.configurationAt("a"));
         System.out.println(p);
+        p = ConfigurationConverter.getProperties(hc.configurationAt("a.b"));
+        System.out.println(p);
+
     }
 
     private static LocalQueryRunner createLocalQueryRunner()

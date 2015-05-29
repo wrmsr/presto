@@ -43,6 +43,7 @@ import io.airlift.log.Logger;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -111,6 +112,11 @@ public class ConnectorManager
                 log.error(t, "Error shutting down connector: %s", entry.getKey());
             }
         }
+    }
+
+    public Map<String, Connector> getConnectors()
+    {
+        return Collections.unmodifiableMap(connectors);
     }
 
     public void addConnectorFactory(ConnectorFactory connectorFactory)
