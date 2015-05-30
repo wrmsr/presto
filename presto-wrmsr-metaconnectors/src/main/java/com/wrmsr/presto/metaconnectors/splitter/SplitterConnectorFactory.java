@@ -8,7 +8,10 @@ import com.facebook.presto.spi.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorRecordSetProvider;
 import com.facebook.presto.spi.ConnectorSplitManager;
 import com.facebook.presto.spi.NodeManager;
+import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
 import com.google.common.collect.ImmutableMap;
+import com.google.inject.Binder;
+import com.google.inject.Module;
 import com.wrmsr.presto.metaconnectors.util.ImmutableCollectors;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationMap;
@@ -17,26 +20,25 @@ import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.MapConfiguration;
 
 import java.util.Map;
+import com.google.common.base.Throwables;
+import com.google.inject.Injector;
+import io.airlift.bootstrap.Bootstrap;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class SplitterConnectorFactory implements ConnectorFactory
 {
+    private final Map<String, String> optionalConfig;
+    private final Module module;
+    private final ClassLoader classLoader;
     private final ConnectorManager connectorManager;
-    private final NodeManager nodeManager;
-    private final int defaultSplitsPerNode;
 
-    public SplitterConnectorFactory(ConnectorManager connectorManager, NodeManager nodeManager)
+    public SplitterConnectorFactory(Map<String, String> optionalConfig, Module module, ClassLoader classLoader, ConnectorManager connectorManager)
     {
-        this(connectorManager, nodeManager, Runtime.getRuntime().availableProcessors());
-    }
-
-    public SplitterConnectorFactory(ConnectorManager connectorManager, NodeManager nodeManager, int defaultSplitsPerNode)
-    {
-        this.connectorManager = checkNotNull(connectorManager, "connectorManager");
-        this.nodeManager = checkNotNull(nodeManager, "nodeManager is null");
-        this.defaultSplitsPerNode = defaultSplitsPerNode;
+        this.optionalConfig = ImmutableMap.copyOf(checkNotNull(optionalConfig, "optionalConfig is null"));
+        this.module = checkNotNull(module, "module is null");
+        this.classLoader = checkNotNull(classLoader, "classLoader is null");
+        this.connectorManager = checkNotNull(connectorManager, "connectorManager is null");
     }
 
     @Override
@@ -48,84 +50,68 @@ public class SplitterConnectorFactory implements ConnectorFactory
     @Override
     public Connector create(final String connectorId, Map<String, String> properties)
     {
-        String targetCatalogName = checkNotNull(properties.get("target-name"));
+        checkNotNull(properties, "properties is null");
+        String targetName = checkNotNull(properties.get("target-name"));
         String targetConnectorName = properties.get("target-connector-name");
 
         final Connector target;
+        final Map<String, String> requiredConfiguration;
 
         if (targetConnectorName == null) {
-            target = checkNotNull(connectorManager.getConnectors().get(targetCatalogName), "target-connector-name not specified and target not found");
+            target = checkNotNull(connectorManager.getConnectors().get(targetName), "target-connector-name not specified and target not found");
+            requiredConfiguration = ImmutableMap.of();
 
         } else {
             HierarchicalConfiguration hierarchicalProperties = ConfigurationUtils.convertToHierarchical(
                     new MapConfiguration(properties));
-            Map<String, String> targetProperties;
-            final Configuration targetConfiguration;
+
+            Configuration targetConfiguration;
             try {
                 targetConfiguration = hierarchicalProperties.configurationAt("target");
-                targetProperties = new ConfigurationMap(targetConfiguration).entrySet().stream()
-                        .collect(ImmutableCollectors.toImmutableMap(e -> checkNotNull(e.getKey()).toString(), e -> checkNotNull(e.getValue()).toString()));
             }
             catch (IllegalArgumentException e) {
+                targetConfiguration = null;
+            }
+
+            final Map<String, String> targetProperties;
+            if (targetConfiguration != null) {
+                targetProperties = new ConfigurationMap(targetConfiguration).entrySet().stream()
+                        .collect(ImmutableCollectors.toImmutableMap(e -> checkNotNull(e.getKey()).toString(), e -> checkNotNull(e.getValue()).toString()));
+                requiredConfiguration = properties.entrySet().stream()
+                        .filter(e -> !hierarchicalProperties.containsKey(e.getKey()))
+                        .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+            }
+            else {
                 targetProperties = ImmutableMap.of();
+                requiredConfiguration = properties;
             }
-            connectorManager.createConnection(targetCatalogName, targetConnectorName, targetProperties);
-            target = checkNotNull(connectorManager.getConnectors().get(targetCatalogName));
+
+            connectorManager.createConnection(targetName, targetConnectorName, targetProperties);
+            target = checkNotNull(connectorManager.getConnectors().get(targetName));
         }
 
-        final int splitsPerNode = getSplitsPerNode(properties);
-
-        return new Connector() {
-            @Override
-            public ConnectorMetadata getMetadata()
+        try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
+            Bootstrap app = new Bootstrap(module, new Module()
             {
-                return target.getMetadata();
-            }
+                @Override
+                public void configure(Binder binder)
+                {
+                    binder.bind(SplitterConnectorId.class).toInstance(new SplitterConnectorId(connectorId));
+                    binder.bind(SplitterTarget.class).toInstance(new SplitterTarget(target));
+                }
+            });
 
-            @Override
-            public ConnectorSplitManager getSplitManager()
-            {
-                return new SplitterSplitManager(connectorId, target.getSplitManager(), target, nodeManager, splitsPerNode);
-            }
+            Injector injector = app
+                    .strictConfig()
+                    .doNotInitializeLogging()
+                    .setRequiredConfigurationProperties(requiredConfiguration)
+                    .setOptionalConfigurationProperties(optionalConfig)
+                    .initialize();
 
-            @Override
-            public ConnectorHandleResolver getHandleResolver()
-            {
-                return new SplitterHandleResolver(connectorId, target.getHandleResolver());
-            }
-
-            @Override
-            public ConnectorRecordSetProvider getRecordSetProvider()
-            {
-                return new SplitterRecordSetProvider(target.getRecordSetProvider());
-            }
-        };
-    }
-
-    private int getSplitsPerNode(Map<String, String> properties)
-    {
-        try {
-            return Integer.parseInt(firstNonNull(properties.get("splitter.splits-per-node"), String.valueOf(defaultSplitsPerNode)));
+            return injector.getInstance(SplitterConnector.class);
         }
-        catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid property splitter.splits-per-node");
+        catch (Exception e) {
+            throw Throwables.propagate(e);
         }
     }
-
-    /*
-    private void loadCatalog(File file)
-            throws Exception
-    {
-        log.info("-- Loading catalog %s --", file);
-        Map<String, String> properties = new HashMap<>(loadProperties(file));
-
-        String connectorName = properties.remove("connector.name");
-        checkState(connectorName != null, "Catalog configuration %s does not contain connector.name", file.getAbsoluteFile());
-
-        String catalogName = Files.getNameWithoutExtension(file.getName());
-
-        connectorManager.createConnection(catalogName, connectorName, ImmutableMap.copyOf(properties));
-        log.info("-- Added catalog %s using connector %s --", catalogName, connectorName);
-    }
-    */
 }

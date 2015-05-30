@@ -31,7 +31,12 @@ public class SplitterSplitSource
     @Override
     public CompletableFuture<List<ConnectorSplit>> getNextBatch(int maxSize)
     {
-        return target.getNextBatch(maxSize).thenApply(l -> l.stream().map(SplitterSplit::new).collect(Collectors.toList()));
+        return target.getNextBatch(maxSize).thenApply(l -> l.stream().map(this::split).collect(Collectors.toList()));
+    }
+
+    private ConnectorSplit split(ConnectorSplit split)
+    {
+        return new SplitterSplit(split);
     }
 
     @Override

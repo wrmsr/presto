@@ -15,12 +15,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class SplitterHandleResolver
         implements ConnectorHandleResolver
 {
-    private final String connectorId;
     private final ConnectorHandleResolver target;
 
-    public SplitterHandleResolver(String connectorId, ConnectorHandleResolver target)
+    public SplitterHandleResolver(ConnectorHandleResolver target)
     {
-        this.connectorId = checkNotNull(connectorId, "connectorId is null");
         this.target = checkNotNull(target, "target is null");
     }
 

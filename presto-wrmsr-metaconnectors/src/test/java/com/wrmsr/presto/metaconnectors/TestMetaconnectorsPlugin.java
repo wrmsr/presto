@@ -46,7 +46,17 @@ public class TestMetaconnectorsPlugin
     {
         // queryRunner.execute("select * from split_tpch.tiny.lineitem limit 10");
         // queryRunner.execute("select * from split-tcph.lineitem inner join orders on orders.orderkey = lineitem.orderkey inner join customer on orders.custkey = customer.custkey limit 10");
-        MaterializedResult r = queryRunner.execute("select * from split_yelp.yelp.business where id between 12950000 and 12950005");
+        MaterializedResult r;
+
+        /*
+        r = queryRunner.execute("select max(id) from split_yelp.yelp.business");
+        System.out.println(r);
+
+        r = queryRunner.execute("select count(*) from split_yelp.yelp.business");
+        System.out.println(r);
+        */
+
+        r = queryRunner.execute("select * from split_yelp.yelp.business where id between 12950000 and 12950005");
         System.out.println(r);
     }
 

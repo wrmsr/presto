@@ -1,6 +1,8 @@
 package com.wrmsr.presto.metaconnectors.splitter;
 
+import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorPartition;
 import com.facebook.presto.spi.ConnectorPartitionResult;
@@ -8,9 +10,13 @@ import com.facebook.presto.spi.ConnectorSplitManager;
 import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableLayoutHandle;
+import com.facebook.presto.spi.Domain;
 import com.facebook.presto.spi.FixedSplitSource;
 import com.facebook.presto.spi.NodeManager;
+import com.facebook.presto.spi.Range;
+import com.facebook.presto.spi.SortedRangeSet;
 import com.facebook.presto.spi.TupleDomain;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
 
@@ -24,20 +30,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class SplitterSplitManager
         implements ConnectorSplitManager
 {
-    private final String connectorId;
-    private final ConnectorSplitManager target;
     private final Connector targetConnector;
-    private final NodeManager nodeManager;
-    private final int splitsPerNode;
+    private final ConnectorSplitManager target;
 
-    public SplitterSplitManager(String connectorId, ConnectorSplitManager target, Connector targetConnector, NodeManager nodeManager, int splitsPerNode)
+    public SplitterSplitManager(Connector targetConnector, ConnectorSplitManager target)
     {
-        this.connectorId = connectorId;
-        this.target = target;
-        this.targetConnector = checkNotNull(targetConnector, "target is null");
-        this.nodeManager = nodeManager;
-        checkArgument(splitsPerNode > 0, "splitsPerNode must be at least 1");
-        this.splitsPerNode = splitsPerNode;
+        this.targetConnector = checkNotNull(targetConnector);
+        this.target = checkNotNull(target);
     }
 
     @Override
@@ -51,6 +50,17 @@ public class SplitterSplitManager
     @Deprecated
     public ConnectorSplitSource getPartitionSplits(ConnectorTableHandle table, List<ConnectorPartition> partitions)
     {
+        Metadata metadata = targetConnector.getMetadata()
+        List<ColumnMetadata> columns = metadata.getTableMetadata(table).getColumns();
+        ColumnMetadata idColumn = columns.stream().filter(c -> "id".equals(c.getName())).findFirst().get();
+        ColumnHandle idColumnHandle = targetConnector.getMetadata().getColumnHandles(table).get("id");
+        TupleDomain<ColumnHandle> tupleDomain = TupleDomain.withColumnDomains(
+                ImmutableMap.<ColumnHandle, Domain>of(
+                        idColumnHandle, Domain.create(SortedRangeSet.of(
+                                Range.lessThan(1000), Range.greaterThanOrEqual(1000)
+                ), false))
+        );
+
         return new SplitterSplitSource(target.getPartitionSplits(table, partitions));
     }
 

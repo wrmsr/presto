@@ -21,15 +21,17 @@ import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.inject.Module;
 import com.wrmsr.presto.metaconnectors.splitter.SplitterConnectorFactory;
+import com.wrmsr.presto.metaconnectors.splitter.SplitterModule;
 
 import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-
-// import com.facebook.presto.type.ParametricType;
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class MetaconnectorsPlugin
         implements Plugin
@@ -37,6 +39,7 @@ public class MetaconnectorsPlugin
     private ConnectorManager connectorManager;
     private TypeManager typeManager;
     private NodeManager nodeManager;
+    private Map<String, String> optionalConfig = ImmutableMap.of();
 
     @Inject
     public void setConnectorManager(ConnectorManager connectorManager)
@@ -59,14 +62,15 @@ public class MetaconnectorsPlugin
     @Override
     public void setOptionalConfig(Map<String, String> optionalConfig)
     {
+        this.optionalConfig = optionalConfig;
     }
 
     @Override
     public <T> List<T> getServices(Class<T> type)
     {
         if (type == ConnectorFactory.class) {
-            checkNotNull(nodeManager, "nodeManager is null");
-            return ImmutableList.of(type.cast(new SplitterConnectorFactory(connectorManager, nodeManager)));
+            Module module = new SplitterModule(null);
+            return ImmutableList.of(type.cast(new SplitterConnectorFactory(optionalConfig, module, getClassLoader(), connectorManager)));
         }
 //        if (type == FunctionFactory.class) {
 //            return ImmutableList.of(type.cast(new MLFunctionFactory(typeManager)));
@@ -78,5 +82,10 @@ public class MetaconnectorsPlugin
 //            return ImmutableList.of(type.cast(new ClassifierParametricType()));
 //        }
         return ImmutableList.of();
+    }
+
+    private static ClassLoader getClassLoader()
+    {
+        return firstNonNull(Thread.currentThread().getContextClassLoader(), MetaconnectorsPlugin.class.getClassLoader());
     }
 }
