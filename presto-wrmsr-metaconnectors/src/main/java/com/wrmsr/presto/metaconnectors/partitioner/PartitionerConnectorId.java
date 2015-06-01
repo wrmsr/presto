@@ -11,17 +11,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.metaconnectors.splitter;
+package com.wrmsr.presto.metaconnectors.partitioner;
 
 import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public final class SplitterConnectorId
+public final class PartitionerConnectorId
 {
     private final String id;
 
-    public SplitterConnectorId(String id)
+    public PartitionerConnectorId(String id)
     {
         this.id = checkNotNull(id, "id is null");
     }
@@ -47,7 +47,7 @@ public final class SplitterConnectorId
         if ((obj == null) || (getClass() != obj.getClass())) {
             return false;
         }
-        SplitterConnectorId other = (SplitterConnectorId) obj;
+        PartitionerConnectorId other = (PartitionerConnectorId) obj;
         return Objects.equals(this.id, other.id);
     }
 }

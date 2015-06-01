@@ -1,4 +1,4 @@
-package com.wrmsr.presto.metaconnectors.splitter;
+package com.wrmsr.presto.metaconnectors.partitioner;
 
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.spi.ColumnHandle;
@@ -28,13 +28,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 /**
  * Created by wtimoney on 5/26/15.
  */
-public class SplitterSplitManager
+public class PartitionerSplitManager
         implements ConnectorSplitManager
 {
     private final Connector targetConnector;
     private final ConnectorSplitManager target;
 
-    public SplitterSplitManager(Connector targetConnector, ConnectorSplitManager target)
+    public PartitionerSplitManager(Connector targetConnector, ConnectorSplitManager target)
     {
         this.targetConnector = checkNotNull(targetConnector);
         this.target = checkNotNull(target);
@@ -44,25 +44,48 @@ public class SplitterSplitManager
     @Deprecated
     public ConnectorPartitionResult getPartitions(ConnectorTableHandle table, TupleDomain<ColumnHandle> tupleDomain)
     {
+        ConnectorMetadata metadata = targetConnector.getMetadata();
+        List<ColumnMetadata> columns = metadata.getTableMetadata(table).getColumns();
+        ColumnMetadata idColumn = columns.stream().filter(c -> "id".equals(c.getName())).findFirst().get();
+        ColumnHandle idColumnHandle = targetConnector.getMetadata().getColumnHandles(table).get("id");
+        TupleDomain<ColumnHandle> tupleDomain2 = TupleDomain.withColumnDomains(
+                ImmutableMap.of(
+                        idColumnHandle, Domain.create(SortedRangeSet.of(
+                                Range.lessThan(1000L), Range.greaterThanOrEqual(1000L)
+                        ), false))
+        );
+
+        System.out.println(tupleDomain.intersect(
+                TupleDomain.withColumnDomains(
+                ImmutableMap.of(
+                        idColumnHandle, Domain.create(SortedRangeSet.of(
+                                Range.lessThan(1000L)
+                        ), false))
+        )));
+
+        System.out.println(tupleDomain.intersect(
+                TupleDomain.withColumnDomains(
+                        ImmutableMap.of(
+                                idColumnHandle, Domain.create(SortedRangeSet.of(
+                                        Range.greaterThanOrEqual(1000L)
+                                ), false))
+        )));
+
         return target.getPartitions(table, tupleDomain);
+        //return new PartitionerSplitSource(target.getPartitionSplits(table, partitions));
     }
 
     @Override
     @Deprecated
     public ConnectorSplitSource getPartitionSplits(ConnectorTableHandle table, List<ConnectorPartition> partitions)
     {
-        ConnectorMetadata metadata = targetConnector.getMetadata();
-        List<ColumnMetadata> columns = metadata.getTableMetadata(table).getColumns();
-        ColumnMetadata idColumn = columns.stream().filter(c -> "id".equals(c.getName())).findFirst().get();
-        ColumnHandle idColumnHandle = targetConnector.getMetadata().getColumnHandles(table).get("id");
-        TupleDomain<ColumnHandle> tupleDomain = TupleDomain.withColumnDomains(
-                ImmutableMap.<ColumnHandle, Domain>of(
-                        idColumnHandle, Domain.create(SortedRangeSet.of(
-                                Range.lessThan(1000), Range.greaterThanOrEqual(1000)
-                ), false))
-        );
+        return target.getPartitionSplits(table, partitions);
+    }
 
-        return new SplitterSplitSource(target.getPartitionSplits(table, partitions));
+    @Override
+    public ConnectorSplitSource getSplits(ConnectorTableLayoutHandle layout)
+    {
+        return target.getSplits(layout);
     }
 
     /*

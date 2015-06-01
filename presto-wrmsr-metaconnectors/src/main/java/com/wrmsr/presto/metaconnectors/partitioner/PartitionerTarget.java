@@ -1,14 +1,14 @@
-package com.wrmsr.presto.metaconnectors.splitter;
+package com.wrmsr.presto.metaconnectors.partitioner;
 
 import com.facebook.presto.spi.Connector;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class SplitterTarget
+public class PartitionerTarget
 {
     private final Connector target;
 
-    public SplitterTarget(Connector target)
+    public PartitionerTarget(Connector target)
     {
         this.target = checkNotNull(target);
     }
@@ -21,7 +21,7 @@ public class SplitterTarget
     @Override
     public String toString()
     {
-        return "SplitterConnectorTarget{" +
+        return "PartitionerConnectorTarget{" +
                 "target=" + target +
                 '}';
     }
@@ -36,7 +36,7 @@ public class SplitterTarget
             return false;
         }
 
-        SplitterTarget that = (SplitterTarget) o;
+        PartitionerTarget that = (PartitionerTarget) o;
 
         return !(target != null ? !target.equals(that.target) : that.target != null);
 

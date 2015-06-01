@@ -1,10 +1,10 @@
-package com.wrmsr.presto.metaconnectors.splitter;
+package com.wrmsr.presto.metaconnectors.partitioner;
 
 import io.airlift.configuration.Config;
 
 import javax.annotation.Nullable;
 
-public class SplitterConfig
+public class PartitionerConfig
 {
     private String targetName;
 

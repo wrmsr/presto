@@ -23,7 +23,7 @@ import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.tpch.TpchPlugin;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.metaconnectors.MetaconnectorsPlugin;
-import com.wrmsr.presto.metaconnectors.splitter.SplitterConnectorFactory;
+import com.wrmsr.presto.metaconnectors.partitioner.PartitionerConnectorFactory;
 import org.testng.annotations.Test;
 
 import java.util.Map;
@@ -44,19 +44,19 @@ public class TestMetaconnectorsPlugin
     public void testSanity()
             throws Exception
     {
-        // queryRunner.execute("select * from split_tpch.tiny.lineitem limit 10");
+        // queryRunner.execute("select * from partitioned_tpch.tiny.lineitem limit 10");
         // queryRunner.execute("select * from split-tcph.lineitem inner join orders on orders.orderkey = lineitem.orderkey inner join customer on orders.custkey = customer.custkey limit 10");
         MaterializedResult r;
 
         /*
-        r = queryRunner.execute("select max(id) from split_yelp.yelp.business");
-        System.out.println(r);
-
-        r = queryRunner.execute("select count(*) from split_yelp.yelp.business");
+        r = queryRunner.execute("select max(id) from partitioned_yelp.yelp.business");
         System.out.println(r);
         */
 
-        r = queryRunner.execute("select * from split_yelp.yelp.business where id between 12950000 and 12950005");
+        r = queryRunner.execute("select count(*) from partitioned_yelp.yelp.business");
+        System.out.println(r);
+
+        r = queryRunner.execute("select * from partitioned_yelp.yelp.business where id between 12950000 and 12950005");
         System.out.println(r);
     }
 
@@ -100,7 +100,7 @@ public class TestMetaconnectorsPlugin
 
         for (ConnectorFactory connectorFactory : plugin.getServices(ConnectorFactory.class)) {
             queryRunner.getConnectorManager().addConnectorFactory(connectorFactory);
-            if (connectorFactory instanceof SplitterConnectorFactory) {
+            if (connectorFactory instanceof PartitionerConnectorFactory) {
                 Map<String, String> properties = ImmutableMap.<String, String>builder()
                         .put("target-name", "yelp")
                         .put("target-connector-name", "mysql")
@@ -109,7 +109,7 @@ public class TestMetaconnectorsPlugin
                         .put("target.connection-password", "")
                         .build();
 
-                queryRunner.getConnectorManager().createConnection("split_yelp", "splitter", properties);
+                queryRunner.getConnectorManager().createConnection("partitioned_yelp", "partitioner", properties);
             }
         }
 

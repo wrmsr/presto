@@ -1,4 +1,4 @@
-package com.wrmsr.presto.metaconnectors.splitter;
+package com.wrmsr.presto.metaconnectors.partitioner;
 
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.spi.Connector;
@@ -26,14 +26,14 @@ import io.airlift.bootstrap.Bootstrap;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class SplitterConnectorFactory implements ConnectorFactory
+public class PartitionerConnectorFactory implements ConnectorFactory
 {
     private final Map<String, String> optionalConfig;
     private final Module module;
     private final ClassLoader classLoader;
     private final ConnectorManager connectorManager;
 
-    public SplitterConnectorFactory(Map<String, String> optionalConfig, Module module, ClassLoader classLoader, ConnectorManager connectorManager)
+    public PartitionerConnectorFactory(Map<String, String> optionalConfig, Module module, ClassLoader classLoader, ConnectorManager connectorManager)
     {
         this.optionalConfig = ImmutableMap.copyOf(checkNotNull(optionalConfig, "optionalConfig is null"));
         this.module = checkNotNull(module, "module is null");
@@ -44,7 +44,7 @@ public class SplitterConnectorFactory implements ConnectorFactory
     @Override
     public String getName()
     {
-        return "splitter";
+        return "partitioner";
     }
 
     @Override
@@ -96,8 +96,8 @@ public class SplitterConnectorFactory implements ConnectorFactory
                 @Override
                 public void configure(Binder binder)
                 {
-                    binder.bind(SplitterConnectorId.class).toInstance(new SplitterConnectorId(connectorId));
-                    binder.bind(SplitterTarget.class).toInstance(new SplitterTarget(target));
+                    binder.bind(PartitionerConnectorId.class).toInstance(new PartitionerConnectorId(connectorId));
+                    binder.bind(PartitionerTarget.class).toInstance(new PartitionerTarget(target));
                 }
             });
 
@@ -108,7 +108,7 @@ public class SplitterConnectorFactory implements ConnectorFactory
                     .setOptionalConfigurationProperties(optionalConfig)
                     .initialize();
 
-            return injector.getInstance(SplitterConnector.class);
+            return injector.getInstance(PartitionerConnector.class);
         }
         catch (Exception e) {
             throw Throwables.propagate(e);

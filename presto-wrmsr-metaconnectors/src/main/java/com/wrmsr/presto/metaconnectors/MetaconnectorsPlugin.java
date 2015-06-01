@@ -13,8 +13,6 @@
  */
 package com.wrmsr.presto.metaconnectors;
 
-// import com.facebook.presto.metadata.FunctionFactory;
-
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
@@ -23,8 +21,8 @@ import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Module;
-import com.wrmsr.presto.metaconnectors.splitter.SplitterConnectorFactory;
-import com.wrmsr.presto.metaconnectors.splitter.SplitterModule;
+import com.wrmsr.presto.metaconnectors.partitioner.PartitionerConnectorFactory;
+import com.wrmsr.presto.metaconnectors.partitioner.PartitionerModule;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -69,8 +67,8 @@ public class MetaconnectorsPlugin
     public <T> List<T> getServices(Class<T> type)
     {
         if (type == ConnectorFactory.class) {
-            Module module = new SplitterModule(null);
-            return ImmutableList.of(type.cast(new SplitterConnectorFactory(optionalConfig, module, getClassLoader(), connectorManager)));
+            Module module = new PartitionerModule(null);
+            return ImmutableList.of(type.cast(new PartitionerConnectorFactory(optionalConfig, module, getClassLoader(), connectorManager)));
         }
 //        if (type == FunctionFactory.class) {
 //            return ImmutableList.of(type.cast(new MLFunctionFactory(typeManager)));

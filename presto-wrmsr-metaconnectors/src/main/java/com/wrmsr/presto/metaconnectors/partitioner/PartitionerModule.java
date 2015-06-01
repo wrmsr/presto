@@ -1,4 +1,4 @@
-package com.wrmsr.presto.metaconnectors.splitter;
+package com.wrmsr.presto.metaconnectors.partitioner;
 
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.NodeManager;
@@ -11,13 +11,13 @@ import javax.annotation.Nullable;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static io.airlift.configuration.ConfigBinder.configBinder;
 
-public class SplitterModule
+public class PartitionerModule
         implements Module
 {
     @Nullable
     private final NodeManager nodeManager;
 
-    public SplitterModule(@Nullable NodeManager nodeManager)
+    public PartitionerModule(@Nullable NodeManager nodeManager)
     {
         this.nodeManager = nodeManager;
     }
@@ -34,7 +34,7 @@ public class SplitterModule
         binder.bind(JdbcRecordSinkProvider.class).in(Scopes.SINGLETON);
         binder.bind(JdbcConnector.class).in(Scopes.SINGLETON);
         */
-        binder.bind(SplitterConnector.class).in(Scopes.SINGLETON);
-        configBinder(binder).bindConfig(SplitterConfig.class);
+        binder.bind(PartitionerConnector.class).in(Scopes.SINGLETON);
+        configBinder(binder).bindConfig(PartitionerConfig.class);
     }
 }
