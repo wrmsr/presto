@@ -87,6 +87,7 @@
         <module>presto-server</module>
         <module>presto-docs</module>
         <module>presto-verifier</module>
+        <module>presto-streaming</module>
         <module>presto-wrmsr-common</module>
         <module>presto-wrmsr-config</module>
         <module>presto-wrmsr-elasticsearch</module>
