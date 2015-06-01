@@ -4,6 +4,7 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
+import com.facebook.presto.spi.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorPartition;
 import com.facebook.presto.spi.ConnectorPartitionResult;
 import com.facebook.presto.spi.ConnectorSplitManager;
@@ -50,7 +51,7 @@ public class SplitterSplitManager
     @Deprecated
     public ConnectorSplitSource getPartitionSplits(ConnectorTableHandle table, List<ConnectorPartition> partitions)
     {
-        Metadata metadata = targetConnector.getMetadata()
+        ConnectorMetadata metadata = targetConnector.getMetadata();
         List<ColumnMetadata> columns = metadata.getTableMetadata(table).getColumns();
         ColumnMetadata idColumn = columns.stream().filter(c -> "id".equals(c.getName())).findFirst().get();
         ColumnHandle idColumnHandle = targetConnector.getMetadata().getColumnHandles(table).get("id");
