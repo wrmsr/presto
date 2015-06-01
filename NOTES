@@ -101,6 +101,15 @@ REDSHIFT
 
 eek need on-board views
 
+https://github.com/rcongiu/Hive-JSON-Serde
+https://github.com/FasterXML/jackson-dataformat-avro
+https://github.com/FasterXML/jackson-datatype-hppc
+https://github.com/FasterXML/jackson-dataformat-yaml
+
+https://github.com/facebook/presto/pull/2896
+
+https://cwiki.apache.org/confluence/display/Hive/Tutorial
+https://cwiki.apache.org/confluence/display/Hive/Home
 
 
 * dumb flat json file output
