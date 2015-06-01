@@ -17,9 +17,13 @@ import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Range;
 import com.facebook.presto.spi.SortedRangeSet;
 import com.facebook.presto.spi.TupleDomain;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -71,7 +75,25 @@ public class PartitionerSplitManager
                                 ), false))
         )));
 
-        return target.getPartitions(table, tupleDomain);
+        List<Domain> idDomains = ImmutableList.of(
+                Domain.create(SortedRangeSet.of(
+                        Range.lessThan(1000L)), false),
+                Domain.create(SortedRangeSet.of(
+                        Range.greaterThanOrEqual(1000L)), false)
+        );
+
+        List<ConnectorPartition> partitions = Lists.newArrayList();
+        TupleDomain<ColumnHandle> undeterminedTupleDomain = null;
+        for (Domain idDomain : idDomains) {
+            TupleDomain intersectedDomain = tupleDomain.intersect(
+                TupleDomain.withColumnDomains(ImmutableMap.of(idColumnHandle, idDomain)));
+            ConnectorPartitionResult r = target.getPartitions(table, intersectedDomain);
+            // if (r.getUndeterminedTupleDomain())
+            partitions.addAll(r.getPartitions());
+            undeterminedTupleDomain = r.getUndeterminedTupleDomain();
+        }
+
+        return new ConnectorPartitionResult(Collections.unmodifiableList(partitions), undeterminedTupleDomain);
         //return new PartitionerSplitSource(target.getPartitionSplits(table, partitions));
     }
 
@@ -79,7 +101,7 @@ public class PartitionerSplitManager
     @Deprecated
     public ConnectorSplitSource getPartitionSplits(ConnectorTableHandle table, List<ConnectorPartition> partitions)
     {
-        return target.getPartitionSplits(table, partitions);
+        return new PartitionerSplitSource(partitions.stream().map(p -> target.getPartitionSplits(table, p)).collect(Collectors.toList()));
     }
 
     @Override
