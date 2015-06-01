@@ -64,12 +64,6 @@ public class SplitterSplitManager
         return new SplitterSplitSource(target.getPartitionSplits(table, partitions));
     }
 
-    @Override
-    public ConnectorSplitSource getSplits(ConnectorTableLayoutHandle layout)
-    {
-        return new SplitterSplitSource(target.getSplits(layout));
-    }
-
     /*
     @Override
     public ConnectorSplitSource getSplits(ConnectorTableLayoutHandle layout)
