@@ -17,24 +17,26 @@ import java.util.Set;
 public class PartitionerConnector
     implements Connector
 {
+    private final PartitionerConnectorId connectorId;
     private final PartitionerTarget target;
 
     @Inject
-    public PartitionerConnector(PartitionerTarget target)
+    public PartitionerConnector(PartitionerConnectorId connectorId, PartitionerTarget target)
     {
+        this.connectorId = connectorId;
         this.target = target;
     }
 
     @Override
     public ConnectorMetadata getMetadata()
     {
-        return target.getTarget().getMetadata();
+        return new PartitionerMetadata(target.getTarget().getMetadata());
     }
 
     @Override
     public ConnectorSplitManager getSplitManager()
     {
-        return new PartitionerSplitManager(target.getTarget(), target.getTarget().getSplitManager());
+        return new PartitionerSplitManager(connectorId.toString(), target.getTarget(), target.getTarget().getSplitManager());
     }
 
     @Override

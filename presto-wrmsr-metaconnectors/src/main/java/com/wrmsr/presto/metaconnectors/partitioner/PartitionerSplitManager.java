@@ -33,17 +33,16 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkArgument;
 
-/**
- * Created by wtimoney on 5/26/15.
- */
 public class PartitionerSplitManager
         implements ConnectorSplitManager
 {
+    private final String connectorId;
     private final Connector targetConnector;
     private final ConnectorSplitManager target;
 
-    public PartitionerSplitManager(Connector targetConnector, ConnectorSplitManager target)
+    public PartitionerSplitManager(String connectorId, Connector targetConnector, ConnectorSplitManager target)
     {
+        this.connectorId = connectorId;
         this.targetConnector = checkNotNull(targetConnector);
         this.target = checkNotNull(target);
     }
@@ -63,39 +62,33 @@ public class PartitionerSplitManager
                         ), false))
         );
 
-        System.out.println(tupleDomain.intersect(
-                TupleDomain.withColumnDomains(
-                ImmutableMap.of(
-                        idColumnHandle, Domain.create(SortedRangeSet.of(
-                                Range.lessThan(1000L)
-                        ), false))
-        )));
-
-        System.out.println(tupleDomain.intersect(
-                TupleDomain.withColumnDomains(
-                        ImmutableMap.of(
-                                idColumnHandle, Domain.create(SortedRangeSet.of(
-                                        Range.greaterThanOrEqual(1000L)
-                                ), false))
-        )));
-
         List<Domain> idDomains = ImmutableList.of(
                 Domain.create(SortedRangeSet.of(
-                        Range.lessThan(1000L)), false),
+                        Range.equal(1000L)
+                        // Range.range(0L, true, 1000L, false)
+                ), false),
                 Domain.create(SortedRangeSet.of(
-                        Range.greaterThanOrEqual(1000L)), false)
+                        Range.equal(2000L)
+                        //Range.range(1000L, true, 2000L, false)
+                ), false)
         );
 
         List<ConnectorPartition> partitions = Lists.newArrayList();
-        TupleDomain<ColumnHandle> undeterminedTupleDomain = null;
+        TupleDomain<ColumnHandle> undeterminedTupleDomain = TupleDomain.none();
         for (Domain idDomain : idDomains) {
             TupleDomain intersectedDomain = tupleDomain.intersect(
                 TupleDomain.withColumnDomains(ImmutableMap.of(idColumnHandle, idDomain)));
+            if (intersectedDomain.isNone()) {
+                continue;
+            }
+
             ConnectorPartitionResult r = target.getPartitions(table, intersectedDomain);
             partitions.addAll(r.getPartitions());
 
             // if (r.getUndeterminedTupleDomain()) // FIXME
-            undeterminedTupleDomain = r.getUndeterminedTupleDomain();
+            undeterminedTupleDomain = TupleDomain.columnWiseUnion(
+                    undeterminedTupleDomain,
+                    r.getUndeterminedTupleDomain().intersect(intersectedDomain));
         }
 
         return new ConnectorPartitionResult(Collections.unmodifiableList(partitions), undeterminedTupleDomain);
@@ -113,20 +106,18 @@ public class PartitionerSplitManager
                     {
                         return s.getNextBatch(Integer.MAX_VALUE).get().stream();
                     }
-                    catch (InterruptedException e)
-                    {
+                    catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw Throwables.propagate(e);
                     }
-                    catch (ExecutionException e)
-                    {
+                    catch (ExecutionException e) {
                         throw new RuntimeException(e);
                     }
                 })
                 .collect(ImmutableCollectors.toImmutableList());
         // FIXME: getDataSourceName?
         // checkState()
-        return new FixedSplitSource("what", splits);
+        return new FixedSplitSource(connectorId, splits);
     }
 
     @Override

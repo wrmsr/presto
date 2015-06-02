@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.net.InetAddresses;
+import io.airlift.log.Logger;
 import org.weakref.jmx.Managed;
 
 import javax.inject.Inject;
@@ -52,6 +53,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class NodeScheduler
 {
+    private final Logger log = Logger.get(NodeScheduler.class);
+
     private final String coordinatorNodeId;
     private final NodeManager nodeManager;
     private final AtomicLong scheduleLocal = new AtomicLong();
@@ -116,12 +119,14 @@ public class NodeScheduler
             ImmutableSetMultimap.Builder<Rack, Node> byRack = ImmutableSetMultimap.builder();
 
             Set<Node> nodes;
+            log.info(dataSourceName);
             if (dataSourceName != null) {
                 nodes = nodeManager.getActiveDatasourceNodes(dataSourceName);
             }
             else {
                 nodes = nodeManager.getActiveNodes();
             }
+            log.info("nodes: " + nodes.toString());
 
             for (Node node : nodes) {
                 try {
@@ -341,7 +346,7 @@ public class NodeScheduler
 
             // if the chosen set is empty and the hint includes the coordinator,
             // force pick the coordinator
-            if (chosen.isEmpty() && !includeCoordinator) {
+            if (chosen.isEmpty() && includeCoordinator) {
                 HostAddress coordinatorHostAddress = nodeManager.getCurrentNode().getHostAndPort();
                 if (split.getAddresses().stream().anyMatch(host -> canSplitRunOnHost(split, coordinatorHostAddress, host))) {
                     chosen.add(nodeManager.getCurrentNode());
