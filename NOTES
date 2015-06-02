@@ -214,3 +214,11 @@ decoder predicate pushdown to capable stores lols
 
 
 split on scalar fn
+
+
+
+    @Override
+    public CompletableFuture<List<ConnectorSplit>> getNextBatch(int maxSize)
+    {
+        return targets.getNextBatch(maxSize).thenApply(l -> l.stream().map(this::split).collect(Collectors.toList()));
+    }

@@ -19,6 +19,7 @@ import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.MaterializedResult;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
+import com.facebook.presto.tests.StandaloneQueryRunner;
 import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.tpch.TpchPlugin;
 import com.google.common.collect.ImmutableMap;
@@ -53,7 +54,7 @@ public class TestMetaconnectorsPlugin
         System.out.println(r);
         */
 
-        r = queryRunner.execute("select count(*) from partitioned_yelp.yelp.business");
+        r = queryRunner.execute("select count(*) from partitioned_yelp.yelp.business where id < 3000");
         System.out.println(r);
 
         r = queryRunner.execute("select * from partitioned_yelp.yelp.business where id between 12950000 and 12950005");
@@ -71,7 +72,14 @@ public class TestMetaconnectorsPlugin
                 .setLocale(ENGLISH)
                 .build();
 
-        LocalQueryRunner queryRunner = new LocalQueryRunner(defaultSession);
+        // StandaloneQueryRunner queryRunner; // FIXME
+        LocalQueryRunner queryRunner;
+        try {
+            queryRunner = new LocalQueryRunner(defaultSession);
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         // add the tpch catalog
         // local queries run directly against the generator

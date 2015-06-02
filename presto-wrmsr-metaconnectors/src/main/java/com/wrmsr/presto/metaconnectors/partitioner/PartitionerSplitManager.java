@@ -7,6 +7,7 @@ import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorPartition;
 import com.facebook.presto.spi.ConnectorPartitionResult;
+import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.ConnectorSplitManager;
 import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.ConnectorTableHandle;
@@ -17,12 +18,15 @@ import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Range;
 import com.facebook.presto.spi.SortedRangeSet;
 import com.facebook.presto.spi.TupleDomain;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.wrmsr.presto.metaconnectors.util.ImmutableCollectors;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
@@ -88,8 +92,9 @@ public class PartitionerSplitManager
             TupleDomain intersectedDomain = tupleDomain.intersect(
                 TupleDomain.withColumnDomains(ImmutableMap.of(idColumnHandle, idDomain)));
             ConnectorPartitionResult r = target.getPartitions(table, intersectedDomain);
-            // if (r.getUndeterminedTupleDomain())
             partitions.addAll(r.getPartitions());
+
+            // if (r.getUndeterminedTupleDomain()) // FIXME
             undeterminedTupleDomain = r.getUndeterminedTupleDomain();
         }
 
@@ -101,7 +106,27 @@ public class PartitionerSplitManager
     @Deprecated
     public ConnectorSplitSource getPartitionSplits(ConnectorTableHandle table, List<ConnectorPartition> partitions)
     {
-        return new PartitionerSplitSource(partitions.stream().map(p -> target.getPartitionSplits(table, p)).collect(Collectors.toList()));
+        List<ConnectorSplit> splits = partitions.stream()
+                .map(p -> target.getPartitionSplits(table, ImmutableList.of(p)))
+                .flatMap(s -> {
+                    try
+                    {
+                        return s.getNextBatch(Integer.MAX_VALUE).get().stream();
+                    }
+                    catch (InterruptedException e)
+                    {
+                        Thread.currentThread().interrupt();
+                        throw Throwables.propagate(e);
+                    }
+                    catch (ExecutionException e)
+                    {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .collect(ImmutableCollectors.toImmutableList());
+        // FIXME: getDataSourceName?
+        // checkState()
+        return new FixedSplitSource("what", splits);
     }
 
     @Override
