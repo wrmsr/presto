@@ -191,6 +191,7 @@ public class CassandraMetadata
             return listTables(session, prefix.getSchemaName());
         }
         return ImmutableList.of(new SchemaTableName(prefix.getSchemaName(), prefix.getTableName()));
+
     }
 
     @Override

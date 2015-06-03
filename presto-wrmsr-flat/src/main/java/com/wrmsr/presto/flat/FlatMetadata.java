@@ -13,6 +13,7 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.facebook.presto.spi.type.Type;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import io.airlift.slice.Slice;
 
@@ -51,12 +52,12 @@ public class FlatMetadata
             false
     );
 
-    private final FlatConnectorId connectorId;
+    private final String connectorId;
 
     @Inject
     public FlatMetadata(FlatConnectorId connectorId)
     {
-        this.connectorId = checkNotNull(connectorId);
+        this.connectorId = checkNotNull(connectorId).toString();
     }
 
     @Override
@@ -68,13 +69,25 @@ public class FlatMetadata
     @Override
     public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName)
     {
-        return null;
+        checkNotNull(tableName, "tableName is null");
+        if (SCHEMA_TABLE_NAME.equals(tableName)) {
+            return new FlatTableHandle(connectorId);
+        }
+        else {
+            return null;
+        }
     }
 
     @Override
-    public ConnectorTableMetadata getTableMetadata(ConnectorTableHandle table)
+    public ConnectorTableMetadata getTableMetadata(ConnectorTableHandle tableHandle)
     {
-        return null;
+        checkNotNull(tableHandle, "tableHandle is null");
+        if (tableHandle instanceof FlatTableHandle) {
+            return TABLE_METADATA;
+        }
+        else {
+            return null;
+        }
     }
 
     @Override
@@ -103,19 +116,35 @@ public class FlatMetadata
     @Override
     public Map<String, ColumnHandle> getColumnHandles(ConnectorTableHandle tableHandle)
     {
-        return null;
+        checkNotNull(tableHandle, "tableHandle is null");
+        if (tableHandle instanceof FlatTableHandle) {
+            return ImmutableMap.of(COLUMN_NAME, new FlatColumnHandle(connectorId));
+        }
+        else {
+            return null;
+        }
     }
 
     @Override
     public ColumnMetadata getColumnMetadata(ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
     {
-        return null;
+        checkNotNull(tableHandle, "tableHandle is null");
+        checkNotNull(columnHandle, "columnHandle is null");
+        if (tableHandle instanceof FlatTableHandle && columnHandle instanceof FlatColumnHandle) {
+            return COLUMN_METADATA;
+        }
+        else {
+            return null;
+        }
     }
 
     @Override
     public Map<SchemaTableName, List<ColumnMetadata>> listTableColumns(ConnectorSession session, SchemaTablePrefix prefix)
     {
-        return null;
+        checkNotNull(prefix, "prefix is null");
+
+        // FIXME
+        return ImmutableMap.of(SCHEMA_TABLE_NAME, TABLE_METADATA.getColumns());
     }
 
     // -- RO --
