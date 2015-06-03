@@ -64,12 +64,16 @@ public class PartitionerSplitManager
 
         List<Domain> idDomains = ImmutableList.of(
                 Domain.create(SortedRangeSet.of(
-                        Range.equal(1000L)
-                        // Range.range(0L, true, 1000L, false)
+                        // Range.equal(1000L)
+                        Range.range(0L, true, 1000L, false)
                 ), false),
                 Domain.create(SortedRangeSet.of(
-                        Range.equal(2000L)
-                        //Range.range(1000L, true, 2000L, false)
+                        // Range.equal(2000L)
+                        Range.range(1000L, true, 2000L, false)
+                ), false),
+                Domain.create(SortedRangeSet.of(
+                        // Range.equal(2000L)
+                        Range.range(2000L, true, 3000L, false)
                 ), false)
         );
 
@@ -115,8 +119,6 @@ public class PartitionerSplitManager
                     }
                 })
                 .collect(ImmutableCollectors.toImmutableList());
-        // FIXME: getDataSourceName?
-        // checkState()
         return new FixedSplitSource(connectorId, splits);
     }
 

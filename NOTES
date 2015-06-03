@@ -222,3 +222,6 @@ split on scalar fn
     {
         return targets.getNextBatch(maxSize).thenApply(l -> l.stream().map(this::split).collect(Collectors.toList()));
     }
+
+
+** CHUNK JDBC RETRIEVAL
