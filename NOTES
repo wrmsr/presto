@@ -225,3 +225,9 @@ split on scalar fn
 
 
 ** CHUNK JDBC RETRIEVAL
+multi-queries? (dependent partitions)
+
+
+custom mysql / postgres jdbc? wrmsr-mysql / wrmsr/-postgres?
+ - for more efficient multi-sessioning?
+  - ideally keep jdbc agnostic
