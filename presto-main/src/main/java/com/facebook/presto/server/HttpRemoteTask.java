@@ -126,6 +126,8 @@ public class HttpRemoteTask
     @GuardedBy("this")
     private final SetMultimap<PlanNodeId, ScheduledSplit> pendingSplits = HashMultimap.create();
     @GuardedBy("this")
+    private volatile int pendingSourceSplitCount;
+    @GuardedBy("this")
     private final Set<PlanNodeId> noMoreSplits = new HashSet<>();
     @GuardedBy("this")
     private final AtomicReference<OutputBuffers> outputBuffers = new AtomicReference<>();
@@ -183,6 +185,9 @@ public class HttpRemoteTask
             for (Entry<PlanNodeId, Split> entry : checkNotNull(initialSplits, "initialSplits is null").entries()) {
                 ScheduledSplit scheduledSplit = new ScheduledSplit(nextSplitId.getAndIncrement(), entry.getValue());
                 pendingSplits.put(entry.getKey(), scheduledSplit);
+            }
+            if (initialSplits.containsKey(planFragment.getPartitionedSource())) {
+                pendingSourceSplitCount = initialSplits.get(planFragment.getPartitionedSource()).size();
             }
 
             List<BufferInfo> bufferStates = outputBuffers.getBuffers()
@@ -242,8 +247,14 @@ public class HttpRemoteTask
 
             // only add pending split if not done
             if (!getTaskInfo().getState().isDone()) {
+                int added = 0;
                 for (Split split : splits) {
-                    pendingSplits.put(sourceId, new ScheduledSplit(nextSplitId.getAndIncrement(), split));
+                    if (pendingSplits.put(sourceId, new ScheduledSplit(nextSplitId.getAndIncrement(), split))) {
+                        added++;
+                    }
+                }
+                if (sourceId.equals(planFragment.getPartitionedSource())) {
+                    pendingSourceSplitCount += added;
                 }
                 needsUpdate.set(true);
             }
@@ -255,41 +266,37 @@ public class HttpRemoteTask
     @Override
     public synchronized void noMoreSplits(PlanNodeId sourceId)
     {
-        try (SetThreadName ignored = new SetThreadName("HttpRemoteTask-%s", taskId)) {
-            if (noMoreSplits.add(sourceId)) {
-                needsUpdate.set(true);
-                scheduleUpdate();
-            }
+        if (noMoreSplits.add(sourceId)) {
+            needsUpdate.set(true);
+            scheduleUpdate();
         }
     }
 
     @Override
     public synchronized void setOutputBuffers(OutputBuffers newOutputBuffers)
     {
-        try (SetThreadName ignored = new SetThreadName("HttpRemoteTask-%s", taskId)) {
-            if (getTaskInfo().getState().isDone()) {
-                return;
-            }
+        if (getTaskInfo().getState().isDone()) {
+            return;
+        }
 
-            if (newOutputBuffers.getVersion() > outputBuffers.get().getVersion()) {
-                outputBuffers.set(newOutputBuffers);
-                needsUpdate.set(true);
-                scheduleUpdate();
-            }
+        if (newOutputBuffers.getVersion() > outputBuffers.get().getVersion()) {
+            outputBuffers.set(newOutputBuffers);
+            needsUpdate.set(true);
+            scheduleUpdate();
         }
     }
 
     @Override
-    public synchronized int getPartitionedSplitCount()
+    public int getPartitionedSplitCount()
     {
-        int splitCount = pendingSplits.get(planFragment.getPartitionedSource()).size();
+        int splitCount = pendingSourceSplitCount;
         return splitCount + taskInfo.get().getStats().getQueuedPartitionedDrivers() + taskInfo.get().getStats().getRunningPartitionedDrivers();
     }
 
     @Override
-    public synchronized int getQueuedPartitionedSplitCount()
+    public int getQueuedPartitionedSplitCount()
     {
-        int splitCount = pendingSplits.get(planFragment.getPartitionedSource()).size();
+        int splitCount = pendingSourceSplitCount;
         return splitCount + taskInfo.get().getStats().getQueuedPartitionedDrivers();
     }
 
@@ -311,6 +318,7 @@ public class HttpRemoteTask
         if (newValue.getState().isDone()) {
             // splits can be huge so clear the list
             pendingSplits.clear();
+            pendingSourceSplitCount = 0;
         }
 
         // change to new value if old value is not changed and new value has a newer version
@@ -342,8 +350,14 @@ public class HttpRemoteTask
         // remove acknowledged splits, which frees memory
         for (TaskSource source : sources) {
             PlanNodeId planNodeId = source.getPlanNodeId();
+            int removed = 0;
             for (ScheduledSplit split : source.getSplits()) {
-                pendingSplits.remove(planNodeId, split);
+                if (pendingSplits.remove(planNodeId, split)) {
+                    removed++;
+                }
+            }
+            if (planNodeId.equals(planFragment.getPartitionedSource())) {
+                pendingSourceSplitCount -= removed;
             }
         }
     }
@@ -466,6 +480,7 @@ public class HttpRemoteTask
         try (SetThreadName ignored = new SetThreadName("HttpRemoteTask-%s", taskId)) {
             // clear pending splits to free memory
             pendingSplits.clear();
+            pendingSourceSplitCount = 0;
 
             // cancel pending request
             if (currentRequest != null) {
