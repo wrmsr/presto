@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.ffi;
 
+import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
@@ -42,9 +43,9 @@ public class FFIPlugin
     @Override
     public <T> List<T> getServices(Class<T> type)
     {
-//        if (type == FunctionFactory.class) {
-//            return ImmutableList.of(type.cast(new MLFunctionFactory(typeManager)));
-//        }
+        if (type == FunctionFactory.class) {
+           return ImmutableList.of(type.cast(new FFIFunctionFactory(typeManager)));
+        }
 //        else if (type == Type.class) {
 //            return ImmutableList.of(type.cast(MODEL), type.cast(REGRESSOR));
 //        }
