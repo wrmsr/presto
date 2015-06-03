@@ -19,6 +19,6 @@ public class FlatRecordSetProvider
     @Override
     public RecordSet getRecordSet(ConnectorSplit split, List<? extends ColumnHandle> columns)
     {
-        return null;
+        return new FlatRecordSet();
     }
 }

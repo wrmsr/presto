@@ -21,7 +21,7 @@ public class FlatSplit extends ConnectorIdOnlyHandle
     @Override
     public boolean isRemotelyAccessible()
     {
-        return false;
+        return true; // FIXME
     }
 
     @Override
