@@ -93,6 +93,7 @@
         <module>presto-wrmsr-elasticsearch</module>
         <module>presto-wrmsr-ffi</module>
         <module>presto-wrmsr-flat</module>
+        <module>presto-wrmsr-jdbc</module>
         <module>presto-wrmsr-metaconnectors</module>
         <module>presto-wrmsr-reactor</module>
         <module>presto-wrmsr-wrapper</module>
