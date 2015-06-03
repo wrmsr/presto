@@ -43,11 +43,9 @@ public class ElasticsearchTable
         this.columns = ImmutableList.copyOf(checkNotNull(columns, "columns is null"));
         this.sources = ImmutableList.copyOf(checkNotNull(sources, "sources is null"));
 
-        int index = 0;
         ImmutableList.Builder<ColumnMetadata> columnsMetadata = ImmutableList.builder();
         for (ElasticsearchColumn column : this.columns) {
-            columnsMetadata.add(new ColumnMetadata(column.getName(), column.getType(), index, false));
-            index++;
+            columnsMetadata.add(new ColumnMetadata(column.getName(), column.getType(), false, null, false));
         }
         this.columnsMetadata = columnsMetadata.build();
     }

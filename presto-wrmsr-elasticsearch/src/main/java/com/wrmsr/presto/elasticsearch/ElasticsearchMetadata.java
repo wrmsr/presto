@@ -124,8 +124,10 @@ public class ElasticsearchMetadata
         }
 
         ImmutableMap.Builder<String, ColumnHandle> columnHandles = ImmutableMap.builder();
-        for (ColumnMetadata columnMetadata : table.getColumnsMetadata()) {
-            columnHandles.put(columnMetadata.getName(), new ElasticsearchColumnHandle(connectorId, columnMetadata));
+        int index = 0;
+        for (ColumnMetadata column : table.getColumnsMetadata()) {
+            columnHandles.put(column.getName(), new ElasticsearchColumnHandle(connectorId, column.getName(), column.getType(), index));
+            index++;
         }
         return columnHandles.build();
     }

@@ -32,11 +32,6 @@ public final class ElasticsearchColumnHandle
     private final Type columnType;
     private final int ordinalPosition;
 
-    public ElasticsearchColumnHandle(String connectorId, ColumnMetadata columnMetadata)
-    {
-        this(connectorId, columnMetadata.getName(), columnMetadata.getType(), columnMetadata.getOrdinalPosition());
-    }
-
     @JsonCreator
     public ElasticsearchColumnHandle(
             @JsonProperty("connectorId") String connectorId,
@@ -76,7 +71,7 @@ public final class ElasticsearchColumnHandle
 
     public ColumnMetadata getColumnMetadata()
     {
-        return new ColumnMetadata(columnName, columnType, ordinalPosition, false);
+        return new ColumnMetadata(columnName, columnType, false);
     }
 
     @Override

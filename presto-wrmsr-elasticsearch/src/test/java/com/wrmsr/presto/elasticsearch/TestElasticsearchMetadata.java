@@ -103,8 +103,8 @@ public class TestElasticsearchMetadata
         ConnectorTableMetadata tableMetadata = metadata.getTableMetadata(NUMBERS_TABLE_HANDLE);
         assertEquals(tableMetadata.getTable(), new SchemaTableName("example", "numbers"));
         assertEquals(tableMetadata.getColumns(), ImmutableList.of(
-                new ColumnMetadata("text", VARCHAR, 0, false),
-                new ColumnMetadata("value", BIGINT, 1, false)));
+                new ColumnMetadata("text", VARCHAR, false),
+                new ColumnMetadata("value", BIGINT, false)));
 
         // unknown tables should produce null
         assertNull(metadata.getTableMetadata(new ElasticsearchTableHandle(CONNECTOR_ID, "unknown", "unknown")));
@@ -136,7 +136,7 @@ public class TestElasticsearchMetadata
     public void getColumnMetadata()
     {
         assertEquals(metadata.getColumnMetadata(NUMBERS_TABLE_HANDLE, new ElasticsearchColumnHandle(CONNECTOR_ID, "text", VARCHAR, 0)),
-                new ColumnMetadata("text", VARCHAR, 0, false));
+                new ColumnMetadata("text", VARCHAR, false));
 
         // example connector assumes that the table handle and column handle are
         // properly formed, so it will return a metadata object for any
@@ -150,7 +150,7 @@ public class TestElasticsearchMetadata
     {
         metadata.createTable(SESSION, new ConnectorTableMetadata(
                 new SchemaTableName("example", "foo"),
-                ImmutableList.of(new ColumnMetadata("text", VARCHAR, 0, false))));
+                ImmutableList.of(new ColumnMetadata("text", VARCHAR, false))));
     }
 
     @Test(expectedExceptions = PrestoException.class)

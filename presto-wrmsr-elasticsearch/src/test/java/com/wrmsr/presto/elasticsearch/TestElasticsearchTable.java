@@ -33,8 +33,8 @@ public class TestElasticsearchTable
     public void testColumnMetadata()
     {
         assertEquals(exampleTable.getColumnsMetadata(), ImmutableList.of(
-                new ColumnMetadata("a", VARCHAR, 0, false),
-                new ColumnMetadata("b", BIGINT, 1, false)));
+                new ColumnMetadata("a", VARCHAR, false),
+                new ColumnMetadata("b", BIGINT, false)));
     }
 
     @Test
