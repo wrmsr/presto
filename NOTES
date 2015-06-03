@@ -231,3 +231,15 @@ multi-queries? (dependent partitions)
 custom mysql / postgres jdbc? wrmsr-mysql / wrmsr/-postgres?
  - for more efficient multi-sessioning?
   - ideally keep jdbc agnostic
+
+json extraction to unnest
+
+scalar jackson serdes, ideally strongly typeable
+
+
+src / sink for line files, one text column
+ - ffi page sink, post directly to somewhere?
+
+scalar calc parallelization (for cpu-heavy ffi's)
+ - special case of batch scalar execution?
+
