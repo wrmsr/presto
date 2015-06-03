@@ -47,6 +47,11 @@ public class JdbcRecordSetProvider
             handles.add(checkType(handle, JdbcColumnHandle.class, "columnHandle"));
         }
 
-        return new JdbcRecordSet(jdbcClient, jdbcSplit, handles.build());
+        return createRecordSet(jdbcClient, jdbcSplit, handles.build());
+    }
+
+    protected RecordSet createRecordSet(JdbcClient jdbcClient, JdbcSplit split, List<JdbcColumnHandle> columnHandles)
+    {
+        return new JdbcRecordSet(jdbcClient, split, columnHandles);
     }
 }

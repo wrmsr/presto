@@ -17,11 +17,13 @@ import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import io.airlift.bootstrap.Bootstrap;
 
+import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -58,7 +60,7 @@ public class JdbcConnectorFactory
         checkNotNull(optionalConfig, "optionalConfig is null");
 
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
-            Bootstrap app = new Bootstrap(new JdbcModule(connectorId), module);
+            Bootstrap app = new Bootstrap(createModules(connectorId));
 
             Injector injector = app
                     .strictConfig()
@@ -72,5 +74,10 @@ public class JdbcConnectorFactory
         catch (Exception e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    protected List<Module> createModules(String connectorId)
+    {
+        return ImmutableList.of(new JdbcModule(connectorId), module);
     }
 }

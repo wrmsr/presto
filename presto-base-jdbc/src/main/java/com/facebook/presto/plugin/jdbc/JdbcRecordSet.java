@@ -50,6 +50,21 @@ public class JdbcRecordSet
         return columnTypes;
     }
 
+    public JdbcClient getJdbcClient()
+    {
+        return jdbcClient;
+    }
+
+    public List<JdbcColumnHandle> getColumnHandles()
+    {
+        return columnHandles;
+    }
+
+    public JdbcSplit getSplit()
+    {
+        return split;
+    }
+
     @Override
     public RecordCursor cursor()
     {

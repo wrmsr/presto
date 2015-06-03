@@ -59,8 +59,6 @@ public class TestJdbcPlugin
                 new TpchConnectorFactory(queryRunner.getNodeManager(), 1),
                 ImmutableMap.<String, String>of());
 
-        JdbcPlugin plugin = new JdbcPlugin();
-        plugin.setTypeManager(queryRunner.getTypeManager());
         /*
         for (Type type : plugin.getServices(Type.class)) {
             queryRunner.getTypeManager().addType(type);
