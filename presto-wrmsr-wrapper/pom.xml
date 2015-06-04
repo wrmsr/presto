@@ -101,34 +101,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-ffi</artifactId>
-            <version>${project.parent.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-metaconnectors</artifactId>
-            <version>${project.parent.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-reactor</artifactId>
-            <version>${project.parent.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-yarn</artifactId>
-            <version>${project.parent.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
         </dependency>

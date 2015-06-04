@@ -88,17 +88,9 @@
         <module>presto-docs</module>
         <module>presto-verifier</module>
         <module>presto-streaming</module>
-        <module>presto-wrmsr-common</module>
-        <module>presto-wrmsr-config</module>
         <module>presto-wrmsr-elasticsearch</module>
-        <module>presto-wrmsr-ffi</module>
-        <module>presto-wrmsr-flat</module>
-        <module>presto-wrmsr-extended-jdbc</module>
-        <module>presto-wrmsr-metaconnectors</module>
-        <module>presto-wrmsr-mysql</module>
-        <module>presto-wrmsr-reactor</module>
+        <module>presto-wrmsr-extensions</module>
         <module>presto-wrmsr-wrapper</module>
-        <module>presto-wrmsr-yarn</module>
     </modules>
 
     <dependencyManagement>
@@ -250,12 +242,6 @@
                 <groupId>com.facebook.presto.hive</groupId>
                 <artifactId>hive-apache</artifactId>
                 <version>0.14</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.wrmsr.presto</groupId>
-                <artifactId>presto-wrmsr-extended-jdbc</artifactId>
-                <version>${project.version}</version>
             </dependency>
 
             <dependency>
