@@ -5,8 +5,10 @@ import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.wrmsr.presto.util.Configs;
 import com.wrmsr.presto.util.ImmutableCollectors;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationMap;
@@ -49,37 +51,16 @@ public class PartitionerConnectorFactory implements ConnectorFactory
         String targetName = checkNotNull(properties.get("target-name"));
         String targetConnectorName = properties.get("target-connector-name");
 
-        final Connector target;
-        final Map<String, String> requiredConfiguration;
+        Connector target;
+        Map<String, String> requiredConfiguration;
 
         if (targetConnectorName == null) {
             target = checkNotNull(connectorManager.getConnectors().get(targetName), "target-connector-name not specified and target not found");
             requiredConfiguration = ImmutableMap.of();
 
         } else {
-            HierarchicalConfiguration hierarchicalProperties = ConfigurationUtils.convertToHierarchical(
-                    new MapConfiguration(properties));
-
-            Configuration targetConfiguration;
-            try {
-                targetConfiguration = hierarchicalProperties.configurationAt("target");
-            }
-            catch (IllegalArgumentException e) {
-                targetConfiguration = null;
-            }
-
-            final Map<String, String> targetProperties;
-            if (targetConfiguration != null) {
-                targetProperties = new ConfigurationMap(targetConfiguration).entrySet().stream()
-                        .collect(ImmutableCollectors.toImmutableMap(e -> checkNotNull(e.getKey()).toString(), e -> checkNotNull(e.getValue()).toString()));
-                requiredConfiguration = properties.entrySet().stream()
-                        .filter(e -> !hierarchicalProperties.containsKey(e.getKey()))
-                        .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
-            }
-            else {
-                targetProperties = ImmutableMap.of();
-                requiredConfiguration = properties;
-            }
+            requiredConfiguration = Maps.newHashMap(properties);
+            Map<String, String> targetProperties = Configs.stripSubconfig(requiredConfiguration, "target");
 
             connectorManager.createConnection(targetName, targetConnectorName, targetProperties);
             target = checkNotNull(connectorManager.getConnectors().get(targetName));

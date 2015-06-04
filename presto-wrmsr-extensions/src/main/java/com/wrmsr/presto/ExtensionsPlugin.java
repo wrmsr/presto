@@ -17,6 +17,7 @@ package com.wrmsr.presto;
 
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.FunctionFactory;
+import com.facebook.presto.server.ServerEvent;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
@@ -42,7 +43,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 // import com.facebook.presto.type.ParametricType;
 
 public class ExtensionsPlugin
-        implements Plugin
+        implements Plugin, ServerEvent.Listener
 {
     private Map<String, String> optionalConfig = ImmutableMap.of();
     private ConnectorManager connectorManager;
@@ -58,7 +59,7 @@ public class ExtensionsPlugin
     @Inject
     public void setConnectorManager(ConnectorManager connectorManager)
     {
-        this.connectorManager = connectorManager;
+        this.connectorManager = checkNotNull(connectorManager);
     }
 
     @Inject
@@ -74,6 +75,16 @@ public class ExtensionsPlugin
     }
 
     @Override
+    public void onServerEvent(ServerEvent event)
+    {
+        if (event instanceof ServerEvent.ConnectorsLoaded) {
+            if (connectorManager != null) {
+
+            }
+        }
+    }
+
+    @Override
     public <T> List<T> getServices(Class<T> type)
     {
         if (type == ConnectorFactory.class) {
@@ -84,18 +95,12 @@ public class ExtensionsPlugin
                     type.cast(new ExtendedJdbcConnectorFactory("extended-postgresql", new ExtendedPostgreSqlClientModule(), optionalConfig, getClassLoader()))
             );
         }
-        if (type == FunctionFactory.class) {
+        else if (type == FunctionFactory.class) {
             return ImmutableList.of(type.cast(new FFIFunctionFactory(typeManager)));
         }
-//        if (type == FunctionFactory.class) {
-//            return ImmutableList.of(type.cast(new MLFunctionFactory(typeManager)));
-//        }
-//        else if (type == Type.class) {
-//            return ImmutableList.of(type.cast(MODEL), type.cast(REGRESSOR));
-//        }
-//        else if (type == ParametricType.class) {
-//            return ImmutableList.of(type.cast(new ClassifierParametricType()));
-//        }
+        else if (type == ServerEvent.Listener.class) {
+            return ImmutableList.of(type.cast(this));
+        }
         return ImmutableList.of();
     }
 
