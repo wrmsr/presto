@@ -274,3 +274,6 @@ um, shit: struct / union datatypes - only need to be write-only, can fallback to
 
 select struct('name', name', 'date', date) from ...
  - just make user defined structs :|
+
+view struct inference / auto gen
+ - session-specific typesystems?

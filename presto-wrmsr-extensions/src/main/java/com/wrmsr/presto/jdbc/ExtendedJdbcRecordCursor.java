@@ -18,6 +18,7 @@ import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.JdbcRecordCursor;
 import com.facebook.presto.plugin.jdbc.JdbcSplit;
+import com.facebook.presto.plugin.jdbc.QueryBuilder;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.TableNotFoundException;
 import com.facebook.presto.spi.type.Type;
@@ -95,27 +96,53 @@ public class ExtendedJdbcRecordCursor
                     .collect(Collectors.toList());
             checkState(Sets.newHashSet(clusteredColumns).size() == clusteredColumns.size());
 
-            StringBuilder sql = new StringBuilder();
-            sql.append("SELECT ");
-            Joiner.on(", ").appendTo(sql, clusteredColumns.stream().flatMap(c -> MIN_AND_MAX.stream().map(f -> String.format("%s(%s)", f, quote(c)))).collect(Collectors.toList()));
+            {
+                StringBuilder sql = new StringBuilder();
+                sql.append("SELECT ");
+                Joiner.on(", ").appendTo(sql, clusteredColumns.stream().flatMap(c -> MIN_AND_MAX.stream().map(f -> String.format("%s(%s)", f, quote(c)))).collect(Collectors.toList()));
 
-            sql.append(" FROM ");
-            if (!isNullOrEmpty(split.getCatalogName())) {
-                sql.append(quote(split.getCatalogName())).append('.');
-            }
-            if (!isNullOrEmpty(split.getSchemaName())) {
-                sql.append(quote(split.getSchemaName())).append('.');
-            }
-            sql.append(quote(split.getTableName()));
+                sql.append(" FROM ");
+                if (!isNullOrEmpty(split.getCatalogName())) {
+                    sql.append(quote(split.getCatalogName())).append('.');
+                }
+                if (!isNullOrEmpty(split.getSchemaName())) {
+                    sql.append(quote(split.getSchemaName())).append('.');
+                }
+                sql.append(quote(split.getTableName()));
 
-            try (Statement idStatement = connection.createStatement();
-                 ResultSet idResult = idStatement.executeQuery(sql.toString())) {
-                idResult.next();
-                // checkState(idResult.)
-                for (int i = 0; i < clusteredColumns.size(); ++i) {
-                    System.out.println(clusteredColumns.get(i));
-                    System.out.println(idResult.getInt((i * 2) + 1));
-                    System.out.println(idResult.getInt((i * 2) + 2));
+                try (
+                        Statement idStatement = connection.createStatement();
+                        ResultSet idResult = idStatement.executeQuery(sql.toString())) {
+                    checkState(idResult.next());
+                    // checkState(idResult.size)
+                    for (int i = 0; i < clusteredColumns.size(); ++i) {
+                        System.out.println(clusteredColumns.get(i));
+                        System.out.println(idResult.getInt((i * 2) + 1));
+                        System.out.println(idResult.getInt((i * 2) + 2));
+                    }
+                }
+            }
+
+            {
+                QueryBuilder qb = new QueryBuilder(getIdentifierQuote());
+                StringBuilder sql = new StringBuilder(
+                        qb.buildSql(
+                        split.getCatalogName(),
+                        split.getSchemaName(),
+                        split.getTableName(),
+                        columnHandles,
+                        split.getTupleDomain()));
+                sql.append(" ORDER BY ");
+                sql.append(Joiner.on(", ").appendTo(sql, clusteredColumns.stream().map(c -> quote(c) + " ASC").collect(Collectors.toList())));
+                sql.append(" LIMIT ");
+                sql.append(100);
+
+                try (
+                        Statement statement = connection.createStatement();
+                        ResultSet result = statement.executeQuery(sql.toString())) {
+                    while (result.next()) {
+                        System.out.println(result);
+                    }
                 }
             }
         }
@@ -124,9 +151,14 @@ public class ExtendedJdbcRecordCursor
         }
     }
 
+    public String getIdentifierQuote()
+    {
+        return((BaseJdbcClient)jdbcClient).getIdentifierQuote();
+    }
+
     private String quote(String name)
     {
-        String quote = ((BaseJdbcClient) jdbcClient).getIdentifierQuote();
+        String quote = getIdentifierQuote();
         name = name.replace(quote, quote + quote);
         return quote + name + quote;
     }
