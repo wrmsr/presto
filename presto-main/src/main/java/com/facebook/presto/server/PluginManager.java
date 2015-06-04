@@ -51,12 +51,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @ThreadSafe
 public class PluginManager
+        implements ServerStartupListener
 {
     private static final List<String> HIDDEN_CLASSES = ImmutableList.<String>builder()
             .add("org.slf4j")
@@ -84,6 +86,7 @@ public class PluginManager
     private final Map<String, String> optionalConfig;
     private final AtomicBoolean pluginsLoading = new AtomicBoolean();
     private final AtomicBoolean pluginsLoaded = new AtomicBoolean();
+    private final List<ServerStartupListener> serverStartupListeners = new CopyOnWriteArrayList<>();
 
     @Inject
     public PluginManager(Injector injector,
@@ -127,6 +130,22 @@ public class PluginManager
     public boolean arePluginsLoaded()
     {
         return pluginsLoaded.get();
+    }
+
+    @Override
+    public void onPluginsLoaded()
+    {
+        for (ServerStartupListener listener : serverStartupListeners) {
+            listener.onPluginsLoaded();
+        }
+    }
+
+    @Override
+    public void onConnectorsLoaded()
+    {
+        for (ServerStartupListener listener : serverStartupListeners) {
+            listener.onConnectorsLoaded();
+        }
     }
 
     public void loadPlugins()
@@ -205,6 +224,11 @@ public class PluginManager
         for (FunctionFactory functionFactory : plugin.getServices(FunctionFactory.class)) {
             log.info("Registering functions from %s", functionFactory.getClass().getName());
             metadata.addFunctions(functionFactory.listFunctions());
+        }
+
+        for (ServerStartupListener serverStartupListener : plugin.getServices(ServerStartupListener.class)) {
+            log.info("Registering functions from %s", serverStartupListener.getClass().getName());
+            serverStartupListeners.add(serverStartupListener);
         }
     }
 

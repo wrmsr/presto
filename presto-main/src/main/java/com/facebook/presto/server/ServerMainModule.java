@@ -296,9 +296,12 @@ public class ServerMainModule
                     config.setRequestTimeout(new Duration(10, SECONDS));
                 });
 
+        newSetBinder(binder, new TypeLiteral<ServerStartupListener>() {});
+
         // plugin manager
         binder.bind(PluginManager.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(PluginManagerConfig.class);
+        newSetBinder(binder, new TypeLiteral<ServerStartupListener>() {}).addBinding().to(PluginManager.class);
 
         // optimizers
         binder.bind(new TypeLiteral<List<PlanOptimizer>>() {}).toProvider(PlanOptimizersFactory.class).in(Scopes.SINGLETON);
@@ -316,6 +319,7 @@ public class ServerMainModule
 
         // PageSorter
         binder.bind(PageSorter.class).to(PagesIndexPageSorter.class).in(Scopes.SINGLETON);
+
     }
 
     @Provides

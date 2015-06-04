@@ -22,7 +22,9 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Injector;
+import com.google.inject.Key;
 import com.google.inject.Module;
+import com.google.inject.TypeLiteral;
 import io.airlift.bootstrap.Bootstrap;
 import io.airlift.discovery.client.Announcer;
 import io.airlift.discovery.client.DiscoveryModule;
@@ -102,13 +104,19 @@ public class PrestoServer
         try {
             Injector injector = app.strictConfig().initialize();
 
+            Iterable<ServerStartupListener> listeners = injector.getInstance(Key.get(new TypeLiteral<Set<ServerStartupListener>>() {}));
+
             injector.getInstance(PluginManager.class).loadPlugins();
 
-            //injector.getInstance(EventClient.class).post(new PluginsInitializedEvent()).get();
+            for (ServerStartupListener listener : listeners) {
+                listener.onPluginsLoaded();
+            }
 
             injector.getInstance(CatalogManager.class).loadCatalogs();
 
-            //injector.getInstance(EventClient.class).post(new CatalogInitializedEvent()).get();
+            for (ServerStartupListener listener : listeners) {
+                listener.onPluginsLoaded();
+            }
 
             // TODO: remove this huge hack
             updateDatasources(
