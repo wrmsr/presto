@@ -19,27 +19,25 @@ import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.JdbcRecordCursor;
 import com.facebook.presto.plugin.jdbc.JdbcSplit;
 import com.facebook.presto.plugin.jdbc.QueryBuilder;
-import com.facebook.presto.spi.PrestoException;
-import com.facebook.presto.spi.TableNotFoundException;
-import com.facebook.presto.spi.type.Type;
-import com.google.common.base.Throwables;
+import com.facebook.presto.spi.Domain;
+import com.facebook.presto.spi.Range;
+import com.facebook.presto.spi.SortedRangeSet;
+import com.facebook.presto.spi.TupleDomain;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.base.Joiner;
 
-import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -114,7 +112,7 @@ public class ExtendedJdbcRecordCursor
                         Statement idStatement = connection.createStatement();
                         ResultSet idResult = idStatement.executeQuery(sql.toString())) {
                     checkState(idResult.next());
-                    // checkState(idResult.size)
+                    checkState(idResult.getMetaData().getColumnCount() == clusteredColumns.size() * 2);
                     for (int i = 0; i < clusteredColumns.size(); ++i) {
                         System.out.println(clusteredColumns.get(i));
                         System.out.println(idResult.getInt((i * 2) + 1));
@@ -127,13 +125,22 @@ public class ExtendedJdbcRecordCursor
                 QueryBuilder qb = new QueryBuilder(getIdentifierQuote());
                 StringBuilder sql = new StringBuilder(
                         qb.buildSql(
-                        split.getCatalogName(),
-                        split.getSchemaName(),
-                        split.getTableName(),
-                        columnHandles,
-                        split.getTupleDomain()));
+                                split.getCatalogName(),
+                                split.getSchemaName(),
+                                split.getTableName(),
+                                columnHandles,
+                                split.getTupleDomain().intersect(
+                                        TupleDomain.withColumnDomains(
+                                                ImmutableMap.of(
+                                                        columnHandles.get(0), //FIXME)
+                                                        Domain.create(SortedRangeSet.of(
+                                                                // Range.equal(1000L)
+                                                                Range.range(100L, true, 1000L, false)
+                                                        ), false)
+                                                )
+                                        ))));
                 sql.append(" ORDER BY ");
-                sql.append(Joiner.on(", ").appendTo(sql, clusteredColumns.stream().map(c -> quote(c) + " ASC").collect(Collectors.toList())));
+                Joiner.on(", ").appendTo(sql, clusteredColumns.stream().map(c -> quote(c) + " ASC").collect(Collectors.toList()));
                 sql.append(" LIMIT ");
                 sql.append(100);
 
