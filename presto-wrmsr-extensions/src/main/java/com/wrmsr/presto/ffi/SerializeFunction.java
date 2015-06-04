@@ -26,7 +26,7 @@ public class SerializeFunction
     public static final SerializeFunction SERIALIZE = new SerializeFunction();
     private static final Signature SIGNATURE = new Signature(
             "serialize", ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E", StandardTypes.VARCHAR), false, false);
-    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", Object.class, String.class);
+    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", Object.class, Slice.class);
 
     @Override
     public Signature getSignature()
@@ -57,10 +57,10 @@ public class SerializeFunction
     {
         checkArgument(types.size() == 1, "Cardinality expects only one argument");
         Type type = types.get("E");
-        return new FunctionInfo(new Signature("serialize", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature(), parseTypeSignature(StandardTypes.VARCHAR)), getDescription(), isHidden(), METHOD_HANDLE, isDeterministic(), false, ImmutableList.of(false));
+        return new FunctionInfo(new Signature("serialize", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature(), parseTypeSignature(StandardTypes.VARCHAR)), getDescription(), isHidden(), METHOD_HANDLE, isDeterministic(), false, ImmutableList.of(false, false));
     }
 
-    public static Slice serialize(Object object, String codec)
+    public static Slice serialize(Object object, Slice codec)
     {
         return Slices.wrappedBuffer(new byte[]{1, 2, 3});
     }
