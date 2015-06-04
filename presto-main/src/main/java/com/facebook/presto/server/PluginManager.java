@@ -58,7 +58,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 @ThreadSafe
 public class PluginManager
-        implements ServerStartupListener
+        implements ServerEvent.Listener
 {
     private static final List<String> HIDDEN_CLASSES = ImmutableList.<String>builder()
             .add("org.slf4j")
@@ -86,7 +86,7 @@ public class PluginManager
     private final Map<String, String> optionalConfig;
     private final AtomicBoolean pluginsLoading = new AtomicBoolean();
     private final AtomicBoolean pluginsLoaded = new AtomicBoolean();
-    private final List<ServerStartupListener> serverStartupListeners = new CopyOnWriteArrayList<>();
+    private final List<ServerEvent.Listener> serverEventListeners = new CopyOnWriteArrayList<>();
 
     @Inject
     public PluginManager(Injector injector,
@@ -133,18 +133,10 @@ public class PluginManager
     }
 
     @Override
-    public void onPluginsLoaded()
+    public void onServerEvent(ServerEvent event)
     {
-        for (ServerStartupListener listener : serverStartupListeners) {
-            listener.onPluginsLoaded();
-        }
-    }
-
-    @Override
-    public void onConnectorsLoaded()
-    {
-        for (ServerStartupListener listener : serverStartupListeners) {
-            listener.onConnectorsLoaded();
+        for (ServerEvent.Listener listener : serverEventListeners) {
+            listener.onServerEvent(event);
         }
     }
 
@@ -226,9 +218,9 @@ public class PluginManager
             metadata.addFunctions(functionFactory.listFunctions());
         }
 
-        for (ServerStartupListener serverStartupListener : plugin.getServices(ServerStartupListener.class)) {
-            log.info("Registering functions from %s", serverStartupListener.getClass().getName());
-            serverStartupListeners.add(serverStartupListener);
+        for (ServerEvent.Listener serverEventListener : plugin.getServices(ServerEvent.Listener.class)) {
+            log.info("Registering server event listener %s", serverEventListener.getClass().getName());
+            serverEventListeners.add(serverEventListener);
         }
     }
 

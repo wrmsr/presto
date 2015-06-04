@@ -296,12 +296,12 @@ public class ServerMainModule
                     config.setRequestTimeout(new Duration(10, SECONDS));
                 });
 
-        newSetBinder(binder, new TypeLiteral<ServerStartupListener>() {});
+        newSetBinder(binder, new TypeLiteral<ServerEvent.Listener>() {});
 
         // plugin manager
         binder.bind(PluginManager.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(PluginManagerConfig.class);
-        newSetBinder(binder, new TypeLiteral<ServerStartupListener>() {}).addBinding().to(PluginManager.class);
+        newSetBinder(binder, new TypeLiteral<ServerEvent.Listener>() {}).addBinding().to(PluginManager.class);
 
         // optimizers
         binder.bind(new TypeLiteral<List<PlanOptimizer>>() {}).toProvider(PlanOptimizersFactory.class).in(Scopes.SINGLETON);

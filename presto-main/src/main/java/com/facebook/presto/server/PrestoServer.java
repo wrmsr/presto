@@ -104,18 +104,18 @@ public class PrestoServer
         try {
             Injector injector = app.strictConfig().initialize();
 
-            Iterable<ServerStartupListener> listeners = injector.getInstance(Key.get(new TypeLiteral<Set<ServerStartupListener>>() {}));
+            Iterable<ServerEvent.Listener> listeners = injector.getInstance(Key.get(new TypeLiteral<Set<ServerEvent.Listener>>() {}));
 
             injector.getInstance(PluginManager.class).loadPlugins();
 
-            for (ServerStartupListener listener : listeners) {
-                listener.onPluginsLoaded();
+            for (ServerEvent.Listener listener : listeners) {
+                listener.onServerEvent(new ServerEvent.PluginsLoaded());
             }
 
             injector.getInstance(CatalogManager.class).loadCatalogs();
 
-            for (ServerStartupListener listener : listeners) {
-                listener.onPluginsLoaded();
+            for (ServerEvent.Listener listener : listeners) {
+                listener.onServerEvent(new ServerEvent.ConnectorsLoaded());
             }
 
             // TODO: remove this huge hack
