@@ -51,7 +51,7 @@ public class ExtendedJdbcPlugin
     public <T> List<T> getServices(Class<T> type)
     {
         if (type == ConnectorFactory.class) {
-            return ImmutableList.of(type.cast(new ChunkedJdbcConnectorFactory(name, module, optionalConfig, getClassLoader())));
+            return ImmutableList.of(type.cast(new ExtendedJdbcConnectorFactory(name, module, optionalConfig, getClassLoader())));
         }
         return ImmutableList.of();
     }

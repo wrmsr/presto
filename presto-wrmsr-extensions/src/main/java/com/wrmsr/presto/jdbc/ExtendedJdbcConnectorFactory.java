@@ -18,10 +18,10 @@ import com.google.inject.Module;
 
 import java.util.Map;
 
-public class ChunkedJdbcConnectorFactory
+public class ExtendedJdbcConnectorFactory
         extends JdbcConnectorFactory
 {
-    public ChunkedJdbcConnectorFactory(String name, Module module, Map<String, String> optionalConfig, ClassLoader classLoader)
+    public ExtendedJdbcConnectorFactory(String name, Module module, Map<String, String> optionalConfig, ClassLoader classLoader)
     {
         super(name, module, optionalConfig, classLoader);
     }
