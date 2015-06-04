@@ -188,13 +188,13 @@ public class FlatMetadata
     @Override
     public ConnectorInsertTableHandle beginInsert(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
-        throw new PrestoException(NOT_SUPPORTED, "This connector does not support inserts");
+        return new FlatInsertTableHandle(connectorId);
     }
 
     @Override
     public void commitInsert(ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
     {
-        throw new UnsupportedOperationException();
+        // throw new UnsupportedOperationException();
     }
 
     @Override

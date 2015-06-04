@@ -1,10 +1,6 @@
 package com.wrmsr.presto.flat;
 
-import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.ConnectorHandleResolver;
-import com.facebook.presto.spi.ConnectorOutputTableHandle;
-import com.facebook.presto.spi.ConnectorSplit;
-import com.facebook.presto.spi.ConnectorTableHandle;
+import com.facebook.presto.spi.*;
 
 import javax.inject.Inject;
 
@@ -44,6 +40,19 @@ public class FlatHandleResolver
     public boolean canHandle(ConnectorOutputTableHandle tableHandle)
     {
         return (tableHandle instanceof FlatOutputTableHandle) && ((FlatOutputTableHandle) tableHandle).getConnectorId().equals(connectorId);
+    }
+
+    @Override
+    public boolean canHandle(ConnectorInsertTableHandle tableHandle)
+    {
+        return (tableHandle instanceof FlatInsertTableHandle) &&
+                ((FlatInsertTableHandle) tableHandle).getConnectorId().equals(connectorId);
+    }
+
+    @Override
+    public Class<? extends ConnectorInsertTableHandle> getInsertTableHandleClass()
+    {
+        return FlatInsertTableHandle.class;
     }
 
     @Override

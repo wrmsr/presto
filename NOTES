@@ -243,3 +243,8 @@ src / sink for line files, one text column
 scalar calc parallelization (for cpu-heavy ffi's)
  - special case of batch scalar execution?
 
+
+http://dev.mysql.com/doc/connector-j/en/connector-j-usagenotes-j2ee-concepts-managing-load-balanced-connections.html
+
+https://github.com/facebook/mysql-5.6/commit/f8e361952612d00979f7cf744f487e48b15cb5a6#diff-1b7266575f084a759d5bee343efe91d0
+http://www.oracle.com/technetwork/articles/database-performance/geist-parallel-execution-1-1872400.html

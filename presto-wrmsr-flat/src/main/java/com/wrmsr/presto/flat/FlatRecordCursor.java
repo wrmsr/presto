@@ -31,7 +31,7 @@ public class FlatRecordCursor
     public FlatRecordCursor()
     {
         try {
-            f = new FileInputStream(new File("/Users/wtimoney/presto/flat/hi.txt"));
+            f = new FileInputStream(new File(System.getProperty("user.home") + "/presto/flat/hi.txt"));
             br = new BufferedReader(new InputStreamReader(f));
 
             /*
