@@ -78,6 +78,11 @@ public class JdbcRecordCursor
         }
     }
 
+    public Connection getConnection()
+    {
+        return connection;
+    }
+
     @Override
     public long getReadTimeNanos()
     {
