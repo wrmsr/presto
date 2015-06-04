@@ -52,21 +52,33 @@ public class JdbcRecordCursor
 
     private static final ISOChronology UTC_CHRONOLOGY = ISOChronology.getInstance(UTC);
 
-    private final List<JdbcColumnHandle> columnHandles;
+    protected final List<JdbcColumnHandle> columnHandles;
 
-    private final Connection connection;
-    private final Statement statement;
-    private final ResultSet resultSet;
-    private boolean closed;
+    protected final JdbcClient jdbcClient;
+    protected final JdbcSplit split;
+    protected Connection connection;
+    protected Statement statement;
+    protected ResultSet resultSet;
+    protected boolean closed;
 
     public JdbcRecordCursor(JdbcClient jdbcClient, JdbcSplit split, List<JdbcColumnHandle> columnHandles)
     {
+        this.jdbcClient = jdbcClient;
+        this.split = split;
         this.columnHandles = ImmutableList.copyOf(checkNotNull(columnHandles, "columnHandles is null"));
-
-        String sql = jdbcClient.buildSql(split, columnHandles);
         try {
             connection = jdbcClient.getConnection(split);
+        }
+        catch (SQLException e) {
+            throw handleSqlException(e);
+        }
+        begin();
+    }
 
+    protected void begin()
+    {
+        try {
+            String sql = jdbcClient.buildSql(split, columnHandles);
             statement = connection.createStatement();
             statement.setFetchSize(1000);
 
@@ -76,11 +88,6 @@ public class JdbcRecordCursor
         catch (SQLException e) {
             throw handleSqlException(e);
         }
-    }
-
-    public Connection getConnection()
-    {
-        return connection;
     }
 
     @Override

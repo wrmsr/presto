@@ -258,6 +258,11 @@ public class BaseJdbcClient
         return connection;
     }
 
+    public String getIdentifierQuote()
+    {
+        return identifierQuote;
+    }
+
     @Override
     public String buildSql(JdbcSplit split, List<JdbcColumnHandle> columnHandles)
     {
