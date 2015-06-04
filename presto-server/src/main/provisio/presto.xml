@@ -102,20 +102,8 @@
         <artifact id="com.wrmsr.presto:presto-wrmsr-elasticsearch:jar:${project.version}" />
     </artifactSet>
 
-    <artifactSet to="plugin/ffi">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-ffi:jar:${project.version}" />
-    </artifactSet>
-
-    <artifactSet to="plugin/splitter">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-metaconnectors:jar:${project.version}" />
-    </artifactSet>
-
-    <artifactSet to="plugin/reactor">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-reactor:jar:${project.version}" />
-    </artifactSet>
-
-    <artifactSet to="plugin/yarn">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-yarn:jar:${project.version}" />
+    <artifactSet to="plugin/extensions">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-extensions:jar:${project.version}" />
     </artifactSet>
 
 </runtime>
