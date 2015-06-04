@@ -135,7 +135,7 @@ public class ExtendedJdbcRecordCursor
                                                         columnHandles.get(0), //FIXME)
                                                         Domain.create(SortedRangeSet.of(
                                                                 // Range.equal(1000L)
-                                                                Range.range(100L, true, 1000L, false)
+                                                                Range.range(100L, true, 3100L, false)
                                                         ), false)
                                                 )
                                         ))));
