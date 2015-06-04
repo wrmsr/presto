@@ -4,10 +4,18 @@ import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.ParametricScalar;
 import com.facebook.presto.metadata.Signature;
+import com.facebook.presto.server.SliceSerializer;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import io.airlift.json.ObjectMapperProvider;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
@@ -24,9 +32,10 @@ public class SerializeFunction
     extends ParametricScalar
 {
     public static final SerializeFunction SERIALIZE = new SerializeFunction();
+    private static final Supplier<ObjectMapper> OBJECT_MAPPER = Suppliers.memoize(() -> new ObjectMapperProvider().get().registerModule(new SimpleModule().addSerializer(Slice.class, new SliceSerializer())));
     private static final Signature SIGNATURE = new Signature(
             "serialize", ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E", StandardTypes.VARCHAR), false, false);
-    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", Object.class, Slice.class);
+    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", Type.class, Object.class, Slice.class);
 
     @Override
     public Signature getSignature()
@@ -57,11 +66,17 @@ public class SerializeFunction
     {
         checkArgument(types.size() == 1, "Cardinality expects only one argument");
         Type type = types.get("E");
+        MethodHandle methodHandle = METHOD_HANDLE.bindTo(type);
         return new FunctionInfo(new Signature("serialize", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature(), parseTypeSignature(StandardTypes.VARCHAR)), getDescription(), isHidden(), METHOD_HANDLE, isDeterministic(), false, ImmutableList.of(false, false));
     }
 
-    public static Slice serialize(Object object, Slice codec)
+    public static Slice serialize(Type type, Object object, Slice codec)
     {
-        return Slices.wrappedBuffer(new byte[]{1, 2, 3});
+        try {
+            return Slices.wrappedBuffer(OBJECT_MAPPER.get().writeValueAsBytes(object));
+        }
+        catch (JsonProcessingException e) {
+            throw Throwables.propagate(e);
+        }
     }
 }

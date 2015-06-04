@@ -14,8 +14,14 @@
 package com.wrmsr.presto.jdbc;
 
 import com.facebook.presto.plugin.jdbc.JdbcConnectorFactory;
+import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
+import com.google.common.collect.ImmutableList;
+import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.google.inject.Scopes;
+import com.google.inject.util.Modules;
 
+import java.util.List;
 import java.util.Map;
 
 public class ExtendedJdbcConnectorFactory
@@ -24,5 +30,18 @@ public class ExtendedJdbcConnectorFactory
     public ExtendedJdbcConnectorFactory(String name, Module module, Map<String, String> optionalConfig, ClassLoader classLoader)
     {
         super(name, module, optionalConfig, classLoader);
+    }
+
+    @Override
+    protected List<Module> createModules(String connectorId)
+    {
+        return ImmutableList.of(Modules.override(super.createModules(connectorId)).with(new Module()
+        {
+            @Override
+            public void configure(Binder binder)
+            {
+                binder.bind(JdbcRecordSetProvider.class).to(ExtendedJdbcRecordSetProvider.class).in(Scopes.SINGLETON);
+            }
+        }));
     }
 }

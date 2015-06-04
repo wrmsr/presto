@@ -16,22 +16,25 @@ package com.wrmsr.presto.jdbc;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.JdbcRecordSet;
+import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
 import com.facebook.presto.plugin.jdbc.JdbcSplit;
-import com.facebook.presto.spi.RecordCursor;
+import com.facebook.presto.spi.RecordSet;
+import com.google.inject.Inject;
 
 import java.util.List;
 
-public class ChunkedJdbcRecordSet
-        extends JdbcRecordSet
+public class ExtendedJdbcRecordSetProvider
+        extends JdbcRecordSetProvider
 {
-    public ChunkedJdbcRecordSet(JdbcClient jdbcClient, JdbcSplit split, List<JdbcColumnHandle> columnHandles)
+    @Inject
+    public ExtendedJdbcRecordSetProvider(JdbcClient jdbcClient)
     {
-        super(jdbcClient, split, columnHandles);
+        super(jdbcClient);
     }
 
     @Override
-    public RecordCursor cursor()
+    protected RecordSet createRecordSet(JdbcClient jdbcClient, JdbcSplit split, List<JdbcColumnHandle> columnHandles)
     {
-        return new ChunkedJdbcRecordCursor(getJdbcClient(), getSplit(), getColumnHandles());
+        return new ExtendedJdbcRecordSet(jdbcClient, split, columnHandles);
     }
 }

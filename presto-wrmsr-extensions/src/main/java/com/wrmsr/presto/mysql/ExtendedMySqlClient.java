@@ -21,6 +21,7 @@ import com.facebook.presto.spi.type.Type;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.mysql.jdbc.Driver;
+import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 
 import javax.inject.Inject;
 
@@ -32,7 +33,7 @@ import java.util.Set;
 import static java.util.Locale.ENGLISH;
 
 public class ExtendedMySqlClient
-        extends BaseJdbcClient
+        extends ExtendedJdbcClient
 {
     @Inject
     public ExtendedMySqlClient(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedMySqlConfig mySqlConfig)

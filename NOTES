@@ -269,3 +269,8 @@ ffi to arbitrary jar / classname / methodname
 reactor
 yarn
 
+um, shit: struct / union datatypes - only need to be write-only, can fallback to json
+ - ... RowParametricType?
+
+select struct('name', name', 'date', date) from ...
+ - just make user defined structs :|

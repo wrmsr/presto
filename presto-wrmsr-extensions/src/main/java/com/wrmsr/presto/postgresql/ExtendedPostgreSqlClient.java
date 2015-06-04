@@ -18,6 +18,7 @@ import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.facebook.presto.plugin.jdbc.JdbcOutputTableHandle;
 import com.google.common.base.Throwables;
+import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import io.airlift.slice.Slice;
 import org.postgresql.Driver;
 
@@ -28,7 +29,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 
 public class ExtendedPostgreSqlClient
-        extends BaseJdbcClient
+        extends ExtendedJdbcClient
 {
     @Inject
     public ExtendedPostgreSqlClient(JdbcConnectorId connectorId, BaseJdbcConfig config)

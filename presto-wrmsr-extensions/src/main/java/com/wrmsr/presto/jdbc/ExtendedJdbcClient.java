@@ -13,16 +13,19 @@
  */
 package com.wrmsr.presto.jdbc;
 
-import com.facebook.presto.plugin.jdbc.JdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
+import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
+import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
+import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.google.inject.Inject;
 
-public class ChunkedJdbcRecordSetProvider
-        extends JdbcRecordSetProvider
+import java.sql.Driver;
+
+public class ExtendedJdbcClient
+        extends BaseJdbcClient
 {
     @Inject
-    public ChunkedJdbcRecordSetProvider(JdbcClient jdbcClient)
+    public ExtendedJdbcClient(JdbcConnectorId connectorId, BaseJdbcConfig config, String identifierQuote, Driver driver)
     {
-        super(jdbcClient);
+        super(connectorId, config, identifierQuote, driver);
     }
 }

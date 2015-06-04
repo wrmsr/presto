@@ -20,10 +20,10 @@ import com.facebook.presto.plugin.jdbc.JdbcSplit;
 
 import java.util.List;
 
-public class ChunkedJdbcRecordCursor
+public class ExtendedJdbcRecordCursor
         extends JdbcRecordCursor
 {
-    public ChunkedJdbcRecordCursor(JdbcClient jdbcClient, JdbcSplit split, List<JdbcColumnHandle> columnHandles)
+    public ExtendedJdbcRecordCursor(JdbcClient jdbcClient, JdbcSplit split, List<JdbcColumnHandle> columnHandles)
     {
         super(jdbcClient, split, columnHandles);
     }
