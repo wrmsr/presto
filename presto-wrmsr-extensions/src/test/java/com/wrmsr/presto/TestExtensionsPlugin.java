@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.extensions;
+package com.wrmsr.presto;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.testing.LocalQueryRunner;
@@ -42,37 +42,32 @@ public class TestExtensionsPlugin
 
     private static LocalQueryRunner createLocalQueryRunner()
     {
-//        Session defaultSession = Session.builder()
-//                .setUser("user")
-//                .setSource("test")
-//                .setCatalog("local")
-//                .setSchema(TINY_SCHEMA_NAME)
-//                .setTimeZoneKey(UTC_KEY)
-//                .setLocale(ENGLISH)
-//                .build();
-//
-//        LocalQueryRunner queryRunner = new LocalQueryRunner(defaultSession);
-//
-//        // add the tpch catalog
-//        // local queries run directly against the generator
-//        queryRunner.createCatalog(
-//                defaultSession.getCatalog(),
-//                new TpchConnectorFactory(queryRunner.getNodeManager(), 1),
-//                ImmutableMap.<String, String>of());
-//
-//        ExtensionsPlugin plugin = new ExtensionsPlugin();
-//        plugin.setTypeManager(queryRunner.getTypeManager());
-//        /*
-//        for (Type type : plugin.getServices(Type.class)) {
-//            queryRunner.getTypeManager().addType(type);
-//        }
-//        for (ParametricType parametricType : plugin.getServices(ParametricType.class)) {
-//            queryRunner.getTypeManager().addParametricType(parametricType);
-//        }
-//        */
-//        // queryRunner.getMetadata().getFunctionRegistry().addFunctions(Iterables.getOnlyElement(plugin.getServices(FunctionFactory.class)).listFunctions());
-//
-//        return queryRunner;
-        throw new IllegalStateException();
+       Session defaultSession = Session.builder()
+               .setUser("user")
+               .setSource("test")
+               .setCatalog("local")
+               .setSchema(TINY_SCHEMA_NAME)
+               .setTimeZoneKey(UTC_KEY)
+               .setLocale(ENGLISH)
+               .build();
+       LocalQueryRunner queryRunner = new LocalQueryRunner(defaultSession);
+       // add the tpch catalog
+       // local queries run directly against the generator
+       queryRunner.createCatalog(
+               defaultSession.getCatalog(),
+               new TpchConnectorFactory(queryRunner.getNodeManager(), 1),
+               ImmutableMap.<String, String>of());
+       ExtensionsPlugin plugin = new ExtensionsPlugin();
+       plugin.setTypeManager(queryRunner.getTypeManager());
+       /*
+       for (Type type : plugin.getServices(Type.class)) {
+           queryRunner.getTypeManager().addType(type);
+       }
+       for (ParametricType parametricType : plugin.getServices(ParametricType.class)) {
+           queryRunner.getTypeManager().addParametricType(parametricType);
+       }
+       */
+       // queryRunner.getMetadata().getFunctionRegistry().addFunctions(Iterables.getOnlyElement(plugin.getServices(FunctionFactory.class)).listFunctions());
+       return queryRunner;
     }
 }

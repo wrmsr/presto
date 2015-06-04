@@ -22,6 +22,7 @@ public class FFIFunctionFactory
     {
         return new FunctionListBuilder(typeManager)
                 .scalar(CompressionFunctions.class)
+                .function(SerializeFunction.SERIALIZE)
                 .getFunctions();
     }
 }
