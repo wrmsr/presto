@@ -22,6 +22,9 @@ import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.sql.analyzer.FeaturesConfig;
+import com.facebook.presto.sql.parser.SqlParser;
+import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.ffi.FFIFunctionFactory;
@@ -52,6 +55,9 @@ public class ExtensionsPlugin
     private ConnectorManager connectorManager;
     private TypeManager typeManager;
     private NodeManager nodeManager;
+    private SqlParser sqlParser;
+    private List<PlanOptimizer> planOptimizers;
+    private FeaturesConfig featuresConfig;
 
     @Override
     public void setOptionalConfig(Map<String, String> optionalConfig)
@@ -75,6 +81,24 @@ public class ExtensionsPlugin
     public void setNodeManager(NodeManager nodeManager)
     {
         this.nodeManager = checkNotNull(nodeManager, "nodeManager is null");
+    }
+
+    @Inject
+    public void setSqlParser(SqlParser sqlParser)
+    {
+        this.sqlParser = sqlParser;
+    }
+
+    @Inject
+    public void setPlanOptimizers(List<PlanOptimizer> planOptimizers)
+    {
+        this.planOptimizers = planOptimizers;
+    }
+
+    @Inject
+    public void setFeaturesConfig(FeaturesConfig featuresConfig)
+    {
+        this.featuresConfig = featuresConfig;
     }
 
     @Override
