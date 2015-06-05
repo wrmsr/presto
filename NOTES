@@ -255,11 +255,10 @@ flat:
  - filename regex, string formatted filename
 
 TODO:
- - collapse basically everything into a single plugin?
  - decoder meta vs unnested extractors :| perf?
- - spi blockbuilder closeentry docstring wrong as fuck lol
  - layered connectors of same schemas as fallbacks (memcache -> mysql)
  - attempt oracle jdbc driver loading
+  - fuck that its not in central lmfao eat shit
  - indexer & partitioner metas
 
 ffi to arbitrary jar / classname / methodname
@@ -268,6 +267,7 @@ ffi to arbitrary jar / classname / methodname
 
 reactor
 yarn
+ - mesos?
 
 um, shit: struct / union datatypes - only need to be write-only, can fallback to json
  - ... RowParametricType?
@@ -277,3 +277,6 @@ select struct('name', name', 'date', date) from ...
 
 view struct inference / auto gen
  - session-specific typesystems?
+
+
+spark-style stupid jdbc baked query sources

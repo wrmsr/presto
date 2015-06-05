@@ -54,7 +54,7 @@ public interface BlockBuilder
     BlockBuilder writeBytes(Slice source, int sourceIndex, int length);
 
     /**
-     * Write a byte to the current entry;
+     * Close the current entry;
      */
     BlockBuilder closeEntry();
 
