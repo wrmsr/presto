@@ -296,3 +296,8 @@ https://github.com/liquibase/liquibase/tree/master/liquibase-core/src/main/java/
 
 https://orainternals.files.wordpress.com/2008/07/riyaj_redo_internals_and_tuning_by_redo_reduction_doc.pdf
 http://docs.oracle.com/cd/B28359_01/server.111/b28322/gen_rep.htm#STREP011
+
+union connector
+ - step 1 just so you dont have to keep typing the fucking catalog.schema. prefix
+ - step 2 optinoally combine tables in both if they have same schema
+  - naw thats just a fucking union view

@@ -32,6 +32,7 @@ import com.wrmsr.presto.ffi.FFIFunctionFactory;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
+import com.wrmsr.presto.hardcoded.HardcodedMetadataPopulator;
 import com.wrmsr.presto.hardcoded.HardcodedModule;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
 import com.wrmsr.presto.jdbc.redshift.ExtendedRedshiftClientModule;
@@ -113,9 +114,7 @@ public class ExtensionsPlugin
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.ConnectorsLoaded) {
-            if (connectorManager != null) {
-
-            }
+            new HardcodedMetadataPopulator(connectorManager, metadata, sqlParser, planOptimizers, featuresConfig).run();
         }
     }
 
@@ -128,7 +127,7 @@ public class ExtensionsPlugin
 
                     type.cast(new FlatConnectorFactory(optionalConfig, new FlatModule(), getClassLoader())),
 
-                    type.cast(new HardcodedConnectorFactory(optionalConfig, new HardcodedModule(metadata, sqlParser, planOptimizers, featuresConfig), getClassLoader())),
+                    type.cast(new HardcodedConnectorFactory(optionalConfig, new HardcodedModule(), getClassLoader())),
 
                     type.cast(new ExtendedJdbcConnectorFactory("extended-mysql", new ExtendedMySqlClientModule(), optionalConfig, getClassLoader())),
                     type.cast(new ExtendedJdbcConnectorFactory("extended-postgresql", new ExtendedPostgreSqlClientModule(), optionalConfig, getClassLoader())),

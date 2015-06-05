@@ -18,26 +18,9 @@ import java.util.List;
 public class HardcodedModule
     implements Module
 {
-    private final Metadata metadata;
-    private final SqlParser sqlParser;
-    private final List<PlanOptimizer> planOptimizers;
-    private final FeaturesConfig featuresConfig;
-
-    public HardcodedModule(Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
-    {
-        this.metadata = metadata;
-        this.sqlParser = sqlParser;
-        this.planOptimizers = planOptimizers;
-        this.featuresConfig = featuresConfig;
-    }
-
     @Override
     public void configure(Binder binder)
     {
-        binder.bind(SqlParser.class).toInstance(sqlParser);
-        binder.bind(new TypeLiteral<List<PlanOptimizer>>() {}).toInstance(planOptimizers);
-        binder.bind(FeaturesConfig.class).toInstance(featuresConfig);
-
         binder.bind(ConnectorHandleResolver.class).to(HardcodedHandleResolver.class).in(Scopes.SINGLETON);
         binder.bind(ConnectorMetadata.class).to(HardcodedMetadata.class).in(Scopes.SINGLETON);
         binder.bind(ConnectorSplitManager.class).to(HardcodedSplitManager.class).in(Scopes.SINGLETON);

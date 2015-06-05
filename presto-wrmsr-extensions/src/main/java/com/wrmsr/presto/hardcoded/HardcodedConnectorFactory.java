@@ -1,16 +1,8 @@
 package com.wrmsr.presto.hardcoded;
 
-import com.facebook.presto.Session;
-import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.QualifiedTableName;
-import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
-import com.facebook.presto.sql.analyzer.Analysis;
-import com.facebook.presto.sql.analyzer.Analyzer;
-import com.facebook.presto.sql.analyzer.QueryExplainer;
-import com.facebook.presto.sql.tree.Statement;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -20,12 +12,8 @@ import com.google.inject.Module;
 import com.wrmsr.presto.util.Configs;
 import io.airlift.bootstrap.Bootstrap;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-import static com.facebook.presto.metadata.MetadataUtil.createQualifiedTableName;
-import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class HardcodedConnectorFactory
@@ -55,6 +43,7 @@ public class HardcodedConnectorFactory
         requiredConfiguration = Maps.newHashMap(requiredConfiguration);
 
         Map<String, String> views = Configs.stripSubconfig(requiredConfiguration, "views");
+        HardcodedContents contents =  new HardcodedContents(ImmutableMap.copyOf(views));
 
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
             Bootstrap app = new Bootstrap(module, new Module()
@@ -63,6 +52,7 @@ public class HardcodedConnectorFactory
                 public void configure(Binder binder)
                 {
                     binder.bind(HardcodedConnectorId.class).toInstance(new HardcodedConnectorId(connectorId));
+                    binder.bind(HardcodedContents.class).toInstance(contents);
                 }
             });
 

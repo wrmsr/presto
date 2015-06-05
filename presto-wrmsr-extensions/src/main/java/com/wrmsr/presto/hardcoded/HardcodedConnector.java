@@ -15,13 +15,21 @@ public class HardcodedConnector
     private final ConnectorSplitManager connectorSplitManager;
     private final ConnectorRecordSetProvider connectorRecordSetProvider;
 
+    private final HardcodedContents hardcodedContents;
+
     @Inject
-    public HardcodedConnector(ConnectorMetadata connectorMetadata, ConnectorSplitManager connectorSplitManager, ConnectorRecordSetProvider connectorRecordSetProvider, ConnectorHandleResolver connectorHandleResolver)
+    public HardcodedConnector(ConnectorMetadata connectorMetadata, ConnectorSplitManager connectorSplitManager, ConnectorRecordSetProvider connectorRecordSetProvider, ConnectorHandleResolver connectorHandleResolver, HardcodedContents hardcodedContents)
     {
         this.connectorHandleResolver = connectorHandleResolver;
         this.connectorMetadata = connectorMetadata;
         this.connectorSplitManager = connectorSplitManager;
         this.connectorRecordSetProvider = connectorRecordSetProvider;
+        this.hardcodedContents = hardcodedContents;
+    }
+
+    public HardcodedContents getHardcodedContents()
+    {
+        return hardcodedContents;
     }
 
     @Override
