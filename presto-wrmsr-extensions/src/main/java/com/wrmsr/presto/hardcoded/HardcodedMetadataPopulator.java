@@ -27,6 +27,7 @@ import java.util.Optional;
 import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Locale.ENGLISH;
 
@@ -56,7 +57,7 @@ public class HardcodedMetadataPopulator
     }
 
     @Nullable
-    public ViewDefinition buildViewDefinition(Session session, String sql)
+    public ViewDefinition buildViewDefinition(Session session, String name, String sql)
     {
         // verify round-trip
         Statement statement;
@@ -73,7 +74,10 @@ public class HardcodedMetadataPopulator
         try {
             columns = analysis.getOutputDescriptor()
                     .getVisibleFields().stream()
-                    .map(field -> new ViewDefinition.ViewColumn(field.getName().get(), field.getType()))
+                    .map(field -> {
+                        checkState(field.getName().isPresent(), String.format("view '%s' columns must be named", name));
+                        return new ViewDefinition.ViewColumn(field.getName().get(), field.getType());
+                    })
                     .collect(toImmutableList());
         }
         catch (SemanticException e) {
@@ -127,7 +131,7 @@ public class HardcodedMetadataPopulator
         for (Context context : contexts) {
             HardcodedContents contents = context.contents;
             for (Map.Entry<SchemaTableName, String> view : contents.getViews().entrySet()) {
-                buildViewDefinition(context.createSession(view.getKey().getSchemaName()), view.getValue());
+                buildViewDefinition(context.createSession(view.getKey().getSchemaName()), view.getKey().toString(), view.getValue());
             }
         }
     }
