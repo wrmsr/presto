@@ -38,6 +38,7 @@
         </artifact>
     </artifactSet>
 
+    <!--
     <artifactSet to="plugin/hive-cdh4">
         <artifact id="${project.groupId}:presto-hive-cdh4:zip:${project.version}">
             <unpack />
@@ -55,6 +56,7 @@
             <unpack />
         </artifact>
     </artifactSet>
+    -->
 
     <artifactSet to="plugin/hive-hadoop2">
         <artifact id="${project.groupId}:presto-hive-hadoop2:zip:${project.version}">
