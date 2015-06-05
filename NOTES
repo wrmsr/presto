@@ -301,3 +301,14 @@ union connector
  - step 1 just so you dont have to keep typing the fucking catalog.schema. prefix
  - step 2 optinoally combine tables in both if they have same schema
   - naw thats just a fucking union view
+
+
+hardcoded:
+ - views
+  - types
+ - tables
+
+
+
+public class CachingConnectorMetadata
+    implements ConnectorMetadata

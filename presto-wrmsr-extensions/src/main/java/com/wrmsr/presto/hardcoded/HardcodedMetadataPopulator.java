@@ -18,6 +18,7 @@ import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
 import com.wrmsr.presto.util.ImmutableCollectors;
+import io.airlift.json.JsonCodec;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -34,14 +35,16 @@ import static java.util.Locale.ENGLISH;
 public class HardcodedMetadataPopulator
 {
     private final ConnectorManager connectorManager;
+    private final JsonCodec<ViewDefinition> viewCodec;
     private final Metadata metadata;
     private final SqlParser sqlParser;
     private final List<PlanOptimizer> planOptimizers;
     private final boolean experimentalSyntaxEnabled;
 
-    public HardcodedMetadataPopulator(ConnectorManager connectorManager, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
+    public HardcodedMetadataPopulator(ConnectorManager connectorManager, JsonCodec<ViewDefinition> viewCodec, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
     {
         this.connectorManager = checkNotNull(connectorManager);
+        this.viewCodec = viewCodec;
         this.metadata = checkNotNull(metadata);
         this.sqlParser = checkNotNull(sqlParser);
         this.planOptimizers = checkNotNull(planOptimizers);

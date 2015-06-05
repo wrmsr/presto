@@ -18,6 +18,7 @@ package com.wrmsr.presto;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.server.ServerEvent;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
@@ -40,6 +41,7 @@ import com.wrmsr.presto.metaconnectors.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerModule;
 import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
 import com.wrmsr.presto.jdbc.postgresql.ExtendedPostgreSqlClientModule;
+import io.airlift.json.JsonCodec;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -57,6 +59,7 @@ public class ExtensionsPlugin
     private ConnectorManager connectorManager;
     private TypeManager typeManager;
     private NodeManager nodeManager;
+    private JsonCodec<ViewDefinition> viewCodec;
     private Metadata metadata;
     private SqlParser sqlParser;
     private List<PlanOptimizer> planOptimizers;
@@ -87,6 +90,12 @@ public class ExtensionsPlugin
     }
 
     @Inject
+    public void setViewCodec(JsonCodec<ViewDefinition> viewCodec)
+    {
+        this.viewCodec = viewCodec;
+    }
+
+    @Inject
     public void setMetadata(Metadata metadata)
     {
         this.metadata = metadata;
@@ -114,7 +123,14 @@ public class ExtensionsPlugin
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.ConnectorsLoaded) {
-            new HardcodedMetadataPopulator(connectorManager, metadata, sqlParser, planOptimizers, featuresConfig).run();
+            new HardcodedMetadataPopulator(
+                    connectorManager,
+                    viewCodec,
+                    metadata,
+                    sqlParser,
+                    planOptimizers,
+                    featuresConfig
+            ).run();
         }
     }
 
