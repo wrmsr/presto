@@ -7,47 +7,47 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.log4j.Logger;
 
-import java.io.File;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class DbTopology {
-
+public class DbTopology
+{
     static Logger logger = Logger.getLogger(DbTopology.class);
 
-    public static interface Root extends Iterable<Group> {
-
-        public Cluster cluster(String name);
+    public static interface Root extends Iterable<Group>
+    {
+        Cluster cluster(String name);
     }
 
     @JsonIgnoreProperties(value = {"groupsByCluster"}, ignoreUnknown = true)
-    public static class RootImpl implements Root {
-
+    public static class RootImpl implements Root
+    {
         @JsonProperty("topology")
         public final ImmutableList<Group> groups = null;
 
-        protected RootImpl() {
+        protected RootImpl()
+        {
         }
 
         @Override
-        public Iterator<Group> iterator() {
+        public Iterator<Group> iterator()
+        {
             return groups.iterator();
         }
 
         private ImmutableMap<String, Cluster> groupsByCluster = null;
 
-        public Cluster cluster(String name) {
+        public Cluster cluster(String name)
+        {
             if (groupsByCluster == null) {
                 HashMap<String, ImmutableList.Builder<Group>> map = new HashMap<>();
                 for (Group group : groups) {
                     ImmutableList.Builder<Group> builder;
-                    if (map.containsKey(group.cluster))
+                    if (map.containsKey(group.cluster)) {
                         builder = map.get(group.cluster);
+                    }
                     else {
                         builder = ImmutableList.builder();
                         map.put(group.cluster, builder);
@@ -55,9 +55,10 @@ public class DbTopology {
                     builder.add(group);
                 }
                 ImmutableMap.Builder<String, Cluster> builder = ImmutableMap.builder();
-                for (Map.Entry<String, ImmutableList.Builder<Group>> entry : map.entrySet())
+                for (Map.Entry<String, ImmutableList.Builder<Group>> entry : map.entrySet()) {
                     builder.put(entry.getKey(), new Cluster(entry.getKey(),
                             entry.getValue().build()));
+                }
                 groupsByCluster = builder.build();
             }
             return groupsByCluster.get(name);
@@ -65,30 +66,34 @@ public class DbTopology {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Cluster implements Iterable<Group> {
-
+    public static class Cluster implements Iterable<Group>
+    {
         public final String name;
         public final ImmutableList<Group> groups;
 
-        protected Cluster(String name, ImmutableList<Group> groups) {
+        protected Cluster(String name, ImmutableList<Group> groups)
+        {
             this.name = name;
             this.groups = groups;
         }
 
         @Override
-        public Iterator<Group> iterator() {
+        public Iterator<Group> iterator()
+        {
             return groups.iterator();
         }
 
         private ImmutableMap<String, ImmutableList<Group>> groupsByReplica = null;
 
-        public ImmutableList<Group> replicas(String name) {
+        public ImmutableList<Group> replicas(String name)
+        {
             if (groupsByReplica == null) {
                 HashMap<String, ImmutableList.Builder<Group>> map = new HashMap<>();
                 for (Group group : groups) {
                     ImmutableList.Builder<Group> builder;
-                    if (map.containsKey(group.replica))
+                    if (map.containsKey(group.replica)) {
                         builder = map.get(group.replica);
+                    }
                     else {
                         builder = ImmutableList.builder();
                         map.put(group.replica, builder);
@@ -96,57 +101,68 @@ public class DbTopology {
                     builder.add(group);
                 }
                 ImmutableMap.Builder<String, ImmutableList<Group>> builder = ImmutableMap.builder();
-                for (Map.Entry<String, ImmutableList.Builder<Group>> entry : map.entrySet())
+                for (Map.Entry<String, ImmutableList.Builder<Group>> entry : map.entrySet()) {
                     builder.put(entry.getKey(), entry.getValue().build());
+                }
                 groupsByReplica = builder.build();
             }
             return groupsByReplica.get(name);
         }
 
-        public Group replica(String name) {
+        public Group replica(String name)
+        {
             ImmutableList<Group> groups = replicas(name);
-            if (groups == null || groups.size() < 1)
+            if (groups == null || groups.size() < 1) {
                 return null;
-            if (groups.size() == 1)
+            }
+            if (groups.size() == 1) {
                 return groups.get(0);
+            }
             int idx = ThreadLocalRandom.current().nextInt(groups.size());
             return groups.get(idx);
         }
     }
 
     @JsonIgnoreProperties(value = {"entriesByName"}, ignoreUnknown = true)
-    public static class Group implements Iterable<Entry> {
-
+    public static class Group implements Iterable<Entry>
+    {
         public final String cluster = null;
         public final String replica = null;
         public final ImmutableList<Entry> entries = null;
         public final String rdrCluster = null;
 
-        protected Group() {
+        protected Group()
+        {
         }
 
         @Override
-        public Iterator<Entry> iterator() {
+        public Iterator<Entry> iterator()
+        {
             return entries.iterator();
         }
 
         private ImmutableMap<String, Entry> entriesByHost = null;
 
-        public Entry host(String host) {
+        public Entry host(String host)
+        {
             if (entriesByHost == null) {
                 ImmutableMap.Builder<String, Entry> builder = ImmutableMap.builder();
-                for (Entry entry : entries)
+                for (Entry entry : entries) {
                     builder.put(entry.host, entry);
+                }
                 entriesByHost = builder.build();
             }
             return entriesByHost.get(host);
         }
 
-        public Entry entry() {
-            if (entries == null || entries.size() < 1)
+        public Entry entry()
+        {
+            if (entries == null || entries.size() < 1) {
                 return null;
-            if (entries.size() == 1)
+            }
+            if (entries.size() == 1) {
                 return entries.get(0);
+            }
             int idx = ThreadLocalRandom.current().nextInt(entries.size());
             return entries.get(idx);
         }
@@ -158,45 +174,53 @@ public class DbTopology {
         */
     }
 
-    public static class ConnectionParams {
-
+    public static class ConnectionParams
+    {
         public final String connStr;
         public final String user;
         @JsonSerialize(using = RedactedSerializer.class)
         public final String password;
 
-        public ConnectionParams(String connStr, String user, String password) {
+        public ConnectionParams(String connStr, String user, String password)
+        {
             this.connStr = connStr;
             this.user = user;
             this.password = password;
         }
 
-        public ConnectionParams(String connStr) {
+        public ConnectionParams(String connStr)
+        {
             this(connStr, null, null);
         }
 
-        protected ConnectionParams() {
+        protected ConnectionParams()
+        {
             connStr = null;
             user = null;
             password = null;
         }
     }
 
-    public static String formatConnectionStringProperties(Map<String, Object> map) {
+    public static String formatConnectionStringProperties(Map<String, Object> map)
+    {
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, Object> entry : map.entrySet())
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
             if (entry.getValue() != null) {
-                if (sb.length() > 0)
+                if (sb.length() > 0) {
                     sb.append("&");
+                }
                 sb.append(String.format("%s=%s", entry.getKey(), entry.getValue()));
             }
-        if (sb.length() < 1)
+        }
+        if (sb.length() < 1) {
             return "";
+        }
         return "?" + sb.toString();
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Entry {
+    public static class Entry
+    {
 
         public final String charset = null;
         public final String db = null;
@@ -209,10 +233,12 @@ public class DbTopology {
         public final Float weight = null;
         public final String localInfile = null;
 
-        protected Entry() {
+        protected Entry()
+        {
         }
 
-        protected String formatConnectionString(boolean full) {
+        protected String formatConnectionString(boolean full)
+        {
             String base = String.format("jdbc:mysql://%s:%d/%s", host, port, db);
             Map<String, Object> props = new HashMap<>();
             props.put("useUnicode", useUnicode);
@@ -226,21 +252,26 @@ public class DbTopology {
 
         private String connectionString;
 
-        public String connectionString() {
-            if (connectionString == null)
+        public String connectionString()
+        {
+            if (connectionString == null) {
                 connectionString = formatConnectionString(false);
+            }
             return connectionString;
         }
 
         private String fullConnectionString;
 
-        public String fullConnectionString() {
-            if (fullConnectionString == null)
+        public String fullConnectionString()
+        {
+            if (fullConnectionString == null) {
                 fullConnectionString = formatConnectionString(true);
+            }
             return fullConnectionString;
         }
 
-        public ConnectionParams params() {
+        public ConnectionParams params()
+        {
             return new ConnectionParams(connectionString(), user, password);
         }
 

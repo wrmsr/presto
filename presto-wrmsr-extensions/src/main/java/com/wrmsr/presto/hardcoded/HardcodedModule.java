@@ -17,12 +17,11 @@ public class HardcodedModule
     @Override
     public void configure(Binder binder)
     {
-        // binder.bind(ConnectorHandleResolver.class).to(HardcodedHandleResolver.class).in(Scopes.SINGLETON);
+        binder.bind(ConnectorHandleResolver.class).to(HardcodedHandleResolver.class).in(Scopes.SINGLETON);
         binder.bind(ConnectorMetadata.class).to(HardcodedMetadata.class).in(Scopes.SINGLETON);
-        // binder.bind(ConnectorSplitManager.class).to(HardcodedSplitManager.class).in(Scopes.SINGLETON);
-        // binder.bind(ConnectorRecordSetProvider.class).to(HardcodedRecordSetProvider.class).in(Scopes.SINGLETON);
-        // binder.bind(ConnectorRecordSinkProvider.class).to(HardcodedRecordSinkProvider.class).in(Scopes.SINGLETON);
+        binder.bind(ConnectorSplitManager.class).to(HardcodedSplitManager.class).in(Scopes.SINGLETON);
+        binder.bind(ConnectorRecordSetProvider.class).to(HardcodedRecordSetProvider.class).in(Scopes.SINGLETON);
         binder.bind(HardcodedConnector.class).in(Scopes.SINGLETON);
-        configBinder(binder).bindConfig(HardcodedConfig.class);
+        // configBinder(binder).bindConfig(HardcodedConfig.class);
     }
 }
