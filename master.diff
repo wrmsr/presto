@@ -1,0 +1,426 @@
+diff --git a/pom.xml b/pom.xml
+index a8100d7..798340c 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -87,6 +87,10 @@
+         <module>presto-server</module>
+         <module>presto-docs</module>
+         <module>presto-verifier</module>
++        <module>presto-streaming</module>
++        <module>presto-wrmsr-elasticsearch</module>
++        <module>presto-wrmsr-extensions</module>
++        <module>presto-wrmsr-wrapper</module>
+     </modules>
+ 
+     <dependencyManagement>
+diff --git a/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/BaseJdbcClient.java b/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/BaseJdbcClient.java
+index 30b4772..5f1bed9 100644
+--- a/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/BaseJdbcClient.java
++++ b/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/BaseJdbcClient.java
+@@ -258,6 +258,11 @@ public class BaseJdbcClient
+         return connection;
+     }
+ 
++    public String getIdentifierQuote()
++    {
++        return identifierQuote;
++    }
++
+     @Override
+     public String buildSql(JdbcSplit split, List<JdbcColumnHandle> columnHandles)
+     {
+diff --git a/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcConnectorFactory.java b/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcConnectorFactory.java
+index fdfe4e2..a9c68f0 100644
+--- a/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcConnectorFactory.java
++++ b/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcConnectorFactory.java
+@@ -17,11 +17,13 @@ import com.facebook.presto.spi.Connector;
+ import com.facebook.presto.spi.ConnectorFactory;
+ import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
+ import com.google.common.base.Throwables;
++import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
+ import com.google.inject.Injector;
+ import com.google.inject.Module;
+ import io.airlift.bootstrap.Bootstrap;
+ 
++import java.util.List;
+ import java.util.Map;
+ 
+ import static com.google.common.base.Preconditions.checkArgument;
+@@ -58,7 +60,7 @@ public class JdbcConnectorFactory
+         checkNotNull(optionalConfig, "optionalConfig is null");
+ 
+         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
+-            Bootstrap app = new Bootstrap(new JdbcModule(connectorId), module);
++            Bootstrap app = new Bootstrap(createModules(connectorId));
+ 
+             Injector injector = app
+                     .strictConfig()
+@@ -73,4 +75,9 @@ public class JdbcConnectorFactory
+             throw Throwables.propagate(e);
+         }
+     }
++
++    protected List<Module> createModules(String connectorId)
++    {
++        return ImmutableList.of(new JdbcModule(connectorId), module);
++    }
+ }
+diff --git a/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordCursor.java b/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordCursor.java
+index 82c539d..51d5f16 100644
+--- a/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordCursor.java
++++ b/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordCursor.java
+@@ -52,21 +52,33 @@ public class JdbcRecordCursor
+ 
+     private static final ISOChronology UTC_CHRONOLOGY = ISOChronology.getInstance(UTC);
+ 
+-    private final List<JdbcColumnHandle> columnHandles;
++    protected final List<JdbcColumnHandle> columnHandles;
+ 
+-    private final Connection connection;
+-    private final Statement statement;
+-    private final ResultSet resultSet;
+-    private boolean closed;
++    protected final JdbcClient jdbcClient;
++    protected final JdbcSplit split;
++    protected Connection connection;
++    protected Statement statement;
++    protected ResultSet resultSet;
++    protected boolean closed;
+ 
+     public JdbcRecordCursor(JdbcClient jdbcClient, JdbcSplit split, List<JdbcColumnHandle> columnHandles)
+     {
++        this.jdbcClient = jdbcClient;
++        this.split = split;
+         this.columnHandles = ImmutableList.copyOf(checkNotNull(columnHandles, "columnHandles is null"));
+-
+-        String sql = jdbcClient.buildSql(split, columnHandles);
+         try {
+             connection = jdbcClient.getConnection(split);
++        }
++        catch (SQLException e) {
++            throw handleSqlException(e);
++        }
++        begin();
++    }
+ 
++    protected void begin()
++    {
++        try {
++            String sql = jdbcClient.buildSql(split, columnHandles);
+             statement = connection.createStatement();
+             statement.setFetchSize(1000);
+ 
+diff --git a/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordSet.java b/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordSet.java
+index 378452b..68340d2 100644
+--- a/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordSet.java
++++ b/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordSet.java
+@@ -50,6 +50,21 @@ public class JdbcRecordSet
+         return columnTypes;
+     }
+ 
++    public JdbcClient getJdbcClient()
++    {
++        return jdbcClient;
++    }
++
++    public List<JdbcColumnHandle> getColumnHandles()
++    {
++        return columnHandles;
++    }
++
++    public JdbcSplit getSplit()
++    {
++        return split;
++    }
++
+     @Override
+     public RecordCursor cursor()
+     {
+diff --git a/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordSetProvider.java b/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordSetProvider.java
+index c14f37b..6391da1 100644
+--- a/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordSetProvider.java
++++ b/presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/JdbcRecordSetProvider.java
+@@ -47,6 +47,11 @@ public class JdbcRecordSetProvider
+             handles.add(checkType(handle, JdbcColumnHandle.class, "columnHandle"));
+         }
+ 
+-        return new JdbcRecordSet(jdbcClient, jdbcSplit, handles.build());
++        return createRecordSet(jdbcClient, jdbcSplit, handles.build());
++    }
++
++    protected RecordSet createRecordSet(JdbcClient jdbcClient, JdbcSplit split, List<JdbcColumnHandle> columnHandles)
++    {
++        return new JdbcRecordSet(jdbcClient, split, columnHandles);
+     }
+ }
+diff --git a/presto-cassandra/src/main/java/com/facebook/presto/cassandra/CassandraClientConfig.java b/presto-cassandra/src/main/java/com/facebook/presto/cassandra/CassandraClientConfig.java
+index 4b79d97..c92bf3f 100644
+--- a/presto-cassandra/src/main/java/com/facebook/presto/cassandra/CassandraClientConfig.java
++++ b/presto-cassandra/src/main/java/com/facebook/presto/cassandra/CassandraClientConfig.java
+@@ -268,7 +268,7 @@ public class CassandraClientConfig
+     }
+ 
+     @Config("cassandra.allow-drop-table")
+-    @ConfigDescription("Allow hive connector to drop table")
++    @ConfigDescription("Allow cassandra connector to drop table")
+     public CassandraClientConfig setAllowDropTable(boolean allowDropTable)
+     {
+         this.allowDropTable = allowDropTable;
+diff --git a/presto-cli/pom.xml b/presto-cli/pom.xml
+index b117ca7..96df5ec 100644
+--- a/presto-cli/pom.xml
++++ b/presto-cli/pom.xml
+@@ -117,6 +117,7 @@
+                             <goal>shade</goal>
+                         </goals>
+                         <configuration>
++                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                             <shadedArtifactAttached>true</shadedArtifactAttached>
+                             <shadedClassifierName>executable</shadedClassifierName>
+                             <transformers>
+@@ -137,6 +138,7 @@
+                 <configuration>
+                     <flags>-Xmx1G</flags>
+                     <classifier>executable</classifier>
++                    <programFile>${project.artifactId}.jar</programFile>
+                 </configuration>
+                 <executions>
+                     <execution>
+diff --git a/presto-main/etc/config.properties b/presto-main/etc/config.properties
+index 00856c4..52e7fd0 100644
+--- a/presto-main/etc/config.properties
++++ b/presto-main/etc/config.properties
+@@ -24,8 +24,13 @@ plugin.bundles=\
+   ../presto-hive-cdh4/pom.xml,\
+   ../presto-example-http/pom.xml,\
+   ../presto-kafka/pom.xml, \
+-  ../presto-tpch/pom.xml
++  ../presto-tpch/pom.xml,\
++  ../presto-cassandra/pom.xml,\
++  ../presto-mysql/pom.xml,\
++  ../presto-wrmsr-extensions/pom.xml
+ 
+ presto.version=testversion
+ experimental-syntax-enabled=true
+ distributed-joins-enabled=true
++
++node-scheduler.multiple-tasks-per-node-enabled=true
+diff --git a/presto-main/src/main/java/com/facebook/presto/connector/ConnectorManager.java b/presto-main/src/main/java/com/facebook/presto/connector/ConnectorManager.java
+index aec57e9..4bbcd01 100644
+--- a/presto-main/src/main/java/com/facebook/presto/connector/ConnectorManager.java
++++ b/presto-main/src/main/java/com/facebook/presto/connector/ConnectorManager.java
+@@ -43,6 +43,7 @@ import io.airlift.log.Logger;
+ import javax.annotation.PreDestroy;
+ import javax.inject.Inject;
+ 
++import java.util.Collections;
+ import java.util.Map;
+ import java.util.Set;
+ import java.util.concurrent.ConcurrentHashMap;
+@@ -113,6 +114,11 @@ public class ConnectorManager
+         }
+     }
+ 
++    public Map<String, Connector> getConnectors()
++    {
++        return Collections.unmodifiableMap(connectors);
++    }
++
+     public void addConnectorFactory(ConnectorFactory connectorFactory)
+     {
+         checkState(!stopped.get(), "ConnectorManager is stopped");
+diff --git a/presto-main/src/main/java/com/facebook/presto/execution/NodeScheduler.java b/presto-main/src/main/java/com/facebook/presto/execution/NodeScheduler.java
+index cd42f7b..d1f9921 100644
+--- a/presto-main/src/main/java/com/facebook/presto/execution/NodeScheduler.java
++++ b/presto-main/src/main/java/com/facebook/presto/execution/NodeScheduler.java
+@@ -360,7 +360,7 @@ public class NodeScheduler
+ 
+             // if the chosen set is empty and the hint includes the coordinator,
+             // force pick the coordinator
+-            if (chosen.isEmpty() && !includeCoordinator) {
++            if (chosen.isEmpty() && includeCoordinator) {
+                 HostAddress coordinatorHostAddress = nodeManager.getCurrentNode().getHostAndPort();
+                 if (split.getAddresses().stream().anyMatch(host -> canSplitRunOnHost(split, coordinatorHostAddress, host))) {
+                     chosen.add(nodeManager.getCurrentNode());
+diff --git a/presto-main/src/main/java/com/facebook/presto/metadata/CatalogManager.java b/presto-main/src/main/java/com/facebook/presto/metadata/CatalogManager.java
+index f107654..88cfc65 100644
+--- a/presto-main/src/main/java/com/facebook/presto/metadata/CatalogManager.java
++++ b/presto-main/src/main/java/com/facebook/presto/metadata/CatalogManager.java
+@@ -81,7 +81,7 @@ public class CatalogManager
+         Map<String, String> properties = new HashMap<>(loadProperties(file));
+ 
+         String connectorName = properties.remove("connector.name");
+-        checkState(connectorName != null, "Catalog configuration %s does not contain conector.name", file.getAbsoluteFile());
++        checkState(connectorName != null, "Catalog configuration %s does not contain connector.name", file.getAbsoluteFile());
+ 
+         String catalogName = Files.getNameWithoutExtension(file.getName());
+ 
+diff --git a/presto-main/src/main/java/com/facebook/presto/server/PluginManager.java b/presto-main/src/main/java/com/facebook/presto/server/PluginManager.java
+index 989ad6b..69a3e64 100644
+--- a/presto-main/src/main/java/com/facebook/presto/server/PluginManager.java
++++ b/presto-main/src/main/java/com/facebook/presto/server/PluginManager.java
+@@ -51,12 +51,14 @@ import java.util.List;
+ import java.util.Map;
+ import java.util.ServiceLoader;
+ import java.util.TreeMap;
++import java.util.concurrent.CopyOnWriteArrayList;
+ import java.util.concurrent.atomic.AtomicBoolean;
+ 
+ import static com.google.common.base.Preconditions.checkNotNull;
+ 
+ @ThreadSafe
+ public class PluginManager
++        implements ServerEvent.Listener
+ {
+     private static final List<String> HIDDEN_CLASSES = ImmutableList.<String>builder()
+             .add("org.slf4j")
+@@ -84,6 +86,7 @@ public class PluginManager
+     private final Map<String, String> optionalConfig;
+     private final AtomicBoolean pluginsLoading = new AtomicBoolean();
+     private final AtomicBoolean pluginsLoaded = new AtomicBoolean();
++    private final List<ServerEvent.Listener> serverEventListeners = new CopyOnWriteArrayList<>();
+ 
+     @Inject
+     public PluginManager(Injector injector,
+@@ -129,6 +132,14 @@ public class PluginManager
+         return pluginsLoaded.get();
+     }
+ 
++    @Override
++    public void onServerEvent(ServerEvent event)
++    {
++        for (ServerEvent.Listener listener : serverEventListeners) {
++            listener.onServerEvent(event);
++        }
++    }
++
+     public void loadPlugins()
+             throws Exception
+     {
+@@ -206,6 +217,11 @@ public class PluginManager
+             log.info("Registering functions from %s", functionFactory.getClass().getName());
+             metadata.addFunctions(functionFactory.listFunctions());
+         }
++
++        for (ServerEvent.Listener serverEventListener : plugin.getServices(ServerEvent.Listener.class)) {
++            log.info("Registering server event listener %s", serverEventListener.getClass().getName());
++            serverEventListeners.add(serverEventListener);
++        }
+     }
+ 
+     private URLClassLoader buildClassLoader(String plugin)
+diff --git a/presto-main/src/main/java/com/facebook/presto/server/PrestoServer.java b/presto-main/src/main/java/com/facebook/presto/server/PrestoServer.java
+index 51bc1fb..d36f774 100644
+--- a/presto-main/src/main/java/com/facebook/presto/server/PrestoServer.java
++++ b/presto-main/src/main/java/com/facebook/presto/server/PrestoServer.java
+@@ -22,7 +22,9 @@ import com.google.common.base.Joiner;
+ import com.google.common.base.Splitter;
+ import com.google.common.collect.ImmutableList;
+ import com.google.inject.Injector;
++import com.google.inject.Key;
+ import com.google.inject.Module;
++import com.google.inject.TypeLiteral;
+ import io.airlift.bootstrap.Bootstrap;
+ import io.airlift.discovery.client.Announcer;
+ import io.airlift.discovery.client.DiscoveryModule;
+@@ -102,10 +104,20 @@ public class PrestoServer
+         try {
+             Injector injector = app.strictConfig().initialize();
+ 
++            Iterable<ServerEvent.Listener> listeners = injector.getInstance(Key.get(new TypeLiteral<Set<ServerEvent.Listener>>() {}));
++
+             injector.getInstance(PluginManager.class).loadPlugins();
+ 
++            for (ServerEvent.Listener listener : listeners) {
++                listener.onServerEvent(new ServerEvent.PluginsLoaded());
++            }
++
+             injector.getInstance(CatalogManager.class).loadCatalogs();
+ 
++            for (ServerEvent.Listener listener : listeners) {
++                listener.onServerEvent(new ServerEvent.ConnectorsLoaded());
++            }
++
+             // TODO: remove this huge hack
+             updateDatasources(
+                     injector.getInstance(Announcer.class),
+diff --git a/presto-main/src/main/java/com/facebook/presto/server/ServerEvent.java b/presto-main/src/main/java/com/facebook/presto/server/ServerEvent.java
+new file mode 100644
+index 0000000..2839944
+--- /dev/null
++++ b/presto-main/src/main/java/com/facebook/presto/server/ServerEvent.java
+@@ -0,0 +1,19 @@
++package com.facebook.presto.server;
++
++public abstract class ServerEvent
++{
++    public interface Listener
++    {
++        default void onServerEvent(ServerEvent event)
++        {
++        }
++    }
++
++    public static final class PluginsLoaded extends ServerEvent
++    {
++    }
++
++    public static final class ConnectorsLoaded extends ServerEvent
++    {
++    }
++}
+diff --git a/presto-main/src/main/java/com/facebook/presto/server/ServerMainModule.java b/presto-main/src/main/java/com/facebook/presto/server/ServerMainModule.java
+index b278034..71bcfbe 100644
+--- a/presto-main/src/main/java/com/facebook/presto/server/ServerMainModule.java
++++ b/presto-main/src/main/java/com/facebook/presto/server/ServerMainModule.java
+@@ -296,9 +296,12 @@ public class ServerMainModule
+                     config.setRequestTimeout(new Duration(10, SECONDS));
+                 });
+ 
++        newSetBinder(binder, new TypeLiteral<ServerEvent.Listener>() {});
++
+         // plugin manager
+         binder.bind(PluginManager.class).in(Scopes.SINGLETON);
+         configBinder(binder).bindConfig(PluginManagerConfig.class);
++        newSetBinder(binder, new TypeLiteral<ServerEvent.Listener>() {}).addBinding().to(PluginManager.class);
+ 
+         // optimizers
+         binder.bind(new TypeLiteral<List<PlanOptimizer>>() {}).toProvider(PlanOptimizersFactory.class).in(Scopes.SINGLETON);
+diff --git a/presto-main/src/main/java/com/facebook/presto/testing/LocalQueryRunner.java b/presto-main/src/main/java/com/facebook/presto/testing/LocalQueryRunner.java
+index 9f145fc..b4b8e18 100644
+--- a/presto-main/src/main/java/com/facebook/presto/testing/LocalQueryRunner.java
++++ b/presto-main/src/main/java/com/facebook/presto/testing/LocalQueryRunner.java
+@@ -228,6 +228,11 @@ public class LocalQueryRunner
+         connectorManager.createConnection(catalogName, connectorFactory, properties);
+     }
+ 
++    public ConnectorManager getConnectorManager()
++    {
++        return connectorManager;
++    }
++
+     @Override
+     public void installPlugin(Plugin plugin)
+     {
+diff --git a/presto-server/src/main/provisio/presto.xml b/presto-server/src/main/provisio/presto.xml
+index 4bee857..5b83a6a 100644
+--- a/presto-server/src/main/provisio/presto.xml
++++ b/presto-server/src/main/provisio/presto.xml
+@@ -97,4 +97,16 @@
+             <unpack />
+         </artifact>
+     </artifactSet>
++
++    <artifactSet to="plugin/elasticsearch">
++        <artifact id="com.wrmsr.presto:presto-wrmsr-elasticsearch:jar:${project.version}">
++            <unpack />
++        </artifact>
++    </artifactSet>
++
++    <artifactSet to="plugin/extensions">
++        <artifact id="com.wrmsr.presto:presto-wrmsr-extensions:jar:${project.version}">
++            <unpack />
++        </artifact>
++    </artifactSet>
+ </runtime>
