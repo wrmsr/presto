@@ -319,7 +319,6 @@ public class ServerMainModule
 
         // PageSorter
         binder.bind(PageSorter.class).to(PagesIndexPageSorter.class).in(Scopes.SINGLETON);
-
     }
 
     @Provides
