@@ -11,8 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class JdbcUtil
+public class Queries
 {
+    private Queries()
+    {
+    }
+
     public static Map<String, Object> readRow(ResultSet rs, ResultSetMetaData md) throws SQLException
     {
         Map<String, Object> row = new CaseInsensitiveMap<>();
