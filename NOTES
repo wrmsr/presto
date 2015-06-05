@@ -289,3 +289,6 @@ redshift:
  - http://docs.aws.amazon.com/redshift/latest/mgmt/configure-jdbc-connection.html wtf also not in fucking central jfc
 
 https://github.com/liquibase/liquibase/tree/master/liquibase-core/src/main/java/liquibase
+
+https://orainternals.files.wordpress.com/2008/07/riyaj_redo_internals_and_tuning_by_redo_reduction_doc.pdf
+http://docs.oracle.com/cd/B28359_01/server.111/b28322/gen_rep.htm#STREP011
