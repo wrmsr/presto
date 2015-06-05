@@ -134,7 +134,11 @@ public class HardcodedMetadataPopulator
         for (Context context : contexts) {
             HardcodedContents contents = context.contents;
             for (Map.Entry<SchemaTableName, String> view : contents.getViews().entrySet()) {
-                buildViewDefinition(context.createSession(view.getKey().getSchemaName()), view.getKey().toString(), view.getValue());
+                ViewDefinition viewDefinition = buildViewDefinition(context.createSession(view.getKey().getSchemaName()), view.getKey().toString(), view.getValue());
+                if (viewDefinition != null) {
+                    String viewJson = viewCodec.toJson(viewDefinition);
+                    System.out.println(viewJson);
+                }
             }
         }
     }

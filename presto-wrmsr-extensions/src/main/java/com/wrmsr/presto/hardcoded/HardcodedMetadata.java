@@ -10,7 +10,6 @@ import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.PrestoException;
-import com.facebook.presto.spi.ReadOnlyConnectorMetadata;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.google.common.collect.ImmutableList;
@@ -27,7 +26,7 @@ import static java.util.Collections.emptyMap;
 public class HardcodedMetadata
     implements ConnectorMetadata
 {
-    // private final Map<String, Map<String, ViewDefinition>> viewsBySchemaByTable
+    // private final Map<String, Map<String, String>> viewsBySchemaByTable
 
     @Override
     public final List<SchemaTableName> listViews(ConnectorSession session, String schemaNameOrNull)
