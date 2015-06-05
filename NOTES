@@ -280,6 +280,7 @@ view struct inference / auto gen
 
 
 spark-style stupid jdbc baked query sources
+spark-style cache wrapper (for like json files)
 
 
 redshift:
