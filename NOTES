@@ -288,6 +288,8 @@ redshift:
  - will DEF need (math) agg pushdown lols
  - http://docs.aws.amazon.com/redshift/latest/mgmt/configuring-connections.html#connecting-drivers
  - http://docs.aws.amazon.com/redshift/latest/mgmt/configure-jdbc-connection.html wtf also not in fucking central jfc
+  - at least you dont have to fucking sign in
+  https://s3.amazonaws.com/redshift-downloads/drivers/RedshiftJDBC41-1.1.1.0001.jar
 
 https://github.com/liquibase/liquibase/tree/master/liquibase-core/src/main/java/liquibase
 

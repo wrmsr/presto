@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.postgresql;
+package com.wrmsr.presto.jdbc.postgresql;
 
 import com.facebook.presto.tests.AbstractTestQueries;
 import io.airlift.testing.postgresql.TestingPostgreSqlServer;
@@ -21,7 +21,7 @@ import org.testng.annotations.Test;
 
 import java.io.IOException;
 
-import static com.wrmsr.presto.postgresql.PostgreSqlQueryRunner.createPostgreSqlQueryRunner;
+import static com.wrmsr.presto.jdbc.postgresql.PostgreSqlQueryRunner.createPostgreSqlQueryRunner;
 import static io.airlift.testing.Closeables.closeAllRuntimeException;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;

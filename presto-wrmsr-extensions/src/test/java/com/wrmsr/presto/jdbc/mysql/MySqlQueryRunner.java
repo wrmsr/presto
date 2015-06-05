@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.postgresql;
+package com.wrmsr.presto.jdbc.mysql;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.testing.QueryRunner;
@@ -20,13 +20,9 @@ import com.facebook.presto.tpch.TpchPlugin;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.ExtensionsPlugin;
-import io.airlift.testing.postgresql.TestingPostgreSqlServer;
+import io.airlift.testing.mysql.TestingMySqlServer;
 import io.airlift.tpch.TpchTable;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Map;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
@@ -35,21 +31,21 @@ import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
 import static io.airlift.testing.Closeables.closeAllSuppress;
 import static java.util.Locale.ENGLISH;
 
-public final class PostgreSqlQueryRunner
+public final class MySqlQueryRunner
 {
-    private PostgreSqlQueryRunner()
+    private MySqlQueryRunner()
     {
     }
 
     private static final String TPCH_SCHEMA = "tpch";
 
-    public static QueryRunner createPostgreSqlQueryRunner(TestingPostgreSqlServer server, TpchTable<?>... tables)
+    public static QueryRunner createMySqlQueryRunner(TestingMySqlServer server, TpchTable<?>... tables)
             throws Exception
     {
-        return createPostgreSqlQueryRunner(server, ImmutableList.copyOf(tables));
+        return createMySqlQueryRunner(server, ImmutableList.copyOf(tables));
     }
 
-    public static QueryRunner createPostgreSqlQueryRunner(TestingPostgreSqlServer server, Iterable<TpchTable<?>> tables)
+    public static QueryRunner createMySqlQueryRunner(TestingMySqlServer server, Iterable<TpchTable<?>> tables)
             throws Exception
     {
         DistributedQueryRunner queryRunner = null;
@@ -64,10 +60,8 @@ public final class PostgreSqlQueryRunner
                     .put("allow-drop-table", "true")
                     .build();
 
-            createSchema(server.getJdbcUrl(), "tpch");
-
             queryRunner.installPlugin(new ExtensionsPlugin());
-            queryRunner.createCatalog("postgresql", "extended-postgresql", properties);
+            queryRunner.createCatalog("mysql", "extended-mysql", properties);
 
             copyTpchTables(queryRunner, "tpch", TINY_SCHEMA_NAME, createSession(), tables);
 
@@ -79,21 +73,12 @@ public final class PostgreSqlQueryRunner
         }
     }
 
-    private static void createSchema(String url, String schema)
-            throws SQLException
-    {
-        try (Connection connection = DriverManager.getConnection(url);
-                Statement statement = connection.createStatement()) {
-            statement.execute("CREATE SCHEMA " + schema);
-        }
-    }
-
     public static Session createSession()
     {
         return Session.builder()
                 .setUser("user")
                 .setSource("test")
-                .setCatalog("postgresql")
+                .setCatalog("mysql")
                 .setSchema(TPCH_SCHEMA)
                 .setTimeZoneKey(UTC_KEY)
                 .setLocale(ENGLISH)

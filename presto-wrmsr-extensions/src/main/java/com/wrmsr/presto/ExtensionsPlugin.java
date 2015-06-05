@@ -27,11 +27,14 @@ import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.ffi.FFIFunctionFactory;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
+import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
+import com.wrmsr.presto.hardcoded.HardcodedModule;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
+import com.wrmsr.presto.jdbc.redshift.ExtendedRedshiftClientModule;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerModule;
-import com.wrmsr.presto.mysql.ExtendedMySqlClientModule;
-import com.wrmsr.presto.postgresql.ExtendedPostgreSqlClientModule;
+import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
+import com.wrmsr.presto.jdbc.postgresql.ExtendedPostgreSqlClientModule;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -90,9 +93,14 @@ public class ExtensionsPlugin
         if (type == ConnectorFactory.class) {
             return ImmutableList.of(
                     type.cast(new PartitionerConnectorFactory(optionalConfig, new PartitionerModule(null), getClassLoader(), connectorManager)),
+
                     type.cast(new FlatConnectorFactory(optionalConfig, new FlatModule(), getClassLoader())),
+
+                    type.cast(new HardcodedConnectorFactory(optionalConfig, new HardcodedModule(), getClassLoader())),
+
                     type.cast(new ExtendedJdbcConnectorFactory("extended-mysql", new ExtendedMySqlClientModule(), optionalConfig, getClassLoader())),
-                    type.cast(new ExtendedJdbcConnectorFactory("extended-postgresql", new ExtendedPostgreSqlClientModule(), optionalConfig, getClassLoader()))
+                    type.cast(new ExtendedJdbcConnectorFactory("extended-postgresql", new ExtendedPostgreSqlClientModule(), optionalConfig, getClassLoader())),
+                    type.cast(new ExtendedJdbcConnectorFactory("extended-redshift", new ExtendedRedshiftClientModule(), optionalConfig, getClassLoader()))
             );
         }
         else if (type == FunctionFactory.class) {

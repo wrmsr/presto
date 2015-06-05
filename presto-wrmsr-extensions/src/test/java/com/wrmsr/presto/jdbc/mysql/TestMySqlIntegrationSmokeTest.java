@@ -11,35 +11,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.mysql;
+package com.wrmsr.presto.jdbc.mysql;
 
-import com.facebook.presto.tests.AbstractTestQueries;
+import com.facebook.presto.tests.AbstractTestIntegrationSmokeTest;
 import io.airlift.testing.mysql.TestingMySqlServer;
-import io.airlift.tpch.TpchTable;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
-import static com.wrmsr.presto.mysql.MySqlQueryRunner.createMySqlQueryRunner;
+import static com.wrmsr.presto.jdbc.mysql.MySqlQueryRunner.createMySqlQueryRunner;
 import static io.airlift.testing.Closeables.closeAllRuntimeException;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
+import static io.airlift.tpch.TpchTable.ORDERS;
 
 @Test
-public class TestMySqlDistributedQueries
-        extends AbstractTestQueries
+public class TestMySqlIntegrationSmokeTest
+        extends AbstractTestIntegrationSmokeTest
 {
     private final TestingMySqlServer mysqlServer;
 
-    public TestMySqlDistributedQueries()
+    public TestMySqlIntegrationSmokeTest()
             throws Exception
     {
         this(new TestingMySqlServer("testuser", "testpass", "tpch"));
     }
 
-    public TestMySqlDistributedQueries(TestingMySqlServer mysqlServer)
+    public TestMySqlIntegrationSmokeTest(TestingMySqlServer mysqlServer)
             throws Exception
     {
-        super(createMySqlQueryRunner(mysqlServer, TpchTable.getTables()));
+        super(createMySqlQueryRunner(mysqlServer, ORDERS));
         this.mysqlServer = mysqlServer;
     }
 
@@ -47,16 +45,5 @@ public class TestMySqlDistributedQueries
     public final void destroy()
     {
         closeAllRuntimeException(mysqlServer);
-    }
-
-    @Test
-    public void testDropTable()
-            throws Exception
-    {
-        assertQueryTrue("CREATE TABLE test_drop AS SELECT 123 x");
-        assertTrue(queryRunner.tableExists(getSession(), "test_drop"));
-
-        assertQueryTrue("DROP TABLE test_drop");
-        assertFalse(queryRunner.tableExists(getSession(), "test_drop"));
     }
 }
