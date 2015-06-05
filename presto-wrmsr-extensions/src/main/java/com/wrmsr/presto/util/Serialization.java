@@ -71,6 +71,11 @@ public class Serialization
         }
     }
 
+    public static Map<String, String> flattenYaml(Object value)
+    {
+        return flattenYaml(null, value);
+    }
+
     public static List<Object> splitYaml(String src)
     {
         return ImmutableList.copyOf(YAML.get().loadAll(new ByteArrayInputStream(src.getBytes())));
