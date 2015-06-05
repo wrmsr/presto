@@ -48,13 +48,6 @@ public class HardcodedConnectorFactory
         return "hardcoded";
     }
 
-    public Analysis analyzeStatement(Statement statement, Session session, Metadata metadata)
-    {
-        QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
-        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
-        return analyzer.analyze(statement);
-    }
-
     @Override
     public Connector create(String connectorId, Map<String, String> requiredConfiguration)
     {
@@ -62,19 +55,6 @@ public class HardcodedConnectorFactory
         requiredConfiguration = Maps.newHashMap(requiredConfiguration);
 
         Map<String, String> views = Configs.stripSubconfig(requiredConfiguration, "views");
-
-        QualifiedTableName name = createQualifiedTableName(session, statement.getName());
-
-        String sql = getFormattedSql(statement);
-
-        Analysis analysis = analyzeStatement(statement, session, metadata);
-
-        List<ViewDefinition.ViewColumn> columns = analysis.getOutputDescriptor()
-                .getVisibleFields().stream()
-                .map(field -> new ViewDefinition.ViewColumn(field.getName().get(), field.getType()))
-                .collect(toImmutableList());
-
-        String data = codec.toJson(new ViewDefinition(sql, session.getCatalog(), session.getSchema(), columns));
 
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
             Bootstrap app = new Bootstrap(module, new Module()

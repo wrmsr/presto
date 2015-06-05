@@ -17,6 +17,7 @@ package com.wrmsr.presto;
 
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.FunctionFactory;
+import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.server.ServerEvent;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
@@ -55,6 +56,7 @@ public class ExtensionsPlugin
     private ConnectorManager connectorManager;
     private TypeManager typeManager;
     private NodeManager nodeManager;
+    private Metadata metadata;
     private SqlParser sqlParser;
     private List<PlanOptimizer> planOptimizers;
     private FeaturesConfig featuresConfig;
@@ -81,6 +83,12 @@ public class ExtensionsPlugin
     public void setNodeManager(NodeManager nodeManager)
     {
         this.nodeManager = checkNotNull(nodeManager, "nodeManager is null");
+    }
+
+    @Inject
+    public void setMetadata(Metadata metadata)
+    {
+        this.metadata = metadata;
     }
 
     @Inject
@@ -120,7 +128,7 @@ public class ExtensionsPlugin
 
                     type.cast(new FlatConnectorFactory(optionalConfig, new FlatModule(), getClassLoader())),
 
-                    type.cast(new HardcodedConnectorFactory(optionalConfig, new HardcodedModule(), getClassLoader())),
+                    type.cast(new HardcodedConnectorFactory(optionalConfig, new HardcodedModule(metadata, sqlParser, planOptimizers, featuresConfig), getClassLoader())),
 
                     type.cast(new ExtendedJdbcConnectorFactory("extended-mysql", new ExtendedMySqlClientModule(), optionalConfig, getClassLoader())),
                     type.cast(new ExtendedJdbcConnectorFactory("extended-postgresql", new ExtendedPostgreSqlClientModule(), optionalConfig, getClassLoader())),
