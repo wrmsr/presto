@@ -129,7 +129,6 @@ public class HardcodedMetadataPopulator
                 .filter(e -> e.getValue() instanceof HardcodedConnector)
                 .map(e -> new Context(e.getKey(), (HardcodedConnector) e.getValue()))
                 .collect(ImmutableCollectors.toImmutableList());
-        System.out.println(contexts);
 
         for (Context context : contexts) {
             HardcodedContents contents = context.contents;
