@@ -280,3 +280,12 @@ view struct inference / auto gen
 
 
 spark-style stupid jdbc baked query sources
+
+
+redshift:
+ - http://docs.aws.amazon.com/redshift/latest/dg/c_redshift_system_overview.html
+ - will DEF need (math) agg pushdown lols
+ - http://docs.aws.amazon.com/redshift/latest/mgmt/configuring-connections.html#connecting-drivers
+ - http://docs.aws.amazon.com/redshift/latest/mgmt/configure-jdbc-connection.html wtf also not in fucking central jfc
+
+https://github.com/liquibase/liquibase/tree/master/liquibase-core/src/main/java/liquibase
