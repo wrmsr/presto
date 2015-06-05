@@ -1,6 +1,7 @@
 package com.wrmsr.presto.util;
 
 import com.facebook.presto.server.SliceSerializer;
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.DefaultDeserializationContext;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -27,13 +28,15 @@ public class Serialization
             new ObjectMapperProvider().get()
                     .registerModule(new SimpleModule().addSerializer(Slice.class, new SliceSerializer())));
 
-    public static final Supplier<ObjectMapper> YAML_OBJECT_MAPPER = Suppliers.memoize(() -> {
-        ObjectMapper mapper = OBJECT_MAPPER.get();
-        return new ObjectMapper(
-                new YAMLFactory(),
+    public static ObjectMapper forkObjectMapper(ObjectMapper mapper, JsonFactory jf)
+    {
+       return new ObjectMapper(
+                jf,
                 (DefaultSerializerProvider) mapper.getSerializerProvider(),
                 (DefaultDeserializationContext) mapper.getDeserializationContext());
-    });
+    }
+
+    public static final Supplier<ObjectMapper> YAML_OBJECT_MAPPER = Suppliers.memoize(() -> forkObjectMapper(OBJECT_MAPPER.get(), new YAMLFactory()));
 
     public static final ThreadLocal<Yaml> YAML = ThreadLocal.withInitial(Yaml::new);
 
