@@ -3,8 +3,10 @@ package com.wrmsr.presto.hardcoded;
 import com.facebook.presto.Session;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.metadata.QualifiedTableName;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.spi.PrestoException;
+import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
@@ -17,7 +19,9 @@ import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
 import com.wrmsr.presto.util.ImmutableCollectors;
 
+import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
@@ -34,7 +38,6 @@ public class HardcodedMetadataPopulator
     private final List<PlanOptimizer> planOptimizers;
     private final boolean experimentalSyntaxEnabled;
 
-
     public HardcodedMetadataPopulator(ConnectorManager connectorManager, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
     {
         this.connectorManager = checkNotNull(connectorManager);
@@ -45,14 +48,15 @@ public class HardcodedMetadataPopulator
         this.experimentalSyntaxEnabled = featuresConfig.isExperimentalSyntaxEnabled();
     }
 
-    public Analysis analyzeStatement(Statement statement, Session session, Metadata metadata)
+    public Analysis analyzeStatement(Statement statement, Session session)
     {
         QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
         Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
         return analyzer.analyze(statement);
     }
 
-    public void buildView(Session session, String sql)
+    @Nullable
+    public ViewDefinition buildViewDefinition(Session session, String sql)
     {
         // verify round-trip
         Statement statement;
@@ -63,44 +67,67 @@ public class HardcodedMetadataPopulator
             throw new PrestoException(INTERNAL_ERROR, "Formatted query does not parse: " + sql);
         }
 
-        // QualifiedTableName name = createQualifiedTableName(session, statement.getName());
+        Analysis analysis = analyzeStatement(statement, session);
 
-        Analysis analysis = analyzeStatement(statement, session, metadata);
-
+        final List<ViewDefinition.ViewColumn> columns;
         try {
-            List<ViewDefinition.ViewColumn> columns = analysis.getOutputDescriptor()
+            columns = analysis.getOutputDescriptor()
                     .getVisibleFields().stream()
                     .map(field -> new ViewDefinition.ViewColumn(field.getName().get(), field.getType()))
                     .collect(toImmutableList());
-
-            new ViewDefinition(sql, session.getCatalog(), session.getSchema(), columns);
         }
         catch (SemanticException e) {
-            // e.getCode() == SemanticErrorCode.MISSING_TABLE
+            if (e.getCode() == SemanticErrorCode.MISSING_TABLE) {
+                return null;
+            }
+            else {
+                throw e;
+            }
+        }
+
+        return new ViewDefinition(sql, session.getCatalog(), session.getSchema(), columns);
+    }
+
+    private class Context
+    {
+        public final String name;
+        public final HardcodedConnector connector;
+        public final HardcodedContents contents;
+
+        public Context(String name, HardcodedConnector connector)
+        {
+            this.name = name;
+            this.connector = connector;
+            this.contents = connector.getHardcodedContents();
+        }
+
+        public Session createSession(@Nullable String schemaName)
+        {
+            Session.SessionBuilder builder = Session.builder()
+                    .setUser("system")
+                    .setSource("system")
+                    .setCatalog(name)
+                    .setTimeZoneKey(UTC_KEY)
+                    .setLocale(ENGLISH);
+            if (schemaName != null) {
+                builder.setSchema(schemaName);
+            }
+            return builder.build();
         }
     }
 
     public void run()
     {
-        List<HardcodedConnector> conns = connectorManager.getConnectors().values().stream()
-                .filter(c -> c instanceof HardcodedConnector)
-                .map(c -> (HardcodedConnector) c)
+        List<Context> contexts = connectorManager.getConnectors().entrySet().stream()
+                .filter(e -> e.getValue() instanceof HardcodedConnector)
+                .map(e -> new Context(e.getKey(), (HardcodedConnector) e.getValue()))
                 .collect(ImmutableCollectors.toImmutableList());
-        System.out.println(conns);
+        System.out.println(contexts);
 
-        Session session = Session.builder()
-                .setUser("system")
-                .setSource("system")
-                .setCatalog("system")
-                .setSchema("system")
-                .setTimeZoneKey(UTC_KEY)
-                .setLocale(ENGLISH)
-                .build();
-
-        for (HardcodedConnector c : conns) {
-            HardcodedContents contents = c.getHardcodedContents();
-            for (String sql : contents.getViews().values()) {
-                buildView(session, sql);
+        for (Context context : contexts) {
+            HardcodedContents contents = context.contents;
+            for (Map.Entry<SchemaTableName, String> view : contents.getViews().entrySet()) {
+                buildViewDefinition(context.createSession(view.getKey().getSchemaName()), view.getValue());
             }
         }
     }
