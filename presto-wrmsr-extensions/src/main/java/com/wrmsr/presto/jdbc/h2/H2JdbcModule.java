@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Provides;
+import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import org.h2.Driver;
 
 import java.util.Map;
@@ -35,12 +36,13 @@ public class H2JdbcModule
     public void configure(Binder binder)
     {
         configBinder(binder).bindConfig(BaseJdbcConfig.class);
+        configBinder(binder).bindConfig(ExtendedJdbcClient.class);
     }
 
     @Provides
     public JdbcClient provideJdbcClient(JdbcConnectorId id, BaseJdbcConfig config)
     {
-        return new BaseJdbcClient(id, config, "\"", new Driver());
+        return new ExtendedJdbcClient(id, config, "\"", new Driver());
     }
 
     public static Map<String, String> createProperties()

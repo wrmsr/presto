@@ -35,6 +35,7 @@ public class ExtendedPostgreSqlClient
             throws SQLException
     {
         super(connectorId, config, "\"", new Driver());
+        // FIXME: init
     }
 
     @Override

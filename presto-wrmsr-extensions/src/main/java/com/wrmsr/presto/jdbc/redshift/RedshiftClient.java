@@ -6,13 +6,10 @@ import com.wrmsr.presto.jdbc.postgresql.ExtendedPostgreSqlClient;
 
 import java.sql.SQLException;
 
-/**
- * Created by wtimoney on 6/5/15.
- */
-public class ExtendedRedshiftClient
+public class RedshiftClient
     extends ExtendedPostgreSqlClient
 {
-    public ExtendedRedshiftClient(JdbcConnectorId connectorId, BaseJdbcConfig config) throws SQLException
+    public RedshiftClient(JdbcConnectorId connectorId, BaseJdbcConfig config) throws SQLException
     {
         super(connectorId, config);
     }

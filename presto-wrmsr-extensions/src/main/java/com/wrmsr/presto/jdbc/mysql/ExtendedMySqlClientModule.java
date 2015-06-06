@@ -18,6 +18,7 @@ import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Scopes;
+import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 
 import static io.airlift.configuration.ConfigBinder.configBinder;
 
@@ -29,6 +30,7 @@ public class ExtendedMySqlClientModule
     {
         binder.bind(JdbcClient.class).to(ExtendedMySqlClient.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(BaseJdbcConfig.class);
+        configBinder(binder).bindConfig(ExtendedJdbcClient.class);
         configBinder(binder).bindConfig(ExtendedMySqlConfig.class);
     }
 }

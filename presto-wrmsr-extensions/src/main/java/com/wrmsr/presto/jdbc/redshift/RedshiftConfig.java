@@ -2,7 +2,7 @@ package com.wrmsr.presto.jdbc.redshift;
 
 import io.airlift.configuration.Config;
 
-public class ExtendedRedshiftConfig
+public class RedshiftConfig
 {
     public static final String DEFAULT_DRIVER_URL = "https://s3.amazonaws.com/redshift-downloads/drivers/RedshiftJDBC41-1.1.1.0001.jar";
 
