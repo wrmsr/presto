@@ -45,6 +45,14 @@ public class TestConfig
         );
         hc = Configs.toHierarchical(strs).configurationAt("stuff");
         System.out.println(Configs.getAllStrings(hc, "init"));
+
+        strs = ImmutableMap.of(
+                "stuff.init.first", "abcd",
+                "stuff.init.second", "defg",
+                "stuff.other", "yeah"
+        );
+        hc = Configs.toHierarchical(strs).configurationAt("stuff");
+        System.out.println(Configs.getAllStrings(hc, "init"));
     }
 
     @Test

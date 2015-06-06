@@ -19,19 +19,16 @@ import com.facebook.presto.spi.FixedSplitSource;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.jdbc.util.ScriptRunner;
+import com.wrmsr.presto.util.Configs;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Properties;
 import java.util.function.Supplier;
 
@@ -60,6 +57,13 @@ public class ExtendedJdbcClient
         }
         else {
             return DriverManager.getConnection(url, info);
+        }
+    }
+
+    public void runInitScripts()
+    {
+        for (String sql : extendedConfig.getInitScripts()) {
+            executeScript(sql);
         }
     }
 

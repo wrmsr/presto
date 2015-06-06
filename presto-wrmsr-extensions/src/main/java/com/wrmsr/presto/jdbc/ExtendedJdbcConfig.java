@@ -2,6 +2,10 @@ package com.wrmsr.presto.jdbc;
 
 import io.airlift.configuration.Config;
 
+import java.util.List;
+
+import static com.google.common.collect.Lists.newArrayList;
+
 public class ExtendedJdbcConfig
 {
     private String driverUrl;
@@ -30,17 +34,11 @@ public class ExtendedJdbcConfig
         this.driverClass = driverClass;
     }
 
-    private String init;
+    private final List<String> initScripts = newArrayList();
 
-    public String getInit()
+    public List<String> getInitScripts()
     {
-        return init;
-    }
-
-    @Config("init")
-    public void setInit(String init)
-    {
-        this.init = init;
+        return initScripts;
     }
 
     private boolean isRemotelyAccessible;

@@ -60,7 +60,7 @@ public class JdbcConnectorFactory
         checkNotNull(optionalConfig, "optionalConfig is null");
 
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
-            Bootstrap app = new Bootstrap(createModules(connectorId));
+            Bootstrap app = new Bootstrap(new JdbcModule(connectorId), module);
 
             Injector injector = app
                     .strictConfig()
@@ -74,10 +74,5 @@ public class JdbcConnectorFactory
         catch (Exception e) {
             throw Throwables.propagate(e);
         }
-    }
-
-    protected List<Module> createModules(String connectorId)
-    {
-        return ImmutableList.of(new JdbcModule(connectorId), module);
     }
 }
