@@ -14,7 +14,7 @@ public class TempClientModule
     {
         return ImmutableMap.<String, String>builder()
                 .put("connection-url", format("jdbc:h2:mem:test%s;DB_CLOSE_DELAY=-1", System.nanoTime()))
-                .put("is-remoteely-accessible", "false")
+                .put("is-remotely-accessible", "false")
                 .put("init", "CREATE SCHEMA temp")
                 .build();
     }

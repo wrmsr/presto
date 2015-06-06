@@ -43,14 +43,16 @@ public class ExtendedJdbcConnectorFactory
     private final String name;
     private final Module module;
     private final Map<String, String> optionalConfig;
+    private final Map<String, String> defaultConfig;
     private final ClassLoader classLoader;
 
-    public ExtendedJdbcConnectorFactory(String name, Module module, Map<String, String> optionalConfig, ClassLoader classLoader)
+    public ExtendedJdbcConnectorFactory(String name, Module module, Map<String, String> optionalConfig, Map<String, String> defaultConfig, ClassLoader classLoader)
     {
         checkArgument(!isNullOrEmpty(name), "name is null or empty");
         this.name = name;
         this.module = checkNotNull(module, "module is null");
         this.optionalConfig = ImmutableMap.copyOf(checkNotNull(optionalConfig, "optionalConfig is null"));
+        this.defaultConfig = defaultConfig;
         this.classLoader = checkNotNull(classLoader, "classLoader is null");
     }
 
@@ -66,9 +68,10 @@ public class ExtendedJdbcConnectorFactory
         checkNotNull(requiredConfig, "requiredConfig is null");
         checkNotNull(optionalConfig, "optionalConfig is null");
 
-        HierarchicalConfiguration config = Configs.toHierarchical(mapMerge(optionalConfig, requiredConfig));
+        Map<String, String> workingConfig = mapMerge(defaultConfig, requiredConfig);
+        HierarchicalConfiguration config = Configs.toHierarchical(workingConfig);
         List<String> initScripts = Configs.getAllStrings(config, "init");
-        requiredConfig = Configs.stripSubconfig(requiredConfig, "init");
+        Configs.stripSubconfig(workingConfig, "init");
 
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
             Bootstrap app = new Bootstrap(createModules(connectorId));
@@ -76,7 +79,7 @@ public class ExtendedJdbcConnectorFactory
             Injector injector = app
                     .strictConfig()
                     .doNotInitializeLogging()
-                    .setRequiredConfigurationProperties(requiredConfig)
+                    .setRequiredConfigurationProperties(workingConfig)
                     .setOptionalConfigurationProperties(optionalConfig)
                     .initialize();
 
