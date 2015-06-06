@@ -22,15 +22,8 @@ public class SqliteClientModule
             throw new RuntimeException(e);
         }
 
-        binder.bind(JdbcClient.class).to(ExtendedJdbcClient.class).in(Scopes.SINGLETON);
+        binder.bind(JdbcClient.class).to(SqliteClient.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(BaseJdbcConfig.class);
         configBinder(binder).bindConfig(ExtendedJdbcConfig.class);
-    }
-
-    @Provides
-    @Singleton
-    public JdbcClient provideJdbcClient(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedJdbcConfig extendedConfig)
-    {
-        return new ExtendedJdbcClient(connectorId, config, extendedConfig, "\"", null);
     }
 }

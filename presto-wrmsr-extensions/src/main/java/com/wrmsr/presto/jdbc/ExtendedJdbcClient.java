@@ -23,6 +23,7 @@ import com.wrmsr.presto.util.Configs;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -71,6 +72,7 @@ public class ExtendedJdbcClient
     {
         try (Connection connection = getConnection(connectionUrl, connectionProperties)) {
             ScriptRunner scriptRunner = new ScriptRunner(connection);
+            scriptRunner.runScript(new StringReader(sql));
         }
         catch (SQLException e) {
             throw Throwables.propagate(e);
