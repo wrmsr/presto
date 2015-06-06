@@ -18,8 +18,10 @@ import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.FixedSplitSource;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.wrmsr.presto.jdbc.util.ScriptRunner;
 import com.wrmsr.presto.util.Configs;
+import io.airlift.log.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,18 +32,24 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Maps.fromProperties;
+import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Sets.newHashSet;
 import static com.wrmsr.presto.util.Files.downloadFile;
 import static com.wrmsr.presto.util.Jvm.addClasspathUrl;
 
 public class ExtendedJdbcClient
         extends BaseJdbcClient
 {
+    private static final Logger log = Logger.get(ExtendedJdbcClient.class);
+
     protected final ExtendedJdbcConfig extendedConfig;
 
     public ExtendedJdbcClient(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedJdbcConfig extendedConfig, String identifierQuote, Driver driver)
@@ -100,22 +108,34 @@ public class ExtendedJdbcClient
         return new FixedSplitSource(connectorId, ImmutableList.of(jdbcSplit));
     }
 
-    public static Driver createDriver(ExtendedJdbcConfig extendedConfig, Supplier<Driver> fallback)
+    private static final Map<String, File> downloadedDrivers = newHashMap();
+
+    public static Driver createDriver(ExtendedJdbcConfig extendedConfig, Supplier<Driver> supplier)
     {
         String driverUrl = extendedConfig.getDriverUrl();
-        if (isNullOrEmpty(driverUrl)) {
-            return checkNotNull(fallback.get());
+        if (!isNullOrEmpty(driverUrl)) {
+            try {
+                synchronized (downloadedDrivers) {
+                    File jarPath;
+                    if (downloadedDrivers.containsKey(driverUrl)) {
+                        jarPath = downloadedDrivers.get(driverUrl);
+                    }
+                    else {
+                        File tempPath = Files.createTempDirectory("temp").toFile();
+                        tempPath.deleteOnExit();
+                        jarPath = new File(tempPath, "driver.jar");
+                        log.info(String.format("Downloading driver from %s to %s", driverUrl, jarPath));
+                        downloadFile(driverUrl, jarPath);
+                        downloadedDrivers.put(driverUrl, jarPath);
+                    }
+                    addClasspathUrl(Thread.currentThread().getContextClassLoader(), jarPath.toURL());
+                }
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
-        try {
-            File tempPath = Files.createTempDirectory("temp").toFile();
-            tempPath.deleteOnExit();
-            File jarpath = new File(tempPath, "driver.jar");
-            downloadFile(driverUrl, jarpath);
-            addClasspathUrl(jarpath.getAbsolutePath());
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+
         String driverClass = extendedConfig.getDriverClass();
         if (!isNullOrEmpty(driverClass)) {
             try {
@@ -125,6 +145,7 @@ public class ExtendedJdbcClient
                 throw new RuntimeException(e);
             }
         }
-        return null;
+
+        return supplier.get();
     }
 }

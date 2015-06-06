@@ -5,7 +5,6 @@ import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.google.inject.Inject;
 import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConfig;
-import org.h2.Driver;
 
 public class SqliteClient
     extends ExtendedJdbcClient
@@ -13,6 +12,6 @@ public class SqliteClient
     @Inject
     public SqliteClient(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedJdbcConfig extendedConfig)
     {
-        super(connectorId, config, extendedConfig, "\"", createDriver(extendedConfig, Driver::new));
+        super(connectorId, config, extendedConfig, "\"", createDriver(extendedConfig, () -> null));
     }
 }

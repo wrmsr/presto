@@ -11,19 +11,21 @@ public class Jvm
     {
     }
 
-    public static void addClasspathUrl(String url) throws IOException
+    public static void addClasspathUrl(URLClassLoader classLoader, URL url) throws IOException
     {
-        URLClassLoader sysloader = (URLClassLoader) ClassLoader.getSystemClassLoader();
-        Class sysclass = URLClassLoader.class;
-
         try {
-            Method method = sysclass.getDeclaredMethod("addURL", URL.class);
+            Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
             method.setAccessible(true);
-            method.invoke(sysloader, new URL(url));
+            method.invoke(classLoader, url);
         }
         catch (Throwable t) {
             t.printStackTrace();
             throw new IOException("Error, could not add URL to system classloader");
         }
+    }
+
+    public static void addClasspathUrl(ClassLoader classLoader, URL url) throws IOException
+    {
+        addClasspathUrl((URLClassLoader) classLoader, url);
     }
 }
