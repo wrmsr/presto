@@ -132,7 +132,7 @@ public class ExtendedJdbcClient
                 }
             }
             catch (IOException e) {
-                throw new RuntimeException(e);
+                throw Throwables.propagate(e);
             }
         }
 
@@ -142,7 +142,7 @@ public class ExtendedJdbcClient
                 Class.forName(driverClass);
             }
             catch (ClassNotFoundException e) {
-                throw new RuntimeException(e);
+                throw Throwables.propagate(e);
             }
         }
 
