@@ -314,6 +314,7 @@ public class CachingConnectorMetadata
     implements ConnectorMetadata
 
 temporary connector equiv to hardcoded - views + tables
+ - naw just an h2 factory that auto-creates a temp schema
 
 generate views upon request - is this macros?
 
