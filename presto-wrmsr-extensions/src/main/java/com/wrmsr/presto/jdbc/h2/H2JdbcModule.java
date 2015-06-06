@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.jdbc.h2;
 
-import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
@@ -35,6 +34,7 @@ public class H2JdbcModule
     @Override
     public void configure(Binder binder)
     {
+        // FIXME: spilits not remotely accessible, weave into extended bases
         configBinder(binder).bindConfig(BaseJdbcConfig.class);
         configBinder(binder).bindConfig(ExtendedJdbcClient.class);
     }
