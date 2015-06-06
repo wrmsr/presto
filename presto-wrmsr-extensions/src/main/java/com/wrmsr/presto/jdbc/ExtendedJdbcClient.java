@@ -20,13 +20,26 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.jdbc.util.ScriptRunner;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Maps.fromProperties;
+import static com.wrmsr.presto.util.Files.downloadFile;
+import static com.wrmsr.presto.util.Jvm.addClasspathUrl;
 
 public class ExtendedJdbcClient
         extends BaseJdbcClient
@@ -37,6 +50,17 @@ public class ExtendedJdbcClient
     {
         super(connectorId, config, identifierQuote, driver);
         this.extendedConfig = extendedConfig;
+    }
+
+    @Override
+    public Connection getConnection(String url, Properties info) throws SQLException
+    {
+        if (driver != null) {
+            return driver.connect(url, info);
+        }
+        else {
+            return DriverManager.getConnection(url, info);
+        }
     }
 
     public void executeScript(String sql)
@@ -72,6 +96,29 @@ public class ExtendedJdbcClient
 
     public static Driver createDriver(ExtendedJdbcConfig extendedConfig, Supplier<Driver> fallback)
     {
-        return checkNotNull(fallback.get());
+        String driverUrl = extendedConfig.getDriverUrl();
+        if (isNullOrEmpty(driverUrl)) {
+            return checkNotNull(fallback.get());
+        }
+        try {
+            File tempPath = Files.createTempDirectory("temp").toFile();
+            tempPath.deleteOnExit();
+            File jarpath = new File(tempPath, "driver.jar");
+            downloadFile(driverUrl, jarpath);
+            addClasspathUrl(jarpath.getAbsolutePath());
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        String driverClass = extendedConfig.getDriverClass();
+        if (!isNullOrEmpty(driverClass)) {
+            try {
+                Class.forName(driverClass);
+            }
+            catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return null;
     }
 }

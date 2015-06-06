@@ -17,6 +17,19 @@ public class ExtendedJdbcConfig
         this.driverUrl = driverUrl;
     }
 
+    private String driverClass;
+
+    public String getDriverClass()
+    {
+        return driverClass;
+    }
+
+    @Config("driver-class")
+    public void setDriverClass(String driverClass)
+    {
+        this.driverClass = driverClass;
+    }
+
     private String init;
 
     public String getInit()
