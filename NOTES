@@ -312,3 +312,13 @@ hardcoded:
 
 public class CachingConnectorMetadata
     implements ConnectorMetadata
+
+temporary connector equiv to hardcoded - views + tables
+
+generate views upon request - is this macros?
+
+
+
+cfg'd in-mem | master thrift port'd hive metastore
+
+autoexec's

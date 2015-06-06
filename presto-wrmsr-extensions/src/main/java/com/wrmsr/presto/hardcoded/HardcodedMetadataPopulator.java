@@ -100,12 +100,14 @@ public class HardcodedMetadataPopulator
         public final String name;
         public final HardcodedConnector connector;
         public final HardcodedContents contents;
+        public final HardcodedMetadata metadata;
 
         public Context(String name, HardcodedConnector connector)
         {
             this.name = name;
             this.connector = connector;
             this.contents = connector.getHardcodedContents();
+            this.metadata = (HardcodedMetadata) connector.getMetadata();
         }
 
         public Session createSession(@Nullable String schemaName)
@@ -136,7 +138,7 @@ public class HardcodedMetadataPopulator
                 ViewDefinition viewDefinition = buildViewDefinition(context.createSession(view.getKey().getSchemaName()), view.getKey().toString(), view.getValue());
                 if (viewDefinition != null) {
                     String viewJson = viewCodec.toJson(viewDefinition);
-                    System.out.println(viewJson);
+                    context.metadata.addView(view.getKey().getSchemaName(), view.getKey().getTableName(), viewJson);
                 }
             }
         }

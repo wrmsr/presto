@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Lists.newArrayList;
 
 public class PartitionerSplitManager
         implements ConnectorSplitManager
@@ -74,7 +75,7 @@ public class PartitionerSplitManager
                 ), false)
         );
 
-        List<ConnectorPartition> partitions = Lists.newArrayList();
+        List<ConnectorPartition> partitions = newArrayList();
         TupleDomain<ColumnHandle> undeterminedTupleDomain = TupleDomain.none();
         for (Domain idDomain : idDomains) {
             TupleDomain intersectedDomain = tupleDomain.intersect(

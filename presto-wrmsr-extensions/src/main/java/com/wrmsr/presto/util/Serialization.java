@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import static com.google.common.collect.Maps.newHashMap;
+
 public class Serialization
 {
     public static final Supplier<ObjectMapper> OBJECT_MAPPER = Suppliers.memoize(() ->
@@ -50,7 +52,7 @@ public class Serialization
         !!omap, !!pairs	List of Object[]
         */
         if (value == null) {
-            Map<String, String> map = Maps.newHashMap();
+            Map<String, String> map = newHashMap();
             map.put(key, null);
             return map;
         }

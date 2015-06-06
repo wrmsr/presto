@@ -13,6 +13,7 @@ import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.MapMaker;
 import io.airlift.slice.Slice;
 
 import java.util.Collection;
@@ -26,7 +27,21 @@ import static java.util.Collections.emptyMap;
 public class HardcodedMetadata
     implements ConnectorMetadata
 {
-    // private final Map<String, Map<String, String>> viewsBySchemaByTable
+    private static <K, V> Map<K, V> makeMap()
+    {
+        return new MapMaker().makeMap();
+    }
+
+    private final Map<String, Map<String, String>> viewsBySchemaByTable = makeMap();
+
+    public void addView(String schema, String table, String view)
+    {
+        Map<String, String> tableViews = viewsBySchemaByTable.get(schema);
+        if (tableViews == null) {
+            tableViews = viewsBySchemaByTable.getOrDefault(schema, makeMap());
+        }
+        tableViews.put(table, view);
+    }
 
     @Override
     public final List<SchemaTableName> listViews(ConnectorSession session, String schemaNameOrNull)

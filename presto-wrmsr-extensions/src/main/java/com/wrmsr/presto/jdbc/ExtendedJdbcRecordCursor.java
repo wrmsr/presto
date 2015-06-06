@@ -41,6 +41,7 @@ import java.util.stream.IntStream;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.collect.Maps.newHashMap;
 
 public class ExtendedJdbcRecordCursor
         extends JdbcRecordCursor
@@ -52,7 +53,7 @@ public class ExtendedJdbcRecordCursor
         super(jdbcClient, split, columnHandles);
         try {
             String clusteredIndexName = null;
-            Map<Integer, String> clusteredColumnsByOrdinal = Maps.newHashMap();
+            Map<Integer, String> clusteredColumnsByOrdinal = newHashMap();
             DatabaseMetaData metadata = connection.getMetaData();
 
             try (ResultSet resultSet = metadata.getIndexInfo(split.getCatalogName(), split.getSchemaName(), split.getTableName(), false, false)) {

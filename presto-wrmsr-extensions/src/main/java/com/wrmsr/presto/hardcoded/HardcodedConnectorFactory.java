@@ -21,6 +21,7 @@ import java.util.Map;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Maps.newHashMap;
 
 public class HardcodedConnectorFactory
     implements ConnectorFactory
@@ -52,7 +53,7 @@ public class HardcodedConnectorFactory
     public Connector create(String connectorId, Map<String, String> requiredConfiguration)
     {
         checkNotNull(requiredConfiguration, "requiredConfiguration is null");
-        requiredConfiguration = Maps.newHashMap(requiredConfiguration);
+        requiredConfiguration = newHashMap(requiredConfiguration);
 
         Map<SchemaTableName, String> views = Configs.stripSubconfig(requiredConfiguration, "views").entrySet().stream()
                 .collect(ImmutableCollectors.toImmutableMap(e -> toName(e.getKey()), e -> e.getValue()));

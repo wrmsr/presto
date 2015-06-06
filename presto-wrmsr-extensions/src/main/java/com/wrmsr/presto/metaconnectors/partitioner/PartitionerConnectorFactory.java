@@ -22,6 +22,7 @@ import com.google.inject.Injector;
 import io.airlift.bootstrap.Bootstrap;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Maps.newHashMap;
 
 public class PartitionerConnectorFactory implements ConnectorFactory
 {
@@ -59,7 +60,7 @@ public class PartitionerConnectorFactory implements ConnectorFactory
             requiredConfiguration = ImmutableMap.of();
 
         } else {
-            requiredConfiguration = Maps.newHashMap(properties);
+            requiredConfiguration = newHashMap(properties);
             Map<String, String> targetProperties = Configs.stripSubconfig(requiredConfiguration, "target");
 
             connectorManager.createConnection(targetName, targetConnectorName, targetProperties);
