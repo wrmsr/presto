@@ -1,10 +1,11 @@
-package com.wrmsr.presto.util;
+package com.wrmsr.presto.jdbc.util;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.util.RedactedSerializer;
 import org.apache.log4j.Logger;
 
 import java.util.HashMap;

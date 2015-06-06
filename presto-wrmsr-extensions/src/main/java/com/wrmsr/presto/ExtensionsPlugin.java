@@ -36,7 +36,7 @@ import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
 import com.wrmsr.presto.hardcoded.HardcodedMetadataPopulator;
 import com.wrmsr.presto.hardcoded.HardcodedModule;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
-import com.wrmsr.presto.jdbc.h2.H2JdbcModule;
+import com.wrmsr.presto.jdbc.h2.H2ClientModule;
 import com.wrmsr.presto.jdbc.redshift.RedshiftClientModule;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerModule;
@@ -151,7 +151,7 @@ public class ExtensionsPlugin
                     type.cast(new ExtendedJdbcConnectorFactory("extended-postgresql", new ExtendedPostgreSqlClientModule(), optionalConfig, getClassLoader())),
 
                     type.cast(new ExtendedJdbcConnectorFactory("redshift", new RedshiftClientModule(), optionalConfig, getClassLoader())),
-                    type.cast(new ExtendedJdbcConnectorFactory("h2", new H2JdbcModule(), mapMerge(H2JdbcModule.createProperties(), optionalConfig), getClassLoader()))
+                    type.cast(new ExtendedJdbcConnectorFactory("h2", new H2ClientModule(), mapMerge(H2ClientModule.createProperties(), optionalConfig), getClassLoader()))
             );
         }
         else if (type == FunctionFactory.class) {

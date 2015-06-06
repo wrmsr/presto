@@ -1,4 +1,4 @@
-package com.wrmsr.presto.jdbc;
+package com.wrmsr.presto.jdbc.util;
 
 import com.wrmsr.presto.util.CaseInsensitiveMap;
 

@@ -323,3 +323,17 @@ generate views upon request - is this macros?
 cfg'd in-mem | master thrift port'd hive metastore
 
 autoexec's
+
+
+http://stackoverflow.com/questions/10929369/how-to-execute-multiple-sql-statements-from-java
+
+try to get a hierarchical subconfig, then try to get a str
+
+memcache is kV only, see what Cass does
+
+dense key ranges only
+
+unpickling?
+
+handlersocket + all that intermediate agg shit
+

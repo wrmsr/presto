@@ -14,6 +14,7 @@
 package com.wrmsr.presto.jdbc;
 
 import com.facebook.presto.plugin.jdbc.JdbcConnectorFactory;
+import com.facebook.presto.plugin.jdbc.JdbcHandleResolver;
 import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
@@ -41,6 +42,7 @@ public class ExtendedJdbcConnectorFactory
             public void configure(Binder binder)
             {
                 binder.bind(JdbcRecordSetProvider.class).to(ExtendedJdbcRecordSetProvider.class).in(Scopes.SINGLETON);
+                binder.bind(JdbcHandleResolver.class).to(ExtendedJdbcHandleResolver.class).in(Scopes.SINGLETON);
             }
         }));
     }

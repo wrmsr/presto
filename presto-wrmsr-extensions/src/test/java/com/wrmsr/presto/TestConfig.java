@@ -1,5 +1,7 @@
 package com.wrmsr.presto;
 
+import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.util.Configs;
 import com.wrmsr.presto.util.Files;
 import com.wrmsr.presto.util.Serialization;
 import freemarker.template.Template;
@@ -18,6 +20,33 @@ import java.util.Map;
 
 public class TestConfig
 {
+    @Test
+    public void testThings() throws Throwable
+    {
+        Map<String, String> strs;
+        HierarchicalConfiguration hc;
+
+        strs = ImmutableMap.of(
+                "stuff.init", "abcd"
+        );
+        hc = Configs.toHierarchical(strs).configurationAt("stuff");
+        System.out.println(Configs.getAllStrings(hc, "init"));
+
+        strs = ImmutableMap.of(
+                "stuff.init(0)", "abcd",
+                "stuff.init(1)", "defg"
+        );
+        hc = Configs.toHierarchical(strs).configurationAt("stuff");
+        System.out.println(Configs.getAllStrings(hc, "init"));
+
+        strs = ImmutableMap.of(
+                "stuff.init.first", "abcd",
+                "stuff.init.second", "defg"
+        );
+        hc = Configs.toHierarchical(strs).configurationAt("stuff");
+        System.out.println(Configs.getAllStrings(hc, "init"));
+    }
+
     @Test
     public void testStuff() throws Throwable
     {

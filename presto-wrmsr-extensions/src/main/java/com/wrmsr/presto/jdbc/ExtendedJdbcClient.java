@@ -13,19 +13,63 @@
  */
 package com.wrmsr.presto.jdbc;
 
-import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
-import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
-import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
+import com.facebook.presto.plugin.jdbc.*;
+import com.facebook.presto.spi.ConnectorSplitSource;
+import com.facebook.presto.spi.FixedSplitSource;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
+import com.wrmsr.presto.jdbc.util.ScriptRunner;
 
+import java.sql.Connection;
 import java.sql.Driver;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Set;
+
+import static com.google.common.collect.Maps.fromProperties;
+import static java.util.Locale.ENGLISH;
 
 public class ExtendedJdbcClient
         extends BaseJdbcClient
 {
-    @Inject
-    public ExtendedJdbcClient(JdbcConnectorId connectorId, BaseJdbcConfig config, String identifierQuote, Driver driver)
+    protected final ExtendedJdbcConfig extendedConfig;
+
+    public ExtendedJdbcClient(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedJdbcConfig extendedConfig, String identifierQuote, Driver driver)
     {
         super(connectorId, config, identifierQuote, driver);
+        this.extendedConfig = extendedConfig;
+    }
+
+    public void executeScript(String sql)
+    {
+        try (Connection connection = driver.connect(connectionUrl, connectionProperties)) {
+            ScriptRunner scriptRunner = new ScriptRunner(connection);
+        }
+        catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    public boolean isRemotelyAccessible()
+    {
+        return true;
+    }
+
+    @Override
+    public ConnectorSplitSource getPartitionSplits(JdbcPartition jdbcPartition)
+    {
+        JdbcTableHandle jdbcTableHandle = jdbcPartition.getJdbcTableHandle();
+        ExtendedJdbcSplit jdbcSplit = new ExtendedJdbcSplit(
+                connectorId,
+                jdbcTableHandle.getCatalogName(),
+                jdbcTableHandle.getSchemaName(),
+                jdbcTableHandle.getTableName(),
+                connectionUrl,
+                fromProperties(connectionProperties),
+                jdbcPartition.getTupleDomain(),
+                isRemotelyAccessible());
+        return new FixedSplitSource(connectorId, ImmutableList.of(jdbcSplit));
     }
 }

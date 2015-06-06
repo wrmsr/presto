@@ -21,6 +21,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.mysql.jdbc.Driver;
 import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
+import com.wrmsr.presto.jdbc.ExtendedJdbcConfig;
 
 import javax.inject.Inject;
 
@@ -35,10 +36,10 @@ public class ExtendedMySqlClient
         extends ExtendedJdbcClient
 {
     @Inject
-    public ExtendedMySqlClient(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedMySqlConfig mySqlConfig)
+    public ExtendedMySqlClient(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedJdbcConfig extendedConfig, ExtendedMySqlConfig mySqlConfig)
             throws SQLException
     {
-        super(connectorId, config, "`", new Driver());
+        super(connectorId, config, extendedConfig, "`", new Driver());
         connectionProperties.setProperty("nullCatalogMeansCurrent", "false");
         if (mySqlConfig.isAutoReconnect()) {
             connectionProperties.setProperty("autoReconnect", String.valueOf(mySqlConfig.isAutoReconnect()));
