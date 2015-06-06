@@ -13,11 +13,12 @@
  */
 package com.facebook.presto.sql.analyzer;
 
-import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.QualifiedTableName;
 import com.facebook.presto.metadata.TableHandle;
+import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.sql.tree.Delete;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.InPredicate;
@@ -56,7 +57,7 @@ public class Analysis
 
     private final IdentityHashMap<QuerySpecification, List<FunctionCall>> aggregates = new IdentityHashMap<>();
     private final IdentityHashMap<QuerySpecification, List<FieldOrExpression>> groupByExpressions = new IdentityHashMap<>();
-    private final IdentityHashMap<QuerySpecification, Expression> where = new IdentityHashMap<>();
+    private final IdentityHashMap<Node, Expression> where = new IdentityHashMap<>();
     private final IdentityHashMap<QuerySpecification, Expression> having = new IdentityHashMap<>();
     private final IdentityHashMap<Node, List<FieldOrExpression>> orderByExpressions = new IdentityHashMap<>();
     private final IdentityHashMap<Node, List<FieldOrExpression>> outputExpressions = new IdentityHashMap<>();
@@ -82,6 +83,9 @@ public class Analysis
 
     // for insert
     private Optional<TableHandle> insertTarget = Optional.empty();
+
+    // for delete
+    private Optional<Delete> delete = Optional.empty();
 
     public Query getQuery()
     {
@@ -154,7 +158,7 @@ public class Analysis
         return groupByExpressions.get(node);
     }
 
-    public void setWhere(QuerySpecification node, Expression expression)
+    public void setWhere(Node node, Expression expression)
     {
         where.put(node, expression);
     }
@@ -199,22 +203,12 @@ public class Analysis
         return joins.get(join);
     }
 
-    public void addInPredicates(Query node, Set<InPredicate> inPredicates)
+    public void addInPredicates(Node node, Set<InPredicate> inPredicates)
     {
         this.inPredicates.putAll(node, inPredicates);
     }
 
-    public void addInPredicates(QuerySpecification node, Set<InPredicate> inPredicates)
-    {
-        this.inPredicates.putAll(node, inPredicates);
-    }
-
-    public Set<InPredicate> getInPredicates(Query node)
-    {
-        return inPredicates.get(node);
-    }
-
-    public Set<InPredicate> getInPredicates(QuerySpecification node)
+    public Set<InPredicate> getInPredicates(Node node)
     {
         return inPredicates.get(node);
     }
@@ -338,6 +332,16 @@ public class Analysis
     public Optional<TableHandle> getInsertTarget()
     {
         return insertTarget;
+    }
+
+    public void setDelete(Delete delete)
+    {
+        this.delete = Optional.of(delete);
+    }
+
+    public Optional<Delete> getDelete()
+    {
+        return delete;
     }
 
     public Query getNamedQuery(Table table)

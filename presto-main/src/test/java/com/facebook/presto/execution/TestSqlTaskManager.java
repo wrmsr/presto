@@ -23,7 +23,6 @@ import com.facebook.presto.memory.ReservedSystemMemoryConfig;
 import com.facebook.presto.metadata.NodeVersion;
 import com.facebook.presto.operator.ExchangeClient;
 import com.facebook.presto.spi.Node;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.airlift.event.client.NullEventClient;
@@ -34,11 +33,10 @@ import io.airlift.units.DataSize.Unit;
 import io.airlift.units.Duration;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
-import org.weakref.jmx.MBeanExporter;
-import org.weakref.jmx.testing.TestingMBeanServer;
 
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static com.facebook.presto.OutputBuffers.INITIAL_EMPTY_OUTPUT_BUFFERS;
 import static com.facebook.presto.SessionTestUtils.TEST_SESSION;
@@ -62,7 +60,7 @@ public class TestSqlTaskManager
 
     public TestSqlTaskManager()
     {
-        localMemoryManager = new LocalMemoryManager(new MemoryManagerConfig(), new ReservedSystemMemoryConfig(), new MBeanExporter(new TestingMBeanServer()));
+        localMemoryManager = new LocalMemoryManager(new MemoryManagerConfig(), new ReservedSystemMemoryConfig());
         taskExecutor = new TaskExecutor(8, 16);
         taskExecutor.start();
     }
@@ -72,7 +70,6 @@ public class TestSqlTaskManager
             throws Exception
     {
         taskExecutor.stop();
-        localMemoryManager.destroy();
     }
 
     @Test
