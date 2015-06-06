@@ -41,7 +41,7 @@ public class ExtendedJdbcConfig
         return initScripts;
     }
 
-    private boolean isRemotelyAccessible;
+    private boolean isRemotelyAccessible = true;
 
     public boolean getIsRemotelyAccessible()
     {

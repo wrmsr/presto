@@ -15,6 +15,9 @@
  */
 package com.wrmsr.presto.jdbc.util;
 
+import com.google.common.base.Throwables;
+import io.airlift.log.Logger;
+
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.io.Reader;
@@ -26,6 +29,8 @@ import java.sql.*;
  */
 public class ScriptRunner
 {
+    private static final Logger log = Logger.get(ScriptRunner.class);
+
     private static final String LINE_SEPARATOR = System.getProperty("line.separator", "\n");
 
     private static final String DEFAULT_DELIMITER = ";";
@@ -37,9 +42,6 @@ public class ScriptRunner
     private boolean sendFullScript;
     private boolean removeCRs;
     private boolean escapeProcessing = true;
-
-    private PrintWriter logWriter = new PrintWriter(System.out);
-    private PrintWriter errorLogWriter = new PrintWriter(System.err);
 
     private String delimiter = DEFAULT_DELIMITER;
     private boolean fullLineDelimiter = false;
@@ -75,16 +77,6 @@ public class ScriptRunner
     public void setEscapeProcessing(boolean escapeProcessing)
     {
         this.escapeProcessing = escapeProcessing;
-    }
-
-    public void setLogWriter(PrintWriter logWriter)
-    {
-        this.logWriter = logWriter;
-    }
-
-    public void setErrorLogWriter(PrintWriter errorLogWriter)
-    {
-        this.errorLogWriter = errorLogWriter;
     }
 
     public void setDelimiter(String delimiter)
@@ -125,13 +117,13 @@ public class ScriptRunner
                 script.append(LINE_SEPARATOR);
             }
             String command = script.toString();
-            println(command);
+            log.info(command);
             executeStatement(command);
             commitConnection();
         }
         catch (Exception e) {
             String message = "Error executing: " + script + ".  Cause: " + e;
-            printlnError(message);
+            log.error(message);
             throw new RuntimeException(message, e);
         }
     }
@@ -150,18 +142,8 @@ public class ScriptRunner
         }
         catch (Exception e) {
             String message = "Error executing: " + command + ".  Cause: " + e;
-            printlnError(message);
+            log.error(message);
             throw new RuntimeException(message, e);
-        }
-    }
-
-    public void closeConnection()
-    {
-        try {
-            connection.close();
-        }
-        catch (Exception e) {
-            // ignore
         }
     }
 
@@ -172,7 +154,7 @@ public class ScriptRunner
                 connection.setAutoCommit(autoCommit);
             }
         }
-        catch (Throwable t) {
+        catch (Exception t) {
             throw new RuntimeException("Could not set AutoCommit to " + autoCommit + ". Cause: " + t, t);
         }
     }
@@ -184,7 +166,7 @@ public class ScriptRunner
                 connection.commit();
             }
         }
-        catch (Throwable t) {
+        catch (Exception t) {
             throw new RuntimeException("Could not commit transaction. Cause: " + t, t);
         }
     }
@@ -196,7 +178,7 @@ public class ScriptRunner
                 connection.rollback();
             }
         }
-        catch (Throwable t) {
+        catch (Exception t) {
             // ignore
         }
     }
@@ -217,12 +199,12 @@ public class ScriptRunner
                 delimiter = cleanedString.substring(11, 12);
                 return command;
             }
-            println(trimmedLine);
+            log.info(trimmedLine);
         }
         else if (commandReadyToExecute(trimmedLine)) {
             command.append(line.substring(0, line.lastIndexOf(delimiter)));
             command.append(LINE_SEPARATOR);
-            println(command);
+            log.info(command.toString());
             executeStatement(command.toString());
             command.setLength(0);
         }
@@ -247,35 +229,32 @@ public class ScriptRunner
     private void executeStatement(String command) throws SQLException
     {
         boolean hasResults = false;
-        Statement statement = connection.createStatement();
-        statement.setEscapeProcessing(escapeProcessing);
-        String sql = command;
-        if (removeCRs) {
-            sql = sql.replaceAll("\r\n", "\n");
-        }
-        if (stopOnError) {
-            hasResults = statement.execute(sql);
-        }
-        else {
-            try {
+        try (Statement statement = connection.createStatement()) {
+            // statement.setEscapeProcessing(escapeProcessing);
+            String sql = command;
+            if (removeCRs) {
+                sql = sql.replaceAll("\r\n", "\n");
+            }
+            if (stopOnError) {
                 hasResults = statement.execute(sql);
             }
-            catch (SQLException e) {
-                String message = "Error executing: " + command + ".  Cause: " + e;
-                printlnError(message);
+            else {
+                try {
+                    hasResults = statement.execute(sql);
+                }
+                catch (SQLException e) {
+                    String message = "Error executing: " + command + ".  Cause: " + e;
+                    log.error(message);
+                    throw Throwables.propagate(e);
+                }
             }
-        }
-        printResults(statement, hasResults);
-        try {
-            statement.close();
-        }
-        catch (Exception e) {
-            // Ignore to workaround a bug in some connection pools
+            printResults(statement, hasResults);
         }
     }
 
     private void printResults(Statement statement, boolean hasResults)
     {
+        StringBuilder sb = new StringBuilder();
         try {
             if (hasResults) {
                 ResultSet rs = statement.getResultSet();
@@ -284,46 +263,22 @@ public class ScriptRunner
                     int cols = md.getColumnCount();
                     for (int i = 0; i < cols; i++) {
                         String name = md.getColumnLabel(i + 1);
-                        print(name + "\t");
+                        sb.append(name + "\t");
                     }
-                    println("");
+                    sb.append("\n");
                     while (rs.next()) {
                         for (int i = 0; i < cols; i++) {
                             String value = rs.getString(i + 1);
-                            print(value + "\t");
+                            sb.append(value + "\t");
                         }
-                        println("");
+                        sb.append("\n");
                     }
                 }
             }
+            log.info(sb.toString());
         }
         catch (SQLException e) {
-            printlnError("Error printing results: " + e.getMessage());
+            throw Throwables.propagate(e);
         }
     }
-
-    private void print(Object o)
-    {
-        if (logWriter != null) {
-            logWriter.print(o);
-            logWriter.flush();
-        }
-    }
-
-    private void println(Object o)
-    {
-        if (logWriter != null) {
-            logWriter.println(o);
-            logWriter.flush();
-        }
-    }
-
-    private void printlnError(Object o)
-    {
-        if (errorLogWriter != null) {
-            errorLogWriter.println(o);
-            errorLogWriter.flush();
-        }
-    }
-
 }
