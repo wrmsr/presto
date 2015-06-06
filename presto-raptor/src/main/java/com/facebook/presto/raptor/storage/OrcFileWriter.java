@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.raptor.storage;
 
+import com.facebook.presto.raptor.util.SyncingFileSystem;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
@@ -32,7 +33,6 @@ import org.apache.hadoop.hive.ql.io.orc.OrcSerde;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
-import org.apache.hadoop.mapred.JobConf;
 
 import java.io.Closeable;
 import java.io.File;
@@ -66,7 +66,7 @@ import static org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveO
 public class OrcFileWriter
         implements Closeable
 {
-    private static final JobConf JOB_CONF = createJobConf();
+    private static final Configuration CONFIGURATION = new Configuration();
     private static final Constructor<? extends RecordWriter> WRITER_CONSTRUCTOR = getOrcWriterConstructor();
 
     private final List<Type> columnTypes;
@@ -94,8 +94,8 @@ public class OrcFileWriter
         properties.setProperty(META_TABLE_COLUMNS, Joiner.on(',').join(columnNames));
         properties.setProperty(META_TABLE_COLUMN_TYPES, Joiner.on(':').join(hiveTypeNames));
 
-        serializer = createSerializer(JOB_CONF, properties);
-        recordWriter = createRecordWriter(new Path(target.toURI()), JOB_CONF);
+        serializer = createSerializer(CONFIGURATION, properties);
+        recordWriter = createRecordWriter(new Path(target.toURI()), CONFIGURATION);
 
         tableInspector = getStandardStructObjectInspector(columnNames, getJavaObjectInspectors(storageTypes));
         structFields = ImmutableList.copyOf(tableInspector.getAllStructFieldRefs());
@@ -165,10 +165,10 @@ public class OrcFileWriter
         return serde;
     }
 
-    private static RecordWriter createRecordWriter(Path target, JobConf conf)
+    private static RecordWriter createRecordWriter(Path target, Configuration conf)
     {
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(FileSystem.class.getClassLoader());
-                FileSystem fileSystem = new SyncingFileSystem()) {
+                FileSystem fileSystem = new SyncingFileSystem(CONFIGURATION)) {
             OrcFile.WriterOptions options = OrcFile.writerOptions(conf)
                     .fileSystem(fileSystem)
                     .compress(SNAPPY);
@@ -192,13 +192,6 @@ public class OrcFileWriter
         catch (ReflectiveOperationException e) {
             throw Throwables.propagate(e);
         }
-    }
-
-    private static JobConf createJobConf()
-    {
-        JobConf jobConf = new JobConf();
-        jobConf.setClassLoader(JobConf.class.getClassLoader());
-        return new JobConf();
     }
 
     private static List<ObjectInspector> getJavaObjectInspectors(List<StorageType> types)
