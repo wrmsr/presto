@@ -26,6 +26,10 @@ import static com.google.common.collect.Maps.newHashMap;
 
 public class Serialization
 {
+    private Serialization()
+    {
+    }
+
     public static final Supplier<ObjectMapper> OBJECT_MAPPER = Suppliers.memoize(() ->
             new ObjectMapperProvider().get()
                     .registerModule(new SimpleModule().addSerializer(Slice.class, new SliceSerializer())));

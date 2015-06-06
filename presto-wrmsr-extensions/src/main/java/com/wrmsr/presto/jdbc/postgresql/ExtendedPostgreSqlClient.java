@@ -23,20 +23,19 @@ import io.airlift.slice.Slice;
 import org.postgresql.Driver;
 
 import javax.inject.Inject;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
+
+import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
 
 public class ExtendedPostgreSqlClient
         extends ExtendedJdbcClient
 {
     @Inject
     public ExtendedPostgreSqlClient(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedJdbcConfig extendedConfig)
-            throws SQLException
     {
-        super(connectorId, config, extendedConfig, "\"", new Driver());
-        // FIXME: init
+        super(connectorId, config, extendedConfig, "\"", createDriver(extendedConfig, runtimeThrowing(Driver::new)));
     }
 
     @Override

@@ -23,7 +23,9 @@ import java.util.stream.Collector;
 
 public final class ImmutableCollectors
 {
-    private ImmutableCollectors() {}
+    private ImmutableCollectors()
+    {
+    }
 
     public static <T> Collector<T, ?, ImmutableList<T>> toImmutableList()
     {

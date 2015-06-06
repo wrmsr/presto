@@ -4,6 +4,19 @@ import io.airlift.configuration.Config;
 
 public class ExtendedJdbcConfig
 {
+    private String driverUrl;
+
+    public String getDriverUrl()
+    {
+        return driverUrl;
+    }
+
+    @Config("driver-url")
+    public void setDriverUrl(String driverUrl)
+    {
+        this.driverUrl = driverUrl;
+    }
+
     private String init;
 
     public String getInit()
@@ -15,5 +28,18 @@ public class ExtendedJdbcConfig
     public void setInit(String init)
     {
         this.init = init;
+    }
+
+    private boolean isRemotelyAccessible;
+
+    public boolean getIsRemotelyAccessible()
+    {
+        return isRemotelyAccessible;
+    }
+
+    @Config("is-remotely-accessible")
+    public void setIsRemotelyAccessible(boolean isRemotelyAccessible)
+    {
+        this.isRemotelyAccessible = isRemotelyAccessible;
     }
 }

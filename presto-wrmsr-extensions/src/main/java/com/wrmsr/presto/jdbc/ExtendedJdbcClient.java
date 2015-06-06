@@ -18,18 +18,15 @@ import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.FixedSplitSource;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.inject.Inject;
 import com.wrmsr.presto.jdbc.util.ScriptRunner;
 
 import java.sql.Connection;
 import java.sql.Driver;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Set;
+import java.util.function.Supplier;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.fromProperties;
-import static java.util.Locale.ENGLISH;
 
 public class ExtendedJdbcClient
         extends BaseJdbcClient
@@ -44,7 +41,7 @@ public class ExtendedJdbcClient
 
     public void executeScript(String sql)
     {
-        try (Connection connection = driver.connect(connectionUrl, connectionProperties)) {
+        try (Connection connection = getConnection(connectionUrl, connectionProperties)) {
             ScriptRunner scriptRunner = new ScriptRunner(connection);
         }
         catch (SQLException e) {
@@ -54,7 +51,7 @@ public class ExtendedJdbcClient
 
     public boolean isRemotelyAccessible()
     {
-        return true;
+        return extendedConfig.getIsRemotelyAccessible();
     }
 
     @Override
@@ -71,5 +68,10 @@ public class ExtendedJdbcClient
                 jdbcPartition.getTupleDomain(),
                 isRemotelyAccessible());
         return new FixedSplitSource(connectorId, ImmutableList.of(jdbcSplit));
+    }
+
+    public static Driver createDriver(ExtendedJdbcConfig extendedConfig, Supplier<Driver> fallback)
+    {
+        return checkNotNull(fallback.get());
     }
 }

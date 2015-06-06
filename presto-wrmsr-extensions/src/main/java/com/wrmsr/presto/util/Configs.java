@@ -19,6 +19,10 @@ import static com.google.common.collect.Lists.newArrayList;
 
 public class Configs
 {
+    private Configs()
+    {
+    }
+
     public static HierarchicalConfiguration toHierarchical(Map<String, String> properties)
     {
         return ConfigurationUtils.convertToHierarchical(new MapConfiguration(properties));

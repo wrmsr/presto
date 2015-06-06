@@ -15,20 +15,12 @@ package com.wrmsr.presto.jdbc.h2;
 
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Module;
-import com.google.inject.Provides;
 import com.google.inject.Scopes;
-import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConfig;
-import org.h2.Driver;
-
-import java.util.Map;
 
 import static io.airlift.configuration.ConfigBinder.configBinder;
-import static java.lang.String.format;
 
 public class H2ClientModule
         implements Module
@@ -39,12 +31,5 @@ public class H2ClientModule
         binder.bind(JdbcClient.class).to(H2Client.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(BaseJdbcConfig.class);
         configBinder(binder).bindConfig(ExtendedJdbcConfig.class);
-    }
-
-    public static Map<String, String> createProperties()
-    {
-        return ImmutableMap.<String, String>builder()
-                .put("connection-url", format("jdbc:h2:mem:test%s;DB_CLOSE_DELAY=-1", System.nanoTime()))
-                .build();
     }
 }

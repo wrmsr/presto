@@ -24,12 +24,12 @@ import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConfig;
 
 import javax.inject.Inject;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Set;
 
+import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
 import static java.util.Locale.ENGLISH;
 
 public class ExtendedMySqlClient
@@ -39,7 +39,7 @@ public class ExtendedMySqlClient
     public ExtendedMySqlClient(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedJdbcConfig extendedConfig, ExtendedMySqlConfig mySqlConfig)
             throws SQLException
     {
-        super(connectorId, config, extendedConfig, "`", new Driver());
+        super(connectorId, config, extendedConfig, "`", createDriver(extendedConfig, runtimeThrowing(Driver::new)));
         connectionProperties.setProperty("nullCatalogMeansCurrent", "false");
         if (mySqlConfig.isAutoReconnect()) {
             connectionProperties.setProperty("autoReconnect", String.valueOf(mySqlConfig.isAutoReconnect()));
@@ -54,7 +54,7 @@ public class ExtendedMySqlClient
     public Set<String> getSchemaNames()
     {
         // for MySQL, we need to list catalogs instead of schemas
-        try (Connection connection = driver.connect(connectionUrl, connectionProperties);
+        try (Connection connection = getConnection(connectionUrl, connectionProperties);
                 ResultSet resultSet = connection.getMetaData().getCatalogs()) {
             ImmutableSet.Builder<String> schemaNames = ImmutableSet.builder();
             while (resultSet.next()) {

@@ -38,6 +38,8 @@ import com.wrmsr.presto.hardcoded.HardcodedModule;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
 import com.wrmsr.presto.jdbc.h2.H2ClientModule;
 import com.wrmsr.presto.jdbc.redshift.RedshiftClientModule;
+import com.wrmsr.presto.jdbc.sqlite.SqliteClientModule;
+import com.wrmsr.presto.jdbc.temp.TempClientModule;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerModule;
 import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
@@ -149,9 +151,10 @@ public class ExtensionsPlugin
 
                     type.cast(new ExtendedJdbcConnectorFactory("extended-mysql", new ExtendedMySqlClientModule(), optionalConfig, getClassLoader())),
                     type.cast(new ExtendedJdbcConnectorFactory("extended-postgresql", new ExtendedPostgreSqlClientModule(), optionalConfig, getClassLoader())),
-
-                    type.cast(new ExtendedJdbcConnectorFactory("redshift", new RedshiftClientModule(), optionalConfig, getClassLoader())),
-                    type.cast(new ExtendedJdbcConnectorFactory("h2", new H2ClientModule(), mapMerge(H2ClientModule.createProperties(), optionalConfig), getClassLoader()))
+                    type.cast(new ExtendedJdbcConnectorFactory("redshift", new RedshiftClientModule(), mapMerge(RedshiftClientModule.createProperties(), optionalConfig), getClassLoader())),
+                    type.cast(new ExtendedJdbcConnectorFactory("h2", new H2ClientModule(), optionalConfig, getClassLoader())),
+                    type.cast(new ExtendedJdbcConnectorFactory("sqlite", new SqliteClientModule(), optionalConfig, getClassLoader())),
+                    type.cast(new ExtendedJdbcConnectorFactory("temp", new TempClientModule(), mapMerge(TempClientModule.createProperties(), optionalConfig), getClassLoader()))
             );
         }
         else if (type == FunctionFactory.class) {

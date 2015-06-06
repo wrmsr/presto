@@ -12,12 +12,6 @@ public class H2Client extends ExtendedJdbcClient
     @Inject
     public H2Client(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedJdbcConfig extendedConfig)
     {
-        super(connectorId, config, extendedConfig, "\"", new Driver());
-    }
-
-    @Override
-    public boolean isRemotelyAccessible()
-    {
-        return false;
+        super(connectorId, config, extendedConfig, "\"", createDriver(extendedConfig, Driver::new));
     }
 }
