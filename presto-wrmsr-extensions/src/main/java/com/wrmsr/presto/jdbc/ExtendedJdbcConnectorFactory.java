@@ -99,6 +99,7 @@ public class ExtendedJdbcConnectorFactory
             @Override
             public void configure(Binder binder)
             {
+                binder.bind(JdbcConnector.class).to(ExtendedJdbcConnector.class).in(Scopes.SINGLETON);
                 binder.bind(JdbcRecordSetProvider.class).to(ExtendedJdbcRecordSetProvider.class).in(Scopes.SINGLETON);
                 binder.bind(JdbcHandleResolver.class).to(ExtendedJdbcHandleResolver.class).in(Scopes.SINGLETON);
             }

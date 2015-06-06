@@ -19,7 +19,9 @@ import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
+import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.server.ServerEvent;
+import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
@@ -35,6 +37,8 @@ import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
 import com.wrmsr.presto.hardcoded.HardcodedMetadataPopulator;
 import com.wrmsr.presto.hardcoded.HardcodedModule;
+import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
+import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
 import com.wrmsr.presto.jdbc.h2.H2ClientModule;
 import com.wrmsr.presto.jdbc.redshift.RedshiftClientModule;
@@ -127,6 +131,15 @@ public class ExtensionsPlugin
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.ConnectorsLoaded) {
+            for (Connector connector : connectorManager.getConnectors().values()) {
+                if (connector instanceof ExtendedJdbcConnector) {
+                    JdbcClient client = ((ExtendedJdbcConnector) connector).getJdbcClient();
+                    if (client instanceof ExtendedJdbcClient) {
+                        ((ExtendedJdbcClient) client).runInitScripts();
+                    }
+                }
+            }
+
             new HardcodedMetadataPopulator(
                     connectorManager,
                     viewCodec,
