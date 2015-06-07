@@ -33,6 +33,11 @@ public class Configs
     {
     }
 
+    @FunctionalInterface
+    public interface ConfigDecoder extends Codecs.Decoder<byte[], Map<String, String>>
+    {
+    }
+
     public static HierarchicalConfiguration toHierarchical(Map<String, String> properties)
     {
         return ConfigurationUtils.convertToHierarchical(new MapConfiguration(properties));
