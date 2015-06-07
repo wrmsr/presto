@@ -79,7 +79,7 @@ public class TestConfig
         System.out.println(o);
 
         Map<String, Object> m = (Map<String, Object>) o;
-        Map<String, String> t = Configs.flattenYaml(null, o);
+        Map<String, String> t = Configs.flattenValues(o);
 
         Configuration c = new MapConfiguration(t);
         HierarchicalConfiguration hc = ConfigurationUtils.convertToHierarchical(c);
