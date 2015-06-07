@@ -337,6 +337,7 @@ unpickling?
 
 handlersocket + all that intermediate agg shit
 
+https://github.com/dropbox/PyHive
 
 user defined types via ROW types (w/ named fields)
  struct_extract(field_name, obj) -> val

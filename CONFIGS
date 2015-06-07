@@ -1,3 +1,11 @@
+gen_configs
+2:ag -H '@Config' > CONFIGS
+
+master.diff
+227:     @Config("cassandra.allow-drop-table")
+228:-    @ConfigDescription("Allow hive connector to drop table")
+229:+    @ConfigDescription("Allow cassandra connector to drop table")
+
 presto-base-jdbc/src/main/java/com/facebook/presto/plugin/jdbc/BaseJdbcConfig.java
 32:    @Config("connection-url")
 44:    @Config("connection-user")
@@ -131,23 +139,24 @@ presto-main/src/main/java/com/facebook/presto/execution/QueryManagerConfig.java
 246:    @Config("query.remote-task.max-callback-threads")
 
 presto-main/src/main/java/com/facebook/presto/execution/TaskManagerConfig.java
-54:    @Config("task.verbose-stats")
-66:    @Config("task.cpu-timer-enabled")
-79:    @Config("task.max-partial-aggregation-memory")
-94:    @Config("experimental.big-query-max-task-memory")
-107:    @Config("task.max-memory")
-120:    @Config("task.operator-pre-allocated-memory")
-133:    @Config("task.max-index-memory")
-147:    @Config("task.max-worker-threads")
-163:    @Config("task.min-drivers")
-176:    @Config("sink.max-buffer-size")
-190:    @Config("task.client.timeout")
-203:    @Config("task.info.max-age")
-216:    @Config("task.writer-count")
-217:    @ConfigDescription("Number of writers per task")
-230:    @Config("task.default-concurrency")
-231:    @ConfigDescription("Default local concurrency for parallel operators")
-244:    @Config("task.http-notification-threads")
+59:    @Config("task.info-refresh-max-wait")
+71:    @Config("task.verbose-stats")
+83:    @Config("task.cpu-timer-enabled")
+96:    @Config("task.max-partial-aggregation-memory")
+111:    @Config("experimental.big-query-max-task-memory")
+124:    @Config("task.max-memory")
+137:    @Config("task.operator-pre-allocated-memory")
+150:    @Config("task.max-index-memory")
+164:    @Config("task.max-worker-threads")
+180:    @Config("task.min-drivers")
+193:    @Config("sink.max-buffer-size")
+207:    @Config("task.client.timeout")
+220:    @Config("task.info.max-age")
+233:    @Config("task.writer-count")
+234:    @ConfigDescription("Number of writers per task")
+247:    @Config("task.default-concurrency")
+248:    @ConfigDescription("Default local concurrency for parallel operators")
+261:    @Config("task.http-notification-threads")
 
 presto-main/src/main/java/com/facebook/presto/failureDetector/FailureDetectorConfig.java
 41:    @Config("failure-detector.expiration-grace-interval")
@@ -205,30 +214,38 @@ presto-mysql/src/main/java/com/facebook/presto/plugin/mysql/MySqlConfig.java
 47:    @Config("mysql.max-reconnects")
 59:    @Config("mysql.connection-timeout")
 
+presto-raptor/src/main/java/com/facebook/presto/raptor/backup/BackupConfig.java
+40:    @Config("backup.timeout")
+41:    @ConfigDescription("Timeout for per-shard backup/restore operations")
+54:    @Config("backup.provider")
+55:    @ConfigDescription("Backup provider to use (supported types: file)")
+
+presto-raptor/src/main/java/com/facebook/presto/raptor/backup/FileBackupConfig.java
+33:    @Config("backup.directory")
+34:    @ConfigDescription("Base directory to use for the backup copy of shard data")
+
 presto-raptor/src/main/java/com/facebook/presto/raptor/storage/StorageManagerConfig.java
 56:    @Config("storage.data-directory")
 57:    @ConfigDescription("Base directory to use for storing shard data")
-70:    @Config("storage.backup-directory")
-71:    @ConfigDescription("Base directory to use for the backup copy of shard data")
-84:    @Config("storage.orc.max-merge-distance")
-97:    @Config("storage.orc.max-read-size")
-110:    @Config("storage.orc.stream-buffer-size")
-122:    @Config("storage.shard-recovery-timeout")
-123:    @ConfigDescription("Maximum time to wait for a shard to recover from backup while running a query")
-135:    @Config("storage.missing-shard-discovery-interval")
-136:    @ConfigDescription("How often to check the database and local file system missing shards")
-148:    @Config("storage.compaction-interval")
-149:    @ConfigDescription("How often to check for local shards that need compaction")
-162:    @Config("storage.max-recovery-threads")
-163:    @ConfigDescription("Maximum number of threads to use for recovery")
-170:    @Config("storage.max-compaction-threads")
-171:    @ConfigDescription("Maximum number of threads to use for compaction")
-191:    @Config("storage.max-shard-rows")
-192:    @ConfigDescription("Approximate maximum number of rows per shard")
-206:    @Config("storage.max-shard-size")
-207:    @ConfigDescription("Approximate maximum uncompressed size of a shard")
-220:    @Config("storage.max-buffer-size")
-221:    @ConfigDescription("Maximum data to buffer before flushing to disk")
+70:    @Config("storage.orc.max-merge-distance")
+83:    @Config("storage.orc.max-read-size")
+96:    @Config("storage.orc.stream-buffer-size")
+108:    @Config("storage.shard-recovery-timeout")
+109:    @ConfigDescription("Maximum time to wait for a shard to recover from backup while running a query")
+121:    @Config("storage.missing-shard-discovery-interval")
+122:    @ConfigDescription("How often to check the database and local file system missing shards")
+134:    @Config("storage.compaction-interval")
+135:    @ConfigDescription("How often to check for local shards that need compaction")
+148:    @Config("storage.max-recovery-threads")
+149:    @ConfigDescription("Maximum number of threads to use for recovery")
+156:    @Config("storage.max-compaction-threads")
+157:    @ConfigDescription("Maximum number of threads to use for compaction")
+177:    @Config("storage.max-shard-rows")
+178:    @ConfigDescription("Approximate maximum number of rows per shard")
+192:    @Config("storage.max-shard-size")
+193:    @ConfigDescription("Approximate maximum uncompressed size of a shard")
+206:    @Config("storage.max-buffer-size")
+207:    @ConfigDescription("Maximum data to buffer before flushing to disk")
 
 presto-verifier/src/main/java/com/facebook/presto/verifier/VerifierConfig.java
 79:    @ConfigDescription("Correctness check will be skipped if this regex matches query")
@@ -303,4 +320,30 @@ presto-verifier/src/main/java/com/facebook/presto/verifier/VerifierConfig.java
 570:    @Config("control.jdbc-driver-class")
 
 presto-wrmsr-elasticsearch/src/main/java/com/wrmsr/presto/elasticsearch/ElasticsearchConfig.java
-32:    @Config("metadata-uri")
+32:    @Config("http-uri")
+45:    @Config("client-max-connections")
+56:    @Config("client-discovery-frequency")
+67:    @Config("client-discovery-enabled")
+78:    @Config("client-multithreaded")
+89:    @Config("client-multithreaded")
+100:    @Config("client-read-timeout")
+111:    @Config("client-connection-idle-time")
+
+presto-wrmsr-extensions/src/main/java/com/wrmsr/presto/flat/FlatConfig.java
+14:    @Config("file-path")
+
+presto-wrmsr-extensions/src/main/java/com/wrmsr/presto/jdbc/ExtendedJdbcConfig.java
+18:    @Config("driver-url")
+31:    @Config("driver-class")
+51:    @Config("is-remotely-accessible")
+
+presto-wrmsr-extensions/src/main/java/com/wrmsr/presto/jdbc/mysql/ExtendedMySqlConfig.java
+33:    @Config("mysql.auto-reconnect")
+46:    @Config("mysql.max-reconnects")
+58:    @Config("mysql.connection-timeout")
+
+presto-wrmsr-extensions/src/main/java/com/wrmsr/presto/metaconnectors/partitioner/PartitionerConfig.java
+16:    @Config("target-name")
+30:    @Config("target-connector-name")
+43:    @Config("split-column-name")
+56:    @Config("num-splits")
