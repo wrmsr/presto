@@ -32,6 +32,18 @@ public class TestConfig
                 "c=3\n";
         p = Configs.loadByExtension(s.getBytes(), "properties");
         System.out.println(p);
+
+        s =
+                "{\n" +
+                        "\"things\": \"abc\",\n" +
+                        "\"otherthings\": \"def\",\n" +
+                        "\"deep\": {\n" +
+                                "\"first\": \"a\",\n" +
+                                "\"second\": \"b\"\n" +
+                        "}\n" +
+                "}\n";
+        p = Configs.loadByExtension(s.getBytes(), "json");
+        System.out.println(p);
     }
 
     @Test
