@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.DefaultDeserializationContext;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
+import com.fasterxml.jackson.dataformat.xml.XmlFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -34,6 +35,8 @@ public class Serialization
             new ObjectMapperProvider().get()
                     .registerModule(new SimpleModule().addSerializer(Slice.class, new SliceSerializer())));
 
+    public static final Supplier<ObjectMapper> JSON_OBJECT_MAPPER = OBJECT_MAPPER;
+
     public static ObjectMapper forkObjectMapper(ObjectMapper mapper, JsonFactory jf)
     {
        return new ObjectMapper(
@@ -46,49 +49,17 @@ public class Serialization
 
     public static final ThreadLocal<Yaml> YAML = ThreadLocal.withInitial(Yaml::new);
 
-    @SuppressWarnings({"unchecked"})
-    public static Map<String, String> flattenYaml(String key, Object value)
-    {
-        /*
-        TODO:
-        !!binary	byte[], String
-        !!timestamp	java.util.Date, java.sql.Date, java.sql.Timestamp
-        !!omap, !!pairs	List of Object[]
-        */
-        if (value == null) {
-            Map<String, String> map = newHashMap();
-            map.put(key, null);
-            return map;
-        }
-        else if (value instanceof Map) {
-            Map<String, Object> mapValue = (Map<String, Object>) value;
-            return mapValue.entrySet().stream()
-                    .flatMap(e -> flattenYaml((key != null ? key + "." : "") + e.getKey(), e.getValue()).entrySet().stream())
-                    .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
-        }
-        else if (value instanceof List || value instanceof Set) {
-            List<Object> listValue = ImmutableList.copyOf((Iterable<Object>) value);
-            return IntStream.range(0, listValue.size()).boxed()
-                    .flatMap(i -> flattenYaml(key + "(" + i.toString() + ")", listValue.get(i)).entrySet().stream())
-                    .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
-        }
-        else {
-            return ImmutableMap.of(key, value.toString());
-        }
-    }
-
-    public static Map<String, String> flattenYaml(Object value)
-    {
-        return flattenYaml(null, value);
-    }
-
     public static List<Object> splitYaml(String src)
     {
         return ImmutableList.copyOf(YAML.get().loadAll(new ByteArrayInputStream(src.getBytes())));
     }
 
-    public static String renderYaml(Object obj)
-    {
-        return YAML.get().dump(obj);
-    }
+    public static final Supplier<ObjectMapper> XML_OBJECT_MAPPER = Suppliers.memoize(() -> forkObjectMapper(OBJECT_MAPPER.get(), new XmlFactory()));
+
+    public static final ImmutableMap<String, Supplier<ObjectMapper>> OBJECT_MAPPERS_BY_EXTENSION = ImmutableMap.<String, Supplier<ObjectMapper>>builder()
+            .put("json", JSON_OBJECT_MAPPER)
+            .put("yaml", YAML_OBJECT_MAPPER)
+            .put("yml", YAML_OBJECT_MAPPER)
+            .put("xml", XML_OBJECT_MAPPER)
+            .build();
 }

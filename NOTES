@@ -359,3 +359,5 @@ decode:
  yaml
  avro
  csv/tsv/piped
+ cbor
+ smile

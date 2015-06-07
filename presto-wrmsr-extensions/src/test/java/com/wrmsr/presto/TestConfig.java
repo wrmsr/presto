@@ -21,6 +21,20 @@ import java.util.Map;
 public class TestConfig
 {
     @Test
+    public void testLoading() throws Throwable
+    {
+        String s;
+        Map<String, String> p;
+
+        s =
+                "a=1\n" +
+                "b=2\n" +
+                "c=3\n";
+        p = Configs.loadByExtension(s.getBytes(), "properties");
+        System.out.println(p);
+    }
+
+    @Test
     public void testThings() throws Throwable
     {
         Map<String, String> strs;
@@ -65,7 +79,7 @@ public class TestConfig
         System.out.println(o);
 
         Map<String, Object> m = (Map<String, Object>) o;
-        Map<String, String> t = Serialization.flattenYaml(null, o);
+        Map<String, String> t = Configs.flattenYaml(null, o);
 
         Configuration c = new MapConfiguration(t);
         HierarchicalConfiguration hc = ConfigurationUtils.convertToHierarchical(c);
