@@ -392,3 +392,6 @@ exception handling for bad data :|
 
 
 need eager wrapper on lazy defaults for compression streams
+
+https://prestodb.io/docs/current/connector/kafka-tutorial.html
+https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-core-types.html
