@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+ag -H '@Config' > CONFIGS

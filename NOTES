@@ -323,3 +323,75 @@ generate views upon request - is this macros?
 cfg'd in-mem | master thrift port'd hive metastore
 
 autoexec's
+
+
+http://stackoverflow.com/questions/10929369/how-to-execute-multiple-sql-statements-from-java
+
+try to get a hierarchical subconfig, then try to get a str
+
+memcache is kV only, see what Cass does
+
+dense key ranges only
+
+unpickling?
+
+handlersocket + all that intermediate agg shit
+
+https://github.com/dropbox/PyHive
+
+user defined types via ROW types (w/ named fields)
+ struct_extract(field_name, obj) -> val
+ auto-gen structs for services based on schemas
+ https://github.com/swagger-api/swagger-codegen
+ https://github.com/swagger-api/swagger-spec/blob/master/versions/2.0.md
+
+cfg:
+ properties
+ json
+ xml
+ yaml
+
+decode:
+ raw
+ struct
+ json
+ csv
+ xml
+ yaml
+ avro
+ csv/tsv/piped
+ cbor
+ smile
+ pickle
+
+lines
+datetimes
+deep
+
+http://basho.com/why-vector-clocks-are-hard/
+http://basho.com/why-vector-clocks-are-easy/
+http://phoenix.apache.org/update_statistics.html
+http://en.wikipedia.org/wiki/Behavior_Trees
+http://www.cs.man.ac.uk/~norm/papers/surveys.pdf
+
+http://game.itu.dk/cig2010/proceedings/papers/cig10_015_075.pdf
+
+
+exception handling for bad data :|
+ - shit that wont decompress, bad json, etc
+
+
+            ArchiveInputStream input = new ArchiveStreamFactory()
+                    .createArchiveInputStream(originalInput);
+
+
+
+
+
+
+
+
+need eager wrapper on lazy defaults for compression streams
+
+https://prestodb.io/docs/current/connector/kafka-tutorial.html
+https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-core-types.html

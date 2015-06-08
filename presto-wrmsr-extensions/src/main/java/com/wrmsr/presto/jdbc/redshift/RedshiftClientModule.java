@@ -1,23 +1,21 @@
 package com.wrmsr.presto.jdbc.redshift;
 
-import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
-import com.facebook.presto.plugin.jdbc.JdbcClient;
-import com.google.inject.Binder;
-import com.google.inject.Module;
-import com.google.inject.Scopes;
-import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
+import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.jdbc.postgresql.ExtendedPostgreSqlClientModule;
 
-import static io.airlift.configuration.ConfigBinder.configBinder;
+import java.util.Map;
 
 public class RedshiftClientModule
-    implements Module
+    extends ExtendedPostgreSqlClientModule
 {
-    @Override
-    public void configure(Binder binder)
+    public static final String DEFAULT_DRIVER_URL = "https://s3.amazonaws.com/redshift-downloads/drivers/RedshiftJDBC41-1.1.1.0001.jar";
+    public static final String DEFAULT_DRIVER_CLASS = "com.amazon.redshift.jdbc4.Driver";
+
+    public static Map<String, String> createProperties()
     {
-        binder.bind(JdbcClient.class).to(RedshiftClient.class).in(Scopes.SINGLETON);
-        configBinder(binder).bindConfig(BaseJdbcConfig.class);
-        configBinder(binder).bindConfig(ExtendedJdbcClient.class);
-        configBinder(binder).bindConfig(RedshiftConfig.class);
+        return ImmutableMap.<String, String>builder()
+                .put("driver-url", DEFAULT_DRIVER_URL)
+                .put("driver-class", DEFAULT_DRIVER_CLASS)
+                .build();
     }
 }

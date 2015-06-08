@@ -2,18 +2,55 @@ package com.wrmsr.presto.jdbc;
 
 import io.airlift.configuration.Config;
 
+import java.util.List;
+
+import static com.google.common.collect.Lists.newArrayList;
+
 public class ExtendedJdbcConfig
 {
-    private String init;
+    private String driverUrl;
 
-    public String getInit()
+    public String getDriverUrl()
     {
-        return init;
+        return driverUrl;
     }
 
-    @Config("init")
-    public void setInit(String init)
+    @Config("driver-url")
+    public void setDriverUrl(String driverUrl)
     {
-        this.init = init;
+        this.driverUrl = driverUrl;
+    }
+
+    private String driverClass;
+
+    public String getDriverClass()
+    {
+        return driverClass;
+    }
+
+    @Config("driver-class")
+    public void setDriverClass(String driverClass)
+    {
+        this.driverClass = driverClass;
+    }
+
+    private final List<String> initScripts = newArrayList();
+
+    public List<String> getInitScripts()
+    {
+        return initScripts;
+    }
+
+    private boolean isRemotelyAccessible = true;
+
+    public boolean getIsRemotelyAccessible()
+    {
+        return isRemotelyAccessible;
+    }
+
+    @Config("is-remotely-accessible")
+    public void setIsRemotelyAccessible(boolean isRemotelyAccessible)
+    {
+        this.isRemotelyAccessible = isRemotelyAccessible;
     }
 }

@@ -19,7 +19,9 @@ import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
+import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.server.ServerEvent;
+import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
@@ -35,9 +37,13 @@ import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
 import com.wrmsr.presto.hardcoded.HardcodedMetadataPopulator;
 import com.wrmsr.presto.hardcoded.HardcodedModule;
+import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
+import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
-import com.wrmsr.presto.jdbc.h2.H2JdbcModule;
+import com.wrmsr.presto.jdbc.h2.H2ClientModule;
 import com.wrmsr.presto.jdbc.redshift.RedshiftClientModule;
+import com.wrmsr.presto.jdbc.sqlite.SqliteClientModule;
+import com.wrmsr.presto.jdbc.temp.TempClientModule;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerModule;
 import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
@@ -125,6 +131,15 @@ public class ExtensionsPlugin
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.ConnectorsLoaded) {
+            for (Connector connector : connectorManager.getConnectors().values()) {
+                if (connector instanceof ExtendedJdbcConnector) {
+                    JdbcClient client = ((ExtendedJdbcConnector) connector).getJdbcClient();
+                    if (client instanceof ExtendedJdbcClient) {
+                        ((ExtendedJdbcClient) client).runInitScripts();
+                    }
+                }
+            }
+
             new HardcodedMetadataPopulator(
                     connectorManager,
                     viewCodec,
@@ -147,11 +162,12 @@ public class ExtensionsPlugin
 
                     type.cast(new HardcodedConnectorFactory(optionalConfig, new HardcodedModule(), getClassLoader())),
 
-                    type.cast(new ExtendedJdbcConnectorFactory("extended-mysql", new ExtendedMySqlClientModule(), optionalConfig, getClassLoader())),
-                    type.cast(new ExtendedJdbcConnectorFactory("extended-postgresql", new ExtendedPostgreSqlClientModule(), optionalConfig, getClassLoader())),
-
-                    type.cast(new ExtendedJdbcConnectorFactory("redshift", new RedshiftClientModule(), optionalConfig, getClassLoader())),
-                    type.cast(new ExtendedJdbcConnectorFactory("h2", new H2JdbcModule(), mapMerge(H2JdbcModule.createProperties(), optionalConfig), getClassLoader()))
+                    type.cast(new ExtendedJdbcConnectorFactory("extended-mysql", new ExtendedMySqlClientModule(), optionalConfig, ImmutableMap.of(), getClassLoader())),
+                    type.cast(new ExtendedJdbcConnectorFactory("extended-postgresql", new ExtendedPostgreSqlClientModule(), optionalConfig, ImmutableMap.of(), getClassLoader())),
+                    type.cast(new ExtendedJdbcConnectorFactory("redshift", new RedshiftClientModule(), optionalConfig, RedshiftClientModule.createProperties(), getClassLoader())),
+                    type.cast(new ExtendedJdbcConnectorFactory("h2", new H2ClientModule(), optionalConfig, ImmutableMap.of(), getClassLoader())),
+                    type.cast(new ExtendedJdbcConnectorFactory("sqlite", new SqliteClientModule(), optionalConfig, ImmutableMap.of(), getClassLoader())),
+                    type.cast(new ExtendedJdbcConnectorFactory("temp", new TempClientModule(), optionalConfig, TempClientModule.createProperties(), getClassLoader()))
             );
         }
         else if (type == FunctionFactory.class) {

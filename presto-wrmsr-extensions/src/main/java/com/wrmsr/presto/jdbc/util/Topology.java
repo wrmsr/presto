@@ -1,10 +1,11 @@
-package com.wrmsr.presto.util;
+package com.wrmsr.presto.jdbc.util;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.util.RedactedSerializer;
 import org.apache.log4j.Logger;
 
 import java.util.HashMap;
@@ -12,9 +13,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class DbTopology
+public class Topology
 {
-    static Logger logger = Logger.getLogger(DbTopology.class);
+    static Logger logger = Logger.getLogger(Topology.class);
 
     public static interface Root extends Iterable<Group>
     {
@@ -283,13 +284,13 @@ public class DbTopology
     }
 
     /*
-    public static DbTopology.Root fromYaml(String yaml) throws IOException {
+    public static Topology.Root fromYaml(String yaml) throws IOException {
         return Json.yamlMapper().readValue(yaml, Root.class);
     }
     */
 
     /*
-    public static class RefreshingTopology extends Utils.FileAutoRefreshedValue<DbTopology.Root>
+    public static class RefreshingTopology extends Utils.FileAutoRefreshedValue<Topology.Root>
             implements Root {
 
         public RefreshingTopology(File file) {

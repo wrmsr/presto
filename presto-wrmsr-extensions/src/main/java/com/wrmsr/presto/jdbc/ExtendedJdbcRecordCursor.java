@@ -13,12 +13,7 @@
  */
 package com.wrmsr.presto.jdbc;
 
-import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
-import com.facebook.presto.plugin.jdbc.JdbcRecordCursor;
-import com.facebook.presto.plugin.jdbc.JdbcSplit;
-import com.facebook.presto.plugin.jdbc.QueryBuilder;
+import com.facebook.presto.plugin.jdbc.*;
 import com.facebook.presto.spi.Domain;
 import com.facebook.presto.spi.Range;
 import com.facebook.presto.spi.SortedRangeSet;
@@ -26,7 +21,6 @@ import com.facebook.presto.spi.TupleDomain;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import java.sql.DatabaseMetaData;

@@ -15,40 +15,21 @@ package com.wrmsr.presto.jdbc.h2;
 
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Module;
-import com.google.inject.Provides;
-import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
-import org.h2.Driver;
-
-import java.util.Map;
+import com.google.inject.Scopes;
+import com.wrmsr.presto.jdbc.ExtendedJdbcConfig;
 
 import static io.airlift.configuration.ConfigBinder.configBinder;
-import static java.lang.String.format;
 
-public class H2JdbcModule
+public class H2ClientModule
         implements Module
 {
     @Override
     public void configure(Binder binder)
     {
-        // FIXME: spilits not remotely accessible, weave into extended bases
+        binder.bind(JdbcClient.class).to(H2Client.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(BaseJdbcConfig.class);
-        configBinder(binder).bindConfig(ExtendedJdbcClient.class);
-    }
-
-    @Provides
-    public JdbcClient provideJdbcClient(JdbcConnectorId id, BaseJdbcConfig config)
-    {
-        return new ExtendedJdbcClient(id, config, "\"", new Driver());
-    }
-
-    public static Map<String, String> createProperties()
-    {
-        return ImmutableMap.<String, String>builder()
-                .put("connection-url", format("jdbc:h2:mem:test%s;DB_CLOSE_DELAY=-1", System.nanoTime()))
-                .build();
+        configBinder(binder).bindConfig(ExtendedJdbcConfig.class);
     }
 }

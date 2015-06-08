@@ -23,6 +23,11 @@ import com.facebook.presto.type.ParametricType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
 import com.wrmsr.presto.ExtensionsPlugin;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.compress.compressors.CompressorInputStream;
+import org.apache.commons.compress.compressors.CompressorOutputStream;
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.objectweb.asm.ClassWriter;
 import org.testng.annotations.Test;
 
@@ -277,5 +282,18 @@ public class TestFFIPlugin
 
             return dataReady[0];
         }
+    }
+
+    @Test
+    public void testThing() throws Throwable
+    {
+        /*
+        CompressorOutputStream gzippedOut = new CompressorStreamFactory()
+                .createCompressorOutputStream(CompressorStreamFactory.GZIP, myOutputStream);
+        ArchiveInputStream input = new ArchiveStreamFactory()
+                .createArchiveInputStream(originalInput);
+        CompressorInputStream input = new CompressorStreamFactory()
+                .createCompressorInputStream(originalInput);
+        */
     }
 }

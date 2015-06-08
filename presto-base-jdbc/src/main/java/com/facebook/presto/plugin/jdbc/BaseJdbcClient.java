@@ -88,16 +88,17 @@ public class BaseJdbcClient
             .build();
 
     protected final String connectorId;
+    @Nullable
     protected final Driver driver;
     protected final String connectionUrl;
     protected final Properties connectionProperties;
     protected final String identifierQuote;
 
-    public BaseJdbcClient(JdbcConnectorId connectorId, BaseJdbcConfig config, String identifierQuote, Driver driver)
+    public BaseJdbcClient(JdbcConnectorId connectorId, BaseJdbcConfig config, String identifierQuote, @Nullable Driver driver)
     {
         this.connectorId = checkNotNull(connectorId, "connectorId is null").toString();
         this.identifierQuote = checkNotNull(identifierQuote, "identifierQuote is null");
-        this.driver = checkNotNull(driver, "driver is null");
+        this.driver = driver;
 
         checkNotNull(config, "config is null");
         connectionUrl = config.getConnectionUrl();
@@ -111,10 +112,15 @@ public class BaseJdbcClient
         }
     }
 
+    public Connection getConnection(String url, Properties info) throws SQLException
+    {
+        return checkNotNull(driver).connect(url, info);
+    }
+
     @Override
     public Set<String> getSchemaNames()
     {
-        try (Connection connection = driver.connect(connectionUrl, connectionProperties);
+        try (Connection connection = getConnection(connectionUrl, connectionProperties);
                 ResultSet resultSet = connection.getMetaData().getSchemas()) {
             ImmutableSet.Builder<String> schemaNames = ImmutableSet.builder();
             while (resultSet.next()) {
@@ -134,7 +140,7 @@ public class BaseJdbcClient
     @Override
     public List<SchemaTableName> getTableNames(@Nullable String schema)
     {
-        try (Connection connection = driver.connect(connectionUrl, connectionProperties)) {
+        try (Connection connection = getConnection(connectionUrl, connectionProperties)) {
             DatabaseMetaData metadata = connection.getMetaData();
             if (metadata.storesUpperCaseIdentifiers() && (schema != null)) {
                 schema = schema.toUpperCase(ENGLISH);
@@ -156,7 +162,7 @@ public class BaseJdbcClient
     @Override
     public JdbcTableHandle getTableHandle(SchemaTableName schemaTableName)
     {
-        try (Connection connection = driver.connect(connectionUrl, connectionProperties)) {
+        try (Connection connection = getConnection(connectionUrl, connectionProperties)) {
             DatabaseMetaData metadata = connection.getMetaData();
             String jdbcSchemaName = schemaTableName.getSchemaName();
             String jdbcTableName = schemaTableName.getTableName();
@@ -191,7 +197,7 @@ public class BaseJdbcClient
     @Override
     public List<JdbcColumnHandle> getColumns(JdbcTableHandle tableHandle)
     {
-        try (Connection connection = driver.connect(connectionUrl, connectionProperties)) {
+        try (Connection connection = getConnection(connectionUrl, connectionProperties)) {
             DatabaseMetaData metadata = connection.getMetaData();
             try (ResultSet resultSet = metadata.getColumns(tableHandle.getCatalogName(), tableHandle.getSchemaName(), tableHandle.getTableName(), null)) {
                 List<JdbcColumnHandle> columns = new ArrayList<>();
@@ -247,7 +253,7 @@ public class BaseJdbcClient
     public Connection getConnection(JdbcSplit split)
             throws SQLException
     {
-        Connection connection = driver.connect(split.getConnectionUrl(), toProperties(split.getConnectionProperties()));
+        Connection connection = getConnection(split.getConnectionUrl(), toProperties(split.getConnectionProperties()));
         try {
             connection.setReadOnly(true);
         }
@@ -285,7 +291,7 @@ public class BaseJdbcClient
             throw new PrestoException(NOT_FOUND, "Schema not found: " + schema);
         }
 
-        try (Connection connection = driver.connect(connectionUrl, connectionProperties)) {
+        try (Connection connection = getConnection(connectionUrl, connectionProperties)) {
             boolean uppercase = connection.getMetaData().storesUpperCaseIdentifiers();
             if (uppercase) {
                 schema = schema.toUpperCase(ENGLISH);
@@ -360,7 +366,7 @@ public class BaseJdbcClient
                 .append("DROP TABLE ")
                 .append(quoted(handle.getCatalogName(), handle.getSchemaName(), handle.getTableName()));
 
-        try (Connection connection = driver.connect(connectionUrl, connectionProperties)) {
+        try (Connection connection = getConnection(connectionUrl, connectionProperties)) {
             execute(connection, sql.toString());
         }
         catch (SQLException e) {
@@ -383,7 +389,7 @@ public class BaseJdbcClient
     public Connection getConnection(JdbcOutputTableHandle handle)
             throws SQLException
     {
-        return driver.connect(handle.getConnectionUrl(), toProperties(handle.getConnectionProperties()));
+        return getConnection(handle.getConnectionUrl(), toProperties(handle.getConnectionProperties()));
     }
 
     protected ResultSet getTables(Connection connection, String schemaName, String tableName)
