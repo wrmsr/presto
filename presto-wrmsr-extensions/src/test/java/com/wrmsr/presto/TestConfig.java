@@ -76,12 +76,12 @@ public class TestConfig
         Object o;
 
         for (int i = 0; i < 3; ++i) {
-            hc = Configs.PROPERTIES_CONFIG_CODEC.encode(p);
-            o = Configs.CONFIG_OBJECT_CODEC.encode(hc);
+            hc = Configs.CONFIG_PROPERTIES_CODEC.decode(p);
+            o = Configs.OBJECT_CONFIG_CODEC.decode(hc);
             System.out.println(o);
 
-            hc = Configs.CONFIG_OBJECT_CODEC.decode(o);
-            p = Configs.PROPERTIES_CONFIG_CODEC.decode(hc);
+            hc = Configs.OBJECT_CONFIG_CODEC.encode(o);
+            p = Configs.CONFIG_PROPERTIES_CODEC.encode(hc);
             System.out.println(p);
         }
     }

@@ -291,11 +291,11 @@ public class Configs
     }
 
     // FIXME invert
-    public static final Codecs.Codec<Map<String, String>, HierarchicalConfiguration> PROPERTIES_CONFIG_CODEC = Codecs.Codec.of(
-            m -> toHierarchical(m),
-            hc -> flattenValues(Configs.unpackHierarchical(hc)));
+    public static final Codecs.Codec<HierarchicalConfiguration, Map<String, String>> CONFIG_PROPERTIES_CODEC = Codecs.Codec.of(
+            hc -> flattenValues(Configs.unpackHierarchical(hc)),
+            m -> toHierarchical(m));
 
-    public static final Codecs.Codec<HierarchicalConfiguration, Object> CONFIG_OBJECT_CODEC = Codecs.Codec.of(
-            hc -> unpackHierarchical(hc),
-            o -> toHierarchical(flattenValues(o)));
+    public static final Codecs.Codec<Object, HierarchicalConfiguration> OBJECT_CONFIG_CODEC = Codecs.Codec.of(
+            o -> toHierarchical(flattenValues(o)),
+            hc -> unpackHierarchical(hc));
 }

@@ -17,15 +17,33 @@ public class Codecs
             return new Codec<F, T>()
             {
                 @Override
+                public F decode(T data)
+                {
+                    return decoder.decode(data);
+                }
+
+                @Override
                 public T encode(F data)
                 {
                     return encoder.encode(data);
                 }
+            };
+        }
 
+        static <F, T> Codec<F, T> flip(Codec<T, F> codec)
+        {
+            return new Codec<F, T>()
+            {
                 @Override
                 public F decode(T data)
                 {
-                    return decoder.decode(data);
+                    return codec.encode(data);
+                }
+
+                @Override
+                public T encode(F data)
+                {
+                    return codec.decode(data);
                 }
             };
         }
