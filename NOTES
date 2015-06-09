@@ -406,3 +406,8 @@ https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-core-typ
 
 https://github.com/FasterXML/jackson-module-swagger
  - needs fork + update
+
+set type?
+ - just a Map<K, Void>
+  - ... so Void type
+   - subclassable for typelevel constants

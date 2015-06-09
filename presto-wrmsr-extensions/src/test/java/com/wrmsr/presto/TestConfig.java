@@ -68,6 +68,9 @@ public class TestConfig
         HierarchicalConfiguration hc2;
         hc2 = Configs.toHierarchical(p2);
         System.out.println(hc2);
+
+        Map<String, Object> unpacked = Configs.unpackHierarchical(hc2);
+        System.out.println(unpacked);
     }
 
     @Test

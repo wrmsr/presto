@@ -30,10 +30,13 @@ import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.transformValues;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPERS_BY_EXTENSION;
+import static com.wrmsr.presto.util.Primitives.toBool;
 
 public class Configs
 {
@@ -152,12 +155,35 @@ public class Configs
     public static Object unpackNode(ConfigurationNode node)
     {
         List<ConfigurationNode> children = node.getChildren();
-        if (children.isEmpty()) {
-            return node.getValue();
+        if (!children.isEmpty()) {
+            Map<String, List<ConfigurationNode>> namedChildren = newHashMap();
+            children.forEach(child -> {
+                if (namedChildren.containsKey(child.getName())) {
+                    namedChildren.get(child.getName()).add(child);
+                }
+                else {
+                    namedChildren.put(child.getName(), newArrayList(child));
+                }
+            });
+            return transformValues(namedChildren, l -> {
+                checkState(!l.isEmpty());
+                if (l.size() > 1) {
+                    return l.stream().map(n -> unpackNode(n)).collect(ImmutableCollectors.toImmutableList());
+                }
+                else {
+                    return unpackNode(l.get(0));
+                }
+            });
+        }
+        List<ConfigurationNode> isListAtts = node.getAttributes(IS_LIST_ATTR);
+        boolean isList = isListAtts.stream().map(o -> toBool(o)).findFirst().isPresent();
+        if (isList) {
+            ConfigurationNode cloned = (ConfigurationNode) node.clone();
+            node.removeAttribute(IS_LIST_ATTR);
+            return ImmutableList.of(unpackNode(cloned));
         }
         else {
-            // return children.
-            throw new IllegalStateException();
+            return node.getValue();
         }
     }
 
