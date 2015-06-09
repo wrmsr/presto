@@ -34,8 +34,8 @@ public class TestConfig
 
         s =
                 "a=1\n" +
-                "b=2\n" +
-                "c=3\n";
+                        "b=2\n" +
+                        "c=3\n";
         p = Configs.loadByExtension(s.getBytes(), "properties");
         System.out.println(p);
 
@@ -46,12 +46,12 @@ public class TestConfig
                         "\"things\": \"abc\",\n" +
                         "\"otherthings\": \"def\",\n" +
                         "\"deep\": {\n" +
-                                "\"single\": [\"a\"],\n" +
-                                "\"first\": \"a\",\n" +
-                                "\"second\": \"b\"\n," +
-                                "\"many\": [\"c\", \"d\", \"e\"]\n" +
+                        "\"single\": [\"a\"],\n" +
+                        "\"first\": \"a\",\n" +
+                        "\"second\": \"b\"\n," +
+                        "\"many\": [\"c\", \"d\", \"e\"]\n" +
                         "}\n" +
-                "}\n";
+                        "}\n";
         p = Configs.loadByExtension(s.getBytes(), "json");
         System.out.println(p);
 
@@ -72,9 +72,17 @@ public class TestConfig
         Map<String, Object> unpacked = Configs.unpackHierarchical(hc2);
         System.out.println(unpacked);
 
-        hc = Configs.PROPERTIES_CONFIG_CODEC.encode(p);
-        Object o = Configs.CONFIG_OBJECT_CODEC.encode(hc);
-        System.out.println(o);
+        Object o;
+
+        for (int i = 0; i < 3; ++i) {
+            hc = Configs.PROPERTIES_CONFIG_CODEC.encode(p);
+            o = Configs.CONFIG_OBJECT_CODEC.encode(hc);
+            System.out.println(o);
+
+            hc = Configs.CONFIG_OBJECT_CODEC.decode(o);
+            p = Configs.PROPERTIES_CONFIG_CODEC.decode(hc);
+            System.out.println(p);
+        }
     }
 
     @Test

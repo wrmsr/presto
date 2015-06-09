@@ -15,6 +15,7 @@ import org.apache.commons.configuration.tree.DefaultConfigurationKey;
 import org.apache.commons.configuration.tree.DefaultConfigurationNode;
 import org.apache.commons.configuration.tree.DefaultExpressionEngine;
 import org.apache.commons.configuration.tree.NodeAddData;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -27,6 +28,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -240,7 +242,12 @@ public class Configs
         else if (value instanceof List || value instanceof Set) {
             List<Object> listValue = ImmutableList.copyOf((Iterable<Object>) value);
             return IntStream.range(0, listValue.size()).boxed()
-                    .flatMap(i -> flattenValues(key + "(" + i.toString() + ")", listValue.get(i)).entrySet().stream())
+                    .flatMap(i -> {
+                        String subkey = key + "(" + i.toString() + ")";
+                        return Stream.concat(
+                                flattenValues(subkey, listValue.get(i)).entrySet().stream(),
+                                Stream.of(ImmutablePair.of(subkey + "[" + IS_LIST_ATTR + "]", "true")));
+                    })
                     .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
         }
         else {
