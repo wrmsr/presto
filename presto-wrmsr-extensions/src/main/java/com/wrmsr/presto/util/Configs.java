@@ -69,6 +69,10 @@ public class Configs
         @Override
         protected void addPropertyDirect(String key, Object obj)
         {
+            if (key.endsWith("[@" + IS_LIST_ATTR + "]") && containsKey(key)) {
+                return;
+            }
+
             @SuppressWarnings({"unchecked"})
             DefaultExpressionEngine engine = (DefaultExpressionEngine) getExpressionEngine();
             DefaultConfigurationKey engineKey = new DefaultConfigurationKey(engine, key);
@@ -76,15 +80,15 @@ public class Configs
             while (keyIt.hasNext()) {
                 keyIt.nextKey(false);
             }
-            boolean isList = keyIt.hasIndex();
 
             NodeAddData data = getExpressionEngine().prepareAdd(getRootNode(), key);
             ConfigurationNode node = processNodeAddData(data);
             node.setValue(obj);
 
-            if (isList) {
-                ConfigurationNode isListAtt = new DefaultConfigurationNode(IS_LIST_ATTR, true);
-                node.addAttribute(isListAtt);
+            if (keyIt.hasIndex() && !(keyIt.isAttribute() && IS_LIST_ATTR.equals(keyIt.currentKey()))) {
+                // FIXME jesus.
+                String isListKey = key.substring(0, key.lastIndexOf("(")) + "[@" + IS_LIST_ATTR + "]";
+                addPropertyDirect(isListKey, true);
             }
         }
 
@@ -137,10 +141,10 @@ public class Configs
     @SuppressWarnings({"unchecked"})
     public static Map<String, Object> unpackHierarchical(HierarchicalConfiguration config)
     {
-        return (Map<String, Object>) unpackNode(config.getRootNode());
+        return (Map<String, Object>) unpackNode(config.getRootNode(), false);
     }
 
-    public static Object unpackNode(ConfigurationNode node)
+    public static Object unpackNode(ConfigurationNode node, boolean ignoreListAttr)
     {
         List<ConfigurationNode> children = node.getChildren();
         if (!children.isEmpty()) {
@@ -153,26 +157,24 @@ public class Configs
                     namedChildren.put(child.getName(), newArrayList(child));
                 }
             });
-            return transformValues(namedChildren, l -> {
+            return newHashMap(transformValues(namedChildren, l -> {
                 checkState(!l.isEmpty());
                 if (l.size() > 1) {
-                    return l.stream().map(n -> unpackNode(n)).collect(ImmutableCollectors.toImmutableList());
+                    return l.stream().map(n ->  unpackNode(n, true)).collect(ImmutableCollectors.toImmutableList());
                 }
                 else {
-                    return unpackNode(l.get(0));
+                    return unpackNode(l.get(0), false);
                 }
-            });
+            }));
         }
-        List<ConfigurationNode> isListAtts = node.getAttributes(IS_LIST_ATTR);
-        boolean isList = isListAtts.stream().map(o -> toBool(o)).findFirst().isPresent();
-        if (isList) {
-            ConfigurationNode cloned = (ConfigurationNode) node.clone();
-            node.removeAttribute(IS_LIST_ATTR);
-            return ImmutableList.of(unpackNode(cloned));
+        if (!ignoreListAttr) {
+            List<ConfigurationNode> isListAtts = node.getAttributes(IS_LIST_ATTR);
+            boolean isList = isListAtts.stream().map(o -> toBool(o)).findFirst().isPresent();
+            if (isList) {
+                return ImmutableList.of(unpackNode(node, true));
+            }
         }
-        else {
-            return node.getValue();
-        }
+        return node.getValue();
     }
 
     public static Map<String, String> stripSubconfig(Map<String, String> properties, String prefix)
@@ -243,10 +245,8 @@ public class Configs
             List<Object> listValue = ImmutableList.copyOf((Iterable<Object>) value);
             return IntStream.range(0, listValue.size()).boxed()
                     .flatMap(i -> {
-                        String subkey = key + "(" + i.toString() + ")";
-                        return Stream.concat(
-                                flattenValues(subkey, listValue.get(i)).entrySet().stream(),
-                                Stream.of(ImmutablePair.of(subkey + "[" + IS_LIST_ATTR + "]", "true")));
+                        String subkey = key + "(" + i.toString() + ")"; // FIXME expressionengine
+                        return flattenValues(subkey, listValue.get(i)).entrySet().stream();
                     })
                     .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
         }
@@ -290,9 +290,10 @@ public class Configs
         }
     }
 
+    // FIXME invert
     public static final Codecs.Codec<Map<String, String>, HierarchicalConfiguration> PROPERTIES_CONFIG_CODEC = Codecs.Codec.of(
             m -> toHierarchical(m),
-            hc -> flattenValues(new ConfigurationMap(hc)));
+            hc -> flattenValues(Configs.unpackHierarchical(hc)));
 
     public static final Codecs.Codec<HierarchicalConfiguration, Object> CONFIG_OBJECT_CODEC = Codecs.Codec.of(
             hc -> unpackHierarchical(hc),

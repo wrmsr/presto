@@ -42,6 +42,7 @@ public class TestConfig
         s =
                 "{\n" +
                         "\"number\": 2,\n" +
+                        "\"many\": [\"c\", \"d\", \"e\"],\n" +
                         "\"single\": [3],\n" +
                         "\"things\": \"abc\",\n" +
                         "\"otherthings\": \"def\",\n" +
@@ -53,24 +54,24 @@ public class TestConfig
                         "}\n" +
                         "}\n";
         p = Configs.loadByExtension(s.getBytes(), "json");
-        System.out.println(p);
+        // System.out.println(p);
 
         HierarchicalConfiguration hc;
         hc = Configs.toHierarchical(p);
-        System.out.println(hc);
+        // System.out.println(hc);
 
-        System.out.println(newArrayList(hc.getKeys()));
+        // System.out.println(newArrayList(hc.getKeys()));
 
         Map<String, String> p2;
-        p2 = Configs.flattenValues(newHashMap(new ConfigurationMap(hc)));
-        System.out.println(p2);
+        p2 = Configs.flattenValues(Configs.unpackHierarchical(hc));
+        // System.out.println(p2);
 
         HierarchicalConfiguration hc2;
         hc2 = Configs.toHierarchical(p2);
-        System.out.println(hc2);
+        // System.out.println(hc2);
 
         Map<String, Object> unpacked = Configs.unpackHierarchical(hc2);
-        System.out.println(unpacked);
+        // System.out.println(unpacked);
 
         Object o;
 
