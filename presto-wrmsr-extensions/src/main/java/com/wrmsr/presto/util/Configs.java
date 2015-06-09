@@ -44,11 +44,6 @@ public class Configs
     {
     }
 
-    @FunctionalInterface
-    public interface ConfigDecoder extends Codecs.Decoder<byte[], Map<String, String>>
-    {
-    }
-
     public static HierarchicalConfiguration toHierarchical(Map<String, String> properties)
     {
         return toHierarchical(new MapConfiguration(properties));
@@ -91,14 +86,6 @@ public class Configs
             }
         }
 
-        /**
-         * Helper method for processing a node add data object obtained from the
-         * expression engine. This method will create all new nodes.
-         *
-         * @param data the data object
-         * @return the new node
-         * @since 1.3
-         */
         private ConfigurationNode processNodeAddData(NodeAddData data)
         {
             ConfigurationNode node = data.getParent();
@@ -144,7 +131,6 @@ public class Configs
             return hc;
         }
     }
-
 
     @SuppressWarnings({"unchecked"})
     public static Map<String, Object> unpackHierarchical(HierarchicalConfiguration config)
@@ -296,4 +282,12 @@ public class Configs
             throw new IllegalArgumentException(String.format("Unhandled config extension: %s", extension));
         }
     }
+
+    public static final Codecs.Codec<Map<String, String>, HierarchicalConfiguration> PROPERTIES_CONFIG_CODEC = Codecs.Codec.of(
+            m -> toHierarchical(m),
+            hc -> flattenValues(new ConfigurationMap(hc)));
+
+    public static final Codecs.Codec<HierarchicalConfiguration, Object> CONFIG_OBJECT_CODEC = Codecs.Codec.of(
+            hc -> unpackHierarchical(hc),
+            o -> toHierarchical(flattenValues(o)));
 }

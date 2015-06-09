@@ -71,6 +71,10 @@ public class TestConfig
 
         Map<String, Object> unpacked = Configs.unpackHierarchical(hc2);
         System.out.println(unpacked);
+
+        hc = Configs.PROPERTIES_CONFIG_CODEC.encode(p);
+        Object o = Configs.CONFIG_OBJECT_CODEC.encode(hc);
+        System.out.println(o);
     }
 
     @Test
