@@ -23,11 +23,14 @@ public class Compression
     {
     }
 
-    public interface CompressionCodec extends Codecs.StreamCodec
+    public interface CompressionCodec extends Codecs.Codec<byte[], byte[]>
     {
     }
 
-    /*
+    public interface CompressionStreamCodec extends Codecs.StreamCodec
+    {
+    }
+
     public static class ZlibCodec implements CompressionCodec
     {
         private static final int BUFFER_SIZE = 1024;
@@ -74,9 +77,8 @@ public class Compression
             }
         }
     }
-    */
 
-    public static class CommonsCompressionCodec implements CompressionCodec
+    public static class CommonsCompressionCodec implements CompressionStreamCodec
     {
         private final String name;
 
@@ -88,6 +90,14 @@ public class Compression
         public String getName()
         {
             return name;
+        }
+
+        @Override
+        public String toString()
+        {
+            return "CommonsCompressionCodec{" +
+                    "name='" + name + '\'' +
+                    '}';
         }
 
         @Override
@@ -115,10 +125,10 @@ public class Compression
         }
     }
 
-    public static final Map<String, CompressionCodec> COMPRESSION_CODECS_BY_NAME;
+    public static final Map<String, CompressionStreamCodec> COMPRESSION_STREAM_CODECS_BY_NAME;
 
     static {
-        ImmutableMap.Builder<String, CompressionCodec> builder = ImmutableMap.builder();
+        ImmutableMap.Builder<String, CompressionStreamCodec> builder = ImmutableMap.builder();
         // builder.put("zlib", new ZlibCodec());
         for (String name : new String[]{
                 CompressorStreamFactory.BZIP2,
@@ -133,6 +143,6 @@ public class Compression
         }){
             builder.put(name, new CommonsCompressionCodec(name));
         }
-        COMPRESSION_CODECS_BY_NAME = builder.build();
+        COMPRESSION_STREAM_CODECS_BY_NAME = builder.build();
     }
 }

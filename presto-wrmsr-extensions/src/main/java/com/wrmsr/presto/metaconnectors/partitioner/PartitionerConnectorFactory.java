@@ -49,7 +49,7 @@ public class PartitionerConnectorFactory implements ConnectorFactory
     public Connector create(final String connectorId, Map<String, String> properties)
     {
         checkNotNull(properties, "properties is null");
-        String targetName = checkNotNull(properties.get("target-name"));
+        String targetName = checkNotNull(properties.get("target-name")); // FIXME: default %s_
         String targetConnectorName = properties.get("target-connector-name");
 
         Connector target;

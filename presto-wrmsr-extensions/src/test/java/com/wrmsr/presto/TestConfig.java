@@ -7,16 +7,22 @@ import com.wrmsr.presto.util.Serialization;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.ConfigurationMap;
 import org.apache.commons.configuration.ConfigurationUtils;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.MapConfiguration;
+import org.apache.commons.configuration.tree.ConfigurationNode;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
 
 public class TestConfig
 {
@@ -35,15 +41,33 @@ public class TestConfig
 
         s =
                 "{\n" +
+                        "\"number\": 2,\n" +
+                        "\"single\": [3],\n" +
                         "\"things\": \"abc\",\n" +
                         "\"otherthings\": \"def\",\n" +
                         "\"deep\": {\n" +
+                                "\"single\": [\"a\"],\n" +
                                 "\"first\": \"a\",\n" +
-                                "\"second\": \"b\"\n" +
+                                "\"second\": \"b\"\n," +
+                                "\"many\": [\"c\", \"d\", \"e\"]\n" +
                         "}\n" +
                 "}\n";
         p = Configs.loadByExtension(s.getBytes(), "json");
         System.out.println(p);
+
+        HierarchicalConfiguration hc;
+        hc = Configs.toHierarchical(p);
+        System.out.println(hc);
+
+        System.out.println(newArrayList(hc.getKeys()));
+
+        Map<String, String> p2;
+        p2 = Configs.flattenValues(newHashMap(new ConfigurationMap(hc)));
+        System.out.println(p2);
+
+        HierarchicalConfiguration hc2;
+        hc2 = Configs.toHierarchical(p2);
+        System.out.println(hc2);
     }
 
     @Test
@@ -96,6 +120,8 @@ public class TestConfig
         Configuration c = new MapConfiguration(t);
         HierarchicalConfiguration hc = ConfigurationUtils.convertToHierarchical(c);
         System.out.println(hc);
+
+        System.out.println(newHashMap(new ConfigurationMap(hc)));
     }
 
     @Test

@@ -385,9 +385,15 @@ exception handling for bad data :|
                     .createArchiveInputStream(originalInput);
 
 
+record-level connector cache for configs in sqlite and shit
+ - convert to scalar for hash lookups?
+  - .... just cache the hash join guts?
 
-
-
+CAN REPRESENT TYPE-LEVEL CONSTS AS DATALESS TYPES
+ compressed_varbinary<bzip>
+ could possibly represent gzipped file of json lines as a type, unnest for rows
+ jackson<json> -> some_struct
+ peanos lols
 
 
 
@@ -395,3 +401,8 @@ need eager wrapper on lazy defaults for compression streams
 
 https://prestodb.io/docs/current/connector/kafka-tutorial.html
 https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-core-types.html
+
+
+
+https://github.com/FasterXML/jackson-module-swagger
+ - needs fork + update

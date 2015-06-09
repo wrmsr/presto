@@ -26,6 +26,8 @@ public class Codecs
         T encode(F data);
     }
 
+    // TODO: composite - can this POSSIBLY be done type safely lololol
+
     public interface StreamCodec
         extends StreamEncoder, StreamDecoder
     {
