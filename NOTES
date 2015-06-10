@@ -411,3 +411,16 @@ set type?
  - just a Map<K, Void>
   - ... so Void type
    - subclassable for typelevel constants
+
+
+<dependency>
+    <groupId>com.jcraft</groupId>
+    <artifactId>jsch</artifactId>
+    <version>0.1.53</version>
+</dependency>
+
+<dependency>
+    <groupId>net.razorvine</groupId>
+    <artifactId>pyrolite</artifactId>
+    <version>4.6</version>
+</dependency>

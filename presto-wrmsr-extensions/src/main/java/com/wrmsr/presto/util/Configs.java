@@ -14,6 +14,7 @@ import org.apache.commons.configuration.tree.ConfigurationNodeVisitorAdapter;
 import org.apache.commons.configuration.tree.DefaultConfigurationKey;
 import org.apache.commons.configuration.tree.DefaultConfigurationNode;
 import org.apache.commons.configuration.tree.DefaultExpressionEngine;
+import org.apache.commons.configuration.tree.ExpressionEngine;
 import org.apache.commons.configuration.tree.NodeAddData;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
@@ -53,17 +54,36 @@ public class Configs
 
     public static final String IS_LIST_ATTR = "__is_list__";
 
+    public static class ListAnnotatingDefaultExpressionEngine extends DefaultExpressionEngine
+    {
+        public ListAnnotatingDefaultExpressionEngine()
+        {
+        }
+
+        @Override
+        public NodeAddData prepareAdd(ConfigurationNode root, String key)
+        {
+            return super.prepareAdd(root, key);
+        }
+    }
+
     public static class ListAnnotatingHierarchicalConfiguration extends HierarchicalConfiguration
     {
         public ListAnnotatingHierarchicalConfiguration()
         {
-            checkArgument(getExpressionEngine() instanceof DefaultExpressionEngine);
+            super.setExpressionEngine(new ListAnnotatingDefaultExpressionEngine());
         }
 
         public ListAnnotatingHierarchicalConfiguration(HierarchicalConfiguration c)
         {
             super(c);
-            checkArgument(getExpressionEngine() instanceof DefaultExpressionEngine);
+            super.setExpressionEngine(new ListAnnotatingDefaultExpressionEngine());
+        }
+
+        @Override
+        public void setExpressionEngine(ExpressionEngine expressionEngine)
+        {
+            throw new IllegalStateException();
         }
 
         @Override
@@ -86,9 +106,19 @@ public class Configs
             node.setValue(obj);
 
             if (keyIt.hasIndex() && !(keyIt.isAttribute() && IS_LIST_ATTR.equals(keyIt.currentKey()))) {
-                // FIXME jesus.
-                String isListKey = key.substring(0, key.lastIndexOf("(")) + "[@" + IS_LIST_ATTR + "]";
-                addPropertyDirect(isListKey, true);
+                String keyPrefix = key;
+                int attIndex = keyPrefix.lastIndexOf("[");
+                int mapIndex = keyPrefix.lastIndexOf(".");
+                int end = Math.max(attIndex, mapIndex);
+                while (true) {
+                    int listIndex = keyPrefix.lastIndexOf("(");
+                    if (listIndex <= end) {
+                        break;
+                    }
+                    keyPrefix = keyPrefix.substring(0, listIndex);
+                    String isListKey = keyPrefix + "[@" + IS_LIST_ATTR + "]";
+                    addProperty(isListKey, true);
+                }
             }
         }
 
@@ -141,10 +171,10 @@ public class Configs
     @SuppressWarnings({"unchecked"})
     public static Map<String, Object> unpackHierarchical(HierarchicalConfiguration config)
     {
-        return (Map<String, Object>) unpackNode(config.getRootNode(), false);
+        return (Map<String, Object>) unpackNode(config.getRootNode());
     }
 
-    public static Object unpackNode(ConfigurationNode node, boolean ignoreListAttr)
+    public static Object unpackNode(ConfigurationNode node)
     {
         List<ConfigurationNode> children = node.getChildren();
         if (!children.isEmpty()) {
@@ -159,20 +189,19 @@ public class Configs
             });
             return newHashMap(transformValues(namedChildren, l -> {
                 checkState(!l.isEmpty());
-                if (l.size() > 1) {
-                    return l.stream().map(n ->  unpackNode(n, true)).collect(ImmutableCollectors.toImmutableList());
+                boolean hasListAtt = false;
+                ConfigurationNode parent = node.getParentNode();
+                if (parent != null) {
+                    List<ConfigurationNode> isListAtts = node.getAttributes(IS_LIST_ATTR);
+                    hasListAtt = isListAtts.stream().map(o -> toBool(o)).findFirst().isPresent();
+                }
+                if (l.size() > 1 || hasListAtt) {
+                    return l.stream().map(n -> unpackNode(n)).filter(o -> o != null).collect(ImmutableCollectors.toImmutableList());
                 }
                 else {
-                    return unpackNode(l.get(0), false);
+                    return unpackNode(l.get(0));
                 }
             }));
-        }
-        if (!ignoreListAttr) {
-            List<ConfigurationNode> isListAtts = node.getAttributes(IS_LIST_ATTR);
-            boolean isList = isListAtts.stream().map(o -> toBool(o)).findFirst().isPresent();
-            if (isList) {
-                return ImmutableList.of(unpackNode(node, true));
-            }
         }
         return node.getValue();
     }
@@ -239,6 +268,7 @@ public class Configs
             Map<String, Object> mapValue = (Map<String, Object>) value;
             return mapValue.entrySet().stream()
                     .flatMap(e -> flattenValues((key != null ? key + "." : "") + e.getKey(), e.getValue()).entrySet().stream())
+                    .filter(e -> e.getValue() != null)
                     .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
         }
         else if (value instanceof List || value instanceof Set) {

@@ -37,13 +37,14 @@ public class TestConfig
                         "b=2\n" +
                         "c=3\n";
         p = Configs.loadByExtension(s.getBytes(), "properties");
-        System.out.println(p);
+        // System.out.println(p);
 
         s =
                 "{\n" +
                         "\"number\": 2,\n" +
                         "\"many\": [\"c\", \"d\", \"e\"],\n" +
                         "\"single\": [3],\n" +
+                        "\"fml\": [[[[3]]]],\n" +
                         "\"things\": \"abc\",\n" +
                         "\"otherthings\": \"def\",\n" +
                         "\"deep\": {\n" +
