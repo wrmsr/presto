@@ -3,6 +3,8 @@ package com.wrmsr.presto;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.Configs;
 import com.wrmsr.presto.util.Files;
+import com.wrmsr.presto.util.ListPreservingDefaultConfigurationKey;
+import com.wrmsr.presto.util.ListPreservingDefaultExpressionEngine;
 import com.wrmsr.presto.util.Serialization;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
@@ -12,6 +14,7 @@ import org.apache.commons.configuration.ConfigurationUtils;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.tree.ConfigurationNode;
+import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -29,6 +32,12 @@ public class TestConfig
     @Test
     public void testLoading() throws Throwable
     {
+        ListPreservingDefaultExpressionEngine engine = new ListPreservingDefaultExpressionEngine();
+        ListPreservingDefaultConfigurationKey key = new ListPreservingDefaultConfigurationKey(engine, "hi[0][1].there[3][4].x");
+        ListPreservingDefaultConfigurationKey.KeyIterator it = key.iterator();
+        while(it.hasNext()) {
+            it.next();
+        }
         String s;
         Map<String, String> p;
 
@@ -58,6 +67,20 @@ public class TestConfig
         // System.out.println(p);
 
         HierarchicalConfiguration hc;
+
+        hc = ConfigurationUtils.convertToHierarchical(new MapConfiguration(p), new XPathExpressionEngine());
+        System.out.println(hc);
+
+        /*
+        HierarchicalConfiguration config = hc;
+        config.addProperty("tables table/name", "tasks");
+        config.addProperty("tables/table[last()] @type", "system");
+        config.addProperty("tables/table[last()] fields/field/name", "taskid");
+        config.addProperty("tables/table[last()]/fields/field[last()] type", "int");
+        config.addProperty("tables/table[last()]/fields field/name", "name");
+        config.addProperty("tables/table[last()]/fields field/name", "startDate");
+        */
+
         hc = Configs.toHierarchical(p);
         // System.out.println(hc);
 

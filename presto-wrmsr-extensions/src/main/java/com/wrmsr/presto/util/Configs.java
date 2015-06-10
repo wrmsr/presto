@@ -16,6 +16,7 @@ import org.apache.commons.configuration.tree.DefaultConfigurationNode;
 import org.apache.commons.configuration.tree.DefaultExpressionEngine;
 import org.apache.commons.configuration.tree.ExpressionEngine;
 import org.apache.commons.configuration.tree.NodeAddData;
+import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.io.IOException;
@@ -54,30 +55,17 @@ public class Configs
 
     public static final String IS_LIST_ATTR = "__is_list__";
 
-    public static class ListAnnotatingDefaultExpressionEngine extends DefaultExpressionEngine
-    {
-        public ListAnnotatingDefaultExpressionEngine()
-        {
-        }
-
-        @Override
-        public NodeAddData prepareAdd(ConfigurationNode root, String key)
-        {
-            return super.prepareAdd(root, key);
-        }
-    }
-
     public static class ListAnnotatingHierarchicalConfiguration extends HierarchicalConfiguration
     {
         public ListAnnotatingHierarchicalConfiguration()
         {
-            super.setExpressionEngine(new ListAnnotatingDefaultExpressionEngine());
+            super.setExpressionEngine(new ListPreservingDefaultExpressionEngine());
         }
 
         public ListAnnotatingHierarchicalConfiguration(HierarchicalConfiguration c)
         {
             super(c);
-            super.setExpressionEngine(new ListAnnotatingDefaultExpressionEngine());
+            super.setExpressionEngine(new ListPreservingDefaultExpressionEngine());
         }
 
         @Override
@@ -94,9 +82,9 @@ public class Configs
             }
 
             @SuppressWarnings({"unchecked"})
-            DefaultExpressionEngine engine = (DefaultExpressionEngine) getExpressionEngine();
-            DefaultConfigurationKey engineKey = new DefaultConfigurationKey(engine, key);
-            DefaultConfigurationKey.KeyIterator keyIt = engineKey.iterator();
+            ListPreservingDefaultExpressionEngine engine = (ListPreservingDefaultExpressionEngine) getExpressionEngine();
+            ListPreservingDefaultConfigurationKey engineKey = new ListPreservingDefaultConfigurationKey(engine, key);
+            ListPreservingDefaultConfigurationKey.KeyIterator keyIt = engineKey.iterator();
             while (keyIt.hasNext()) {
                 keyIt.nextKey(false);
             }
@@ -250,6 +238,11 @@ public class Configs
         return values;
     }
 
+    public static final int LIST_BASE = 0;
+    public static final String LIST_START = "(";
+    public static final String LIST_END = ")";
+    public static final String FIELD_SEPERATOR = ".";
+
     @SuppressWarnings({"unchecked"})
     public static Map<String, String> flattenValues(String key, Object value)
     {
@@ -267,7 +260,7 @@ public class Configs
         else if (value instanceof Map) {
             Map<String, Object> mapValue = (Map<String, Object>) value;
             return mapValue.entrySet().stream()
-                    .flatMap(e -> flattenValues((key != null ? key + "." : "") + e.getKey(), e.getValue()).entrySet().stream())
+                    .flatMap(e -> flattenValues((key != null ? key + FIELD_SEPERATOR : "") + e.getKey(), e.getValue()).entrySet().stream())
                     .filter(e -> e.getValue() != null)
                     .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
         }
@@ -275,7 +268,7 @@ public class Configs
             List<Object> listValue = ImmutableList.copyOf((Iterable<Object>) value);
             return IntStream.range(0, listValue.size()).boxed()
                     .flatMap(i -> {
-                        String subkey = key + "(" + i.toString() + ")"; // FIXME expressionengine
+                        String subkey = key + LIST_START + Integer.toString(i + LIST_BASE) + LIST_END; // FIXME expressionengine
                         return flattenValues(subkey, listValue.get(i)).entrySet().stream();
                     })
                     .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
