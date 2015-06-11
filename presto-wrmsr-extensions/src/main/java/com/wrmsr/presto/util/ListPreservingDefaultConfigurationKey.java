@@ -228,7 +228,7 @@ public class ListPreservingDefaultConfigurationKey
         private String current;
         private int startIndex;
         private int endIndex;
-        private List<Integer> indexValue;
+        private int indexValue;
         private boolean hasIndex;
         private boolean attribute;
 
@@ -244,7 +244,7 @@ public class ListPreservingDefaultConfigurationKey
             }
 
             hasIndex = false;
-            indexValue = ImmutableList.of();
+            indexValue = -1;
             String key = findNextIndices();
 
             current = key;
@@ -269,6 +269,11 @@ public class ListPreservingDefaultConfigurationKey
             throw new UnsupportedOperationException("Remove not supported!");
         }
 
+        public String currentPrefix()
+        {
+            return keyBuffer.substring(0, endIndex);
+        }
+
         public String currentKey()
         {
             return currentKey(false);
@@ -291,7 +296,7 @@ public class ListPreservingDefaultConfigurationKey
             return !attribute;
         }
 
-        public List<Integer> getIndex()
+        public int getIndex()
         {
             return indexValue;
         }
@@ -339,7 +344,7 @@ public class ListPreservingDefaultConfigurationKey
                 attrIdx = length();
             }
 
-            int delIdx = nextDelimiterPos(keyBuffer.toString(), startIndex, attrIdx);
+            int delIdx = nextDelimiterPos(keyBuffer.toString(), startIndex + 0, attrIdx);
             if (delIdx < 0) {
                 delIdx = attrIdx;
             }
@@ -416,12 +421,11 @@ public class ListPreservingDefaultConfigurationKey
 
             try {
                 int idx = key.lastIndexOf(getExpressionEngine().getIndexStart());
-                if (idx > 0) {
+                if (idx >= 0) {
                     int endidx = key.indexOf(getExpressionEngine().getIndexEnd(),idx);
 
                     if (endidx > idx + 1) {
-                        indexValue = ImmutableList.copyOf(Iterables.transform(
-                                Splitter.on(",").split(key.substring(idx + 1, endidx)), Integer::parseInt));
+                        indexValue = Integer.parseInt(key.substring(idx + 1, endidx));
                         current = key.substring(0, idx);
                         result = true;
                     }

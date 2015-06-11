@@ -22,6 +22,7 @@ import org.apache.commons.configuration.tree.NodeAddData;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -127,6 +128,38 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
         }
     }
 
+    public static class NodeAddData extends org.apache.commons.configuration.tree.NodeAddData
+    {
+        private List<String> listAttributes;
+
+        public NodeAddData()
+        {
+        }
+
+        public NodeAddData(ConfigurationNode parent, String nodeName)
+        {
+            super(parent, nodeName);
+        }
+
+        public List<String> getListAttributes()
+        {
+            if (listAttributes != null) {
+                return Collections.unmodifiableList(listAttributes);
+            }
+            else {
+                return Collections.emptyList();
+            }
+        }
+
+        public void addListAttribute(String listAttribute)
+        {
+            if (listAttributes == null) {
+                listAttributes = new LinkedList<>();
+            }
+            listAttributes.add(listAttribute);
+        }
+    }
+
     @Override
     public NodeAddData prepareAdd(ConfigurationNode root, String key)
     {
@@ -143,7 +176,15 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
                 throw new IllegalArgumentException("Invalid key for add operation: " + key + " (Attribute key in the middle.)");
             }
             result.addPathNode(it.currentKey());
+            if (it.hasIndex()) {
+                result.addListAttribute(it.currentPrefix());
+            }
             it.next();
+        }
+
+        if (it.hasIndex()) {
+            String p = it.currentPrefix();
+            result.addListAttribute(p.substring(0, p.length() - 3)); // FIXME
         }
 
         result.setNewNodeName(it.currentKey());
@@ -176,12 +217,7 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
                 // Attribute keys can only appear as last elements of the path
                 throw new IllegalArgumentException("Invalid path for add operation: Attribute key in the middle!");
             }
-            /*
-            for (int idx : keyIt.getIndex()) {
-
-            }
-            */
-            int idx = keyIt.hasIndex() ? keyIt.getIndex().get(0) : node.getChildrenCount(keyPart) - 1; // FIXME
+            int idx = keyIt.hasIndex() ? keyIt.getIndex() : node.getChildrenCount(keyPart) - 1;
             if (idx < 0 || idx >= node.getChildrenCount(keyPart)) {
                 return node;
             }
@@ -197,7 +233,7 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
     private void processSubNodes(ListPreservingDefaultConfigurationKey.KeyIterator keyPart, List<ConfigurationNode> subNodes, Collection<ConfigurationNode> nodes)
     {
         if (keyPart.hasIndex()) {
-            int idx = keyPart.getIndex().get(0); // FIXME
+            int idx = keyPart.getIndex();
             if (idx >= 0 && idx < subNodes.size()) {
                 findNodesForKey((ListPreservingDefaultConfigurationKey.KeyIterator) keyPart.clone(), subNodes.get(idx), nodes);
             }

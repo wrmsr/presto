@@ -21,13 +21,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -74,50 +68,80 @@ public class Configs
             throw new IllegalStateException();
         }
 
-        /*
+        public ListPreservingDefaultExpressionEngine getExpressionEngine()
+        {
+            return (ListPreservingDefaultExpressionEngine) checkNotNull(super.getExpressionEngine());
+        }
+
         @Override
         protected void addPropertyDirect(String key, Object obj)
         {
-            if (key.endsWith("[@" + IS_LIST_ATTR + "]") && containsKey(key)) {
-                return;
-            }
-
-            @SuppressWarnings({"unchecked"})
-            ListPreservingDefaultExpressionEngine engine = (ListPreservingDefaultExpressionEngine) getExpressionEngine();
-            ListPreservingDefaultConfigurationKey engineKey = new ListPreservingDefaultConfigurationKey(engine, key);
-            ListPreservingDefaultConfigurationKey.KeyIterator keyIt = engineKey.iterator();
-            while (keyIt.hasNext()) {
-                keyIt.nextKey(false);
-            }
-
-            NodeAddData data = getExpressionEngine().prepareAdd(getRootNode(), key);
+            ListPreservingDefaultExpressionEngine.NodeAddData data = getExpressionEngine().prepareAdd(getRootNode(), key);
             ConfigurationNode node = processNodeAddData(data);
             node.setValue(obj);
-
-            if (keyIt.hasIndex() && !(keyIt.isAttribute() && IS_LIST_ATTR.equals(keyIt.currentKey()))) {
-                String keyPrefix = key;
-                int attIndex = keyPrefix.lastIndexOf("[");
-                int mapIndex = keyPrefix.lastIndexOf(".");
-                int end = Math.max(attIndex, mapIndex);
-                while (true) {
-                    int listIndex = keyPrefix.lastIndexOf("(");
-                    if (listIndex <= end) {
-                        break;
-                    }
-                    keyPrefix = keyPrefix.substring(0, listIndex);
-                    String isListKey = keyPrefix + "[@" + IS_LIST_ATTR + "]";
-                    addProperty(isListKey, true);
+            for (String k : data.getListAttributes()) {
+                String p = k + new ListPreservingDefaultConfigurationKey(getExpressionEngine()).constructAttributeKey(IS_LIST_ATTR);
+                if (!containsKey(p)) {
+                    addProperty(p, true);
                 }
             }
         }
-        */
+
+        public void addNodes(String key, Collection<? extends ConfigurationNode> nodes)
+        {
+            throw new IllegalStateException();
+
+            /*
+            if (nodes == null || nodes.isEmpty())
+            {
+                return;
+            }
+
+            fireEvent(EVENT_ADD_NODES, key, nodes, true);
+            ConfigurationNode parent;
+            List<ConfigurationNode> target = fetchNodeList(key);
+            if (target.size() == 1)
+            {
+                // existing unique key
+                parent = target.get(0);
+            }
+            else
+            {
+                // otherwise perform an add operation
+                parent = processNodeAddData(getExpressionEngine().prepareAdd(
+                        getRootNode(), key));
+            }
+
+            if (parent.isAttribute())
+            {
+                throw new IllegalArgumentException(
+                        "Cannot add nodes to an attribute node!");
+            }
+
+            for (ConfigurationNode child : nodes)
+            {
+                if (child.isAttribute())
+                {
+                    parent.addAttribute(child);
+                }
+                else
+                {
+                    parent.addChild(child);
+                }
+                clearReferences(child);
+            }
+            fireEvent(EVENT_ADD_NODES, key, nodes, false);
+            */
+        }
+
 
         private ConfigurationNode processNodeAddData(NodeAddData data)
         {
             ConfigurationNode node = data.getParent();
 
             // Create missing nodes on the path
-            for (String name : data.getPathNodes()) {
+            for (String name : data.getPathNodes())
+            {
                 ConfigurationNode child = createNode(name);
                 node.addChild(child);
                 node = child;
@@ -125,14 +149,17 @@ public class Configs
 
             // Add new target node
             ConfigurationNode child = createNode(data.getNewNodeName());
-            if (data.isAttribute()) {
+            if (data.isAttribute())
+            {
                 node.addAttribute(child);
             }
-            else {
+            else
+            {
                 node.addChild(child);
             }
             return child;
         }
+
     }
 
     public static HierarchicalConfiguration toHierarchical(Configuration conf)

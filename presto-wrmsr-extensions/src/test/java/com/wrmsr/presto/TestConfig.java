@@ -23,6 +23,7 @@ public class TestConfig
     {
         ListPreservingDefaultExpressionEngine engine = new ListPreservingDefaultExpressionEngine();
         ListPreservingDefaultConfigurationKey key = new ListPreservingDefaultConfigurationKey(engine,
+                // "x.y.z"
                 "hi(0).(1).there(3).(4).x"
                 // "hi(0,1).there(3,4).x"
         );
