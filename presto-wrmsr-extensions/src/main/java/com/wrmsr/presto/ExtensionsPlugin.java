@@ -55,6 +55,7 @@ import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
 import com.wrmsr.presto.jdbc.postgresql.ExtendedPostgreSqlClientModule;
 import com.wrmsr.presto.util.Configs;
 import io.airlift.json.JsonCodec;
+import org.apache.commons.configuration.HierarchicalConfiguration;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -66,6 +67,7 @@ import java.util.Map;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Maps.mapMerge;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPERS_BY_EXTENSION;
 import static com.wrmsr.presto.util.Serialization.YAML_OBJECT_MAPPER;
@@ -183,6 +185,17 @@ public class ExtensionsPlugin
                 catch (Exception e) {
                     throw Throwables.propagate(e);
                 }
+            }
+
+            for (Map.Entry<String, Object> e : fileConfig.connectors.entrySet()) {
+                HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(e.getValue());
+                Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
+
+                String targetConnectorName = connProps.get("connector.name");
+                connProps.remove("connector.name");
+                String targetName = e.getKey();
+                connectorManager.createConnection(targetName, targetConnectorName, connProps);
+                checkNotNull(connectorManager.getConnectors().get(targetName));
             }
 
             for (Connector connector : connectorManager.getConnectors().values()) {
