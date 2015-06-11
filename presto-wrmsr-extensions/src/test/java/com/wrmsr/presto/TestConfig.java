@@ -46,7 +46,7 @@ public class TestConfig
                 // "\"number\": 2,\n" +
                 // "\"many\": [\"c\", \"d\", \"e\"],\n" +
                 // "\"single\": [3],\n" +
-                "\"fml\": [[3]]\n" +
+                "\"abc\":{\"fml\": [[3]]}\n" +
                 // "\"things\": \"abc\",\n" +
                 // "\"otherthings\": \"def\",\n" +
                 // "\"deep\": {\n" +
@@ -80,7 +80,8 @@ public class TestConfig
         // System.out.println(newArrayList(hc.getKeys()));
 
         Map<String, String> p2;
-        p2 = Configs.flatten(Configs.unpackHierarchical(hc));
+        Map<String, Object> mx = Configs.unpackHierarchical(hc);
+        p2 = Configs.flatten(mx);
         // System.out.println(p2);
 
         HierarchicalConfiguration hc2;

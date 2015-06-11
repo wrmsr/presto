@@ -16,6 +16,7 @@
  */
 package com.wrmsr.presto.util;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.configuration.tree.ConfigurationNode;
 import org.apache.commons.configuration.tree.ExpressionEngine;
 import org.apache.commons.configuration.tree.NodeAddData;
@@ -25,6 +26,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+
+import static com.google.common.collect.Lists.newArrayList;
 
 public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
 {
@@ -170,21 +173,33 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
 
         NodeAddData result = new NodeAddData();
         result.setParent(findLastPathNode(it, root));
+        List<ListPreservingDefaultConfigurationKey.KeyIterator> parts = newArrayList();
+        parts.add(it.clone());
 
         while (it.hasNext()) {
             if (!it.isPropertyKey()) {
                 throw new IllegalArgumentException("Invalid key for add operation: " + key + " (Attribute key in the middle.)");
             }
             result.addPathNode(it.currentKey());
-            if (it.hasIndex()) {
-                result.addListAttribute(it.currentPrefix());
-            }
             it.next();
+            parts.add(it.clone());
         }
-
-        if (it.hasIndex()) {
-            String p = it.currentPrefix();
-            result.addListAttribute(p.substring(0, p.length() - 3)); // FIXME
+        for (int i = 0; i < parts.size(); ++i) {
+            ListPreservingDefaultConfigurationKey.KeyIterator part = parts.get(i);
+            if (part.hasIndex()) {
+                Configs.Sigil sigil = Configs.TerminalSigil.INSTANCE;
+                if (i == parts.size() - 1) {
+                    sigil = new Configs.MapEntrySigil("", sigil);
+                }
+                for (int j = i; j >= 0; --j) {
+                    ListPreservingDefaultConfigurationKey.KeyIterator p = parts.get(j);
+                    if (i != j && p.hasIndex()) {
+                        sigil = new Configs.ListItemSigil(p.getIndex(), sigil);
+                    }
+                    sigil = new Configs.MapEntrySigil(p.currentKey(), sigil);
+                }
+                result.addListAttribute(sigil.render());
+            }
         }
 
         result.setNewNodeName(it.currentKey());

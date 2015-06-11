@@ -307,10 +307,10 @@ public class ListPreservingDefaultConfigurationKey
         }
 
         @Override
-        public Object clone()
+        public KeyIterator clone()
         {
             try {
-                return super.clone();
+                return (KeyIterator) super.clone();
             }
             catch (CloneNotSupportedException cex) {
                 // should not happen
@@ -322,7 +322,7 @@ public class ListPreservingDefaultConfigurationKey
         {
             startIndex = endIndex;
             // skip empty names
-            while (startIndex < length() && hasLeadingDelimiter(keyBuffer.substring(startIndex))) {
+            if (startIndex < length() && hasLeadingDelimiter(keyBuffer.substring(startIndex))) {
                 startIndex += getExpressionEngine().getPropertyDelimiter().length();
             }
 

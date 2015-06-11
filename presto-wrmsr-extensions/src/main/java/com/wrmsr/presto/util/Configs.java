@@ -140,8 +140,7 @@ public class Configs
             ConfigurationNode node = data.getParent();
 
             // Create missing nodes on the path
-            for (String name : data.getPathNodes())
-            {
+            for (String name : data.getPathNodes()) {
                 ConfigurationNode child = createNode(name);
                 node.addChild(child);
                 node = child;
@@ -149,12 +148,10 @@ public class Configs
 
             // Add new target node
             ConfigurationNode child = createNode(data.getNewNodeName());
-            if (data.isAttribute())
-            {
+            if (data.isAttribute()) {
                 node.addAttribute(child);
             }
-            else
-            {
+            else {
                 node.addChild(child);
             }
             return child;
@@ -267,7 +264,7 @@ public class Configs
     public static final String LIST_END = ")";
     public static final String FIELD_SEPERATOR = ".";
 
-    private static abstract class Sigil
+    public static abstract class Sigil
     {
         public String render()
         {
@@ -279,7 +276,7 @@ public class Configs
         public abstract void render(StringBuilder sb);
     }
 
-    private static final class ListItemSigil extends Sigil
+    public static final class ListItemSigil extends Sigil
     {
         private final int index;
         private final Sigil next;
@@ -303,7 +300,7 @@ public class Configs
         }
     }
 
-    private static final class MapEntrySigil extends Sigil
+    public static final class MapEntrySigil extends Sigil
     {
         private final String key;
         private final Sigil next;
@@ -325,7 +322,7 @@ public class Configs
         }
     }
 
-    private static final class TerminalSigil extends Sigil
+    public static final class TerminalSigil extends Sigil
     {
         private TerminalSigil()
         {
@@ -356,7 +353,6 @@ public class Configs
                             .map(e2 -> ImmutablePair.of(new MapEntrySigil(key, e2.getKey()), e2.getValue()));
                 })
                 .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
-
     }
 
     public static Map<Sigil, String> flattenValues(Object object)
