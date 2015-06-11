@@ -14,12 +14,19 @@
 package com.wrmsr.presto;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.spi.type.BigintType;
+import com.facebook.presto.spi.type.DoubleType;
+import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
+import com.facebook.presto.type.RowType;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.ExtensionsPlugin;
 import org.testng.annotations.Test;
+
+import java.util.Optional;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
@@ -38,6 +45,14 @@ public class TestExtensionsPlugin
             throws Exception
     {
         queryRunner.execute("select * from lineitem inner join orders on orders.orderkey = lineitem.orderkey inner join customer on orders.custkey = customer.custkey limit 10");
+    }
+
+    @Test
+    public void testTypeStuff()
+        throws Throwable
+    {
+        Type rt = new RowType(ImmutableList.<Type>of(DoubleType.DOUBLE, BigintType.BIGINT), Optional.of(ImmutableList.of("a", "b")));
+        System.out.println(rt);
     }
 
     private static LocalQueryRunner createLocalQueryRunner()

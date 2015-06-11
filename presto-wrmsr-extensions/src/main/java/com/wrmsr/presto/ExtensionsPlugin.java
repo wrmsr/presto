@@ -20,6 +20,7 @@ import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
+import com.facebook.presto.server.PluginManager;
 import com.facebook.presto.server.ServerEvent;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
@@ -29,6 +30,10 @@ import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
+import com.facebook.presto.type.RowType;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.ffi.FFIFunctionFactory;
@@ -48,15 +53,22 @@ import com.wrmsr.presto.metaconnectors.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerModule;
 import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
 import com.wrmsr.presto.jdbc.postgresql.ExtendedPostgreSqlClientModule;
+import com.wrmsr.presto.util.Configs;
 import io.airlift.json.JsonCodec;
 
 import javax.inject.Inject;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.wrmsr.presto.util.Maps.mapMerge;
+import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPERS_BY_EXTENSION;
+import static com.wrmsr.presto.util.Serialization.YAML_OBJECT_MAPPER;
 
 // import com.facebook.presto.type.ParametricType;
 
@@ -67,6 +79,7 @@ public class ExtensionsPlugin
     private ConnectorManager connectorManager;
     private TypeManager typeManager;
     private NodeManager nodeManager;
+    private PluginManager pluginManager;
     private JsonCodec<ViewDefinition> viewCodec;
     private Metadata metadata;
     private SqlParser sqlParser;
@@ -95,6 +108,12 @@ public class ExtensionsPlugin
     public void setNodeManager(NodeManager nodeManager)
     {
         this.nodeManager = checkNotNull(nodeManager, "nodeManager is null");
+    }
+
+    @Inject
+    public void setPluginManager(PluginManager pluginManager)
+    {
+        this.pluginManager = checkNotNull(pluginManager);
     }
 
     @Inject
@@ -127,10 +146,45 @@ public class ExtensionsPlugin
         this.featuresConfig = featuresConfig;
     }
 
+    public static class FileConfig
+    {
+        public final Map<String, String> jvm = ImmutableMap.of();
+        public final Map<String, String> system = ImmutableMap.of();
+        public final Map<String, String> log = ImmutableMap.of();
+        public final List<String> plugins = ImmutableList.of();
+        public final Map<String, Object> connectors = ImmutableMap.of();
+    }
+
     @Override
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.ConnectorsLoaded) {
+            byte[] cfgBytes;
+            try {
+                cfgBytes = Files.readAllBytes(new File(System.getProperty("user.home") + "/presto/yelp-presto.yaml").toPath());
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+
+            ObjectMapper objectMapper = YAML_OBJECT_MAPPER.get();
+            FileConfig fileConfig;
+            try {
+                fileConfig = objectMapper.readValue(cfgBytes, FileConfig.class);
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+
+            for (String plugin : fileConfig.plugins) {
+                try {
+                    pluginManager.loadPlugin(plugin);
+                }
+                catch (Exception e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+
             for (Connector connector : connectorManager.getConnectors().values()) {
                 if (connector instanceof ExtendedJdbcConnector) {
                     JdbcClient client = ((ExtendedJdbcConnector) connector).getJdbcClient();

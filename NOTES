@@ -424,3 +424,8 @@ set type?
     <artifactId>pyrolite</artifactId>
     <version>4.6</version>
 </dependency>
+
+
+
+https://github.com/RGBz/aws-s3-class-loader
+https://github.com/sampov2/onejar-maven-plugin

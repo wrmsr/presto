@@ -160,7 +160,7 @@ public class PluginManager
         pluginsLoaded.set(true);
     }
 
-    private void loadPlugin(String plugin)
+    public void loadPlugin(String plugin)
             throws Exception
     {
         log.info("-- Loading plugin %s --", plugin);
