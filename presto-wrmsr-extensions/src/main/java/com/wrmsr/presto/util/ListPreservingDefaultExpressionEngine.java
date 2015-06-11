@@ -186,8 +186,10 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
         }
         for (int i = 0; i < parts.size(); ++i) {
             ListPreservingDefaultConfigurationKey.KeyIterator part = parts.get(i);
+            // ITS HERE OMG
             if (part.hasIndex()) {
                 Configs.Sigil sigil = Configs.TerminalSigil.INSTANCE;
+                sigil = new Configs.ListItemSigil(part.getIndex(), sigil);
                 if (i == parts.size() - 1) {
                     sigil = new Configs.MapEntrySigil("", sigil);
                 }
@@ -213,7 +215,7 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
             nodes.add(node);
         }
         else {
-            String key = keyPart.nextKey(false);
+            String key = keyPart.nextKey(false, false);
             if (keyPart.isPropertyKey()) {
                 processSubNodes(keyPart, node.getChildren(key), nodes);
             }
@@ -225,7 +227,7 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
 
     protected ConfigurationNode findLastPathNode(ListPreservingDefaultConfigurationKey.KeyIterator keyIt, ConfigurationNode node)
     {
-        String keyPart = keyIt.nextKey(false);
+        String keyPart = keyIt.nextKey(false, false);
 
         if (keyIt.hasNext()) {
             if (!keyIt.isPropertyKey()) {

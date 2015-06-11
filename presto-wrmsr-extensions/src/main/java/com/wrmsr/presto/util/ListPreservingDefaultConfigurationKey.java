@@ -234,10 +234,10 @@ public class ListPreservingDefaultConfigurationKey
 
         public String nextKey()
         {
-            return nextKey(false);
+            return nextKey(false, true);
         }
 
-        public String nextKey(boolean decorated)
+        public String nextKey(boolean decorated, boolean bounce)
         {
             if (!hasNext()) {
                 throw new NoSuchElementException("No more key parts!");
