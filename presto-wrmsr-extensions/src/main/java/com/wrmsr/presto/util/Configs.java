@@ -206,12 +206,7 @@ public class Configs
             });
             return newHashMap(transformValues(namedChildren, l -> {
                 checkState(!l.isEmpty());
-                boolean hasListAtt = false;
-                ConfigurationNode parent = node.getParentNode();
-                if (parent != null) {
-                    List<ConfigurationNode> isListAtts = node.getAttributes(IS_LIST_ATTR);
-                    hasListAtt = isListAtts.stream().map(o -> toBool(o)).findFirst().isPresent();
-                }
+                boolean hasListAtt = l.stream().flatMap(n -> n.getAttributes(IS_LIST_ATTR).stream()).map(o -> toBool(o)).findFirst().isPresent();
                 if (l.size() > 1 || hasListAtt) {
                     return l.stream().map(n -> unpackNode(n)).filter(o -> o != null).collect(ImmutableCollectors.toImmutableList());
                 }
@@ -272,45 +267,158 @@ public class Configs
     public static final String LIST_END = ")";
     public static final String FIELD_SEPERATOR = ".";
 
-    @SuppressWarnings({"unchecked"})
-    public static Map<String, String> flattenValues(String key, Object value)
+    private static abstract class Sigil
     {
-        /*
-        TODO:
-        !!binary	byte[], String
-        !!timestamp	java.util.Date, java.sql.Date, java.sql.Timestamp
-        !!omap, !!pairs	List of Object[]
-        */
-        if (value == null) {
-            Map<String, String> map = newHashMap();
-            map.put(key, null);
-            return map;
+        public String render()
+        {
+            StringBuilder sb = new StringBuilder();
+            render(sb);
+            return sb.toString();
         }
-        else if (value instanceof Map) {
-            Map<String, Object> mapValue = (Map<String, Object>) value;
-            return mapValue.entrySet().stream()
-                    .flatMap(e -> flattenValues((key != null ? key + FIELD_SEPERATOR : "") + e.getKey(), e.getValue()).entrySet().stream())
-                    .filter(e -> e.getValue() != null)
-                    .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+
+        public abstract void render(StringBuilder sb);
+    }
+
+    private static final class ListItemSigil extends Sigil
+    {
+        private final int index;
+        private final Sigil next;
+
+        public ListItemSigil(int index, Sigil next)
+        {
+            this.index = index;
+            this.next = next;
         }
-        else if (value instanceof List || value instanceof Set) {
-            List<Object> listValue = ImmutableList.copyOf((Iterable<Object>) value);
-            return IntStream.range(0, listValue.size()).boxed()
-                    .flatMap(i -> {
-                        String subkey = key + LIST_START + Integer.toString(i + LIST_BASE) + LIST_END; // FIXME expressionengine
-                        return flattenValues(subkey, listValue.get(i)).entrySet().stream();
-                    })
-                    .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
-        }
-        else {
-            return ImmutableMap.of(key, value.toString());
+
+        @Override
+        public void render(StringBuilder sb)
+        {
+            sb.append(LIST_START);
+            sb.append(index);
+            sb.append(LIST_END);
+            if (next instanceof ListItemSigil) {
+                sb.append(FIELD_SEPERATOR);
+            }
+            next.render(sb);
         }
     }
 
-    public static Map<String, String> flattenValues(Object value)
+    private static final class MapEntrySigil extends Sigil
     {
-        return flattenValues(null, value);
+        private final String key;
+        private final Sigil next;
+
+        public MapEntrySigil(String key, Sigil next)
+        {
+            this.key = key;
+            this.next = next;
+        }
+
+        @Override
+        public void render(StringBuilder sb)
+        {
+            sb.append(key);
+            if (next instanceof MapEntrySigil) {
+                sb.append(FIELD_SEPERATOR);
+            }
+            next.render(sb);
+        }
     }
+
+    private static final class TerminalSigil extends Sigil
+    {
+        private TerminalSigil()
+        {
+        }
+
+        public static final TerminalSigil INSTANCE = new TerminalSigil();
+
+        @Override
+        public void render(StringBuilder sb)
+        {
+        }
+    }
+
+    public static Map<Sigil, String> flattenList(List<?> list)
+    {
+        return IntStream.range(0, list.size()).boxed()
+                .flatMap(i -> flattenValues(list.get(i)).entrySet().stream()
+                            .map(e -> ImmutablePair.of(new ListItemSigil(i, e.getKey()), e.getValue())))
+                .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+    }
+
+    public static Map<Sigil, String> flattenMap(Map<?, ?> map)
+    {
+        return map.entrySet().stream()
+                .flatMap(e -> {
+                    String key = Objects.toString(e.getKey());
+                    return flattenValues(e.getValue()).entrySet().stream()
+                            .map(e2 -> ImmutablePair.of(new MapEntrySigil(key, e2.getKey()), e2.getValue()));
+                })
+                .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+
+    }
+
+    public static Map<Sigil, String> flattenValues(Object object)
+    {
+        if (object instanceof List) {
+            return flattenList((List) object);
+        }
+        else if (object instanceof Map) {
+            return flattenMap((Map) object);
+        }
+        else {
+            return ImmutableMap.of(TerminalSigil.INSTANCE, Objects.toString(object));
+        }
+    }
+
+    public static Map<String, String> flatten(Object object)
+    {
+        return flattenValues(object).entrySet().stream()
+                .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey().render(), e -> e.getValue()));
+    }
+
+//    @SuppressWarnings({"unchecked"})
+//    public static Map<String, String> flattenValues(Object value)
+//    {
+//        /*
+//        TODO:
+//        !!binary	byte[], String
+//        !!timestamp	java.util.Date, java.sql.Date, java.sql.Timestamp
+//        !!omap, !!pairs	List of Object[]
+//        */
+//        Map<String, String> map = newHashMap();
+//        if (value instanceof Map) {
+//            Map<String, Object> mapValue = (Map<String, Object>) value;
+//            return mapValue.entrySet().stream()
+//                    .flatMap(e -> flattenValues((key != null ? key + FIELD_SEPERATOR : "") + e.getKey(), e.getValue()).entrySet().stream())
+//                    .filter(e -> e.getValue() != null)
+//                    .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+//        }
+//        else if (value instanceof List || value instanceof Set) {
+//            List<Object> listValue = ImmutableList.copyOf((Iterable<Object>) value);
+//            Map<String, String> flattened = IntStream.range(0, listValue.size()).boxed()
+//                .flatMap(i -> {
+//                    String subkey = LIST_START + Integer.toString(i + LIST_BASE) + LIST_END; // FIXME expressionengine
+//                    return flattenValues(subkey, listValue.get(i)).entrySet().stream();
+//                })
+//                .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+//            return flattenValues(key, flattened).entrySet().stream()
+//                    .map(e -> {
+//                        checkState(e.getKey().startsWith(FIELD_SEPERATOR));
+//                        return ImmutablePair.of(e.getKey().substring(1), e.getValue());
+//                    })
+//                    .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+//        }
+//        else {
+//            return ImmutableMap.of(key, value.toString());
+//        }
+//    }
+//
+//    public static Map<String, String> flattenValues(Object value)
+//    {
+//        return flattenValues(null, value);
+//    }
 
     public static Map<String, String> loadByExtension(byte[] data, String extension)
     {
@@ -335,7 +443,7 @@ public class Configs
             catch (IOException e) {
                 throw Throwables.propagate(e);
             }
-            return flattenValues(value);
+            return flatten(value);
         }
         else {
             throw new IllegalArgumentException(String.format("Unhandled config extension: %s", extension));
@@ -344,10 +452,10 @@ public class Configs
 
     // FIXME invert
     public static final Codecs.Codec<HierarchicalConfiguration, Map<String, String>> CONFIG_PROPERTIES_CODEC = Codecs.Codec.of(
-            hc -> flattenValues(Configs.unpackHierarchical(hc)),
+            hc -> flatten(Configs.unpackHierarchical(hc)),
             m -> toHierarchical(m));
 
     public static final Codecs.Codec<Object, HierarchicalConfiguration> OBJECT_CONFIG_CODEC = Codecs.Codec.of(
-            o -> toHierarchical(flattenValues(o)),
+            o -> toHierarchical(flatten(o)),
             hc -> unpackHierarchical(hc));
 }

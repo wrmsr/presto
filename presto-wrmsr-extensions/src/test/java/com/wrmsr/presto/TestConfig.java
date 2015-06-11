@@ -46,7 +46,7 @@ public class TestConfig
                 "\"number\": 2,\n" +
                 "\"many\": [\"c\", \"d\", \"e\"],\n" +
                 "\"single\": [3],\n" +
-                // "\"fml\": [[[[3]]]],\n" +
+                 "\"fml\": [[[[3]]]],\n" +
                 "\"things\": \"abc\",\n" +
                 "\"otherthings\": \"def\",\n" +
                 "\"deep\": {\n" +
@@ -80,7 +80,7 @@ public class TestConfig
         // System.out.println(newArrayList(hc.getKeys()));
 
         Map<String, String> p2;
-        p2 = Configs.flattenValues(Configs.unpackHierarchical(hc));
+        p2 = Configs.flatten(Configs.unpackHierarchical(hc));
         // System.out.println(p2);
 
         HierarchicalConfiguration hc2;
@@ -148,7 +148,7 @@ public class TestConfig
         System.out.println(o);
 
         Map<String, Object> m = (Map<String, Object>) o;
-        Map<String, String> t = Configs.flattenValues(o);
+        Map<String, String> t = Configs.flatten(o);
 
         Configuration c = new MapConfiguration(t);
         HierarchicalConfiguration hc = ConfigurationUtils.convertToHierarchical(c);
