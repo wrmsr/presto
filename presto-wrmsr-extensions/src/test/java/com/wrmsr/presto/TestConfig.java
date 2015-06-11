@@ -43,18 +43,18 @@ public class TestConfig
 
         s = "" +
                 "{\n" +
-                "\"number\": 2,\n" +
-                "\"many\": [\"c\", \"d\", \"e\"],\n" +
-                "\"single\": [3],\n" +
-                 "\"fml\": [[[[3]]]],\n" +
-                "\"things\": \"abc\",\n" +
-                "\"otherthings\": \"def\",\n" +
-                "\"deep\": {\n" +
-                "\"single\": [\"a\"],\n" +
-                "\"first\": \"a\",\n" +
-                "\"second\": \"b\"\n," +
-                "\"many\": [\"c\", \"d\", \"e\"]\n" +
-                "}\n" +
+                // "\"number\": 2,\n" +
+                // "\"many\": [\"c\", \"d\", \"e\"],\n" +
+                // "\"single\": [3],\n" +
+                "\"fml\": [[3]]\n" +
+                // "\"things\": \"abc\",\n" +
+                // "\"otherthings\": \"def\",\n" +
+                // "\"deep\": {\n" +
+                // "\"single\": [\"a\"],\n" +
+                // "\"first\": \"a\",\n" +
+                // "\"second\": \"b\"\n," +
+                // "\"many\": [\"c\", \"d\", \"e\"]\n" +
+                // "}\n" +
                 "}\n";
         p = Configs.loadByExtension(s.getBytes(), "json");
         // System.out.println(p);
