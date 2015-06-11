@@ -16,17 +16,10 @@
  */
 package com.wrmsr.presto.util;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public class ListPreservingDefaultConfigurationKey
 {
@@ -234,10 +227,10 @@ public class ListPreservingDefaultConfigurationKey
 
         public String nextKey()
         {
-            return nextKey(false, true);
+            return nextKey(false);
         }
 
-        public String nextKey(boolean decorated, boolean bounce)
+        public String nextKey(boolean decorated)
         {
             if (!hasNext()) {
                 throw new NoSuchElementException("No more key parts!");
@@ -269,14 +262,14 @@ public class ListPreservingDefaultConfigurationKey
             throw new UnsupportedOperationException("Remove not supported!");
         }
 
-        public String currentPrefix()
-        {
-            return keyBuffer.substring(0, endIndex);
-        }
-
         public String currentKey()
         {
             return currentKey(false);
+        }
+
+        public String currentPrefix()
+        {
+            return keyBuffer.substring(0, endIndex);
         }
 
         public String currentKey(boolean decorated)

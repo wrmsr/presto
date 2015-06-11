@@ -26,11 +26,29 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 
 public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
 {
+    /*
+    public static class Key
+    {
+        private final String name;
+        private final Optional<Integer> index;
+        private final Optional<String> attribute;
+
+        public Key(String name, Optional<Integer> index, Optional<String> attribute)
+        {
+            this.name = name;
+            this.index = index;
+            this.attribute = attribute;
+        }
+    }
+    */
+
     public static final String DEFAULT_PROPERTY_DELIMITER = ".";
     public static final String DEFAULT_ESCAPED_DELIMITER = DEFAULT_PROPERTY_DELIMITER + DEFAULT_PROPERTY_DELIMITER;
     public static final String DEFAULT_ATTRIBUTE_START = "[@";
@@ -170,32 +188,60 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
         if (!it.hasNext()) {
             throw new IllegalArgumentException("Key for add operation must be defined!");
         }
-
         NodeAddData result = new NodeAddData();
         result.setParent(findLastPathNode(it, root));
-        List<ListPreservingDefaultConfigurationKey.KeyIterator> parts = newArrayList();
-        parts.add(it.clone());
-
         while (it.hasNext()) {
             if (!it.isPropertyKey()) {
                 throw new IllegalArgumentException("Invalid key for add operation: " + key + " (Attribute key in the middle.)");
             }
             result.addPathNode(it.currentKey());
             it.next();
-            parts.add(it.clone());
         }
+        result.setNewNodeName(it.currentKey());
+        result.setAttribute(!it.isPropertyKey());
+
+        it = new ListPreservingDefaultConfigurationKey(this, key).iterator();
+        checkState(it.hasNext());
+        while (it.hasNext()) {
+            if (!it.isPropertyKey()) {
+                break;
+            }
+            String keyPart = it.nextKey(false);
+            if (it.hasIndex()) {
+                result.addListAttribute(it.currentPrefix());
+            }
+            System.out.println(keyPart);
+        }
+
+        /*
+        String keyPart = it.nextKey(false);
+
+        if (it.hasNext()) {
+            if (!keyIt.isPropertyKey()) {
+                // Attribute keys can only appear as last elements of the path
+                throw new IllegalArgumentException("Invalid path for add operation: Attribute key in the middle!");
+            }
+            int idx = keyIt.hasIndex() ? keyIt.getIndex() : node.getChildrenCount(keyPart) - 1;
+            if (idx < 0 || idx >= node.getChildrenCount(keyPart)) {
+                return node;
+            }
+            else {
+                return findLastPathNode(keyIt, node.getChildren(keyPart).get(idx));
+            }
+        }
+        else {
+            return node;
+        }
+
+        checkState(it.hasNext());
         for (int i = 0; i < parts.size(); ++i) {
             ListPreservingDefaultConfigurationKey.KeyIterator part = parts.get(i);
             // ITS HERE OMG
             if (part.hasIndex()) {
                 Configs.Sigil sigil = Configs.TerminalSigil.INSTANCE;
-                sigil = new Configs.ListItemSigil(part.getIndex(), sigil);
-                if (i == parts.size() - 1) {
-                    sigil = new Configs.MapEntrySigil("", sigil);
-                }
                 for (int j = i; j >= 0; --j) {
                     ListPreservingDefaultConfigurationKey.KeyIterator p = parts.get(j);
-                    if (i != j && p.hasIndex()) {
+                    if (p.hasIndex()) {
                         sigil = new Configs.ListItemSigil(p.getIndex(), sigil);
                     }
                     sigil = new Configs.MapEntrySigil(p.currentKey(), sigil);
@@ -203,9 +249,8 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
                 result.addListAttribute(sigil.render());
             }
         }
+        */
 
-        result.setNewNodeName(it.currentKey());
-        result.setAttribute(!it.isPropertyKey());
         return result;
     }
 
@@ -215,7 +260,7 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
             nodes.add(node);
         }
         else {
-            String key = keyPart.nextKey(false, false);
+            String key = keyPart.nextKey(false);
             if (keyPart.isPropertyKey()) {
                 processSubNodes(keyPart, node.getChildren(key), nodes);
             }
@@ -227,7 +272,7 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
 
     protected ConfigurationNode findLastPathNode(ListPreservingDefaultConfigurationKey.KeyIterator keyIt, ConfigurationNode node)
     {
-        String keyPart = keyIt.nextKey(false, false);
+        String keyPart = keyIt.nextKey(false);
 
         if (keyIt.hasNext()) {
             if (!keyIt.isPropertyKey()) {
