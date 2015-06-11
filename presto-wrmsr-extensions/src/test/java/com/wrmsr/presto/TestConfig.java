@@ -5,7 +5,6 @@ import com.wrmsr.presto.util.*;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
 import org.apache.commons.configuration.*;
-import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -21,13 +20,13 @@ public class TestConfig
     @Test
     public void testLoading() throws Throwable
     {
-        ListPreservingDefaultExpressionEngine engine = new ListPreservingDefaultExpressionEngine();
-        ListPreservingDefaultConfigurationKey key = new ListPreservingDefaultConfigurationKey(engine,
+        Configs.ListPreservingDefaultExpressionEngine engine = new Configs.ListPreservingDefaultExpressionEngine();
+        Configs.ListPreservingDefaultConfigurationKey key = new Configs.ListPreservingDefaultConfigurationKey(engine,
                 // "x.y.z"
                 "hi(0).(1).there(3).(4).x"
                 // "hi(0,1).there(3,4).x"
         );
-        ListPreservingDefaultConfigurationKey.KeyIterator it = key.iterator();
+        Configs.ListPreservingDefaultConfigurationKey.KeyIterator it = key.iterator();
         while (it.hasNext()) {
             it.next();
         }
