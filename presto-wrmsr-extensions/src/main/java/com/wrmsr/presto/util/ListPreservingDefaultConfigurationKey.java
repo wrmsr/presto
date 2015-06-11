@@ -16,10 +16,17 @@
  */
 package com.wrmsr.presto.util;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class ListPreservingDefaultConfigurationKey
 {
@@ -221,7 +228,7 @@ public class ListPreservingDefaultConfigurationKey
         private String current;
         private int startIndex;
         private int endIndex;
-        private int indexValue;
+        private List<Integer> indexValue;
         private boolean hasIndex;
         private boolean attribute;
 
@@ -237,7 +244,7 @@ public class ListPreservingDefaultConfigurationKey
             }
 
             hasIndex = false;
-            indexValue = -1;
+            indexValue = ImmutableList.of();
             String key = findNextIndices();
 
             current = key;
@@ -284,7 +291,7 @@ public class ListPreservingDefaultConfigurationKey
             return !attribute;
         }
 
-        public int getIndex()
+        public List<Integer> getIndex()
         {
             return indexValue;
         }
@@ -413,7 +420,8 @@ public class ListPreservingDefaultConfigurationKey
                     int endidx = key.indexOf(getExpressionEngine().getIndexEnd(),idx);
 
                     if (endidx > idx + 1) {
-                        indexValue = Integer.parseInt(key.substring(idx + 1, endidx));
+                        indexValue = ImmutableList.copyOf(Iterables.transform(
+                                Splitter.on(",").split(key.substring(idx + 1, endidx)), Integer::parseInt));
                         current = key.substring(0, idx);
                         result = true;
                     }

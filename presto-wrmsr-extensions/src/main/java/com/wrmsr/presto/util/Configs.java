@@ -74,6 +74,7 @@ public class Configs
             throw new IllegalStateException();
         }
 
+        /*
         @Override
         protected void addPropertyDirect(String key, Object obj)
         {
@@ -109,6 +110,7 @@ public class Configs
                 }
             }
         }
+        */
 
         private ConfigurationNode processNodeAddData(NodeAddData data)
         {

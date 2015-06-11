@@ -100,6 +100,7 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
         this.propertyDelimiter = propertyDelimiter;
     }
 
+    @Override
     public List<ConfigurationNode> query(ConfigurationNode root, String key)
     {
         List<ConfigurationNode> nodes = new LinkedList<ConfigurationNode>();
@@ -107,6 +108,7 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
         return nodes;
     }
 
+    @Override
     public String nodeKey(ConfigurationNode node, String parentKey)
     {
         if (parentKey == null) {
@@ -125,6 +127,7 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
         }
     }
 
+    @Override
     public NodeAddData prepareAdd(ConfigurationNode root, String key)
     {
         ListPreservingDefaultConfigurationKey.KeyIterator it = new ListPreservingDefaultConfigurationKey(this, key).iterator();
@@ -173,8 +176,12 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
                 // Attribute keys can only appear as last elements of the path
                 throw new IllegalArgumentException("Invalid path for add operation: Attribute key in the middle!");
             }
-            int idx = keyIt.hasIndex() ? keyIt.getIndex() : node
-                    .getChildrenCount(keyPart) - 1;
+            /*
+            for (int idx : keyIt.getIndex()) {
+
+            }
+            */
+            int idx = keyIt.hasIndex() ? keyIt.getIndex().get(0) : node.getChildrenCount(keyPart) - 1; // FIXME
             if (idx < 0 || idx >= node.getChildrenCount(keyPart)) {
                 return node;
             }
@@ -182,7 +189,6 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
                 return findLastPathNode(keyIt, node.getChildren(keyPart).get(idx));
             }
         }
-
         else {
             return node;
         }
@@ -191,8 +197,9 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
     private void processSubNodes(ListPreservingDefaultConfigurationKey.KeyIterator keyPart, List<ConfigurationNode> subNodes, Collection<ConfigurationNode> nodes)
     {
         if (keyPart.hasIndex()) {
-            if (keyPart.getIndex() >= 0 && keyPart.getIndex() < subNodes.size()) {
-                findNodesForKey((ListPreservingDefaultConfigurationKey.KeyIterator) keyPart.clone(), subNodes.get(keyPart.getIndex()), nodes);
+            int idx = keyPart.getIndex().get(0); // FIXME
+            if (idx >= 0 && idx < subNodes.size()) {
+                findNodesForKey((ListPreservingDefaultConfigurationKey.KeyIterator) keyPart.clone(), subNodes.get(idx), nodes);
             }
         }
         else {

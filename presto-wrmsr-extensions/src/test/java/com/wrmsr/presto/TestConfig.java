@@ -1,19 +1,10 @@
 package com.wrmsr.presto;
 
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.util.Configs;
-import com.wrmsr.presto.util.Files;
-import com.wrmsr.presto.util.ListPreservingDefaultConfigurationKey;
-import com.wrmsr.presto.util.ListPreservingDefaultExpressionEngine;
-import com.wrmsr.presto.util.Serialization;
+import com.wrmsr.presto.util.*;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationMap;
-import org.apache.commons.configuration.ConfigurationUtils;
-import org.apache.commons.configuration.HierarchicalConfiguration;
-import org.apache.commons.configuration.MapConfiguration;
-import org.apache.commons.configuration.tree.ConfigurationNode;
+import org.apache.commons.configuration.*;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
 import org.testng.annotations.Test;
 
@@ -21,10 +12,8 @@ import java.io.File;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 
 public class TestConfig
@@ -33,43 +22,46 @@ public class TestConfig
     public void testLoading() throws Throwable
     {
         ListPreservingDefaultExpressionEngine engine = new ListPreservingDefaultExpressionEngine();
-        ListPreservingDefaultConfigurationKey key = new ListPreservingDefaultConfigurationKey(engine, "hi[0][1].there[3][4].x");
+        ListPreservingDefaultConfigurationKey key = new ListPreservingDefaultConfigurationKey(engine,
+                "hi(0).(1).there(3).(4).x"
+                // "hi(0,1).there(3,4).x"
+        );
         ListPreservingDefaultConfigurationKey.KeyIterator it = key.iterator();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             it.next();
         }
         String s;
         Map<String, String> p;
 
-        s =
+        s = "" +
                 "a=1\n" +
-                        "b=2\n" +
-                        "c=3\n";
+                "b=2\n" +
+                "c=3\n";
         p = Configs.loadByExtension(s.getBytes(), "properties");
         // System.out.println(p);
 
-        s =
+        s = "" +
                 "{\n" +
-                        "\"number\": 2,\n" +
-                        "\"many\": [\"c\", \"d\", \"e\"],\n" +
-                        "\"single\": [3],\n" +
-                        "\"fml\": [[[[3]]]],\n" +
-                        "\"things\": \"abc\",\n" +
-                        "\"otherthings\": \"def\",\n" +
-                        "\"deep\": {\n" +
-                        "\"single\": [\"a\"],\n" +
-                        "\"first\": \"a\",\n" +
-                        "\"second\": \"b\"\n," +
-                        "\"many\": [\"c\", \"d\", \"e\"]\n" +
-                        "}\n" +
-                        "}\n";
+                "\"number\": 2,\n" +
+                "\"many\": [\"c\", \"d\", \"e\"],\n" +
+                "\"single\": [3],\n" +
+                // "\"fml\": [[[[3]]]],\n" +
+                "\"things\": \"abc\",\n" +
+                "\"otherthings\": \"def\",\n" +
+                "\"deep\": {\n" +
+                "\"single\": [\"a\"],\n" +
+                "\"first\": \"a\",\n" +
+                "\"second\": \"b\"\n," +
+                "\"many\": [\"c\", \"d\", \"e\"]\n" +
+                "}\n" +
+                "}\n";
         p = Configs.loadByExtension(s.getBytes(), "json");
         // System.out.println(p);
 
         HierarchicalConfiguration hc;
 
-        hc = ConfigurationUtils.convertToHierarchical(new MapConfiguration(p), new XPathExpressionEngine());
-        System.out.println(hc);
+        // hc = ConfigurationUtils.convertToHierarchical(new MapConfiguration(p), new XPathExpressionEngine());
+        // System.out.println(hc);
 
         /*
         HierarchicalConfiguration config = hc;
@@ -167,7 +159,8 @@ public class TestConfig
     @Test
     public void testFreemarker() throws Throwable
     {
-        String templateSrc = "<html>\n" +
+        String templateSrc = ""+
+                "<html>\n" +
                 "<head>\n" +
                 "  <title>Welcome!</title>\n" +
                 "</head>\n" +
