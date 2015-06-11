@@ -53,7 +53,8 @@ public class TestConfig
                 "\"single\": [\"a\"],\n" +
                 "\"first\": \"a\",\n" +
                 "\"second\": \"b\",\n" +
-                "\"many\": [\"c\", \"d\", \"e\"]\n" +
+                "\"many\": [\"c\", \"d\", \"e\"],\n" +
+                "\"abc\":{\"fml\": [[[[{\"hi\":\"there\"}]]]]}\n" +
                 "}\n" +
                 "}\n";
         p = Configs.loadByExtension(s.getBytes(), "json");

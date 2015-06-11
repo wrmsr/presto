@@ -193,24 +193,34 @@ public class Configs
         List<ConfigurationNode> children = node.getChildren();
         if (!children.isEmpty()) {
             Map<String, List<ConfigurationNode>> namedChildren = newHashMap();
-            children.forEach(child -> {
+            for (ConfigurationNode child : children) {
                 if (namedChildren.containsKey(child.getName())) {
                     namedChildren.get(child.getName()).add(child);
                 }
                 else {
                     namedChildren.put(child.getName(), newArrayList(child));
                 }
-            });
-            return newHashMap(transformValues(namedChildren, l -> {
+            }
+            Map ret = newHashMap();
+            for (Map.Entry<String, List<ConfigurationNode>> e : namedChildren.entrySet()) {
+                List<ConfigurationNode> l = e.getValue();
                 checkState(!l.isEmpty());
                 boolean hasListAtt = l.stream().flatMap(n -> n.getAttributes(IS_LIST_ATTR).stream()).map(o -> toBool(o)).findFirst().isPresent();
+                Object no;
                 if (l.size() > 1 || hasListAtt) {
-                    return l.stream().map(n -> unpackNode(n)).filter(o -> o != null).collect(ImmutableCollectors.toImmutableList());
+                    no = l.stream().map(n -> unpackNode(n)).filter(o -> o != null).collect(ImmutableCollectors.toImmutableList());
                 }
                 else {
-                    return unpackNode(l.get(0));
+                    no = unpackNode(l.get(0));
                 }
-            }));
+                ret.put(e.getKey(), no);
+            }
+            if (ret.size() == 1 && ret.containsKey("")) {
+                return ret.get("");
+            }
+            else {
+                return ret;
+            }
         }
         return node.getValue();
     }
@@ -293,7 +303,7 @@ public class Configs
             sb.append(LIST_START);
             sb.append(index);
             sb.append(LIST_END);
-            if (next instanceof ListItemSigil) {
+            if (!(next instanceof TerminalSigil)) {
                 sb.append(FIELD_SEPERATOR);
             }
             next.render(sb);

@@ -210,7 +210,6 @@ public class ListPreservingDefaultExpressionEngine implements ExpressionEngine
             if (it.hasIndex()) {
                 result.addListAttribute(it.currentPrefix());
             }
-            System.out.println(keyPart);
         }
 
         /*
