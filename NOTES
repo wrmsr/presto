@@ -429,3 +429,10 @@ set type?
 
 https://github.com/RGBz/aws-s3-class-loader
 https://github.com/sampov2/onejar-maven-plugin
+
+
+<dependency>
+    <groupId>org.rocksdb</groupId>
+    <artifactId>rocksdbjni</artifactId>
+    <version>3.9.1</version>
+</dependency>

@@ -147,6 +147,7 @@ public class RowType
         private final Optional<String> name;
 
         public RowField(Type type, Optional<String> name)
+
         {
             this.type = checkNotNull(type, "type is null");
             this.name = checkNotNull(name, "name is null");
