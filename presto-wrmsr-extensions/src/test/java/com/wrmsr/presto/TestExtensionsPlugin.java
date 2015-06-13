@@ -51,7 +51,7 @@ public class TestExtensionsPlugin
     public void testTypeStuff()
         throws Throwable
     {
-        Type rt = new RowType(ImmutableList.<Type>of(DoubleType.DOUBLE, BigintType.BIGINT), Optional.of(ImmutableList.of("a", "b")));
+        Type rt = new RowType("thing", ImmutableList.<Type>of(DoubleType.DOUBLE, BigintType.BIGINT), Optional.of(ImmutableList.of("a", "b")));
         System.out.println(rt);
     }
 

@@ -17,6 +17,8 @@ import com.facebook.presto.plugin.jdbc.*;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -26,6 +28,7 @@ import com.google.inject.Module;
 import com.google.inject.Scopes;
 import com.google.inject.util.Modules;
 import com.wrmsr.presto.util.Configs;
+import com.wrmsr.presto.util.Serialization;
 import io.airlift.bootstrap.Bootstrap;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 
@@ -35,6 +38,7 @@ import java.util.Map;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Maps.mapMerge;
 
 public class ExtendedJdbcConnectorFactory
@@ -62,6 +66,41 @@ public class ExtendedJdbcConnectorFactory
         return name;
     }
 
+    public static class Config
+    {
+        public Object init = null;
+
+        public final List<String> getInit()
+        {
+            if (init == null) {
+                return ImmutableList.of();
+            }
+            else if (init instanceof String) {
+                return ImmutableList.of((String) init);
+            }
+            else if (init instanceof List) {
+                return ImmutableList.copyOf((List<String>) init);
+            }
+            else {
+                throw new IllegalStateException();
+            }
+        }
+
+        private final Map<String, Object> extraProperties = newHashMap();
+
+        @JsonAnyGetter
+        public Map<String, Object> getExtraProperties()
+        {
+            return extraProperties;
+        }
+
+        @JsonAnySetter
+        public void setExtraProperty(final String name, final Object value)
+        {
+            extraProperties.put(name, value);
+        }
+    }
+
     @Override
     public Connector create(String connectorId, Map<String, String> requiredConfig)
     {
@@ -69,8 +108,10 @@ public class ExtendedJdbcConnectorFactory
         checkNotNull(optionalConfig, "optionalConfig is null");
 
         Map<String, String> workingConfig = mapMerge(defaultConfig, requiredConfig);
-        HierarchicalConfiguration config = Configs.toHierarchical(workingConfig);
-        List<String> initScripts = Configs.getAllStrings(config, "init");
+        HierarchicalConfiguration hc = Configs.CONFIG_PROPERTIES_CODEC.decode(workingConfig);
+        Config config = Configs.OBJECT_CONFIG_CODEC.decode(hc, Config.class);
+
+        List<String> initScripts = config.getInit();
         Configs.stripSubconfig(workingConfig, "init");
 
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {

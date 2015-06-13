@@ -20,6 +20,7 @@ public class TestConfig
     @Test
     public void testLoading() throws Throwable
     {
+        /*
         Configs.ListPreservingDefaultExpressionEngine engine = new Configs.ListPreservingDefaultExpressionEngine();
         Configs.ListPreservingDefaultConfigurationKey key = new Configs.ListPreservingDefaultConfigurationKey(engine,
                 // "x.y.z"
@@ -30,6 +31,7 @@ public class TestConfig
         while (it.hasNext()) {
             it.next();
         }
+        */
         String s;
         Map<String, String> p;
 
@@ -74,6 +76,7 @@ public class TestConfig
         config.addProperty("tables/table[last()]/fields field/name", "startDate");
         */
 
+        /*
         hc = Configs.toHierarchical(p);
         // System.out.println(hc);
 
@@ -90,6 +93,7 @@ public class TestConfig
 
         Map<String, Object> unpacked = Configs.unpackHierarchical(hc2);
         // System.out.println(unpacked);
+        */
 
         Object o;
 
@@ -107,6 +111,7 @@ public class TestConfig
     @Test
     public void testThings() throws Throwable
     {
+        /*
         Map<String, String> strs;
         HierarchicalConfiguration hc;
 
@@ -137,6 +142,7 @@ public class TestConfig
         );
         hc = Configs.toHierarchical(strs).configurationAt("stuff");
         System.out.println(Configs.getAllStrings(hc, "init"));
+        */
     }
 
     @Test
@@ -149,6 +155,7 @@ public class TestConfig
         System.out.println(o);
 
         Map<String, Object> m = (Map<String, Object>) o;
+        /*
         Map<String, String> t = Configs.flatten(o);
 
         Configuration c = new MapConfiguration(t);
@@ -156,6 +163,7 @@ public class TestConfig
         System.out.println(hc);
 
         System.out.println(newHashMap(new ConfigurationMap(hc)));
+        */
     }
 
     @Test

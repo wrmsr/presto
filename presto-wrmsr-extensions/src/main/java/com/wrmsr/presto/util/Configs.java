@@ -44,6 +44,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.transformValues;
+import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPERS_BY_EXTENSION;
 import static com.wrmsr.presto.util.Primitives.toBool;
 
@@ -76,14 +77,14 @@ public class Configs
     {
     }
 
-    public static HierarchicalConfiguration toHierarchical(Map<String, String> properties)
+    protected static HierarchicalConfiguration toHierarchical(Map<String, String> properties)
     {
         return toHierarchical(new MapConfiguration(properties));
     }
 
     public static final String IS_LIST_ATTR = "__is_list__";
 
-    public static class ListAnnotatingHierarchicalConfiguration extends HierarchicalConfiguration
+    protected static class ListAnnotatingHierarchicalConfiguration extends HierarchicalConfiguration
     {
         public ListAnnotatingHierarchicalConfiguration()
         {
@@ -193,7 +194,7 @@ public class Configs
 
     }
 
-    public static HierarchicalConfiguration toHierarchical(Configuration conf)
+    protected static HierarchicalConfiguration toHierarchical(Configuration conf)
     {
         if (conf == null) {
             return null;
@@ -217,12 +218,12 @@ public class Configs
     }
 
     @SuppressWarnings({"unchecked"})
-    public static Map<String, Object> unpackHierarchical(HierarchicalConfiguration config)
+    protected static Map<String, Object> unpackHierarchical(HierarchicalConfiguration config)
     {
         return (Map<String, Object>) unpackNode(config.getRootNode());
     }
 
-    public static Object unpackNode(ConfigurationNode node)
+    protected static Object unpackNode(ConfigurationNode node)
     {
         List<ConfigurationNode> children = node.getChildren();
         if (!children.isEmpty()) {
@@ -308,7 +309,7 @@ public class Configs
     public static final String LIST_END = ")";
     public static final String FIELD_SEPERATOR = ".";
 
-    public static abstract class Sigil
+    protected static abstract class Sigil
     {
         public String render()
         {
@@ -320,7 +321,7 @@ public class Configs
         public abstract void render(StringBuilder sb);
     }
 
-    public static final class ListItemSigil extends Sigil
+    protected static final class ListItemSigil extends Sigil
     {
         private final int index;
         private final Sigil next;
@@ -344,7 +345,7 @@ public class Configs
         }
     }
 
-    public static final class MapEntrySigil extends Sigil
+    protected static final class MapEntrySigil extends Sigil
     {
         private final String key;
         private final Sigil next;
@@ -366,7 +367,7 @@ public class Configs
         }
     }
 
-    public static final class TerminalSigil extends Sigil
+    protected static final class TerminalSigil extends Sigil
     {
         private TerminalSigil()
         {
@@ -380,7 +381,7 @@ public class Configs
         }
     }
 
-    public static Map<Sigil, String> flattenList(List<?> list)
+    protected static Map<Sigil, String> flattenList(List<?> list)
     {
         return IntStream.range(0, list.size()).boxed()
                 .flatMap(i -> flattenValues(list.get(i)).entrySet().stream()
@@ -388,7 +389,7 @@ public class Configs
                 .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
     }
 
-    public static Map<Sigil, String> flattenMap(Map<?, ?> map)
+    protected static Map<Sigil, String> flattenMap(Map<?, ?> map)
     {
         return map.entrySet().stream()
                 .flatMap(e -> {
@@ -399,7 +400,7 @@ public class Configs
                 .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
     }
 
-    public static Map<Sigil, String> flattenValues(Object object)
+    protected static Map<Sigil, String> flattenValues(Object object)
     {
         if (object instanceof List) {
             return flattenList((List) object);
@@ -412,7 +413,7 @@ public class Configs
         }
     }
 
-    public static Map<String, String> flatten(Object object)
+    protected static Map<String, String> flatten(Object object)
     {
         return flattenValues(object).entrySet().stream()
                 .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey().render(), e -> e.getValue()));
@@ -491,16 +492,41 @@ public class Configs
         }
     }
 
-    // FIXME invert
+    // FIXME invert?
     public static final Codecs.Codec<HierarchicalConfiguration, Map<String, String>> CONFIG_PROPERTIES_CODEC = Codecs.Codec.of(
             hc -> flatten(Configs.unpackHierarchical(hc)),
             m -> toHierarchical(m));
 
-    public static final Codecs.Codec<Object, HierarchicalConfiguration> OBJECT_CONFIG_CODEC = Codecs.Codec.of(
-            o -> toHierarchical(flatten(o)),
-            hc -> unpackHierarchical(hc));
+    public static final class ObjectConfigCodec implements Codecs.Codec<Object, HierarchicalConfiguration>
+    {
+        @Override
+        public HierarchicalConfiguration encode(Object data)
+        {
+            return toHierarchical(flatten(data));
+        }
 
-    public static class ListPreservingDefaultConfigurationKey
+        @Override
+        public Object decode(HierarchicalConfiguration data)
+        {
+            return unpackHierarchical(data);
+        }
+
+        public <T> T decode(HierarchicalConfiguration data, Class<T> clazz)
+        {
+            ObjectMapper mapper = OBJECT_MAPPER.get();
+            try {
+                byte[] bytes = mapper.writeValueAsBytes(decode(data));
+                return mapper.readValue(bytes, clazz);
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+    }
+
+    public static final ObjectConfigCodec OBJECT_CONFIG_CODEC = new ObjectConfigCodec();
+
+    protected static class ListPreservingDefaultConfigurationKey
     {
         private static final int INITIAL_SIZE = 32;
         private ListPreservingDefaultExpressionEngine expressionEngine;
@@ -917,7 +943,7 @@ public class Configs
         }
     }
 
-    public static class ListPreservingDefaultExpressionEngine implements ExpressionEngine
+    protected static class ListPreservingDefaultExpressionEngine implements ExpressionEngine
     {
         /*
         public static class Key

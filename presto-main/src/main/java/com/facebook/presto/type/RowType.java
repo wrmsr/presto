@@ -47,8 +47,13 @@ public class RowType
 
     public RowType(List<Type> fieldTypes, Optional<List<String>> fieldNames)
     {
+        this("row", fieldTypes, fieldNames);
+    }
+
+    public RowType(String base, List<Type> fieldTypes, Optional<List<String>> fieldNames)
+    {
         super(new TypeSignature(
-                        "row",
+                        base,
                         Lists.transform(fieldTypes, Type::getTypeSignature),
                         fieldNames.orElse(ImmutableList.of()).stream()
                                 .map(Object.class::cast)
