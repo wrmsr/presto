@@ -112,7 +112,8 @@ public class ExtendedJdbcConnectorFactory
         Config config = Configs.OBJECT_CONFIG_CODEC.decode(hc, Config.class);
 
         List<String> initScripts = config.getInit();
-        Configs.stripSubconfig(workingConfig, "init");
+        workingConfig = Configs.CONFIG_PROPERTIES_CODEC.encode(
+                Configs.OBJECT_CONFIG_CODEC.encode(config.getExtraProperties()));
 
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
             Bootstrap app = new Bootstrap(createModules(connectorId));
