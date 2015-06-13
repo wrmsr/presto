@@ -17,6 +17,7 @@ import com.facebook.presto.Session;
 import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.DoubleType;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
@@ -51,7 +52,7 @@ public class TestExtensionsPlugin
     public void testTypeStuff()
         throws Throwable
     {
-        Type rt = new RowType("thing", ImmutableList.<Type>of(DoubleType.DOUBLE, BigintType.BIGINT), Optional.of(ImmutableList.of("a", "b")));
+        Type rt = new RowType(new TypeSignature("thing", ImmutableList.of(), ImmutableList.of()), ImmutableList.<Type>of(DoubleType.DOUBLE, BigintType.BIGINT), Optional.of(ImmutableList.of("a", "b")));
         System.out.println(rt);
     }
 

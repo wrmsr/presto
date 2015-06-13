@@ -47,18 +47,18 @@ public class RowType
 
     public RowType(List<Type> fieldTypes, Optional<List<String>> fieldNames)
     {
-        this("row", fieldTypes, fieldNames);
-    }
-
-    public RowType(String base, List<Type> fieldTypes, Optional<List<String>> fieldNames)
-    {
-        super(new TypeSignature(
-                        base,
+        this(new TypeSignature(
+                        "row",
                         Lists.transform(fieldTypes, Type::getTypeSignature),
                         fieldNames.orElse(ImmutableList.of()).stream()
                                 .map(Object.class::cast)
                                 .collect(toImmutableList())),
-                Slice.class);
+                fieldTypes, fieldNames);
+    }
+
+    public RowType(TypeSignature signature, List<Type> fieldTypes, Optional<List<String>> fieldNames)
+    {
+        super(signature, Slice.class);
 
         ImmutableList.Builder<RowField> builder = ImmutableList.builder();
         for (int i = 0; i < fieldTypes.size(); i++) {
