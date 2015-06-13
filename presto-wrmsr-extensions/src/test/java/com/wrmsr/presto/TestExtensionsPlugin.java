@@ -31,6 +31,7 @@ import java.util.Optional;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
+import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static java.util.Locale.ENGLISH;
 
 public class TestExtensionsPlugin
@@ -52,7 +53,8 @@ public class TestExtensionsPlugin
     public void testTypeStuff()
         throws Throwable
     {
-        Type rt = new RowType(new TypeSignature("thing", ImmutableList.of(), ImmutableList.of()), ImmutableList.<Type>of(DoubleType.DOUBLE, BigintType.BIGINT), Optional.of(ImmutableList.of("a", "b")));
+        Type rt = new RowType(
+                parameterizedTypeName("thing"), ImmutableList.<Type>of(DoubleType.DOUBLE, BigintType.BIGINT), Optional.of(ImmutableList.of("a", "b")));
         System.out.println(rt);
     }
 
