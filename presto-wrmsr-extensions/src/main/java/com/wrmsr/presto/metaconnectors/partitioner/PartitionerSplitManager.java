@@ -51,14 +51,16 @@ public class PartitionerSplitManager
     {
         ConnectorMetadata metadata = targetConnector.getMetadata();
         List<ColumnMetadata> columns = metadata.getTableMetadata(table).getColumns();
-        ColumnMetadata idColumn = columns.stream().filter(c -> "id".equals(c.getName())).findFirst().get();
+        // ColumnMetadata idColumn = columns.stream().filter(c -> "id".equals(c.getName())).findFirst().get();
         ColumnHandle idColumnHandle = targetConnector.getMetadata().getColumnHandles(table).get("id");
+        /*
         TupleDomain<ColumnHandle> tupleDomain2 = TupleDomain.withColumnDomains(
                 ImmutableMap.of(
                         idColumnHandle, Domain.create(SortedRangeSet.of(
                                 Range.lessThan(1000L), Range.greaterThanOrEqual(1000L)
                         ), false))
         );
+        */
 
         List<Domain> idDomains = ImmutableList.of(
                 Domain.create(SortedRangeSet.of(

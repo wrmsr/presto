@@ -1,5 +1,6 @@
 package com.wrmsr.presto.metaconnectors.partitioner;
 
+import com.facebook.presto.spi.Range;
 import io.airlift.configuration.Config;
 
 import javax.annotation.Nullable;
@@ -57,5 +58,46 @@ public class PartitionerConfig
     public void setNumSplits(int numSplits)
     {
         this.numSplits = numSplits;
+    }
+
+    public static class Partition
+    {
+        private final String tableName;
+        private final String columnName;
+        private final int minId;
+        private final int maxId;
+
+        public Partition(String tableName, String columnName, int minId, int maxId)
+        {
+            this.tableName = tableName;
+            this.columnName = columnName;
+            this.minId = minId;
+            this.maxId = maxId;
+        }
+
+        public String getTableName()
+        {
+            return tableName;
+        }
+
+        public String getColumnName()
+        {
+            return columnName;
+        }
+
+        public int getMinId()
+        {
+            return minId;
+        }
+
+        public int getMaxId()
+        {
+            return maxId;
+        }
+
+        public Range getRange()
+        {
+            return Range.range(minId, true, maxId, false);
+        }
     }
 }
