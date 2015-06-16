@@ -77,7 +77,7 @@ public class PartitionerSplitManager
             }
 
             ConnectorPartitionResult r = target.getPartitions(table, intersectedDomain);
-            ret.addAll(r.getPartitions());
+            ret.addAll(r.getPartitions()); // FIXME PARTITION-IDS
 
             // if (r.getUndeterminedTupleDomain()) // FIXME
             undeterminedTupleDomain = TupleDomain.columnWiseUnion(

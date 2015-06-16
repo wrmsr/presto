@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -54,6 +55,6 @@ public interface Partitioner
         ColumnDomain columnDomain = e.getValue();
         int base = (Integer) columnDomain.getMin();
         int step = ((Integer) columnDomain.getMax() - base) / numPartitions;
-        return IntStream.range(0, numPartitions).boxed().map((i) -> new Partition(i.toString(), TupleDomain.withColumnDomains(ImmutableMap.of(column, Domain.create(SortedRangeSet.of(Range.range(i * step + base, true, (i + 1) * step + base, false)), false))))).collect(ImmutableCollectors.toImmutableList());
+        return LongStream.range(0, numPartitions).boxed().map((i) -> new Partition(i.toString(), TupleDomain.withColumnDomains(ImmutableMap.of(column, Domain.create(SortedRangeSet.of(Range.range(i * step + base, true, (i + 1) * step + base, false)), false))))).collect(ImmutableCollectors.toImmutableList());
     }
 }
