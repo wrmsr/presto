@@ -1,11 +1,23 @@
 package com.wrmsr.presto.jdbc.util;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.wrmsr.presto.util.CaseInsensitiveMap;
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.google.common.collect.Maps.newHashMap;
 
 public class Queries
 {
@@ -70,6 +82,114 @@ public class Queries
                     return null;
                 return result.getObject(1);
             }
+        }
+    }
+
+    private static final List<String> MIN_AND_MAX = ImmutableList.of("MIN", "MAX");
+
+    public static List<String> getClusteredColumns(Connection connection, String catalogName, String schemaName, String tableName) throws SQLException, IOException
+    {
+        String clusteredIndexName = null;
+        Map<Integer, String> clusteredColumnsByOrdinal = newHashMap();
+        DatabaseMetaData metadata = connection.getMetaData();
+
+        try (ResultSet resultSet = metadata.getIndexInfo(catalogName, schemaName, tableName, false, false)) {
+            while (resultSet.next()) {
+                if (resultSet.getShort("TYPE") != DatabaseMetaData.tableIndexClustered) {
+                    continue;
+                }
+
+                String indexName = checkNotNull(resultSet.getString("INDEX_NAME"));
+                if (clusteredColumnsByOrdinal.isEmpty()) {
+                    checkState(clusteredIndexName == null);
+                    clusteredIndexName = indexName;
+                }
+                else {
+                    checkState(indexName.equals(clusteredIndexName));
+                }
+
+                int ordinalPosition = resultSet.getInt("ORDINAL_POSITION");
+                String columnName = checkNotNull(resultSet.getString("COLUMN_NAME"));
+                // boolean isDescending = resultSet.getBoolean("ASC_OR_DESC"); // FIXME
+                checkState(!clusteredColumnsByOrdinal.containsKey(ordinalPosition));
+                clusteredColumnsByOrdinal.put(ordinalPosition, columnName);
+            }
+        }
+
+        if (clusteredIndexName == null) {
+            try (ResultSet resultSet = metadata.getPrimaryKeys(catalogName, schemaName, tableName)) {
+                while (resultSet.next()) {
+                    int ordinalPosition = resultSet.getInt("KEY_SEQ");
+                    String columnName = checkNotNull(resultSet.getString("COLUMN_NAME"));
+                    checkState(!clusteredColumnsByOrdinal.containsKey(ordinalPosition));
+                    clusteredColumnsByOrdinal.put(ordinalPosition, columnName);
+                }
+            }
+        }
+
+        List<String> clusteredColumns = IntStream.range(1, clusteredColumnsByOrdinal.size() + 1).boxed()
+                .map(i -> clusteredColumnsByOrdinal.get(i))
+                .collect(Collectors.toList());
+        checkState(Sets.newHashSet(clusteredColumns).size() == clusteredColumns.size());
+        return clusteredColumns;
+    }
+
+    public static class ColumnDomain
+    {
+        private final Comparable<?>  min;
+        private final Comparable<?> max;
+
+        public ColumnDomain(Comparable<?> min, Comparable<?> max)
+        {
+            this.min = min;
+            this.max = max;
+        }
+
+        public Comparable<?> getMin()
+        {
+            return min;
+        }
+
+        public Comparable<?> getMax()
+        {
+            return max;
+        }
+    }
+
+    public static Map<String, ColumnDomain> getColumnDomains(
+            Connection connection,
+            String catalogName,
+            String schemaName,
+            String tableName,
+            List<String> columnNames,
+            Function<String, String> quote
+    ) throws SQLException, IOException
+    {
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT ");
+        Joiner.on(", ").appendTo(sql, columnNames.stream().flatMap(c -> MIN_AND_MAX.stream().map(f -> String.format("%s(%s)", f, quote.apply(c)))).collect(Collectors.toList()));
+
+        sql.append(" FROM ");
+        if (!isNullOrEmpty(catalogName)) {
+            sql.append(quote.apply(catalogName)).append('.');
+        }
+        if (!isNullOrEmpty(schemaName)) {
+            sql.append(quote.apply(schemaName)).append('.');
+        }
+        sql.append(quote.apply(tableName));
+
+        try (Statement statement = connection.createStatement();
+            ResultSet result = statement.executeQuery(sql.toString())) {
+            checkState(result.next());
+            checkState(result.getMetaData().getColumnCount() == columnNames.size() * 2);
+            Map<String, ColumnDomain> ret = newHashMap();
+            for (int i = 0; i < columnNames.size(); ++i) {
+                ret.put(columnNames.get(i),
+                        new ColumnDomain(
+                                (Comparable<?>) result.getObject((i * 2) + 1),
+                                (Comparable<?>) result.getObject((i * 2) + 2)));
+            }
+            return ret;
         }
     }
 }

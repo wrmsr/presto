@@ -34,32 +34,6 @@ public class PartitionerConfig
         this.targetConnectorName = targetConnectorName;
     }
 
-    private String splitColumnName;
-
-    public String getSplitColumnName()
-    {
-        return splitColumnName;
-    }
-
-    @Config("split-column-name")
-    public void setSplitColumnName(String splitColumnName)
-    {
-        this.splitColumnName = splitColumnName;
-    }
-
-    private int numSplits = 2;
-
-    public int getNumSplits()
-    {
-        return numSplits;
-    }
-
-    @Config("num-splits")
-    public void setNumSplits(int numSplits)
-    {
-        this.numSplits = numSplits;
-    }
-
     public static class Partition
     {
         private final String tableName;
@@ -98,6 +72,52 @@ public class PartitionerConfig
         public Range getRange()
         {
             return Range.range(minId, true, maxId, false);
+        }
+
+        @Override
+        public String toString()
+        {
+            return "Partition{" +
+                    "tableName='" + tableName + '\'' +
+                    ", columnName='" + columnName + '\'' +
+                    ", minId=" + minId +
+                    ", maxId=" + maxId +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            Partition partition = (Partition) o;
+
+            if (minId != partition.minId) {
+                return false;
+            }
+            if (maxId != partition.maxId) {
+                return false;
+            }
+            if (tableName != null ? !tableName.equals(partition.tableName) : partition.tableName != null) {
+                return false;
+            }
+            return !(columnName != null ? !columnName.equals(partition.columnName) : partition.columnName != null);
+
+        }
+
+        @Override
+        public int hashCode()
+        {
+            int result = tableName != null ? tableName.hashCode() : 0;
+            result = 31 * result + (columnName != null ? columnName.hashCode() : 0);
+            result = 31 * result + minId;
+            result = 31 * result + maxId;
+            return result;
         }
     }
 }
