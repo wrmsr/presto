@@ -82,7 +82,7 @@ public class PartitionerConnectorFactory implements ConnectorFactory
                     jdbcClient::quoted);
         }
 
-        final Partitioner finalPartitioner = partitioner;
+        final Partitioner finalPartitioner = partitioner; // FIXME config / explode
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
             Bootstrap app = new Bootstrap(module, new Module()
             {

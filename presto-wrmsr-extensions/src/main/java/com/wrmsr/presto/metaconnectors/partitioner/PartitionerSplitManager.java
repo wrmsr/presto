@@ -12,6 +12,7 @@ import com.facebook.presto.spi.ConnectorSplitManager;
 import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableLayoutHandle;
+import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.Domain;
 import com.facebook.presto.spi.FixedSplitSource;
 import com.facebook.presto.spi.Range;
@@ -25,6 +26,7 @@ import com.wrmsr.presto.util.ImmutableCollectors;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -52,6 +54,15 @@ public class PartitionerSplitManager
     public ConnectorPartitionResult getPartitions(ConnectorTableHandle table, TupleDomain<ColumnHandle> tupleDomain)
     {
         ConnectorMetadata metadata = targetConnector.getMetadata();
+        ConnectorTableMetadata tableMetadata = metadata.getTableMetadata(table);
+        TupleDomain<String> stringTupleDomain = TupleDomain.all();
+        for (Map.Entry<ColumnHandle, Domain> e : tupleDomain.getDomains().entrySet()) {
+            ColumnMetadata columnMetadata = metadata.getColumnMetadata(table, e.getKey());
+            stringTupleDomain = TupleDomain.columnWiseUnion(
+                    stringTupleDomain,
+                    TupleDomain.withColumnDomains(ImmutableMap.of(columnMetadata.getName(), e.getValue())));
+        }
+
         List<ColumnMetadata> columns = metadata.getTableMetadata(table).getColumns();
         // ColumnMetadata idColumn = columns.stream().filter(c -> "id".equals(c.getName())).findFirst().get();
         ColumnHandle idColumnHandle = targetConnector.getMetadata().getColumnHandles(table).get("id");
