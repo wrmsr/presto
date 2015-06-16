@@ -62,55 +62,31 @@ public class PartitionerSplitManager
                     stringTupleDomain,
                     TupleDomain.withColumnDomains(ImmutableMap.of(columnMetadata.getName(), e.getValue())));
         }
-        List<Partitioner.Partition> partitionsX = partitioner.getPartitionsConnector(tableMetadata.getTable(), stringTupleDomain);
+        List<Partitioner.Partition> partitions = partitioner.getPartitionsConnector(tableMetadata.getTable(), stringTupleDomain);
 
-        List<ColumnMetadata> columns = metadata.getTableMetadata(table).getColumns();
-        // ColumnMetadata idColumn = columns.stream().filter(c -> "id".equals(c.getName())).findFirst().get();
-        ColumnHandle idColumnHandle = targetConnector.getMetadata().getColumnHandles(table).get("id");
-        /*
-        TupleDomain<ColumnHandle> tupleDomain2 = TupleDomain.withColumnDomains(
-                ImmutableMap.of(
-                        idColumnHandle, Domain.create(SortedRangeSet.of(
-                                Range.lessThan(1000L), Range.greaterThanOrEqual(1000L)
-                        ), false))
-        );
-        */
-
-        List<Domain> idDomains = ImmutableList.of(
-                Domain.create(SortedRangeSet.of(
-                        // Range.equal(1000L)
-                        Range.range(0L, true, 1000L, false)
-                ), false),
-                Domain.create(SortedRangeSet.of(
-                        // Range.equal(2000L)
-                        Range.range(1000L, true, 2000L, false)
-                ), false),
-                Domain.create(SortedRangeSet.of(
-                        // Range.equal(2000L)
-                        Range.range(2000L, true, 3000L, false)
-                ), false)
-        );
-
-        List<ConnectorPartition> partitions = newArrayList();
+        List<ConnectorPartition> ret = newArrayList();
         TupleDomain<ColumnHandle> undeterminedTupleDomain = TupleDomain.none();
-        for (Domain idDomain : idDomains) {
+        for (Partitioner.Partition partition : partitions) {
             TupleDomain intersectedDomain = tupleDomain.intersect(
-                TupleDomain.withColumnDomains(ImmutableMap.of(idColumnHandle, idDomain)));
+                    TupleDomain.withColumnDomains(
+                            partition.getTupleDomain().getDomains().entrySet().stream().collect(ImmutableCollectors.toImmutableMap(
+                                            e -> metadata.getColumnHandles(table).get(e.getKey()), e -> e.getValue()))));
+
             if (intersectedDomain.isNone()) {
                 continue;
             }
 
             ConnectorPartitionResult r = target.getPartitions(table, intersectedDomain);
-            partitions.addAll(r.getPartitions());
+            ret.addAll(r.getPartitions());
 
             // if (r.getUndeterminedTupleDomain()) // FIXME
             undeterminedTupleDomain = TupleDomain.columnWiseUnion(
                     undeterminedTupleDomain,
                     r.getUndeterminedTupleDomain().intersect(intersectedDomain));
+
         }
 
-        return new ConnectorPartitionResult(Collections.unmodifiableList(partitions), undeterminedTupleDomain);
-        //return new PartitionerSplitSource(target.getPartitionSplits(table, partitions));
+        return new ConnectorPartitionResult(Collections.unmodifiableList(ret), undeterminedTupleDomain);
     }
 
     @Override
