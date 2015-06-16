@@ -55,6 +55,11 @@ public class JdbcMetadata
         allowDropTable = config.isAllowDropTable();
     }
 
+    public JdbcClient getJdbcClient()
+    {
+        return jdbcClient;
+    }
+
     @Override
     public List<String> listSchemaNames(ConnectorSession session)
     {

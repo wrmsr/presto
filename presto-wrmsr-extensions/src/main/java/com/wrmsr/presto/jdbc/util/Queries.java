@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.wrmsr.presto.util.CaseInsensitiveMap;
+import com.wrmsr.presto.util.ColumnDomain;
 
 import java.io.IOException;
 import java.sql.*;
@@ -132,28 +133,6 @@ public class Queries
                 .collect(Collectors.toList());
         checkState(Sets.newHashSet(clusteredColumns).size() == clusteredColumns.size());
         return clusteredColumns;
-    }
-
-    public static class ColumnDomain
-    {
-        private final Comparable<?>  min;
-        private final Comparable<?> max;
-
-        public ColumnDomain(Comparable<?> min, Comparable<?> max)
-        {
-            this.min = min;
-            this.max = max;
-        }
-
-        public Comparable<?> getMin()
-        {
-            return min;
-        }
-
-        public Comparable<?> getMax()
-        {
-            return max;
-        }
     }
 
     public static Map<String, ColumnDomain> getColumnDomains(

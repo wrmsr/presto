@@ -1,6 +1,5 @@
 package com.wrmsr.presto.metaconnectors.partitioner;
 
-import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.spi.*;
 
 import java.util.List;
@@ -15,7 +14,7 @@ public class StaticPartitioner implements Partitioner
     }
 
     @Override
-    public List<ConnectorPartition> getPartitionsConnector(SchemaTableName table, TupleDomain<ColumnHandle> tupleDomain)
+    public List<Partition> getPartitionsConnector(SchemaTableName table, TupleDomain<String> tupleDomain)
     {
         return null;
     }

@@ -19,12 +19,14 @@ public class PartitionerConnector
 {
     private final PartitionerConnectorId connectorId;
     private final PartitionerTarget target;
+    private final Partitioner partitioner;
 
     @Inject
-    public PartitionerConnector(PartitionerConnectorId connectorId, PartitionerTarget target)
+    public PartitionerConnector(PartitionerConnectorId connectorId, PartitionerTarget target, Partitioner partitioner)
     {
         this.connectorId = connectorId;
         this.target = target;
+        this.partitioner = partitioner;
     }
 
     @Override
@@ -36,7 +38,7 @@ public class PartitionerConnector
     @Override
     public ConnectorSplitManager getSplitManager()
     {
-        return new PartitionerSplitManager(connectorId.toString(), target.getTarget(), target.getTarget().getSplitManager());
+        return new PartitionerSplitManager(connectorId.toString(), target.getTarget(), target.getTarget().getSplitManager(), partitioner);
     }
 
     @Override

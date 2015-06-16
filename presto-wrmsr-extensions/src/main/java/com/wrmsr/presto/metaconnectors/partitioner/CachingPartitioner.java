@@ -1,8 +1,6 @@
 package com.wrmsr.presto.metaconnectors.partitioner;
 
 import com.facebook.presto.metadata.TableHandle;
-import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.ConnectorPartition;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.TupleDomain;
 import com.google.common.cache.CacheBuilder;
@@ -22,9 +20,9 @@ public class CachingPartitioner implements Partitioner
     private final class Key
     {
         private final SchemaTableName table;
-        private final TupleDomain<ColumnHandle> tupleDomain;
+        private final TupleDomain<String> tupleDomain;
 
-        public Key(SchemaTableName table, TupleDomain<ColumnHandle> tupleDomain)
+        public Key(SchemaTableName table, TupleDomain<String> tupleDomain)
         {
             this.table = table;
             this.tupleDomain = tupleDomain;
@@ -58,7 +56,7 @@ public class CachingPartitioner implements Partitioner
         }
     }
 
-    private final LoadingCache<Key, List<ConnectorPartition>> cache;
+    private final LoadingCache<Key, List<Partition>> cache;
 
     public CachingPartitioner(Partitioner target, ExecutorService executor, Duration cacheTtl, Duration refreshInterval )
     {
@@ -67,10 +65,10 @@ public class CachingPartitioner implements Partitioner
         this.cache = CacheBuilder.newBuilder()
             .expireAfterWrite(expiresAfterWriteMillis, MILLISECONDS)
             .refreshAfterWrite(refreshMills, MILLISECONDS)
-            .build(asyncReloading(new CacheLoader<Key, List<ConnectorPartition>>()
+            .build(asyncReloading(new CacheLoader<Key, List<Partition>>()
             {
                 @Override
-                public List<ConnectorPartition> load(Key key)
+                public List<Partition> load(Key key)
                         throws Exception
                 {
                     return target.getPartitionsConnector(key.table, key.tupleDomain);
@@ -79,7 +77,7 @@ public class CachingPartitioner implements Partitioner
     }
 
     @Override
-    public List<ConnectorPartition> getPartitionsConnector(SchemaTableName table, TupleDomain<ColumnHandle> tupleDomain)
+    public List<Partition> getPartitionsConnector(SchemaTableName table, TupleDomain<String> tupleDomain)
     {
         return cache.getUnchecked(new Key(table, tupleDomain));
     }

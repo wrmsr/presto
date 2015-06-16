@@ -1,6 +1,8 @@
 package com.wrmsr.presto.metaconnectors.partitioner;
 
 import com.facebook.presto.connector.ConnectorManager;
+import com.facebook.presto.plugin.jdbc.JdbcConnector;
+import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
@@ -8,6 +10,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
+import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
+import com.wrmsr.presto.jdbc.JdbcPartitioner;
 import com.wrmsr.presto.util.Configs;
 import com.wrmsr.presto.util.ImmutableCollectors;
 import org.apache.commons.configuration.Configuration;
@@ -23,6 +28,7 @@ import io.airlift.bootstrap.Bootstrap;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
 
 public class PartitionerConnectorFactory implements ConnectorFactory
 {
@@ -54,6 +60,7 @@ public class PartitionerConnectorFactory implements ConnectorFactory
 
         Connector target;
         Map<String, String> requiredConfiguration;
+        Partitioner partitioner = null;
 
         if (targetConnectorName == null) {
             target = checkNotNull(connectorManager.getConnectors().get(targetName), "target-connector-name not specified and target not found");
@@ -67,12 +74,22 @@ public class PartitionerConnectorFactory implements ConnectorFactory
             target = checkNotNull(connectorManager.getConnectors().get(targetName));
         }
 
+        if (target instanceof ExtendedJdbcConnector) {
+            JdbcMetadata jdbcMetadata = (JdbcMetadata) ((ExtendedJdbcConnector) target).getMetadata();
+            ExtendedJdbcClient jdbcClient = (ExtendedJdbcClient) jdbcMetadata.getJdbcClient();
+            partitioner = new JdbcPartitioner(
+                    runtimeThrowing(() -> jdbcClient.getConnection()),
+                    jdbcClient::quoted);
+        }
+
+        final Partitioner finalPartitioner = partitioner;
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
             Bootstrap app = new Bootstrap(module, new Module()
             {
                 @Override
                 public void configure(Binder binder)
                 {
+                    binder.bind(Partitioner.class).toInstance(finalPartitioner);
                     binder.bind(PartitionerConnectorId.class).toInstance(new PartitionerConnectorId(connectorId));
                     binder.bind(PartitionerTarget.class).toInstance(new PartitionerTarget(target));
                 }

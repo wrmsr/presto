@@ -69,6 +69,11 @@ public class ExtendedJdbcClient
         }
     }
 
+    public Connection getConnection() throws SQLException
+    {
+        return getConnection(connectionUrl, connectionProperties);
+    }
+
     public void runInitScripts()
     {
         for (String sql : extendedConfig.getInitScripts()) {
@@ -147,5 +152,15 @@ public class ExtendedJdbcClient
         }
 
         return supplier.get();
+    }
+
+    public String quoted(String name)
+    {
+        return super.quoted(name);
+    }
+
+    public  String quoted(String catalog, String schema, String table)
+    {
+        return super.quoted(catalog, schema, table);
     }
 }

@@ -37,12 +37,14 @@ public class PartitionerSplitManager
     private final String connectorId;
     private final Connector targetConnector;
     private final ConnectorSplitManager target;
+    private final Partitioner partitioner;
 
-    public PartitionerSplitManager(String connectorId, Connector targetConnector, ConnectorSplitManager target)
+    public PartitionerSplitManager(String connectorId, Connector targetConnector, ConnectorSplitManager target, Partitioner partitioner)
     {
         this.connectorId = connectorId;
         this.targetConnector = checkNotNull(targetConnector);
         this.target = checkNotNull(target);
+        this.partitioner = checkNotNull(partitioner);
     }
 
     @Override

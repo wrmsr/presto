@@ -20,24 +20,20 @@ import com.facebook.presto.spi.SortedRangeSet;
 import com.facebook.presto.spi.TupleDomain;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
 import com.wrmsr.presto.jdbc.util.Queries;
+import com.wrmsr.presto.util.ColumnDomain;
 
 import java.io.IOException;
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Maps.newHashMap;
 
 public class ExtendedJdbcRecordCursor
@@ -52,7 +48,7 @@ public class ExtendedJdbcRecordCursor
                     split.getCatalogName(),
                     split.getSchemaName(),
                     split.getTableName());
-            Map<String, Queries.ColumnDomain> clusteredColumnDomains = Queries.getColumnDomains(
+            Map<String, ColumnDomain> clusteredColumnDomains = Queries.getColumnDomains(
                     connection,
                     split.getCatalogName(),
                     split.getSchemaName(),
@@ -78,7 +74,7 @@ public class ExtendedJdbcRecordCursor
                                                 )
                                         ))));
                 sql.append(" ORDER BY ");
-                Joiner.on(", ").appendTo(sql, clusteredColumns.stream().map(c -> quote(c) + " ASC").collect(Collectors.toList()));
+                Joiner.on(", ").appendTo(sql, clusteredColumnNames.stream().map(c -> quote(c) + " ASC").collect(Collectors.toList()));
                 sql.append(" LIMIT ");
                 sql.append(100);
 
