@@ -88,13 +88,14 @@ public class Queries
 
     private static final List<String> MIN_AND_MAX = ImmutableList.of("MIN", "MAX");
 
-    public static List<String> getClusteredColumns(Connection connection, String catalogName, String schemaName, String tableName) throws SQLException, IOException
+    public static List<String> getClusteredColumns(Connection connection, String schemaName, String tableName) throws SQLException, IOException
     {
         String clusteredIndexName = null;
         Map<Integer, String> clusteredColumnsByOrdinal = newHashMap();
         DatabaseMetaData metadata = connection.getMetaData();
 
-        try (ResultSet resultSet = metadata.getIndexInfo(catalogName, schemaName, tableName, false, false)) {
+        // FIXME postgres catalog support
+        try (ResultSet resultSet = metadata.getIndexInfo(schemaName, schemaName, tableName, false, false)) {
             while (resultSet.next()) {
                 if (resultSet.getShort("TYPE") != DatabaseMetaData.tableIndexClustered) {
                     continue;
@@ -118,7 +119,8 @@ public class Queries
         }
 
         if (clusteredIndexName == null) {
-            try (ResultSet resultSet = metadata.getPrimaryKeys(catalogName, schemaName, tableName)) {
+            // FIXME postgres catalog support
+            try (ResultSet resultSet = metadata.getPrimaryKeys(schemaName, schemaName, tableName)) {
                 while (resultSet.next()) {
                     int ordinalPosition = resultSet.getInt("KEY_SEQ");
                     String columnName = checkNotNull(resultSet.getString("COLUMN_NAME"));

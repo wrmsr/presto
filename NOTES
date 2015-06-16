@@ -449,3 +449,4 @@ https://github.com/sampov2/onejar-maven-plugin
 
 types expose funcs w same name that return new instances
 execute hardcoded jdbc connectors with where 0=1 if cols not specified
+multijvm support to bypass heap size limits

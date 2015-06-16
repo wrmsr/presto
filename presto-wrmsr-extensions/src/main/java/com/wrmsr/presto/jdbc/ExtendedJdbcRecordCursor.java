@@ -45,7 +45,6 @@ public class ExtendedJdbcRecordCursor
         try {
             List<String> clusteredColumnNames = Queries.getClusteredColumns(
                     connection,
-                    split.getCatalogName(),
                     split.getSchemaName(),
                     split.getTableName());
             Map<String, ColumnDomain> clusteredColumnDomains = Queries.getColumnDomains(

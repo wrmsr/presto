@@ -62,6 +62,7 @@ public class PartitionerSplitManager
                     stringTupleDomain,
                     TupleDomain.withColumnDomains(ImmutableMap.of(columnMetadata.getName(), e.getValue())));
         }
+        List<Partitioner.Partition> partitionsX = partitioner.getPartitionsConnector(tableMetadata.getTable(), stringTupleDomain);
 
         List<ColumnMetadata> columns = metadata.getTableMetadata(table).getColumns();
         // ColumnMetadata idColumn = columns.stream().filter(c -> "id".equals(c.getName())).findFirst().get();

@@ -38,7 +38,6 @@ public class JdbcPartitioner implements Partitioner
         try (Connection connection = connectionSupplier.get()) {
             List<String> clusteredColumnNames = Queries.getClusteredColumns(
                     connection,
-                    null,
                     table.getSchemaName(),
                     table.getTableName());
             Map<String, ColumnDomain> clusteredColumnDomains = Queries.getColumnDomains(
