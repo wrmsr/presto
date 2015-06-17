@@ -62,9 +62,9 @@ public class ExtendedJdbcRecordCursor
 
     protected void begin()
     {
+        String schemaName = isNullOrEmpty(split.getSchemaName()) ? split.getCatalogName() : split.getSchemaName(); // FIXME pile of hax growing
         try {
             try {
-                String schemaName = isNullOrEmpty(split.getSchemaName()) ? split.getCatalogName() : split.getSchemaName(); // FIXME pile of hax growing
                 clusteredColumnNames = Queries.getClusteredColumns(connection, schemaName, split.getTableName());
             }
             catch (IOException e) {
@@ -72,7 +72,7 @@ public class ExtendedJdbcRecordCursor
             }
             checkState(clusteredColumnNames.size() == 1); // FIXME
 
-            JdbcTableHandle table = jdbcClient.getTableHandle(new SchemaTableName(split.getSchemaName(), split.getTableName()));
+            JdbcTableHandle table = jdbcClient.getTableHandle(new SchemaTableName(schemaName, split.getTableName()));
             Map<String, JdbcColumnHandle> allColumns = jdbcClient.getColumns(table).stream().map(c -> ImmutablePair.of(c.getColumnName(), c)).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
             Map<String, Integer> cursorColumnIndexMap = IntStream.range(0, columnHandles.size()).boxed().map( // FIXME: helper
                     i -> ImmutablePair.of(columnHandles.get(i).getColumnName(), i)).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
@@ -91,13 +91,15 @@ public class ExtendedJdbcRecordCursor
                     columnHandles.add(handle);
                 }
             }
+
+            advanceNextChunk();
         }
         catch (SQLException e) {
             throw handleSqlException(e);
         }
     }
 
-    private boolean advanceNextChunk()
+    private void advanceNextChunk()
     {
         try {
             TupleDomain<ColumnHandle> chunkPositionDomtain = TupleDomain.withColumnDomains(
@@ -110,7 +112,7 @@ public class ExtendedJdbcRecordCursor
 
             if (chunkTupleDomain.isNone()) {
                 close();
-                return false;
+                throw new RuntimeException();
             }
 
             JdbcSplit chunkSplit = new JdbcSplit(
@@ -133,8 +135,6 @@ public class ExtendedJdbcRecordCursor
 
             log.debug("Executing: %s", sql);
             resultSet = statement.executeQuery(sql.toString());
-
-            return advanceNextPosition(false);
         }
         catch (SQLException e) {
             throw handleSqlException(e);
@@ -168,7 +168,8 @@ public class ExtendedJdbcRecordCursor
             boolean result = resultSet.next();
             if (!result) {
                 if (tryAdvanceChunk) {
-                    return advanceNextChunk();
+                    advanceNextChunk();
+                    return advanceNextPosition(false);
                 }
                 else {
                     return result;
