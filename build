@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+./mvnw clean package -Denforcer.skip=true -Dmaven.test.skip=true -Dmdep.skip=true -Dmdep.analyze.skip=true -DignoreNonCompile=true -Dlicense.skip=true -Dair.check.skip-all=true -e -Dair.check.skip-checkstyle=true -Dair.check.skip-license=true
