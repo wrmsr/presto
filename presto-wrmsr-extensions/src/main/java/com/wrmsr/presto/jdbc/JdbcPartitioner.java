@@ -21,7 +21,7 @@ import static com.google.common.collect.Sets.newHashSet;
 
 public class JdbcPartitioner implements Partitioner
 {
-    public static final int NUM_PARTITIONS = 2; // FIXME
+    public static final int NUM_PARTITIONS = 10; // FIXME
 
     private final Supplier<Connection> connectionSupplier;
     private final Function<String, String> quote;
