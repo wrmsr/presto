@@ -102,11 +102,17 @@ public class ExtendedJdbcRecordCursor
     private void advanceNextChunk()
     {
         try {
-            TupleDomain<ColumnHandle> chunkPositionDomtain = TupleDomain.withColumnDomains(
-                    IntStream.range(0, clusteredColumnHandles.size()).boxed().map(i -> ImmutablePair.of(clusteredColumnHandles.get(i), Domain.create(SortedRangeSet.of(Range.greaterThan(
-                            chunkPositionValues.get(i)
-                    )), false)))
-                    .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
+            TupleDomain<ColumnHandle> chunkPositionDomtain;
+            if (chunkPositionValues == null) {
+                chunkPositionDomtain = TupleDomain.all();
+            }
+            else {
+                chunkPositionDomtain = TupleDomain.withColumnDomains(
+                        IntStream.range(0, clusteredColumnHandles.size()).boxed().map(i -> ImmutablePair.of(clusteredColumnHandles.get(i), Domain.create(SortedRangeSet.of(Range.greaterThan(
+                                chunkPositionValues.get(i)
+                        )), false)))
+                                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
+            }
 
             TupleDomain<ColumnHandle> chunkTupleDomain = split.getTupleDomain().intersect(chunkPositionDomtain);
 
@@ -145,7 +151,11 @@ public class ExtendedJdbcRecordCursor
     {
         chunkPositionValues = chunkPositionIndices.stream().map((i) -> {
             try {
-                return (Comparable<?>) resultSet.getObject(i);
+                Comparable<?> obj = (Comparable<?>) resultSet.getObject(i + 1);
+                if (obj instanceof Integer) {
+                    obj = new Long((Integer) obj);
+                }
+                return obj;
             } catch (SQLException e) {
                 throw handleSqlException(e);
             }
