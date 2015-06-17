@@ -50,7 +50,9 @@ public class ExtendedJdbcRecordCursor
     private static final Logger log = Logger.get(ExtendedJdbcRecordCursor.class);
 
     private List<Integer> chunkPositionIndices;
-    private List<Object> chunkPositionValues;
+    private List<Comparable<?>> chunkPositionValues;
+    private List<String> clusteredColumnNames;
+    private List<JdbcColumnHandle> clusteredColumnHandles;
 
     public ExtendedJdbcRecordCursor(JdbcClient jdbcClient, JdbcSplit split, List<JdbcColumnHandle> columnHandles)
     {
@@ -60,13 +62,14 @@ public class ExtendedJdbcRecordCursor
     protected void begin()
     {
         try {
-            List<String> clusteredColumnNames = Queries.getClusteredColumns( connection, split.getSchemaName(), split.getTableName());
+            clusteredColumnNames = Queries.getClusteredColumns( connection, split.getSchemaName(), split.getTableName());
             checkState(clusteredColumnNames.size() == 1); // FIXME
 
             JdbcTableHandle table = jdbcClient.getTableHandle(new SchemaTableName(split.getSchemaName(), split.getTableName()));
             Map<String, JdbcColumnHandle> allColumns = jdbcClient.getColumns(table).stream().map(c -> ImmutablePair.of(c.getColumnName(), c)).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
             Map<String, Integer> cursorColumnIndexMap = IntStream.range(0, columnHandles.size()).boxed().map( // FIXME: helper
                     i -> ImmutablePair.of(columnHandles.get(i).getColumnName(), i)).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+            clusteredColumnHandles = clusteredColumnNames.stream().map(s -> allColumns.get(s)).collect(ImmutableCollectors.toImmutableList());
 
             chunkPositionIndices = newArrayList();
             for (String clusteredColumnName : clusteredColumnNames) {
@@ -81,46 +84,27 @@ public class ExtendedJdbcRecordCursor
                     columnHandles.add(handle);
                 }
             }
+        }
+        catch (SQLException e) {
+            throw handleSqlException(e);
+        }
+    }
 
-
-            QueryBuilder qb = new QueryBuilder(getIdentifierQuote());
-            StringBuilder sql = new StringBuilder(
-            qb.buildSql(
-                    split.getCatalogName(),
-                    split.getSchemaName(),
-                    split.getTableName(),
-                    columnHandles,
-                    split.getTupleDomain().intersect(
-                            TupleDomain.withColumnDomains(
-                                    ImmutableMap.of(
-                                            columnHandles.get(0), //FIXME)
-                                            Domain.create(SortedRangeSet.of(
-                                                    // Range.equal(1000L)
-                                                    Range.range(100L, true, 3100L, false)
-                                            ), false)
-                                    )
-                            ))));
-            sql.append(" ORDER BY ");
-            Joiner.on(", ").appendTo(sql, clusteredColumnNames.stream().map(c -> quote(c) + " ASC").collect(Collectors.toList()));
-            sql.append(" LIMIT ");
-            sql.append(100);
-
-            try (
-                    Statement statement = connection.createStatement();
-                    ResultSet result = statement.executeQuery(sql.toString())) {
-                while (result.next()) {
-                    System.out.println(result);
-                }
-            }
-
-
-
-
-            TupleDomain<ColumnHandle> chunkPositionDomtain = TupleDomain.none();
+    private boolean advanceNextChunk()
+    {
+        try {
+            TupleDomain<ColumnHandle> chunkPositionDomtain = TupleDomain.withColumnDomains(
+                    IntStream.range(0, clusteredColumnHandles.size()).boxed().map(i -> ImmutablePair.of(clusteredColumnHandles.get(i), Domain.create(SortedRangeSet.of(Range.greaterThan(
+                            chunkPositionValues.get(i)
+                    )), false)))
+                    .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
 
             TupleDomain<ColumnHandle> chunkTupleDomain = split.getTupleDomain().intersect(chunkPositionDomtain);
 
-            // FIXME chunkTupleDomain.isNone();
+            if (chunkTupleDomain.isNone()) {
+                close();
+                return false;
+            }
 
             JdbcSplit chunkSplit = new JdbcSplit(
                     split.getConnectorId(),
@@ -129,18 +113,21 @@ public class ExtendedJdbcRecordCursor
                     split.getTableName(),
                     split.getConnectionUrl(),
                     split.getConnectionProperties(),
-                    chunkTupleDomain
-            );
+                    chunkTupleDomain);
 
-
-
-            String sql = jdbcClient.buildSql(split, columnHandles);
+            StringBuilder sql = new StringBuilder(jdbcClient.buildSql(chunkSplit, columnHandles));
+            sql.append(" ORDER BY ");
+            Joiner.on(", ").appendTo(sql, clusteredColumnNames.stream().map(c -> quote(c) + " ASC").collect(Collectors.toList()));
+            sql.append(" LIMIT ");
+            sql.append(1000);
 
             statement = connection.createStatement();
             statement.setFetchSize(1000);
 
             log.debug("Executing: %s", sql);
-            resultSet = statement.executeQuery(sql);
+            resultSet = statement.executeQuery(sql.toString());
+
+            return advanceNextPosition(false);
         }
         catch (SQLException e) {
             throw handleSqlException(e);
@@ -150,18 +137,24 @@ public class ExtendedJdbcRecordCursor
         }
     }
 
-    private boolean advanceNextChunk()
-    {
-        close();
-    }
-
     private void extractChunkPosition()
     {
-
+        chunkPositionValues = chunkPositionIndices.stream().map((i) -> {
+            try {
+                return (Comparable<?>) resultSet.getObject(i);
+            } catch (SQLException e) {
+                throw handleSqlException(e);
+            }
+        }).collect(Collectors.toList());
     }
 
     @Override
     public boolean advanceNextPosition()
+    {
+        return advanceNextPosition(true);
+    }
+
+    private boolean advanceNextPosition(boolean tryAdvanceChunk)
     {
         if (closed) {
             return false;
@@ -170,7 +163,12 @@ public class ExtendedJdbcRecordCursor
         try {
             boolean result = resultSet.next();
             if (!result) {
-                return advanceNextChunk();
+                if (tryAdvanceChunk) {
+                    return advanceNextChunk();
+                }
+                else {
+                    return result;
+                }
             }
             extractChunkPosition();
             return result;
