@@ -116,15 +116,20 @@ public class ExtendedJdbcRecordCursor
 
 
 
+            TupleDomain<ColumnHandle> chunkPositionDomtain = TupleDomain.none();
 
-            new JdbcSplit(
+            TupleDomain<ColumnHandle> chunkTupleDomain = split.getTupleDomain().intersect(chunkPositionDomtain);
+
+            // FIXME chunkTupleDomain.isNone();
+
+            JdbcSplit chunkSplit = new JdbcSplit(
                     split.getConnectorId(),
                     split.getCatalogName(),
                     split.getSchemaName(),
                     split.getTableName(),
                     split.getConnectionUrl(),
                     split.getConnectionProperties(),
-                    split.getTupleDomain()
+                    chunkTupleDomain
             );
 
 
