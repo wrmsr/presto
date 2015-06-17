@@ -137,9 +137,6 @@ public class ExtendedJdbcRecordCursor
         catch (SQLException e) {
             throw handleSqlException(e);
         }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
     }
 
     private void extractChunkPosition()
