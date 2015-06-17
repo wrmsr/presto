@@ -109,7 +109,7 @@
     -->
 
     <artifactSet to="plugin/extensions">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-extensions:jar:${project.version}">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-extensions:zip:${project.version}">
             <unpack />
         </artifact>
     </artifactSet>
