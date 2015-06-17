@@ -62,7 +62,12 @@ public class ExtendedJdbcRecordCursor
     protected void begin()
     {
         try {
-            clusteredColumnNames = Queries.getClusteredColumns( connection, split.getSchemaName(), split.getTableName());
+            try {
+                clusteredColumnNames = Queries.getClusteredColumns(connection, split.getSchemaName(), split.getTableName());
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
             checkState(clusteredColumnNames.size() == 1); // FIXME
 
             JdbcTableHandle table = jdbcClient.getTableHandle(new SchemaTableName(split.getSchemaName(), split.getTableName()));
