@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 
@@ -63,7 +64,8 @@ public class ExtendedJdbcRecordCursor
     {
         try {
             try {
-                clusteredColumnNames = Queries.getClusteredColumns(connection, split.getSchemaName(), split.getTableName());
+                String schemaName = isNullOrEmpty(split.getSchemaName()) ? split.getCatalogName() : split.getSchemaName(); // FIXME pile of hax growing
+                clusteredColumnNames = Queries.getClusteredColumns(connection, schemaName, split.getTableName());
             }
             catch (IOException e) {
                 throw Throwables.propagate(e);
