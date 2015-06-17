@@ -55,6 +55,7 @@ public interface Partitioner
         ColumnDomain columnDomain = e.getValue();
         int base = (Integer) columnDomain.getMin();
         int step = ((Integer) columnDomain.getMax() - base) / numPartitions;
+        // FIXME: alignment / remainder
         return LongStream.range(0, numPartitions).boxed().map((i) -> new Partition(i.toString(), TupleDomain.withColumnDomains(ImmutableMap.of(column, Domain.create(SortedRangeSet.of(Range.range(i * step + base, true, (i + 1) * step + base, false)), false))))).collect(ImmutableCollectors.toImmutableList());
     }
 }

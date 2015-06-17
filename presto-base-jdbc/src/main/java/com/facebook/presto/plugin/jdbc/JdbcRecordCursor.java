@@ -41,6 +41,7 @@ import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
 import static io.airlift.slice.Slices.utf8Slice;
 import static io.airlift.slice.Slices.wrappedBuffer;
 import static org.joda.time.DateTimeZone.UTC;
@@ -65,7 +66,7 @@ public class JdbcRecordCursor
     {
         this.jdbcClient = jdbcClient;
         this.split = split;
-        this.columnHandles = ImmutableList.copyOf(checkNotNull(columnHandles, "columnHandles is null"));
+        this.columnHandles = newArrayList(checkNotNull(columnHandles, "columnHandles is null"));
         try {
             connection = jdbcClient.getConnection(split);
         }
@@ -247,7 +248,7 @@ public class JdbcRecordCursor
         }
     }
 
-    private RuntimeException handleSqlException(SQLException e)
+    protected RuntimeException handleSqlException(SQLException e)
     {
         try {
             close();
