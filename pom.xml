@@ -87,10 +87,10 @@
         <module>presto-server</module>
         <module>presto-docs</module>
         <module>presto-verifier</module>
-        <module>presto-streaming</module>
-        <module>presto-wrmsr-elasticsearch</module>
+	<!-- <module>presto-streaming</module> -->
+	<!-- <module>presto-wrmsr-elasticsearch</module> -->
         <module>presto-wrmsr-extensions</module>
-        <module>presto-wrmsr-wrapper</module>
+	<!-- <module>presto-wrmsr-wrapper</module> -->
     </modules>
 
     <dependencyManagement>

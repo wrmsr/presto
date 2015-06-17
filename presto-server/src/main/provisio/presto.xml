@@ -100,11 +100,13 @@
         </artifact>
     </artifactSet>
 
+    <!--
     <artifactSet to="plugin/elasticsearch">
         <artifact id="com.wrmsr.presto:presto-wrmsr-elasticsearch:jar:${project.version}">
             <unpack />
         </artifact>
     </artifactSet>
+    -->
 
     <artifactSet to="plugin/extensions">
         <artifact id="com.wrmsr.presto:presto-wrmsr-extensions:jar:${project.version}">
