@@ -63,7 +63,7 @@ public class PrestoWrapperMain
         File cwd = new File(System.getProperty("user.dir"));
 
         List<URL> urls = Lists.newArrayList();
-        boolean isShaded = true;
+        boolean isShaded = false;
 
         if (isShaded) {
             File shaded = new File(cwd, "presto-main/target/presto-main.jar");
