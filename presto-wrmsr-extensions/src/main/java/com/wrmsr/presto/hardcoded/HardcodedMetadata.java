@@ -13,6 +13,7 @@ import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapMaker;
 import io.airlift.slice.Slice;
 
@@ -21,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 
@@ -38,7 +41,8 @@ public class HardcodedMetadata
     {
         Map<String, String> tableViews = viewsBySchemaByTable.get(schema);
         if (tableViews == null) {
-            tableViews = viewsBySchemaByTable.getOrDefault(schema, makeMap());
+            viewsBySchemaByTable.putIfAbsent(schema, makeMap());
+            tableViews = checkNotNull(viewsBySchemaByTable.get(schema));
         }
         tableViews.put(table, view);
     }
@@ -52,6 +56,14 @@ public class HardcodedMetadata
     @Override
     public final Map<SchemaTableName, String> getViews(ConnectorSession session, SchemaTablePrefix prefix)
     {
+        // FIXME prefix lol
+        Map<String, String> schemaViews = viewsBySchemaByTable.get(prefix.getSchemaName());
+        if (schemaViews != null) {
+            String view = schemaViews.get(prefix.getTableName());
+            if (view != null) {
+                return ImmutableMap.of(new SchemaTableName(prefix.getSchemaName(), prefix.getTableName()), view);
+            }
+        }
         return emptyMap();
     }
 
