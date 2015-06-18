@@ -231,7 +231,9 @@ primaryExpression
     | name=LOCALTIME ('(' precision=INTEGER_VALUE ')')?                              #specialDateTimeFunction
     | name=LOCALTIMESTAMP ('(' precision=INTEGER_VALUE ')')?                         #specialDateTimeFunction
     | SUBSTRING '(' valueExpression FROM valueExpression (FOR valueExpression)? ')'  #substring
+    | NORMALIZE '(' valueExpression (',' normalForm)? ')'                            #normalize
     | EXTRACT '(' identifier FROM valueExpression ')'                                #extract
+    | POSITION '(' valueExpression IN valueExpression ')'                            #position
     | '(' expression ')'                                                             #parenthesizedExpression
     ;
 
@@ -333,6 +335,11 @@ nonReserved
     | SET | RESET
     | VIEW | REPLACE
     | IF | NULLIF | COALESCE
+    | normalForm
+    ;
+
+normalForm
+    : NFD | NFC | NFKD | NFKC
     ;
 
 SELECT: 'SELECT';
@@ -369,6 +376,7 @@ ESCAPE: 'ESCAPE';
 ASC: 'ASC';
 DESC: 'DESC';
 SUBSTRING: 'SUBSTRING';
+POSITION: 'POSITION';
 FOR: 'FOR';
 DATE: 'DATE';
 TIME: 'TIME';
@@ -463,6 +471,12 @@ SET: 'SET';
 RESET: 'RESET';
 SESSION: 'SESSION';
 
+NORMALIZE: 'NORMALIZE';
+NFD : 'NFD';
+NFC : 'NFC';
+NFKD : 'NFKD';
+NFKC : 'NFKC';
+
 IF: 'IF';
 NULLIF: 'NULLIF';
 COALESCE: 'COALESCE';
@@ -548,5 +562,5 @@ WS
 // We use this to be able to ignore and recover all the text
 // when splitting statements with DelimiterLexer
 UNRECOGNIZED
-    : .+?
+    : .
     ;

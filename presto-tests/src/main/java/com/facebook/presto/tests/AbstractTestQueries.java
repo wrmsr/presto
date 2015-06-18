@@ -1754,6 +1754,14 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testOrderByDuplicateFields()
+            throws Exception
+    {
+        assertQueryOrdered("SELECT custkey, custkey FROM orders ORDER BY custkey, custkey");
+        assertQueryOrdered("SELECT custkey, custkey FROM orders ORDER BY custkey ASC, custkey DESC");
+    }
+
+    @Test
     public void testOrderByWithNulls()
             throws Exception
     {
@@ -2255,6 +2263,33 @@ public abstract class AbstractTestQueries
     public void testRowNumberWithLimit() throws Exception
     {
         assertQuery("SELECT row_number() over() as rn FROM lineitem JOIN orders ON lineitem.orderkey = orders.orderkey where orders.orderkey = 10000 limit 20");
+    }
+
+    @Test
+    public void testRowNumberPropertyDerivation()
+            throws Exception
+    {
+        MaterializedResult actual = computeActual("" +
+                "SELECT orderkey, orderstatus, SUM(rn) OVER (PARTITION BY orderstatus) c\n" +
+                "FROM (\n" +
+                "   SELECT orderkey, orderstatus, row_number() OVER (PARTITION BY orderstatus) rn\n" +
+                "   FROM (\n" +
+                "       SELECT * FROM orders ORDER BY orderkey LIMIT 10\n" +
+                "   )\n" +
+                ")");
+        MaterializedResult expected = resultBuilder(getSession(), BIGINT, VARCHAR, BIGINT)
+                .row(1, "O", 21)
+                .row(2, "O", 21)
+                .row(3, "F", 10)
+                .row(4, "O", 21)
+                .row(5, "F", 10)
+                .row(6, "F", 10)
+                .row(7, "O", 21)
+                .row(32, "O", 21)
+                .row(33, "F", 10)
+                .row(34, "O", 21)
+                .build();
+        assertEqualsIgnoreOrder(actual.getMaterializedRows(), expected.getMaterializedRows());
     }
 
     @Test
@@ -3467,6 +3502,18 @@ public abstract class AbstractTestQueries
                 "      THEN 1\n" +
                 "      ELSE 0\n" +
                 "      END) > 1");
+    }
+
+    @Test
+    public void testJoinConstantPropagation()
+            throws Exception
+    {
+        assertQuery("" +
+                "SELECT x, y, COUNT(*)\n" +
+                "FROM (SELECT orderkey, 0 AS x FROM orders) a \n" +
+                "JOIN (SELECT orderkey, 1 AS y FROM orders) b \n" +
+                "ON a.orderkey = b.orderkey\n" +
+                "GROUP BY 1, 2");
     }
 
     @Test
