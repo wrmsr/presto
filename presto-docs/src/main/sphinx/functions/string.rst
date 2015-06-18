@@ -93,6 +93,11 @@ String Functions
     Returns the starting position of the first instance of ``substring`` in
     ``string``. Positions start with ``1``. If not found, ``0`` is returned.
 
+.. function:: position(substring IN string) -> bigint
+
+    Returns the starting position of the first instance of ``substring`` in
+    ``string``. Positions start with ``1``. If not found, ``0`` is returned.
+
 .. function:: substr(string, start) -> varchar
 
     Returns the rest of ``string`` from the starting position ``start``.
@@ -112,6 +117,24 @@ String Functions
 .. function:: upper(string) -> varchar
 
     Converts ``string`` to uppercase.
+
+.. function:: normalize(string) -> varchar
+
+    Transforms ``string`` with NFC normalization form.
+
+.. function:: normalize(string, form) -> varchar
+
+    Transforms ``string`` with the specified normalization form. ``form`` must be
+    one of the following:
+
+========= ===========
+Form      Description
+========= ===========
+``NFD``   Canonical Decomposition
+``NFC``   Canonical Decomposition, followed by Canonical Composition
+``NFKD``  Compatibility Decomposition
+``NFKC``  Compatibility Decomposition, followed by Canonical Composition
+========= ===========
 
 .. function:: to_utf8(string) -> varbinary
 
