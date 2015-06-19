@@ -151,7 +151,7 @@ public class TestFFIPlugin
                 ImmutableMap.<String, String>of());
 
         ExtensionsPlugin plugin = new ExtensionsPlugin();
-        plugin.setTypeManager(localQueryRunner.getTypeManager());
+        plugin.setTypeRegistry(localQueryRunner.getTypeManager());
         for (Type type : plugin.getServices(Type.class)) {
             localQueryRunner.getTypeManager().addType(type);
         }

@@ -31,6 +31,7 @@ import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.type.RowType;
+import com.facebook.presto.type.TypeRegistry;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
@@ -80,7 +81,7 @@ public class ExtensionsPlugin
 {
     private Map<String, String> optionalConfig = ImmutableMap.of();
     private ConnectorManager connectorManager;
-    private TypeManager typeManager;
+    private TypeRegistry typeRegistry;
     private NodeManager nodeManager;
     private PluginManager pluginManager;
     private JsonCodec<ViewDefinition> viewCodec;
@@ -102,9 +103,9 @@ public class ExtensionsPlugin
     }
 
     @Inject
-    public void setTypeManager(TypeManager typeManager)
+    public void setTypeRegistry(TypeRegistry typeRegistry)
     {
-        this.typeManager = checkNotNull(typeManager, "typeManager is null");
+        this.typeRegistry = checkNotNull(typeRegistry);
     }
 
     @Inject
@@ -219,6 +220,7 @@ public class ExtensionsPlugin
 
             new TypeRegistrar(
                     connectorManager,
+                    typeRegistry,
                     metadata,
                     sqlParser,
                     planOptimizers,
@@ -247,7 +249,7 @@ public class ExtensionsPlugin
             );
         }
         else if (type == FunctionFactory.class) {
-            return ImmutableList.of(type.cast(new FFIFunctionFactory(typeManager)));
+            return ImmutableList.of(type.cast(new FFIFunctionFactory(typeRegistry)));
         }
         else if (type == ServerEvent.Listener.class) {
             return ImmutableList.of(type.cast(this));

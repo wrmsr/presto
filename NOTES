@@ -461,4 +461,8 @@ http://stackoverflow.com/questions/15524995/adding-another-projects-jar-as-a-res
 
 
 
-immediate priorities: codecs, raw raptor storage, spilling, join ordering
+immediate priorities: codecs, raw raptor storage, spilling, join ordering, bitwise scalar funcs (or, and, xor)
+
+
+http://www.adellera.it/blog/category/materialized-views/
+http://www.adellera.it/blog/2013/04/22/fast-refresh-of-outer-join-only-materialized-views-algorithm-part-1/

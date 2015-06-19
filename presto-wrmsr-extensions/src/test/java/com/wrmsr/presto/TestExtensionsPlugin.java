@@ -76,7 +76,7 @@ public class TestExtensionsPlugin
                new TpchConnectorFactory(queryRunner.getNodeManager(), 1),
                ImmutableMap.<String, String>of());
        ExtensionsPlugin plugin = new ExtensionsPlugin();
-       plugin.setTypeManager(queryRunner.getTypeManager());
+       plugin.setTypeRegistry(queryRunner.getTypeManager());
        /*
        for (Type type : plugin.getServices(Type.class)) {
            queryRunner.getTypeManager().addType(type);

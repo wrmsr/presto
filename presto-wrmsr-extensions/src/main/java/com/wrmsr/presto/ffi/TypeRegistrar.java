@@ -21,6 +21,7 @@ import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.type.RowType;
+import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import io.airlift.json.JsonCodec;
 
@@ -40,14 +41,16 @@ import static java.util.Locale.ENGLISH;
 public class TypeRegistrar
 {
     private final ConnectorManager connectorManager;
+    private final TypeRegistry typeRegistry;
     private final Metadata metadata;
     private final SqlParser sqlParser;
     private final List<PlanOptimizer> planOptimizers;
     private final boolean experimentalSyntaxEnabled;
 
-    public TypeRegistrar(ConnectorManager connectorManager, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
+    public TypeRegistrar(ConnectorManager connectorManager,TypeRegistry typeRegistry, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
     {
         this.connectorManager = checkNotNull(connectorManager);
+        this.typeRegistry = typeRegistry;
         this.metadata = checkNotNull(metadata);
         this.sqlParser = checkNotNull(sqlParser);
         this.planOptimizers = checkNotNull(planOptimizers);
@@ -118,6 +121,7 @@ public class TypeRegistrar
                 .setLocale(ENGLISH)
                 .setSchema("yelp");
         Session session = builder.build();
-        buildType(session, "thing", "select 1, 'hi', cast(null as bigint), cast(null as varbinary)");
+        Type thing = buildType(session, "thing", "select 1, 'hi', cast(null as bigint), cast(null as varbinary)");
+        typeRegistry.addType(thing);
     }
 }
