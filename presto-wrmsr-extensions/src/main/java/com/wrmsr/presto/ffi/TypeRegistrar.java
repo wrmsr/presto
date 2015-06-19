@@ -11,6 +11,7 @@ import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
+import com.facebook.presto.sql.analyzer.Field;
 import com.facebook.presto.sql.analyzer.QueryExplainer;
 import com.facebook.presto.sql.analyzer.SemanticErrorCode;
 import com.facebook.presto.sql.analyzer.SemanticException;
@@ -24,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.airlift.json.JsonCodec;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -61,7 +63,7 @@ public class TypeRegistrar
     }
 
     @Nullable
-    public Type buildType(Session session, String sql)
+    public Type buildType(Session session, String name, String sql)
     {
         // verify round-trip
         Statement statement;
@@ -87,8 +89,22 @@ public class TypeRegistrar
             }
         }
 
-        Type rt = new RowType(
-                parameterizedTypeName("thing"), ImmutableList.<Type>of(DoubleType.DOUBLE, BigintType.BIGINT), Optional.of(ImmutableList.of("a", "b")));
+        Collection<Field> visibleFields = tupleDescriptor.getVisibleFields();
+        List<Type> fieldTypes = visibleFields.stream().map(f -> f.getType()).collect(toImmutableList());
+        List<Optional<String>> fieldNameOptions = visibleFields.stream().map(f -> f.getName()).collect(toImmutableList());
+        long numNamed = fieldNameOptions.stream().filter(o -> o.isPresent()).count();
+        Optional<List<String>> fieldNames;
+        if (numNamed == (long) fieldNameOptions.size()) {
+            fieldNames = Optional.of(fieldNameOptions.stream().map(o -> o.get()).collect(toImmutableList()));
+        }
+        else if (numNamed == 0) {
+            fieldNames = Optional.empty();
+        }
+        else {
+            throw new RuntimeException(String.format("All fields must be named or no fields must be named for type: %s -> %s", name, sql));
+        }
+
+        Type rt = new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
         return rt;
     }
 
@@ -102,6 +118,6 @@ public class TypeRegistrar
                 .setLocale(ENGLISH)
                 .setSchema("yelp");
         Session session = builder.build();
-        buildType(session, "select 1, 'hi'");
+        buildType(session, "thing", "select 1, 'hi', cast(null as bigint), cast(null as varbinary)");
     }
 }
