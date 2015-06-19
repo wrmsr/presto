@@ -37,6 +37,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.ffi.FFIFunctionFactory;
+import com.wrmsr.presto.ffi.TypeRegistrar;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
@@ -210,6 +211,14 @@ public class ExtensionsPlugin
             new HardcodedMetadataPopulator(
                     connectorManager,
                     viewCodec,
+                    metadata,
+                    sqlParser,
+                    planOptimizers,
+                    featuresConfig
+            ).run();
+
+            new TypeRegistrar(
+                    connectorManager,
                     metadata,
                     sqlParser,
                     planOptimizers,

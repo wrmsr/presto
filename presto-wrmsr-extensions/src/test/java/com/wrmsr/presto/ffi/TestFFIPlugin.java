@@ -15,7 +15,14 @@ package com.wrmsr.presto.ffi;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.byteCode.DynamicClassLoader;
+import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.sql.analyzer.Analysis;
+import com.facebook.presto.sql.analyzer.Analyzer;
+import com.facebook.presto.sql.analyzer.QueryExplainer;
+import com.facebook.presto.sql.analyzer.SemanticErrorCode;
+import com.facebook.presto.sql.analyzer.SemanticException;
+import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
@@ -46,9 +53,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
+import java.util.List;
+import java.util.Optional;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
+import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
+import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Locale.ENGLISH;
 import static org.objectweb.asm.Opcodes.ACC_ABSTRACT;
@@ -294,6 +305,31 @@ public class TestFFIPlugin
                 .createArchiveInputStream(originalInput);
         CompressorInputStream input = new CompressorStreamFactory()
                 .createCompressorInputStream(originalInput);
+        */
+
+        /*
+        QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
+        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
+        Analysis analysis = analyzer.analyze(statement);
+
+        final List<ViewDefinition.ViewColumn> columns;
+        try {
+            columns = analysis.getOutputDescriptor()
+                    .getVisibleFields().stream()
+                    .map(field -> {
+                        checkState(field.getName().isPresent(), String.format("view '%s' columns must be named", name));
+                        return new ViewDefinition.ViewColumn(field.getName().get(), field.getType());
+                    })
+                    .collect(toImmutableList());
+        }
+        catch (SemanticException e) {
+            if (e.getCode() == SemanticErrorCode.MISSING_TABLE) {
+                return null;
+            }
+            else {
+                throw e;
+            }
+        }
         */
     }
 }

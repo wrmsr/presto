@@ -459,3 +459,6 @@ just implement a flat raptor StorageEngine, wrap with encoder
 
 http://stackoverflow.com/questions/15524995/adding-another-projects-jar-as-a-resource-using-maven
 
+
+
+immediate priorities: codecs, raw raptor storage, spilling, join ordering
