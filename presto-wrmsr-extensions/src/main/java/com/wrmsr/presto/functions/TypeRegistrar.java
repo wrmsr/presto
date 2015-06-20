@@ -142,12 +142,12 @@ public class TypeRegistrar
         definition.declareDefaultConstructor(a(PRIVATE));
 
         ImmutableList.Builder<Parameter> parameters = ImmutableList.builder();
-        for (int i = 0; i < nativeContainerTypes.size(); i++) {
-            Class<?> nativeContainerType = nativeContainerTypes.get(i);
-            parameters.add(arg("arg" + i, nativeContainerType));
+        for (int i = 0; i < fieldTypes.size(); i++) {
+            RowType.RowField fieldType = fieldTypes.get(i);
+            parameters.add(arg("arg" + i, fieldType.getType().getJavaType()));
         }
 
-        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), "hash", type(nativeContainerTypes.get(0)), parameters.build());
+        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), "_new", type(rowType), parameters.build());
         Scope scope = methodDefinition.getScope();
 
         Variable typeVariable = scope.declareVariable(Type.class, "typeVariable");
