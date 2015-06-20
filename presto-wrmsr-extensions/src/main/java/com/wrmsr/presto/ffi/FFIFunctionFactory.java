@@ -4,6 +4,8 @@ import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.ParametricFunction;
 import com.facebook.presto.spi.type.TypeManager;
+import com.wrmsr.presto.functions.CompressionFunctions;
+import com.wrmsr.presto.functions.SerializeFunction;
 
 import java.util.List;
 

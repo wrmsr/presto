@@ -1,4 +1,4 @@
-package com.wrmsr.presto.ffi;
+package com.wrmsr.presto.functions;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.connector.ConnectorManager;
@@ -34,6 +34,7 @@ import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Locale.ENGLISH;
@@ -68,6 +69,8 @@ public class TypeRegistrar
     @Nullable
     public Type buildType(Session session, String name, String sql)
     {
+        checkArgument(name.toLowerCase().equals(name));
+
         // verify round-trip
         Statement statement;
         try {

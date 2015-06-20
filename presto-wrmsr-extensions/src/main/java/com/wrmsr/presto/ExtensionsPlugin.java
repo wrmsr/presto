@@ -26,19 +26,17 @@ import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
-import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
-import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.ffi.FFIFunctionFactory;
-import com.wrmsr.presto.ffi.TypeRegistrar;
+import com.wrmsr.presto.functions.Hash;
+import com.wrmsr.presto.functions.TypeRegistrar;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
@@ -63,15 +61,12 @@ import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.wrmsr.presto.util.Maps.mapMerge;
-import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPERS_BY_EXTENSION;
 import static com.wrmsr.presto.util.Serialization.YAML_OBJECT_MAPPER;
 
 // import com.facebook.presto.type.ParametricType;
@@ -249,7 +244,10 @@ public class ExtensionsPlugin
             );
         }
         else if (type == FunctionFactory.class) {
-            return ImmutableList.of(type.cast(new FFIFunctionFactory(typeRegistry)));
+            return ImmutableList.of(
+                    type.cast(new Hash()),
+                    type.cast(new FFIFunctionFactory(typeRegistry))
+            );
         }
         else if (type == ServerEvent.Listener.class) {
             return ImmutableList.of(type.cast(this));

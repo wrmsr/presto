@@ -1,4 +1,4 @@
-package com.wrmsr.presto.ffi;
+package com.wrmsr.presto.functions;
 
 import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.spi.type.StandardTypes;

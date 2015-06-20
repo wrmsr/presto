@@ -1,4 +1,4 @@
-package com.wrmsr.presto.ffi;
+package com.wrmsr.presto.functions;
 
 import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
@@ -22,12 +22,13 @@ import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
-public class NewFunction
-        extends ParametricScalar
+public class SerializeFunction
+    extends ParametricScalar
 {
     public static final SerializeFunction SERIALIZE = new SerializeFunction();
-    private static final Signature SIGNATURE = new Signature("new", ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E", StandardTypes.VARCHAR), false, false);
-    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "newRowType", Type.class, Object.class, Slice.class);
+    private static final Signature SIGNATURE = new Signature(
+            "serialize", ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E", StandardTypes.VARCHAR), false, false);
+    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", Type.class, Object.class, Slice.class);
 
     @Override
     public Signature getSignature()
@@ -59,10 +60,10 @@ public class NewFunction
         checkArgument(types.size() == 1, "Cardinality expects only one argument");
         Type type = types.get("E");
         MethodHandle methodHandle = METHOD_HANDLE.bindTo(type);
-        return new FunctionInfo(new Signature("new", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature(), parseTypeSignature(StandardTypes.VARCHAR)), getDescription(), isHidden(), METHOD_HANDLE, isDeterministic(), false, ImmutableList.of(false, false));
+        return new FunctionInfo(new Signature("serialize", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature(), parseTypeSignature(StandardTypes.VARCHAR)), getDescription(), isHidden(), METHOD_HANDLE, isDeterministic(), false, ImmutableList.of(false, false));
     }
 
-    public static Slice newRowType(Type type, Object object, Slice codec)
+    public static Slice serialize(Type type, Object object, Slice codec)
     {
         try {
             return Slices.wrappedBuffer(OBJECT_MAPPER.get().writeValueAsBytes(object));
