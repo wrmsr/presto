@@ -466,3 +466,6 @@ immediate priorities: codecs, raw raptor storage, spilling, join ordering, bitwi
 
 http://www.adellera.it/blog/category/materialized-views/
 http://www.adellera.it/blog/2013/04/22/fast-refresh-of-outer-join-only-materialized-views-algorithm-part-1/
+
+
+HLists? HNode + HNil?

@@ -1,6 +1,12 @@
 package com.wrmsr.presto.functions;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.byteCode.Block;
+import com.facebook.presto.byteCode.ClassDefinition;
+import com.facebook.presto.byteCode.MethodDefinition;
+import com.facebook.presto.byteCode.Parameter;
+import com.facebook.presto.byteCode.Scope;
+import com.facebook.presto.byteCode.Variable;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
@@ -16,12 +22,15 @@ import com.facebook.presto.sql.analyzer.QueryExplainer;
 import com.facebook.presto.sql.analyzer.SemanticErrorCode;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.analyzer.TupleDescriptor;
+import com.facebook.presto.sql.gen.CallSiteBinder;
+import com.facebook.presto.sql.gen.CompilerUtils;
 import com.facebook.presto.sql.parser.ParsingException;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.airlift.json.JsonCodec;
 
@@ -30,6 +39,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import static com.facebook.presto.byteCode.Access.FINAL;
+import static com.facebook.presto.byteCode.Access.PRIVATE;
+import static com.facebook.presto.byteCode.Access.PUBLIC;
+import static com.facebook.presto.byteCode.Access.STATIC;
+import static com.facebook.presto.byteCode.Access.a;
+import static com.facebook.presto.byteCode.Parameter.arg;
+import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
@@ -112,6 +128,33 @@ public class TypeRegistrar
 
         Type rt = new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
         return rt;
+    }
+
+    public void generateConstructor(RowType rowType)
+    {
+        List<RowType.RowField> fieldTypes = rowType.getFields();
+
+        ClassDefinition definition = new ClassDefinition(
+                a(PUBLIC, FINAL),
+                CompilerUtils.makeClassName(rowType.getDisplayName() + "_new"),
+                type(Object.class));
+
+        definition.declareDefaultConstructor(a(PRIVATE));
+
+        ImmutableList.Builder<Parameter> parameters = ImmutableList.builder();
+        for (int i = 0; i < nativeContainerTypes.size(); i++) {
+            Class<?> nativeContainerType = nativeContainerTypes.get(i);
+            parameters.add(arg("arg" + i, nativeContainerType));
+        }
+
+        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), "hash", type(nativeContainerTypes.get(0)), parameters.build());
+        Scope scope = methodDefinition.getScope();
+
+        Variable typeVariable = scope.declareVariable(Type.class, "typeVariable");
+        Variable rangeTypeVariable = scope.declareVariable(Type.class, "rangeTypeVariable");
+        CallSiteBinder binder = new CallSiteBinder();
+        Block body = methodDefinition.getBody();
+
     }
 
     public void run()
