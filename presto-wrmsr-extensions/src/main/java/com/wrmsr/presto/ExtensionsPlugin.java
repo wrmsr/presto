@@ -16,7 +16,6 @@ package com.wrmsr.presto;
 // import com.facebook.presto.metadata.FunctionFactory;
 
 import com.facebook.presto.connector.ConnectorManager;
-import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
@@ -34,7 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.ffi.FFIFunctionFactory;
+import com.wrmsr.presto.functions.ExtensionFunctionFactory;
 import com.wrmsr.presto.functions.Hash;
 import com.wrmsr.presto.functions.TypeRegistrar;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
@@ -243,10 +242,9 @@ public class ExtensionsPlugin
                     type.cast(new ExtendedJdbcConnectorFactory("temp", new TempClientModule(), optionalConfig, TempClientModule.createProperties(), getClassLoader()))
             );
         }
-        else if (type == FunctionFactory.class) {
+        else if (type == com.facebook.presto.metadata.FunctionFactory.class) {
             return ImmutableList.of(
-                    type.cast(new Hash()),
-                    type.cast(new FFIFunctionFactory(typeRegistry))
+                    type.cast(new ExtensionFunctionFactory(typeRegistry))
             );
         }
         else if (type == ServerEvent.Listener.class) {
