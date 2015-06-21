@@ -499,3 +499,6 @@ https://github.com/facebook/presto/pull/1937
 
 
 https://github.com/yesmeck/jquery-jsonview
+
+
+com.facebook.presto.operator.PagesIndex <--- DISK SPILL
