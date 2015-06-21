@@ -33,6 +33,7 @@ import com.facebook.presto.type.TypeRegistry;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.airlift.json.JsonCodec;
+import io.airlift.slice.Slice;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -147,7 +148,7 @@ public class TypeRegistrar
             parameters.add(arg("arg" + i, fieldType.getType().getJavaType()));
         }
 
-        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), "_new", type(rowType), parameters.build());
+        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), "_new", type(Slice.class), parameters.build());
         Scope scope = methodDefinition.getScope();
 
         Variable typeVariable = scope.declareVariable(Type.class, "typeVariable");
