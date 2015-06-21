@@ -71,6 +71,7 @@
         <module>presto-hive-cdh4</module>
         <module>presto-hive-cdh5</module>
         <module>presto-example-http</module>
+        <module>presto-teradata-functions</module>
         <module>presto-tpch</module>
         <module>presto-raptor</module>
         <module>presto-base-jdbc</module>
