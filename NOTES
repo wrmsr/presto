@@ -155,7 +155,7 @@ http://jyni.org/
 
 streams + sqs + gearman
 
-
+https://github.com/johnewart/gearman-java
 
 
 
@@ -471,6 +471,7 @@ http://www.adellera.it/blog/2013/04/22/fast-refresh-of-outer-join-only-materiali
 HLists? HNode + HNil?
 
 gson?
+ http://www.doublecloud.org/2015/03/gson-vs-jackson-which-to-use-for-json-in-java/
 
 
 https://github.com/facebook/presto/pull/3016 :D
