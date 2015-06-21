@@ -118,7 +118,7 @@ public class ExtendedJdbcRecordCursor
 
             if (chunkTupleDomain.isNone()) {
                 close();
-                throw new RuntimeException();
+                throw new RuntimeException(); // FIXME empty resultset runtimeerr's
             }
 
             JdbcSplit chunkSplit = new JdbcSplit(

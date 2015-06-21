@@ -496,3 +496,6 @@ https://github.com/facebook/presto/pull/1937
     <artifactId>org.ow2.sat4j.core</artifactId>
     <version>2.3.5</version>
 </dependency>
+
+
+https://github.com/yesmeck/jquery-jsonview
