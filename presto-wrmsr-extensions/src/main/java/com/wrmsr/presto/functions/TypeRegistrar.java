@@ -209,12 +209,14 @@ public class TypeRegistrar
                     .getVariable(arg)
                     .ifNullGoto(isNull)
                     .getVariable(blockBuilder)
+
                     .getVariable(arg)
                     .push(0)
                     .getVariable(arg)
                     .invokeVirtual(Slice.class, "length", int.class)
                     .invokeInterface(BlockBuilder.class, "writeBytes", BlockBuilder.class, Slice.class, int.class, int.class)
                     .pop()
+
                     .gotoLabel(done)
                     .visitLabel(isNull)
                     .getVariable(blockBuilder)
@@ -320,7 +322,7 @@ public class TypeRegistrar
         }
     }
 
-    public static class NullableRowTypeConstructorGenerator extends RowTypeConstructorCompiler
+    public static class NullableRowTypeConstructorCompiler extends RowTypeConstructorCompiler
     {
         @Override
         protected List<Parameter> createParameters(List<RowType.RowField> fieldTypes)
@@ -357,6 +359,79 @@ public class TypeRegistrar
                 methodDefinition.declareParameterAnnotation(SqlType.class, i).setValue("value", fieldTypes.get(i).getType().toString());
             }
         }
+
+        @Override
+        protected void writeBoolean(Block body, Variable blockBuilder, Variable arg, int i)
+        {
+            LabelNode isNull = new LabelNode("isNull" + i);
+            LabelNode isFalse = new LabelNode("isFalse" + i);
+            LabelNode done = new LabelNode("done" + i);
+            body
+                    .getVariable(arg)
+                    .ifNullGoto(isNull)
+                    .getVariable(blockBuilder)
+
+                    .getVariable(arg)
+                    .invokeVirtual(Boolean.class, "booleanValue", Boolean.class, boolean.class)
+                    .ifFalseGoto(isFalse)
+                    .push(1)
+                    .gotoLabel(done)
+                    .visitLabel(isFalse)
+                    .push(0)
+                    .visitLabel(done)
+                    .invokeInterface(BlockBuilder.class, "writeByte", BlockBuilder.class, int.class)
+
+                    .gotoLabel(done)
+                    .visitLabel(isNull)
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
+                    .pop()
+                    .visitLabel(done);
+        }
+
+        @Override
+        protected void writeLong(Block body, Variable blockBuilder, Variable arg, int i)
+        {
+            LabelNode isNull = new LabelNode("isNull" + i);
+            LabelNode done = new LabelNode("done" + i);
+            body
+                    .getVariable(arg)
+                    .ifNullGoto(isNull)
+                    .getVariable(blockBuilder)
+
+                    .getVariable(arg)
+                    .invokeVirtual(Long.class, "longValue", Long.class, long.class)
+                    .invokeInterface(BlockBuilder.class, "writeLong", BlockBuilder.class, long.class)
+
+                    .gotoLabel(done)
+                    .visitLabel(isNull)
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
+                    .pop()
+                    .visitLabel(done);
+        }
+
+        @Override
+        protected void writeDouble(Block body, Variable blockBuilder, Variable arg, int i)
+        {
+            LabelNode isNull = new LabelNode("isNull" + i);
+            LabelNode done = new LabelNode("done" + i);
+            body
+                    .getVariable(arg)
+                    .ifNullGoto(isNull)
+                    .getVariable(blockBuilder)
+
+                    .getVariable(arg)
+                    .invokeVirtual(Double.class, "doubleValue", Double.class, double.class)
+                    .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
+
+                    .gotoLabel(done)
+                    .visitLabel(isNull)
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
+                    .pop()
+                    .visitLabel(done);
+        }
     }
 
     public void run()
@@ -371,10 +446,11 @@ public class TypeRegistrar
         Session session = builder.build();
         RowType thing = buildRowType(session, "thing", "select 1, 'hi', cast(null as bigint), cast(null as varbinary)");
         typeRegistry.addType(thing);
-        Class<?> ctor = new RowTypeConstructorCompiler().run(thing);
+        Class<?> ctor = ;
         metadata.addFunctions(
                 new FunctionListBuilder(typeRegistry)
-                .scalar(ctor)
+                .scalar(new RowTypeConstructorCompiler().run(thing, thing.getTypeSignature().getBase() + "_strict"))
+                .scalar(new NullableRowTypeConstructorCompiler().run(thing, thing.getTypeSignature().getBase()))
                 .getFunctions());
     }
 }
