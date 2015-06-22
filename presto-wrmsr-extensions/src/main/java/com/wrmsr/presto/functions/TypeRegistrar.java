@@ -12,7 +12,6 @@ import com.facebook.presto.byteCode.instruction.LabelNode;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.block.BlockBuilder;
@@ -20,8 +19,6 @@ import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.BlockEncoding;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockEncoding;
-import com.facebook.presto.spi.type.BigintType;
-import com.facebook.presto.spi.type.DoubleType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
@@ -40,16 +37,12 @@ import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.SqlType;
 import com.facebook.presto.type.TypeRegistry;
-import com.google.common.base.Joiner;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import io.airlift.json.JsonCodec;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -80,7 +73,7 @@ public class TypeRegistrar
     private final List<PlanOptimizer> planOptimizers;
     private final boolean experimentalSyntaxEnabled;
 
-    public TypeRegistrar(ConnectorManager connectorManager,TypeRegistry typeRegistry, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
+    public TypeRegistrar(ConnectorManager connectorManager, TypeRegistry typeRegistry, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
     {
         this.connectorManager = checkNotNull(connectorManager);
         this.typeRegistry = typeRegistry;
@@ -179,8 +172,11 @@ public class TypeRegistrar
                     .push(0)
                     .visitLabel(done)
                     .invokeInterface(BlockBuilder.class, "writeByte", BlockBuilder.class, int.class)
-                    .pop();
+                    .pop()
 
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop();
         }
 
         protected void writeLong(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
@@ -189,6 +185,10 @@ public class TypeRegistrar
                     .getVariable(blockBuilder)
                     .getVariable(arg)
                     .invokeInterface(BlockBuilder.class, "writeLong", BlockBuilder.class, long.class)
+                    .pop()
+
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
                     .pop();
         }
 
@@ -198,6 +198,10 @@ public class TypeRegistrar
                     .getVariable(blockBuilder)
                     .getVariable(arg)
                     .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
+                    .pop()
+
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
                     .pop();
         }
 
@@ -215,6 +219,10 @@ public class TypeRegistrar
                     .getVariable(arg)
                     .invokeVirtual(Slice.class, "length", int.class)
                     .invokeInterface(BlockBuilder.class, "writeBytes", BlockBuilder.class, Slice.class, int.class, int.class)
+                    .pop()
+
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
                     .pop()
 
                     .gotoLabel(done)
@@ -286,11 +294,6 @@ public class TypeRegistrar
                 else {
                     throw new IllegalArgumentException("bad value: " + javaType);
                 }
-
-                body
-                        .getVariable(blockBuilder)
-                        .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
-                        .pop();
             }
 
             body
@@ -382,6 +385,10 @@ public class TypeRegistrar
                     .invokeInterface(BlockBuilder.class, "writeByte", BlockBuilder.class, int.class)
                     .pop()
 
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop()
+
                     .gotoLabel(done)
                     .visitLabel(isNull)
                     .getVariable(blockBuilder)
@@ -405,6 +412,10 @@ public class TypeRegistrar
                     .invokeInterface(BlockBuilder.class, "writeLong", BlockBuilder.class, long.class)
                     .pop()
 
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop()
+
                     .gotoLabel(done)
                     .visitLabel(isNull)
                     .getVariable(blockBuilder)
@@ -426,6 +437,10 @@ public class TypeRegistrar
                     .getVariable(arg)
                     .invokeVirtual(Double.class, "doubleValue", double.class)
                     .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
+                    .pop()
+
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
                     .pop()
 
                     .gotoLabel(done)
@@ -453,8 +468,8 @@ public class TypeRegistrar
         typeRegistry.addType(rowType);
         metadata.addFunctions(
                 new FunctionListBuilder(typeRegistry)
-                .scalar(new RowTypeConstructorCompiler().run(rowType, rowType.getTypeSignature().getBase() + "_strict"))
-                .scalar(new NullableRowTypeConstructorCompiler().run(rowType, rowType.getTypeSignature().getBase()))
-                .getFunctions());
+                        .scalar(new RowTypeConstructorCompiler().run(rowType, rowType.getTypeSignature().getBase() + "_strict"))
+                        .scalar(new NullableRowTypeConstructorCompiler().run(rowType, rowType.getTypeSignature().getBase()))
+                        .getFunctions());
     }
 }
