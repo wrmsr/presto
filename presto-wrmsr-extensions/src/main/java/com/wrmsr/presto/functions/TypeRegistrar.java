@@ -165,12 +165,7 @@ public class TypeRegistrar
             }
         }
 
-        public Class<?> run(RowType rowType)
-        {
-            return run(rowType, rowType.getTypeSignature().getBase());
-        }
-
-        protected void writeBoolean(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg)
+        protected void writeBoolean(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isFalse = new LabelNode("isFalse" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -188,7 +183,7 @@ public class TypeRegistrar
 
         }
 
-        protected void writeLong(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg)
+        protected void writeLong(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
         {
             body
                     .getVariable(blockBuilder)
@@ -197,7 +192,7 @@ public class TypeRegistrar
                     .pop();
         }
 
-        protected void writeDouble(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg)
+        protected void writeDouble(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
         {
             body
                     .getVariable(blockBuilder)
@@ -206,7 +201,7 @@ public class TypeRegistrar
                     .pop();
         }
 
-        protected void writeSlice(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg)
+        protected void writeSlice(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -226,6 +221,11 @@ public class TypeRegistrar
                     .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
                     .pop()
                     .visitLabel(done);
+        }
+
+        public Class<?> run(RowType rowType)
+        {
+            return run(rowType, rowType.getTypeSignature().getBase());
         }
 
         public Class<?> run(RowType rowType, String name)
@@ -270,16 +270,16 @@ public class TypeRegistrar
                 Class<?> javaType = fieldTypes.get(i).getType().getJavaType();
 
                 if (javaType == boolean.class) {
-                    writeBoolean(body, blockBuilder, arg);
+                    writeBoolean(body, blockBuilder, arg, i);
                 }
                 else if (javaType == long.class) {
-                    writeLong(body, blockBuilder, arg);
+                    writeLong(body, blockBuilder, arg, i);
                 }
                 else if (javaType == double.class) {
-                    writeDouble(body, blockBuilder, arg);
+                    writeDouble(body, blockBuilder, arg, i);
                 }
                 else if (javaType == Slice.class) {
-                    writeSlice(body, blockBuilder, arg);
+                    writeSlice(body, blockBuilder, arg, i);
                 }
                 else {
                     throw new IllegalArgumentException("bad value: " + javaType);
@@ -325,13 +325,37 @@ public class TypeRegistrar
         @Override
         protected List<Parameter> createParameters(List<RowType.RowField> fieldTypes)
         {
-            return super.createParameters(fieldTypes);
+            ImmutableList.Builder<Parameter> parameters = ImmutableList.builder();
+            for (int i = 0; i < fieldTypes.size(); i++) {
+                RowType.RowField fieldType = fieldTypes.get(i);
+                Class<?> javaType = fieldType.getType().getJavaType();
+                if (javaType == boolean.class) {
+                    javaType = Boolean.class;
+                }
+                else if (javaType == long.class) {
+                    javaType = Long.class;
+                }
+                else if (javaType == double.class) {
+                    javaType = Double.class;
+                }
+                else if (javaType == Slice.class) {
+                    // nop
+                }
+                else {
+                    throw new IllegalArgumentException("javaType: " + javaType.toString());
+                }
+                parameters.add(arg("arg" + i, javaType));
+            }
+            return parameters.build();
         }
 
         @Override
         protected void annotateParameters(List<RowType.RowField> fieldTypes, MethodDefinition methodDefinition)
         {
-            super.annotateParameters(fieldTypes, methodDefinition);
+            for (int i = 0; i < fieldTypes.size(); i++) {
+                methodDefinition.declareParameterAnnotation(Nullable.class, i);
+                methodDefinition.declareParameterAnnotation(SqlType.class, i).setValue("value", fieldTypes.get(i).getType().toString());
+            }
         }
     }
 
