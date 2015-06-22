@@ -128,5 +128,7 @@ public class TestExtensionsPlugin
     public void testNewThing() throws Throwable
     {
         Slice slice = newThing(0, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, Slices.wrappedBuffer((byte) 30, (byte) 40));
+        Block block = new VariableWidthBlockEncoding().readBlock(slice.getInput());
+        System.out.println(block);
     }
 }
