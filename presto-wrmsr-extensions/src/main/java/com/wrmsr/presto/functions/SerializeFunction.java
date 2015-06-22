@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
+import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 import java.util.Map;
 
@@ -26,9 +27,9 @@ public class SerializeFunction
     extends ParametricScalar
 {
     public static final SerializeFunction SERIALIZE = new SerializeFunction();
-    private static final Signature SIGNATURE = new Signature(
-            "serialize", ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E", StandardTypes.VARCHAR), false, false);
-    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", Type.class, Object.class, Slice.class);
+    private static final Signature SIGNATURE = new Signature( // FIXME nullable
+            "serialize", ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"), false, false);
+    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", Type.class, Object.class);
 
     @Override
     public Signature getSignature()
@@ -60,10 +61,10 @@ public class SerializeFunction
         checkArgument(types.size() == 1, "Cardinality expects only one argument");
         Type type = types.get("E");
         MethodHandle methodHandle = METHOD_HANDLE.bindTo(type);
-        return new FunctionInfo(new Signature("serialize", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature(), parseTypeSignature(StandardTypes.VARCHAR)), getDescription(), isHidden(), METHOD_HANDLE, isDeterministic(), false, ImmutableList.of(false, false));
+        return new FunctionInfo(new Signature("serialize", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature()), getDescription(), isHidden(), methodHandle, isDeterministic(), false, ImmutableList.of(true));
     }
 
-    public static Slice serialize(Type type, Object object, Slice codec)
+    public static Slice serialize(Type type, @Nullable Object object)
     {
         try {
             return Slices.wrappedBuffer(OBJECT_MAPPER.get().writeValueAsBytes(object));
