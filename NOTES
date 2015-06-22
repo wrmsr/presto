@@ -511,3 +511,22 @@ on rows:
  - pack many into blocks of N - compressssssion
   - just a special case of array/map?
    - row_array? :p
+
+http://www.datastax.com/dev/blog/advanced-time-series-with-cassandra
+http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
+riak crdt's
+https://github.com/FasterXML/jackson-module-swagger
+https://github.com/swagger-api/swagger-core/blob/master/pom.xml
+http://mesos.apache.org/api/latest/java/
+http://docs.oracle.com/cd/B19306_01/server.102/b14220/transact.htm
+http://docs.oracle.com/cd/B28359_01/server.111/b28310/onlineredo001.htm#ADMIN11302
+http://ss64.com/ora/syntax-redo.html
+http://www.pgcon.org/2012/schedule/attachments/258_212_Internals%20Of%20PostgreSQL%20Wal.pdf
+https://hackage.haskell.org/package/HList
+https://wiki.haskell.org/Heterogenous_collections
+http://okmij.org/ftp/Haskell/HList-ext.pdf
+http://www.csee.umbc.edu/courses/undergraduate/202/spring07/Lectures/ChangSynopses/modules/m25-hlist/HList.cpp
+https://en.wikipedia.org/wiki/Java_bytecode_instruction_listings
+https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html
+https://www.elastic.co/blog/es-hadoop-2-1-rc1-released
+
