@@ -504,3 +504,10 @@ com.facebook.presto.operator.PagesIndex <--- DISK SPILL
 
 
 ** NEED TO PUT FAT ROWS LAST. (review text)
+
+
+on rows:
+ - pack fixed
+ - pack many into blocks of N - compressssssion
+  - just a special case of array/map?
+   - row_array? :p

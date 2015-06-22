@@ -159,8 +159,6 @@ public class TestExtensionsPlugin
         MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), "_new", type(Slice.class), parameters.build());
         Scope scope = methodDefinition.getScope();
 
-        Variable typeVariable = scope.declareVariable(Type.class, "typeVariable");
-        Variable rangeTypeVariable = scope.declareVariable(Type.class, "rangeTypeVariable");
         CallSiteBinder binder = new CallSiteBinder();
         com.facebook.presto.byteCode.Block body = methodDefinition.getBody();
 
@@ -173,6 +171,33 @@ public class TestExtensionsPlugin
                 .newObject(type(VariableWidthBlockBuilder.class, BlockBuilderStatus.class))
                 .invokeConstructor(VariableWidthBlockBuilder.class, BlockBuilderStatus.class)
                 .putVariable(blockBuilder);
+
+        for (int i = 0; i < fieldTypes.size(); i++) {
+            Variable arg = scope.getVariable("arg" + i);
+            Class<?> javaType = fieldTypes.get(i).getType().getJavaType();
+
+            // FIXME NULL CHECK builder.appendNull();
+
+            if (javaType == boolean.class) {
+                // type.writeBoolean(builder, (Boolean) value);
+            }
+            else if (javaType == long.class) {
+                // type.writeLong(builder, ((Number) value).longValue());
+            }
+            else if (javaType == double.class) {
+                // type.writeDouble(builder, (Double) value);
+            }
+            else if (javaType == Slice.class) {
+                // Slice slice = value instanceof Slice ? (Slice) value : Slices.utf8Slice((String) value);
+                // type.writeSlice(builder, slice, 0, slice.length());
+            }
+            else {
+                throw new IllegalArgumentException("bad value: " + javaType);
+            }
+
+            RowType.RowField fieldType = fieldTypes.get(i);
+            parameters.add(arg("arg" + i, fieldType.getType().getJavaType()));
+        }
 
         defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()));
     }
