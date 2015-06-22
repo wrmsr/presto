@@ -184,7 +184,19 @@ public class TestExtensionsPlugin
             Class<?> javaType = fieldTypes.get(i).getType().getJavaType();
 
             if (javaType == boolean.class) {
-                // type.writeBoolean(builder, (Boolean) value);
+                LabelNode isFalse = new LabelNode("isFalse" + i);
+                LabelNode done = new LabelNode("done" + i);
+                body
+                        .getVariable(blockBuilder)
+                        .getVariable(arg)
+                        .ifFalseGoto(isFalse)
+                        .push(1)
+                        .gotoLabel(done)
+                        .visitLabel(isFalse)
+                        .push(0)
+                        .visitLabel(done)
+                        .invokeInterface(BlockBuilder.class, "writeByte", BlockBuilder.class, int.class)
+                        .pop();
             }
             else if (javaType == long.class) {
                 body
@@ -238,8 +250,8 @@ public class TestExtensionsPlugin
         Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()));
 
         try {
-            Method m = cls.getMethod("_new", long.class, Slice.class, long.class, Slice.class);
-            Object ret = m.invoke(null, 5L, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, Slices.wrappedBuffer((byte) 30, (byte) 40));// (null, 2L, null, 3L, null);
+            Method m = cls.getMethod("_new", long.class, Slice.class, long.class, Slice.class, boolean.class, double.class);
+            Object ret = m.invoke(null, 5L, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, null, true, 40.5);// (null, 2L, null, 3L, null);
             System.out.println(ret);
         }
         catch (Exception e) {
@@ -255,7 +267,7 @@ public class TestExtensionsPlugin
         Block block = new VariableWidthBlockEncoding().readBlock(slice.getInput());
         System.out.println(block);
 
-        RowType rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY), Optional.of(ImmutableList.of("a", "b", "c", "d")));
+        RowType rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
         generateConstructor(rt);
     }
 }
