@@ -11,6 +11,9 @@ import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.spi.PrestoException;
+import com.facebook.presto.spi.block.BlockBuilder;
+import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.DoubleType;
 import com.facebook.presto.spi.type.Type;
@@ -34,6 +37,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.airlift.json.JsonCodec;
 import io.airlift.slice.Slice;
+import io.airlift.slice.Slices;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -84,7 +88,7 @@ public class TypeRegistrar
     }
 
     @Nullable
-    public Type buildType(Session session, String name, String sql)
+    public RowType buildRowType(Session session, String name, String sql)
     {
         checkArgument(name.toLowerCase().equals(name));
 
@@ -127,8 +131,21 @@ public class TypeRegistrar
             throw new RuntimeException(String.format("All fields must be named or no fields must be named for type: %s -> %s", name, sql));
         }
 
-        Type rt = new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
+        RowType rt = new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
         return rt;
+    }
+
+    // TODO: pack fixedwidth fields together, go all fixedwidth if possible
+    public Slice newThing(long a, Slice b, long c, Slice d)
+    {
+        BlockBuilder blockBuilder = new VariableWidthBlockBuilder(new BlockBuilderStatus());
+        blockBuilder.writeLong(a);
+        blockBuilder.writeBytes(b, 0, b.length());
+        blockBuilder.writeLong(c);
+        blockBuilder.writeBytes(d, 0, d.length());
+        blockBuilder.closeEntry();
+        com.facebook.presto.spi.block.Block block = blockBuilder.build();
+        return block.getSlice(0, 0, block.getLength(0));
     }
 
     public void generateConstructor(RowType rowType)
@@ -168,7 +185,10 @@ public class TypeRegistrar
                 .setLocale(ENGLISH)
                 .setSchema("yelp");
         Session session = builder.build();
-        Type thing = buildType(session, "thing", "select 1, 'hi', cast(null as bigint), cast(null as varbinary)");
+        RowType thing = buildRowType(session, "thing", "select 1, 'hi', cast(null as bigint), cast(null as varbinary)");
+        generateConstructor(thing);
         typeRegistry.addType(thing);
+
+        newThing(0, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, Slices.wrappedBuffer((byte) 30, (byte) 40));
     }
 }

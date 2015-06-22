@@ -14,6 +14,7 @@
 package com.wrmsr.presto;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.spi.block.*;
 import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.DoubleType;
 import com.facebook.presto.spi.type.Type;
@@ -25,6 +26,10 @@ import com.facebook.presto.type.RowType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.ExtensionsPlugin;
+import io.airlift.slice.BasicSliceOutput;
+import io.airlift.slice.Slice;
+import io.airlift.slice.SliceOutput;
+import io.airlift.slice.Slices;
 import org.testng.annotations.Test;
 
 import java.util.Optional;
@@ -32,6 +37,7 @@ import java.util.Optional;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.Locale.ENGLISH;
 
 public class TestExtensionsPlugin
@@ -87,5 +93,40 @@ public class TestExtensionsPlugin
        */
        // queryRunner.getMetadata().getFunctionRegistry().addFunctions(Iterables.getOnlyElement(plugin.getServices(FunctionFactory.class)).listFunctions());
        return queryRunner;
+    }
+
+    public Slice newThing(long a, Slice b, long c, Slice d)
+    {
+        BlockBuilder blockBuilder = new VariableWidthBlockBuilder(new BlockBuilderStatus());
+
+        blockBuilder.writeLong(a);
+        blockBuilder.closeEntry();
+
+        blockBuilder.writeBytes(b, 0, b.length());
+        blockBuilder.closeEntry();
+
+        blockBuilder.writeLong(c);
+        blockBuilder.closeEntry();
+
+        blockBuilder.writeBytes(d, 0, d.length());
+        blockBuilder.closeEntry();
+
+        com.facebook.presto.spi.block.Block block = blockBuilder.build();
+        BlockEncoding blockEncoding = new VariableWidthBlockEncoding();
+
+        int estimatedSize = blockEncoding.getEstimatedSize(block);
+        Slice outputSlice = Slices.allocate(estimatedSize);
+        SliceOutput sliceOutput = outputSlice.getOutput();
+
+        blockEncoding.writeBlock(sliceOutput, block);
+        checkState(sliceOutput.size() == estimatedSize);
+
+        return outputSlice;
+    }
+
+    @Test
+    public void testNewThing() throws Throwable
+    {
+        Slice slice = newThing(0, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, Slices.wrappedBuffer((byte) 30, (byte) 40));
     }
 }

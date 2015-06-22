@@ -460,7 +460,6 @@ just implement a flat raptor StorageEngine, wrap with encoder
 http://stackoverflow.com/questions/15524995/adding-another-projects-jar-as-a-resource-using-maven
 
 
-
 immediate priorities: codecs, raw raptor storage, spilling, join ordering, bitwise scalar funcs (or, and, xor)
 
 
@@ -476,6 +475,7 @@ gson?
 
 https://github.com/facebook/presto/pull/3016 :D
 https://github.com/facebook/presto/pull/1937
+https://github.com/facebook/presto/pull/3021
 
 
 <dependency>
@@ -490,7 +490,6 @@ https://github.com/facebook/presto/pull/1937
     <version>2.12.0</version>
 </dependency>
 
-
 <dependency>
     <groupId>org.ow2.sat4j</groupId>
     <artifactId>org.ow2.sat4j.core</artifactId>
@@ -502,3 +501,6 @@ https://github.com/yesmeck/jquery-jsonview
 
 
 com.facebook.presto.operator.PagesIndex <--- DISK SPILL
+
+
+** NEED TO PUT FAT ROWS LAST. (review text)
