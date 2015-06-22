@@ -168,20 +168,15 @@ public class TestExtensionsPlugin
         Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
 
         body
-                .comment("blockBuilder = typeVariable.createBlockBuilder(new BlockBuilderStatus());")
-                .newObject(BlockBuilderStatus.class)
-                .dup(BlockBuilderStatus.class)
-                .invokeConstructor(BlockBuilderStatus.class)
                 .newObject(type(VariableWidthBlockBuilder.class, BlockBuilderStatus.class))
-                .dup(BlockBuilderStatus.class)
+                .dup()
+                .dup()
+                .newObject(BlockBuilderStatus.class)
+                .dup()
+                .invokeConstructor(BlockBuilderStatus.class)
                 .invokeConstructor(VariableWidthBlockBuilder.class, BlockBuilderStatus.class)
-                .putVariable(blockBuilder, BlockBuilder.class);
+                .putVariable(blockBuilder);
 
-        body
-                .pushNull()
-                .retObject();
-
-        /*
         // FIXME: reuse returned blockBuilder
 
         for (int i = 0; i < fieldTypes.size(); i++) {
@@ -232,15 +227,14 @@ public class TestExtensionsPlugin
                     .pop()
                     .visitLabel(done)
                     .getVariable(blockBuilder)
-                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class);
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop();
         }
 
         body
                 .getVariable(blockBuilder)
-                .invokeStatic(TestExtensionsPlugin.class, "blockBuilderToSlice", TestExtensionsPlugin.class)
+                .invokeStatic(TestExtensionsPlugin.class, "blockBuilderToSlice", Slice.class, BlockBuilder.class)
                 .retObject();
-        */
-
 
         Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()));
 
