@@ -144,5 +144,17 @@ public class TestExtensionsPlugin
         catch (Exception e) {
             throw Throwables.propagate(e);
         }
+
+        rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
+        cls = new TypeRegistrar.NullableRowTypeConstructorCompiler().run(rt);
+
+        try {
+            Method m = cls.getMethod(rt.getTypeSignature().getBase(), Long.class, Slice.class, Long.class, Slice.class, Boolean.class, Double.class);
+            Object ret = m.invoke(null, 5L, Slices.wrappedBuffer((byte) 10, (byte) 20), new Long(10), null, new Boolean(true), new Double(40.5));// (null, 2L, null, 3L, null);
+            System.out.println(ret);
+        }
+        catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
     }
 }

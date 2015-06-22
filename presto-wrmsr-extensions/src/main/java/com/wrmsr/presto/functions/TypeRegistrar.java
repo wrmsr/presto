@@ -298,8 +298,7 @@ public class TypeRegistrar
                     .invokeStatic(RowTypeConstructorCompiler.class, "blockBuilderToSlice", Slice.class, BlockBuilder.class)
                     .retObject();
 
-            Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(RowTypeConstructorCompiler.class.getClassLoader()));
-            return cls;
+            return defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(RowTypeConstructorCompiler.class.getClassLoader()));
         }
 
         public static Slice blockBuilderToSlice(BlockBuilder blockBuilder)
@@ -365,6 +364,7 @@ public class TypeRegistrar
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode isFalse = new LabelNode("isFalse" + i);
+            LabelNode write = new LabelNode("write" + i);
             LabelNode done = new LabelNode("done" + i);
             body
                     .getVariable(arg)
@@ -372,14 +372,15 @@ public class TypeRegistrar
                     .getVariable(blockBuilder)
 
                     .getVariable(arg)
-                    .invokeVirtual(Boolean.class, "booleanValue", Boolean.class, boolean.class)
+                    .invokeVirtual(Boolean.class, "booleanValue", boolean.class)
                     .ifFalseGoto(isFalse)
                     .push(1)
-                    .gotoLabel(done)
+                    .gotoLabel(write)
                     .visitLabel(isFalse)
                     .push(0)
-                    .visitLabel(done)
+                    .visitLabel(write)
                     .invokeInterface(BlockBuilder.class, "writeByte", BlockBuilder.class, int.class)
+                    .pop()
 
                     .gotoLabel(done)
                     .visitLabel(isNull)
@@ -400,8 +401,9 @@ public class TypeRegistrar
                     .getVariable(blockBuilder)
 
                     .getVariable(arg)
-                    .invokeVirtual(Long.class, "longValue", Long.class, long.class)
+                    .invokeVirtual(Long.class, "longValue", long.class)
                     .invokeInterface(BlockBuilder.class, "writeLong", BlockBuilder.class, long.class)
+                    .pop()
 
                     .gotoLabel(done)
                     .visitLabel(isNull)
@@ -422,8 +424,9 @@ public class TypeRegistrar
                     .getVariable(blockBuilder)
 
                     .getVariable(arg)
-                    .invokeVirtual(Double.class, "doubleValue", Double.class, double.class)
+                    .invokeVirtual(Double.class, "doubleValue", double.class)
                     .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
+                    .pop()
 
                     .gotoLabel(done)
                     .visitLabel(isNull)
