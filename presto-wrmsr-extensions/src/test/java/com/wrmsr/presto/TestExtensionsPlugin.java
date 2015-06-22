@@ -15,6 +15,7 @@ package com.wrmsr.presto;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.byteCode.*;
+import com.facebook.presto.byteCode.instruction.LabelNode;
 import com.facebook.presto.spi.block.*;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.*;
@@ -24,6 +25,7 @@ import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.type.RowType;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.ExtensionsPlugin;
@@ -172,34 +174,73 @@ public class TestExtensionsPlugin
                 .invokeConstructor(VariableWidthBlockBuilder.class, BlockBuilderStatus.class)
                 .putVariable(blockBuilder);
 
+        // FIXME: reuse returned blockBuilder
+
         for (int i = 0; i < fieldTypes.size(); i++) {
             Variable arg = scope.getVariable("arg" + i);
             Class<?> javaType = fieldTypes.get(i).getType().getJavaType();
+            LabelNode isNull = new LabelNode("isNull" + i);
 
-            // FIXME NULL CHECK builder.appendNull();
+            body
+                    .getVariable(arg)
+                    .ifNullGoto(isNull);
 
             if (javaType == boolean.class) {
                 // type.writeBoolean(builder, (Boolean) value);
             }
             else if (javaType == long.class) {
-                // type.writeLong(builder, ((Number) value).longValue());
+                body
+                        .getVariable(blockBuilder)
+                        .getVariable(arg)
+                        .invokeInterface(BlockBuilder.class, "writeLong", BlockBuilder.class, long.class)
+                        .pop();
             }
             else if (javaType == double.class) {
-                // type.writeDouble(builder, (Double) value);
+                body
+                        .getVariable(blockBuilder)
+                        .getVariable(arg)
+                        .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
+                        .pop();
             }
             else if (javaType == Slice.class) {
-                // Slice slice = value instanceof Slice ? (Slice) value : Slices.utf8Slice((String) value);
-                // type.writeSlice(builder, slice, 0, slice.length());
+                body
+                        .getVariable(blockBuilder)
+                        .push(0L)
+                        .getVariable(blockBuilder)
+                        .invokeVirtual(Slice.class, "length", Slice.class)
+                        .invokeInterface(BlockBuilder.class, "writeBytes", BlockBuilder.class, Slice.class)
+                        .pop();
             }
             else {
                 throw new IllegalArgumentException("bad value: " + javaType);
             }
 
-            RowType.RowField fieldType = fieldTypes.get(i);
-            parameters.add(arg("arg" + i, fieldType.getType().getJavaType()));
+            LabelNode done = new LabelNode("done" + i);
+            body
+                    .gotoLabel(done)
+                    .visitLabel(isNull)
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
+                    .pop()
+                    .visitLabel(done)
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
         }
 
-        defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()));
+        body
+                .getVariable(blockBuilder)
+                .invokeStatic(TestExtensionsPlugin.class, "blockBuilderToSlice", TestExtensionsPlugin.class)
+                .retObject();
+
+
+        Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()));
+
+        try {
+            cls.getDeclaredMethod("_new");
+        }
+        catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
     }
 
 
