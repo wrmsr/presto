@@ -123,7 +123,7 @@ public class TestExtensionsPlugin
         blockBuilder.writeBytes(d, 0, d.length());
         blockBuilder.closeEntry();
 
-        return TypeRegistrar.blockBuilderToSlice(blockBuilder);
+        return TypeRegistrar.RowTypeConstructorCompiler.blockBuilderToSlice(blockBuilder);
     }
 
     @Test
@@ -134,7 +134,7 @@ public class TestExtensionsPlugin
         System.out.println(block);
 
         RowType rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
-        Class<?> cls = TypeRegistrar.generateConstructor(rt);
+        Class<?> cls = new TypeRegistrar.RowTypeConstructorCompiler().run(rt);
 
         try {
             Method m = cls.getMethod(rt.getTypeSignature().getBase(), long.class, Slice.class, long.class, Slice.class, boolean.class, double.class);
