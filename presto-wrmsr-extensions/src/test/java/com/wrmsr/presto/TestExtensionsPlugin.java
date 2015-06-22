@@ -35,6 +35,7 @@ import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
 import org.testng.annotations.Test;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 
@@ -164,7 +165,13 @@ public class TestExtensionsPlugin
         CallSiteBinder binder = new CallSiteBinder();
         com.facebook.presto.byteCode.Block body = methodDefinition.getBody();
 
+        body
+                .pushNull()
+                .retObject();
+
+        /*
         Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
+
         body
                 .comment("blockBuilder = typeVariable.createBlockBuilder(new BlockBuilderStatus());")
                 .newObject(BlockBuilderStatus.class)
@@ -231,12 +238,15 @@ public class TestExtensionsPlugin
                 .getVariable(blockBuilder)
                 .invokeStatic(TestExtensionsPlugin.class, "blockBuilderToSlice", TestExtensionsPlugin.class)
                 .retObject();
+        */
 
 
         Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()));
 
         try {
-            cls.getDeclaredMethod("_new");
+            Method m = cls.getMethod("_new", long.class, Slice.class, long.class, Slice.class);
+            Object ret = m.invoke(null, 2L, null, 3L, null);
+            System.out.println(ret);
         }
         catch (Exception e) {
             throw Throwables.propagate(e);
