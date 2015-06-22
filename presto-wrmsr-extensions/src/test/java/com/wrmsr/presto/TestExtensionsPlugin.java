@@ -207,7 +207,7 @@ public class TestExtensionsPlugin
                         .getVariable(blockBuilder)
                         .push(0L)
                         .getVariable(blockBuilder)
-                        .invokeVirtual(Slice.class, "length", Slice.class)
+                        .invokeVirtual(Slice.class, "length", int.class)
                         .invokeInterface(BlockBuilder.class, "writeBytes", BlockBuilder.class, Slice.class)
                         .pop();
             }
@@ -224,7 +224,7 @@ public class TestExtensionsPlugin
                     .pop()
                     .visitLabel(done)
                     .getVariable(blockBuilder)
-                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class);
         }
 
         body
