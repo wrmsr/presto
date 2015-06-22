@@ -182,11 +182,6 @@ public class TestExtensionsPlugin
         for (int i = 0; i < fieldTypes.size(); i++) {
             Variable arg = scope.getVariable("arg" + i);
             Class<?> javaType = fieldTypes.get(i).getType().getJavaType();
-            LabelNode isNull = new LabelNode("isNull" + i);
-
-            body
-                    .getVariable(arg)
-                    .ifNullGoto(isNull);
 
             if (javaType == boolean.class) {
                 // type.writeBoolean(builder, (Boolean) value);
@@ -206,26 +201,30 @@ public class TestExtensionsPlugin
                         .pop();
             }
             else if (javaType == Slice.class) {
+                LabelNode isNull = new LabelNode("isNull" + i);
+                LabelNode done = new LabelNode("done" + i);
                 body
+                        .getVariable(arg)
+                        .ifNullGoto(isNull)
                         .getVariable(blockBuilder)
-                        .push(0L)
-                        .getVariable(blockBuilder)
+                        .getVariable(arg)
+                        .push(0)
+                        .getVariable(arg)
                         .invokeVirtual(Slice.class, "length", int.class)
-                        .invokeInterface(BlockBuilder.class, "writeBytes", BlockBuilder.class, Slice.class)
-                        .pop();
+                        .invokeInterface(BlockBuilder.class, "writeBytes", BlockBuilder.class, Slice.class, int.class, int.class)
+                        .pop()
+                        .gotoLabel(done)
+                        .visitLabel(isNull)
+                        .getVariable(blockBuilder)
+                        .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
+                        .pop()
+                        .visitLabel(done);
             }
             else {
                 throw new IllegalArgumentException("bad value: " + javaType);
             }
 
-            LabelNode done = new LabelNode("done" + i);
             body
-                    .gotoLabel(done)
-                    .visitLabel(isNull)
-                    .getVariable(blockBuilder)
-                    .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
-                    .pop()
-                    .visitLabel(done)
                     .getVariable(blockBuilder)
                     .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
                     .pop();
@@ -240,7 +239,7 @@ public class TestExtensionsPlugin
 
         try {
             Method m = cls.getMethod("_new", long.class, Slice.class, long.class, Slice.class);
-            Object ret = m.invoke(null, 2L, null, 3L, null);
+            Object ret = m.invoke(null, 5L, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, Slices.wrappedBuffer((byte) 30, (byte) 40));// (null, 2L, null, 3L, null);
             System.out.println(ret);
         }
         catch (Exception e) {
