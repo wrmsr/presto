@@ -31,6 +31,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.ExtensionsPlugin;
+import com.wrmsr.presto.functions.TypeRegistrar;
 import io.airlift.slice.BasicSliceOutput;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
@@ -122,151 +123,8 @@ public class TestExtensionsPlugin
         blockBuilder.writeBytes(d, 0, d.length());
         blockBuilder.closeEntry();
 
-        return blockBuilderToSlice(blockBuilder);
+        return TypeRegistrar.blockBuilderToSlice(blockBuilder);
     }
-
-    public static Slice blockBuilderToSlice(BlockBuilder blockBuilder)
-    {
-        return blockToSlice(blockBuilder.build());
-    }
-
-    public static Slice blockToSlice(Block block)
-    {
-        BlockEncoding blockEncoding = new VariableWidthBlockEncoding();
-
-        int estimatedSize = blockEncoding.getEstimatedSize(block);
-        Slice outputSlice = Slices.allocate(estimatedSize);
-        SliceOutput sliceOutput = outputSlice.getOutput();
-
-        blockEncoding.writeBlock(sliceOutput, block);
-        checkState(sliceOutput.size() == estimatedSize);
-
-        return outputSlice;
-    }
-
-    public void generateConstructor(RowType rowType)
-    {
-        List<RowType.RowField> fieldTypes = rowType.getFields();
-
-        ClassDefinition definition = new ClassDefinition(
-                a(PUBLIC, FINAL),
-                CompilerUtils.makeClassName(rowType.getDisplayName() + "_new"),
-                type(Object.class));
-
-        definition.declareDefaultConstructor(a(PRIVATE));
-
-        ImmutableList.Builder<Parameter> parameters = ImmutableList.builder();
-        for (int i = 0; i < fieldTypes.size(); i++) {
-            RowType.RowField fieldType = fieldTypes.get(i);
-            parameters.add(arg("arg" + i, fieldType.getType().getJavaType()));
-        }
-
-        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), rowType.getTypeSignature().getBase(), type(Slice.class), parameters.build());
-        methodDefinition.declareAnnotation(ScalarFunction.class);
-        methodDefinition.declareAnnotation(SqlType.class).setValue("value", rowType.getTypeSignature().toString());
-        for (int i = 0; i < fieldTypes.size(); i++) {
-            RowType.RowField fieldType = fieldTypes.get(i);
-            methodDefinition.declareParameterAnnotation(SqlType.class, i).setValue("value", fieldTypes.get(i).getType().toString());
-        }
-        Scope scope = methodDefinition.getScope();
-
-        CallSiteBinder binder = new CallSiteBinder();
-        com.facebook.presto.byteCode.Block body = methodDefinition.getBody();
-
-        Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
-
-        body
-                .newObject(type(VariableWidthBlockBuilder.class, BlockBuilderStatus.class))
-                .dup()
-                .dup()
-                .newObject(BlockBuilderStatus.class)
-                .dup()
-                .invokeConstructor(BlockBuilderStatus.class)
-                .invokeConstructor(VariableWidthBlockBuilder.class, BlockBuilderStatus.class)
-                .putVariable(blockBuilder);
-
-        // FIXME: reuse returned blockBuilder
-
-        for (int i = 0; i < fieldTypes.size(); i++) {
-            Variable arg = scope.getVariable("arg" + i);
-            Class<?> javaType = fieldTypes.get(i).getType().getJavaType();
-
-            if (javaType == boolean.class) {
-                LabelNode isFalse = new LabelNode("isFalse" + i);
-                LabelNode done = new LabelNode("done" + i);
-                body
-                        .getVariable(blockBuilder)
-                        .getVariable(arg)
-                        .ifFalseGoto(isFalse)
-                        .push(1)
-                        .gotoLabel(done)
-                        .visitLabel(isFalse)
-                        .push(0)
-                        .visitLabel(done)
-                        .invokeInterface(BlockBuilder.class, "writeByte", BlockBuilder.class, int.class)
-                        .pop();
-            }
-            else if (javaType == long.class) {
-                body
-                        .getVariable(blockBuilder)
-                        .getVariable(arg)
-                        .invokeInterface(BlockBuilder.class, "writeLong", BlockBuilder.class, long.class)
-                        .pop();
-            }
-            else if (javaType == double.class) {
-                body
-                        .getVariable(blockBuilder)
-                        .getVariable(arg)
-                        .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
-                        .pop();
-            }
-            else if (javaType == Slice.class) {
-                LabelNode isNull = new LabelNode("isNull" + i);
-                LabelNode done = new LabelNode("done" + i);
-                body
-                        .getVariable(arg)
-                        .ifNullGoto(isNull)
-                        .getVariable(blockBuilder)
-                        .getVariable(arg)
-                        .push(0)
-                        .getVariable(arg)
-                        .invokeVirtual(Slice.class, "length", int.class)
-                        .invokeInterface(BlockBuilder.class, "writeBytes", BlockBuilder.class, Slice.class, int.class, int.class)
-                        .pop()
-                        .gotoLabel(done)
-                        .visitLabel(isNull)
-                        .getVariable(blockBuilder)
-                        .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
-                        .pop()
-                        .visitLabel(done);
-            }
-            else {
-                throw new IllegalArgumentException("bad value: " + javaType);
-            }
-
-            body
-                    .getVariable(blockBuilder)
-                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
-                    .pop();
-        }
-
-        body
-                .getVariable(blockBuilder)
-                .invokeStatic(TestExtensionsPlugin.class, "blockBuilderToSlice", Slice.class, BlockBuilder.class)
-                .retObject();
-
-        Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()));
-
-        try {
-            Method m = cls.getMethod(rowType.getTypeSignature().getBase(), long.class, Slice.class, long.class, Slice.class, boolean.class, double.class);
-            Object ret = m.invoke(null, 5L, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, null, true, 40.5);// (null, 2L, null, 3L, null);
-            System.out.println(ret);
-        }
-        catch (Exception e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
 
     @Test
     public void testNewThing() throws Throwable
@@ -276,6 +134,15 @@ public class TestExtensionsPlugin
         System.out.println(block);
 
         RowType rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
-        generateConstructor(rt);
+        Class<?> cls = TypeRegistrar.generateConstructor(rt);
+
+        try {
+            Method m = cls.getMethod(rt.getTypeSignature().getBase(), long.class, Slice.class, long.class, Slice.class, boolean.class, double.class);
+            Object ret = m.invoke(null, 5L, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, null, true, 40.5);// (null, 2L, null, 3L, null);
+            System.out.println(ret);
+        }
+        catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
     }
 }

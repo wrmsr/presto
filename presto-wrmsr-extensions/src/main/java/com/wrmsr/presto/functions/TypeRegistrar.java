@@ -3,17 +3,23 @@ package com.wrmsr.presto.functions;
 import com.facebook.presto.Session;
 import com.facebook.presto.byteCode.Block;
 import com.facebook.presto.byteCode.ClassDefinition;
+import com.facebook.presto.byteCode.DynamicClassLoader;
 import com.facebook.presto.byteCode.MethodDefinition;
 import com.facebook.presto.byteCode.Parameter;
 import com.facebook.presto.byteCode.Scope;
 import com.facebook.presto.byteCode.Variable;
+import com.facebook.presto.byteCode.instruction.LabelNode;
 import com.facebook.presto.connector.ConnectorManager;
+import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
+import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.block.BlockEncoding;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
+import com.facebook.presto.spi.block.VariableWidthBlockEncoding;
 import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.DoubleType;
 import com.facebook.presto.spi.type.Type;
@@ -32,14 +38,18 @@ import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.type.RowType;
+import com.facebook.presto.type.SqlType;
 import com.facebook.presto.type.TypeRegistry;
 import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.airlift.json.JsonCodec;
 import io.airlift.slice.Slice;
+import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +63,7 @@ import static com.facebook.presto.byteCode.Parameter.arg;
 import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
+import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -135,21 +146,29 @@ public class TypeRegistrar
         return rt;
     }
 
-    // TODO: pack fixedwidth fields together, go all fixedwidth if possible
-    public Slice newThing(long a, Slice b, long c, Slice d)
+    public static Slice blockBuilderToSlice(BlockBuilder blockBuilder)
     {
-        BlockBuilder blockBuilder = new VariableWidthBlockBuilder(new BlockBuilderStatus());
-        blockBuilder.writeLong(a);
-        blockBuilder.writeBytes(b, 0, b.length());
-        blockBuilder.writeLong(c);
-        blockBuilder.writeBytes(d, 0, d.length());
-        blockBuilder.closeEntry();
-        com.facebook.presto.spi.block.Block block = blockBuilder.build();
-        return block.getSlice(0, 0, block.getLength(0));
+        return blockToSlice(blockBuilder.build());
     }
 
-    public void generateConstructor(RowType rowType)
+    public static Slice blockToSlice(com.facebook.presto.spi.block.Block block)
     {
+        BlockEncoding blockEncoding = new VariableWidthBlockEncoding();
+
+        int estimatedSize = blockEncoding.getEstimatedSize(block);
+        Slice outputSlice = Slices.allocate(estimatedSize);
+        SliceOutput sliceOutput = outputSlice.getOutput();
+
+        blockEncoding.writeBlock(sliceOutput, block);
+        checkState(sliceOutput.size() == estimatedSize);
+
+        return outputSlice;
+    }
+
+
+    public static Class<?> generateConstructor(RowType rowType)
+    {
+        // TODO foo_array
         List<RowType.RowField> fieldTypes = rowType.getFields();
 
         ClassDefinition definition = new ClassDefinition(
@@ -165,14 +184,102 @@ public class TypeRegistrar
             parameters.add(arg("arg" + i, fieldType.getType().getJavaType()));
         }
 
-        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), "_new", type(Slice.class), parameters.build());
+        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), rowType.getTypeSignature().getBase(), type(Slice.class), parameters.build());
+        methodDefinition.declareAnnotation(ScalarFunction.class);
+        methodDefinition.declareAnnotation(SqlType.class).setValue("value", rowType.getTypeSignature().toString());
+        for (int i = 0; i < fieldTypes.size(); i++) {
+            RowType.RowField fieldType = fieldTypes.get(i);
+            methodDefinition.declareParameterAnnotation(SqlType.class, i).setValue("value", fieldTypes.get(i).getType().toString());
+        }
         Scope scope = methodDefinition.getScope();
 
-        Variable typeVariable = scope.declareVariable(Type.class, "typeVariable");
-        Variable rangeTypeVariable = scope.declareVariable(Type.class, "rangeTypeVariable");
         CallSiteBinder binder = new CallSiteBinder();
-        Block body = methodDefinition.getBody();
+        com.facebook.presto.byteCode.Block body = methodDefinition.getBody();
 
+        Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
+
+        body
+                .newObject(type(VariableWidthBlockBuilder.class, BlockBuilderStatus.class))
+                .dup()
+                .dup()
+                .newObject(BlockBuilderStatus.class)
+                .dup()
+                .invokeConstructor(BlockBuilderStatus.class)
+                .invokeConstructor(VariableWidthBlockBuilder.class, BlockBuilderStatus.class)
+                .putVariable(blockBuilder);
+
+        // FIXME: reuse returned blockBuilder
+
+        for (int i = 0; i < fieldTypes.size(); i++) {
+            Variable arg = scope.getVariable("arg" + i);
+            Class<?> javaType = fieldTypes.get(i).getType().getJavaType();
+
+            if (javaType == boolean.class) {
+                LabelNode isFalse = new LabelNode("isFalse" + i);
+                LabelNode done = new LabelNode("done" + i);
+                body
+                        .getVariable(blockBuilder)
+                        .getVariable(arg)
+                        .ifFalseGoto(isFalse)
+                        .push(1)
+                        .gotoLabel(done)
+                        .visitLabel(isFalse)
+                        .push(0)
+                        .visitLabel(done)
+                        .invokeInterface(BlockBuilder.class, "writeByte", BlockBuilder.class, int.class)
+                        .pop();
+            }
+            else if (javaType == long.class) {
+                body
+                        .getVariable(blockBuilder)
+                        .getVariable(arg)
+                        .invokeInterface(BlockBuilder.class, "writeLong", BlockBuilder.class, long.class)
+                        .pop();
+            }
+            else if (javaType == double.class) {
+                body
+                        .getVariable(blockBuilder)
+                        .getVariable(arg)
+                        .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
+                        .pop();
+            }
+            else if (javaType == Slice.class) {
+                LabelNode isNull = new LabelNode("isNull" + i);
+                LabelNode done = new LabelNode("done" + i);
+                body
+                        .getVariable(arg)
+                        .ifNullGoto(isNull)
+                        .getVariable(blockBuilder)
+                        .getVariable(arg)
+                        .push(0)
+                        .getVariable(arg)
+                        .invokeVirtual(Slice.class, "length", int.class)
+                        .invokeInterface(BlockBuilder.class, "writeBytes", BlockBuilder.class, Slice.class, int.class, int.class)
+                        .pop()
+                        .gotoLabel(done)
+                        .visitLabel(isNull)
+                        .getVariable(blockBuilder)
+                        .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
+                        .pop()
+                        .visitLabel(done);
+            }
+            else {
+                throw new IllegalArgumentException("bad value: " + javaType);
+            }
+
+            body
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop();
+        }
+
+        body
+                .getVariable(blockBuilder)
+                .invokeStatic(TypeRegistrar.class, "blockBuilderToSlice", Slice.class, BlockBuilder.class)
+                .retObject();
+
+        Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TypeRegistrar.class.getClassLoader()));
+        return cls;
     }
 
     public void run()
@@ -188,7 +295,10 @@ public class TypeRegistrar
         RowType thing = buildRowType(session, "thing", "select 1, 'hi', cast(null as bigint), cast(null as varbinary)");
         generateConstructor(thing);
         typeRegistry.addType(thing);
-
-        newThing(0, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, Slices.wrappedBuffer((byte) 30, (byte) 40));
+        Class<?> ctor = generateConstructor(thing);
+        metadata.addFunctions(
+                new FunctionListBuilder(typeRegistry)
+                .scalar(ctor)
+                .getFunctions());
     }
 }
