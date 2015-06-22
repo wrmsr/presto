@@ -165,22 +165,23 @@ public class TestExtensionsPlugin
         CallSiteBinder binder = new CallSiteBinder();
         com.facebook.presto.byteCode.Block body = methodDefinition.getBody();
 
-        body
-                .pushNull()
-                .retObject();
-
-        /*
         Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
 
         body
                 .comment("blockBuilder = typeVariable.createBlockBuilder(new BlockBuilderStatus());")
                 .newObject(BlockBuilderStatus.class)
-                .dup()
+                .dup(BlockBuilderStatus.class)
                 .invokeConstructor(BlockBuilderStatus.class)
                 .newObject(type(VariableWidthBlockBuilder.class, BlockBuilderStatus.class))
+                .dup(BlockBuilderStatus.class)
                 .invokeConstructor(VariableWidthBlockBuilder.class, BlockBuilderStatus.class)
-                .putVariable(blockBuilder);
+                .putVariable(blockBuilder, BlockBuilder.class);
 
+        body
+                .pushNull()
+                .retObject();
+
+        /*
         // FIXME: reuse returned blockBuilder
 
         for (int i = 0; i < fieldTypes.size(); i++) {
