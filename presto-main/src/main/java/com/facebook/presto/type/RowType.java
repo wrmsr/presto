@@ -82,7 +82,7 @@ public class RowType
                 fieldDisplayNames.add(typeDisplayName);
             }
         }
-        return "row(" + Joiner.on(", ").join(fieldDisplayNames) + ")";
+        return getTypeSignature().getBase() + "(" + Joiner.on(", ").join(fieldDisplayNames) + ")";
     }
 
     @Override

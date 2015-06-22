@@ -16,6 +16,7 @@ package com.wrmsr.presto;
 import com.facebook.presto.Session;
 import com.facebook.presto.byteCode.*;
 import com.facebook.presto.byteCode.instruction.LabelNode;
+import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.spi.block.*;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.*;
@@ -25,6 +26,7 @@ import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.type.RowType;
+import com.facebook.presto.type.SqlType;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -159,7 +161,13 @@ public class TestExtensionsPlugin
             parameters.add(arg("arg" + i, fieldType.getType().getJavaType()));
         }
 
-        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), "_new", type(Slice.class), parameters.build());
+        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), rowType.getTypeSignature().getBase(), type(Slice.class), parameters.build());
+        methodDefinition.declareAnnotation(ScalarFunction.class);
+        methodDefinition.declareAnnotation(SqlType.class).setValue("value", rowType.getDisplayName()); // ???
+        for (int i = 0; i < fieldTypes.size(); i++) {
+            RowType.RowField fieldType = fieldTypes.get(i);
+            methodDefinition.declareParameterAnnotation(SqlType.class, i).setValue("value", fieldTypes.get(i).getType().getDisplayName());
+        }
         Scope scope = methodDefinition.getScope();
 
         CallSiteBinder binder = new CallSiteBinder();
@@ -250,7 +258,7 @@ public class TestExtensionsPlugin
         Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()));
 
         try {
-            Method m = cls.getMethod("_new", long.class, Slice.class, long.class, Slice.class, boolean.class, double.class);
+            Method m = cls.getMethod(rowType.getTypeSignature().getBase(), long.class, Slice.class, long.class, Slice.class, boolean.class, double.class);
             Object ret = m.invoke(null, 5L, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, null, true, 40.5);// (null, 2L, null, 3L, null);
             System.out.println(ret);
         }

@@ -100,6 +100,7 @@ public class MethodDefinition
     public List<AnnotationDefinition> getAnnotations()
     {
         return ImmutableList.copyOf(annotations);
+
     }
 
     public List<AnnotationDefinition> getParameterAnnotations(int index)
