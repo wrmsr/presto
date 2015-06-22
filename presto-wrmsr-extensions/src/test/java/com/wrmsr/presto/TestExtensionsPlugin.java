@@ -14,11 +14,12 @@
 package com.wrmsr.presto;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.byteCode.*;
 import com.facebook.presto.spi.block.*;
-import com.facebook.presto.spi.type.BigintType;
-import com.facebook.presto.spi.type.DoubleType;
-import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.spi.block.Block;
+import com.facebook.presto.spi.type.*;
+import com.facebook.presto.sql.gen.CallSiteBinder;
+import com.facebook.presto.sql.gen.CompilerUtils;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
@@ -32,9 +33,14 @@ import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
 import org.testng.annotations.Test;
 
+import java.util.List;
 import java.util.Optional;
 
+import static com.facebook.presto.byteCode.Access.*;
+import static com.facebook.presto.byteCode.Parameter.arg;
+import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
+import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.google.common.base.Preconditions.checkState;
@@ -111,7 +117,16 @@ public class TestExtensionsPlugin
         blockBuilder.writeBytes(d, 0, d.length());
         blockBuilder.closeEntry();
 
-        com.facebook.presto.spi.block.Block block = blockBuilder.build();
+        return blockBuilderToSlice(blockBuilder);
+    }
+
+    public static Slice blockBuilderToSlice(BlockBuilder blockBuilder)
+    {
+        return blockToSlice(blockBuilder.build());
+    }
+
+    public static Slice blockToSlice(Block block)
+    {
         BlockEncoding blockEncoding = new VariableWidthBlockEncoding();
 
         int estimatedSize = blockEncoding.getEstimatedSize(block);
@@ -124,11 +139,53 @@ public class TestExtensionsPlugin
         return outputSlice;
     }
 
+    public void generateConstructor(RowType rowType)
+    {
+        List<RowType.RowField> fieldTypes = rowType.getFields();
+
+        ClassDefinition definition = new ClassDefinition(
+                a(PUBLIC, FINAL),
+                CompilerUtils.makeClassName(rowType.getDisplayName() + "_new"),
+                type(Object.class));
+
+        definition.declareDefaultConstructor(a(PRIVATE));
+
+        ImmutableList.Builder<Parameter> parameters = ImmutableList.builder();
+        for (int i = 0; i < fieldTypes.size(); i++) {
+            RowType.RowField fieldType = fieldTypes.get(i);
+            parameters.add(arg("arg" + i, fieldType.getType().getJavaType()));
+        }
+
+        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), "_new", type(Slice.class), parameters.build());
+        Scope scope = methodDefinition.getScope();
+
+        Variable typeVariable = scope.declareVariable(Type.class, "typeVariable");
+        Variable rangeTypeVariable = scope.declareVariable(Type.class, "rangeTypeVariable");
+        CallSiteBinder binder = new CallSiteBinder();
+        com.facebook.presto.byteCode.Block body = methodDefinition.getBody();
+
+        Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder" + i);
+        body
+                .comment("blockBuilder = typeVariable.createBlockBuilder(new BlockBuilderStatus());")
+                .newObject(BlockBuilderStatus.class)
+                .dup()
+                .invokeConstructor(BlockBuilderStatus.class)
+                .newObject(type(VariableWidthBlockBuilder.class, BlockBuilderStatus.class))
+                .invokeConstructor(VariableWidthBlockBuilder.class, BlockBuilderStatus.class)
+                .putVariable(blockBuilder);
+
+        defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()))
+    }
+
+
     @Test
     public void testNewThing() throws Throwable
     {
         Slice slice = newThing(0, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, Slices.wrappedBuffer((byte) 30, (byte) 40));
         Block block = new VariableWidthBlockEncoding().readBlock(slice.getInput());
         System.out.println(block);
+
+        RowType rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY), Optional.of(ImmutableList.of("a", "b", "c", "d"));
+        generateConstructor(rt);
     }
 }
