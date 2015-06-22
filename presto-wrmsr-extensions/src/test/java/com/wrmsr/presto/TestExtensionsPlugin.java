@@ -163,10 +163,10 @@ public class TestExtensionsPlugin
 
         MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), rowType.getTypeSignature().getBase(), type(Slice.class), parameters.build());
         methodDefinition.declareAnnotation(ScalarFunction.class);
-        methodDefinition.declareAnnotation(SqlType.class).setValue("value", rowType.getDisplayName()); // ???
+        methodDefinition.declareAnnotation(SqlType.class).setValue("value", rowType.getTypeSignature().toString());
         for (int i = 0; i < fieldTypes.size(); i++) {
             RowType.RowField fieldType = fieldTypes.get(i);
-            methodDefinition.declareParameterAnnotation(SqlType.class, i).setValue("value", fieldTypes.get(i).getType().getDisplayName());
+            methodDefinition.declareParameterAnnotation(SqlType.class, i).setValue("value", fieldTypes.get(i).getType().toString());
         }
         Scope scope = methodDefinition.getScope();
 
