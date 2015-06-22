@@ -444,13 +444,14 @@ public class TypeRegistrar
                 .setLocale(ENGLISH)
                 .setSchema("yelp");
         Session session = builder.build();
-        RowType thing = buildRowType(session, "thing", "select 1, 'hi', cast(null as bigint), cast(null as varbinary)");
-        typeRegistry.addType(thing);
-        Class<?> ctor = ;
+
+        RowType rowType = buildRowType(session, "thing", "select 1, 'hi', cast(null as bigint), cast(null as varbinary)");
+
+        typeRegistry.addType(rowType);
         metadata.addFunctions(
                 new FunctionListBuilder(typeRegistry)
-                .scalar(new RowTypeConstructorCompiler().run(thing, thing.getTypeSignature().getBase() + "_strict"))
-                .scalar(new NullableRowTypeConstructorCompiler().run(thing, thing.getTypeSignature().getBase()))
+                .scalar(new RowTypeConstructorCompiler().run(rowType, rowType.getTypeSignature().getBase() + "_strict"))
+                .scalar(new NullableRowTypeConstructorCompiler().run(rowType, rowType.getTypeSignature().getBase()))
                 .getFunctions());
     }
 }
