@@ -164,7 +164,7 @@ public class TestExtensionsPlugin
         CallSiteBinder binder = new CallSiteBinder();
         com.facebook.presto.byteCode.Block body = methodDefinition.getBody();
 
-        Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder" + i);
+        Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
         body
                 .comment("blockBuilder = typeVariable.createBlockBuilder(new BlockBuilderStatus());")
                 .newObject(BlockBuilderStatus.class)
@@ -174,7 +174,7 @@ public class TestExtensionsPlugin
                 .invokeConstructor(VariableWidthBlockBuilder.class, BlockBuilderStatus.class)
                 .putVariable(blockBuilder);
 
-        defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()))
+        defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()));
     }
 
 
@@ -185,7 +185,7 @@ public class TestExtensionsPlugin
         Block block = new VariableWidthBlockEncoding().readBlock(slice.getInput());
         System.out.println(block);
 
-        RowType rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY), Optional.of(ImmutableList.of("a", "b", "c", "d"));
+        RowType rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY), Optional.of(ImmutableList.of("a", "b", "c", "d")));
         generateConstructor(rt);
     }
 }
