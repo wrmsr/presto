@@ -4,9 +4,12 @@ import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.ParametricScalar;
 import com.facebook.presto.metadata.Signature;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.sql.tree.QualifiedName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -29,7 +32,7 @@ public class SerializeFunction
 {
     private static final Signature SIGNATURE = new Signature( // FIXME nullable
             "serialize", ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"), false, false);
-    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", Type.class, Object.class);
+    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", Type.class, ConnectorSession.class, Object.class);
 
     private final FunctionRegistry functionRegistry;
 
@@ -68,10 +71,12 @@ public class SerializeFunction
         checkArgument(types.size() == 1, "Cardinality expects only one argument");
         Type type = types.get("E");
         MethodHandle methodHandle = METHOD_HANDLE.bindTo(type);
+
+        // functionRegistry.resolveFunction(new QualifiedName("serialize"), List< TypeSignature > parameterTypes, false)
         return new FunctionInfo(new Signature("serialize", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature()), getDescription(), isHidden(), methodHandle, isDeterministic(), false, ImmutableList.of(true));
     }
 
-    public static Slice serialize(Type type, @Nullable Object object)
+    public static Slice serialize(Type type, ConnectorSession session, @Nullable Object object)
     {
         try {
             return Slices.wrappedBuffer(OBJECT_MAPPER.get().writeValueAsBytes(object));
