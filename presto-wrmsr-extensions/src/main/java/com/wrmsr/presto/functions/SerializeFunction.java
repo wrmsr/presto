@@ -23,13 +23,20 @@ import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
+// TODO: COMPILE.
 public class SerializeFunction
     extends ParametricScalar
 {
-    public static final SerializeFunction SERIALIZE = new SerializeFunction();
     private static final Signature SIGNATURE = new Signature( // FIXME nullable
             "serialize", ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"), false, false);
     private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", Type.class, Object.class);
+
+    private final FunctionRegistry functionRegistry;
+
+    public SerializeFunction(FunctionRegistry functionRegistry)
+    {
+        this.functionRegistry = functionRegistry;
+    }
 
     @Override
     public Signature getSignature()

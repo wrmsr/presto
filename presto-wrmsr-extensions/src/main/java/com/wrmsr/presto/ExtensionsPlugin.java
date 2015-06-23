@@ -16,6 +16,7 @@ package com.wrmsr.presto;
 // import com.facebook.presto.metadata.FunctionFactory;
 
 import com.facebook.presto.connector.ConnectorManager;
+import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
@@ -244,7 +245,7 @@ public class ExtensionsPlugin
         }
         else if (type == com.facebook.presto.metadata.FunctionFactory.class) {
             return ImmutableList.of(
-                    type.cast(new ExtensionFunctionFactory(typeRegistry))
+                    type.cast(new ExtensionFunctionFactory(typeRegistry, metadata.getFunctionRegistry()))
             );
         }
         else if (type == ServerEvent.Listener.class) {
