@@ -240,6 +240,7 @@ public class PrestoWrapperBuilder
         String wrapperProject = "presto-wrmsr-wrapper";
         List<String> names = ImmutableList.of(
                 "presto-main",
+                "presto-cli",
                 "presto-cassandra",
                 "presto-blackhole",
                 "presto-example-http",
