@@ -25,16 +25,21 @@ import java.io.*;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
+import java.util.logging.Level;
+import java.util.logging.LoggingMXBean;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.util.stream.Collectors.toMap;
 
 public class PrestoWrapperBuilder
 {
@@ -219,6 +224,10 @@ public class PrestoWrapperBuilder
     {
         Logging.initialize();
 
+        for (String logName : new String[]{"com.ning.http.client.providers.netty.NettyAsyncHttpProvider"}) {
+            java.util.logging.Logger.getLogger(logName).setLevel(Level.WARNING);
+        }
+
         File jarRepoBase = new File("/repository");
         File classpathBase = new File("/classpaths");
         File repository = new File(System.getProperty("user.home"), ".m2/repository");
@@ -228,6 +237,7 @@ public class PrestoWrapperBuilder
                 ArtifactResolver.USER_LOCAL_REPO,
                 ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
 
+        String wrapperProject = "presto-wrmsr-wrapper";
         List<String> names = ImmutableList.of(
                 "presto-main",
                 "presto-cassandra",
@@ -241,14 +251,14 @@ public class PrestoWrapperBuilder
                 "presto-raptor",
                 "presto-tpch",
                 "presto-wrmsr-extensions",
-                "presto-wrmsr-wrapper" // BOOTSTRAP SELF
+                wrapperProject // BOOTSTRAP SELF
         );
-
         Set<String> localGroups = ImmutableSet.of(
                 "com.facebook.presto",
                 "com.wrmsr.presto"
         );
 
+        File wrapperJarFile = null;
         Set<Entry> entries = newHashSet();
         for (String name : names) {
             String pom = name + "/pom.xml";
@@ -284,10 +294,13 @@ public class PrestoWrapperBuilder
                     checkState(jarPathStr.startsWith("/"));
                     jarPathStr = jarPathStr.substring(1);
 
-                    entries.add(new FileEntry(jarPathStr, localFile));
-
-                    //log.info(jarPathStr);
-                    repoPaths.add(jarPathStr);
+                    if (a.getArtifactId().equals(wrapperProject)) {
+                        wrapperJarFile = localFile;
+                    }
+                    else {
+                        entries.add(new FileEntry(jarPathStr, localFile));
+                        repoPaths.add(jarPathStr);
+                    }
                 }
                 else {
                     files.add(a.getFile());
@@ -321,7 +334,16 @@ public class PrestoWrapperBuilder
             entries.add(new BytesEntry(classpathPath, repoPathsStr.getBytes()));
         }
 
-        System.out.println(entries);
+        checkState(wrapperJarFile != null);
+        Map<String, Entry> entryMap = entries.stream().collect(toMap(Entry::getJarPath, e -> e));
+        List<String> keys = newArrayList(entryMap.keySet());
+        Collections.sort(keys);
+        checkState(keys.size() == newHashSet(keys).size());
+
+        System.out.println(wrapperJarFile);
+        for (String s : keys) {
+            System.out.println(s);
+        }
     }
 }
 
