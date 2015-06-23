@@ -8,8 +8,8 @@ import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
-import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.sql.tree.QualifiedName;
+import com.facebook.presto.type.RowType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
 // TODO: COMPILE.
+// FIXME LOLOL RECURSION LINKED LISTS
 public class SerializeFunction
     extends ParametricScalar
 {
@@ -71,6 +72,13 @@ public class SerializeFunction
         checkArgument(types.size() == 1, "Cardinality expects only one argument");
         Type type = types.get("E");
         MethodHandle methodHandle = METHOD_HANDLE.bindTo(type);
+
+        if (type instanceof RowType) {
+            RowType rowType = (RowType) type;
+            for (RowType.RowField field : rowType.getFields()) {
+                FunctionInfo functionInfo = functionRegistry.resolveFunction(new QualifiedName("serialize"), ImmutableList.of(field.getType().getTypeSignature()), false);
+            }
+        }
 
         // functionRegistry.resolveFunction(new QualifiedName("serialize"), List< TypeSignature > parameterTypes, false)
         return new FunctionInfo(new Signature("serialize", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature()), getDescription(), isHidden(), methodHandle, isDeterministic(), false, ImmutableList.of(true));
