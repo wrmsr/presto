@@ -14,6 +14,7 @@
 package com.wrmsr.presto.wrapper;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
@@ -243,6 +244,11 @@ public class PrestoWrapperBuilder
                 "presto-wrmsr-wrapper" // BOOTSTRAP SELF
         );
 
+        Set<String> localGroups = ImmutableSet.of(
+                "com.facebook.presto",
+                "com.wrmsr.presto"
+        );
+
         Set<Entry> entries = newHashSet();
         for (String name : names) {
             String pom = name + "/pom.xml";
@@ -254,13 +260,34 @@ public class PrestoWrapperBuilder
 
             List<File> files = newArrayList();
             for (Artifact a : artifacts) {
-                if (a.getGroupId().equals("com.facebook.presto") && new File(cwd, a.getArtifactId()).exists()) {
-                    if (a.getArtifactId().equals(name)) {
-                        continue;
-                    }
+                if (localGroups.contains(a.getGroupId()) && new File(cwd, a.getArtifactId()).exists()) {
                     File localPath = new File(cwd, a.getArtifactId());
-                    File localFile = new File(localPath, "target/" + a.getFile().getName());
-                    files.add(localFile);
+                    File file;
+                    String rel;
+                    if (a.getArtifactId().equals(name)) {
+                        String jarFileName = a.getArtifactId() + "-" + a.getVersion() + ".jar";
+                        file = new File(pomFile.getParentFile(), "target/" + jarFileName);
+                        rel = a.getGroupId().replace(".", "/") + "/" + jarFileName;
+                    }
+                    else {
+                       file = a.getFile();
+                       rel = repository.toURI().relativize(file.toURI()).getPath();
+                    }
+                    checkState(file.exists());
+                    File localFile = new File(localPath, "target/" + file.getName());
+
+                    checkState(!rel.startsWith("/") && !rel.startsWith(".."));
+                    //log.info(rel);
+
+                    File jarPath = new File(jarRepoBase, rel);
+                    String jarPathStr = jarPath.toString();
+                    checkState(jarPathStr.startsWith("/"));
+                    jarPathStr = jarPathStr.substring(1);
+
+                    entries.add(new FileEntry(jarPathStr, localFile));
+
+                    //log.info(jarPathStr);
+                    repoPaths.add(jarPathStr);
                 }
                 else {
                     files.add(a.getFile());
@@ -271,25 +298,20 @@ public class PrestoWrapperBuilder
                 checkState(file.exists(), String.format("File not found: %s", file));
                 URL url = new URL("file:" + file.getAbsolutePath() + (file.isDirectory() ? "/" : ""));
                 //log.info(url.toString());
-                if (file.isDirectory()) {
-                    // FIXME translate target/classes to jar
-                    log.info(file.toString());
-                }
-                else {
-                    String rel = repository.toURI().relativize(file.toURI()).getPath();
-                    checkState(!rel.startsWith("/") && !rel.startsWith(".."));
-                    //log.info(rel);
+                checkState(!file.isDirectory());
+                String rel = repository.toURI().relativize(file.toURI()).getPath();
+                checkState(!rel.startsWith("/") && !rel.startsWith(".."));
+                //log.info(rel);
 
-                    File jarPath = new File(jarRepoBase, rel);
-                    String jarPathStr = jarPath.toString();
-                    checkState(jarPathStr.startsWith("/"));
-                    jarPathStr = jarPathStr.substring(1);
+                File jarPath = new File(jarRepoBase, rel);
+                String jarPathStr = jarPath.toString();
+                checkState(jarPathStr.startsWith("/"));
+                jarPathStr = jarPathStr.substring(1);
 
-                    entries.add(new FileEntry(jarPathStr, file));
+                entries.add(new FileEntry(jarPathStr, file));
 
-                    //log.info(jarPathStr);
-                    repoPaths.add(jarPathStr);
-                }
+                //log.info(jarPathStr);
+                repoPaths.add(jarPathStr);
             }
 
             String repoPathsStr = String.join("\n", repoPaths) + "\n";
