@@ -254,7 +254,17 @@ public class PrestoWrapperBuilder
 
             List<File> files = newArrayList();
             for (Artifact a : artifacts) {
-                files.add(a.getFile());
+                if (a.getGroupId().equals("com.facebook.presto") && new File(cwd, a.getArtifactId()).exists()) {
+                    if (a.getArtifactId().equals(name)) {
+                        continue;
+                    }
+                    File localPath = new File(cwd, a.getArtifactId());
+                    File localFile = new File(localPath, "target/" + a.getFile().getName());
+                    files.add(localFile);
+                }
+                else {
+                    files.add(a.getFile());
+                }
             }
 
             for (File file : files) {
