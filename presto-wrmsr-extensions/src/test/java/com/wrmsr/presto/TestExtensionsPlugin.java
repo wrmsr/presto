@@ -184,7 +184,7 @@ public class TestExtensionsPlugin
         */
 
         Class<?> cls = TypeRegistrar.generateBox(rowType.getTypeSignature().getBase());
-        cls.getDeclaredConstructor(Slice.class).newInstance(null);
+        cls.getDeclaredConstructor(Slice.class).newInstance(new Object[]{null});
         System.out.println(cls);
     }
 }

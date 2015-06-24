@@ -37,15 +37,26 @@ import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.SqlType;
 import com.facebook.presto.type.TypeRegistry;
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.MapMaker;
 import com.wrmsr.presto.util.Box;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.facebook.presto.byteCode.Access.FINAL;
@@ -453,21 +464,60 @@ public class TypeRegistrar
         }
     }
 
-    public static Class<?> generateBox(String name)
+    public static Class<?> generateBox(String name, Class<?> valueClass)
     {
         ClassDefinition definition = new ClassDefinition(
                 a(PUBLIC, FINAL),
                 CompilerUtils.makeClassName(name + "$box"),
-                type(Box.class, Slice.class));
+                type(Box.class, valueClass));
 
-        MethodDefinition methodDefinition = definition.declareConstructor(a(PUBLIC), ImmutableList.of(arg("slice", Slice.class)));
+        MethodDefinition methodDefinition = definition.declareConstructor(a(PUBLIC), ImmutableList.of(arg("value", valueClass)));
         methodDefinition.getBody()
                 .getVariable(methodDefinition.getThis())
-                .getVariable(methodDefinition.getScope().getVariable("slice"))
+                .getVariable(methodDefinition.getScope().getVariable("value"))
                 .invokeConstructor(Box.class, Object.class)
                 .ret();
 
         return defineClass(definition, Object.class, new CallSiteBinder().getBindings(), new DynamicClassLoader(TypeRegistrar.class.getClassLoader()));
+    }
+
+    public final Map<String, Class<?>> sliceBoxClassMap = new MapMaker().makeMap();
+    public final Map<String, Class<?>> listBoxClassMap = new MapMaker().makeMap();
+    public final Map<String, StdSerializer> serializerMap = new MapMaker().makeMap();
+    public final Map<String, StdDeserializer> deserializerMap = new MapMaker().makeMap();
+
+    public static class RowTypeSerializer extends StdSerializer<Box<List>>
+    {
+        private final RowType rowType;
+
+        public RowTypeSerializer(RowType rowType, Class listBoxClass)
+        {
+            super(listBoxClass);
+            this.rowType = rowType;
+        }
+
+        @Override
+        public void serialize(Box<List> value, JsonGenerator jgen, SerializerProvider provider) throws IOException
+        {
+
+        }
+    }
+
+    public static class RowTypeDeserializer extends StdDeserializer<Box<Slice>>
+    {
+        private final RowType rowType;
+
+        public RowTypeDeserializer(RowType rowType, Class sliceBoxClass)
+        {
+            super(sliceBoxClass);
+            this.rowType = rowType;
+        }
+
+        @Override
+        public Box<Slice> deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException
+        {
+            return null;
+        }
     }
 
     public void run()
@@ -483,11 +533,20 @@ public class TypeRegistrar
 
         RowType rowType = buildRowType(session, "thing", "select 1, 'hi', cast(null as bigint), cast(null as varbinary)");
 
+        String name = rowType.getTypeSignature().getBase();
         typeRegistry.addType(rowType);
         metadata.addFunctions(
                 new FunctionListBuilder(typeRegistry)
-                        .scalar(new RowTypeConstructorCompiler().run(rowType, rowType.getTypeSignature().getBase() + "_strict"))
-                        .scalar(new NullableRowTypeConstructorCompiler().run(rowType, rowType.getTypeSignature().getBase()))
+                        .scalar(new RowTypeConstructorCompiler().run(rowType, name + "_strict"))
+                        .scalar(new NullableRowTypeConstructorCompiler().run(rowType, name))
                         .getFunctions());
+        Class<?> sliceBoxClass = generateBox(name, Slice.class);
+        sliceBoxClassMap.put(name, sliceBoxClass);
+        Class<?> listBoxClass = generateBox(name, List.class);
+        listBoxClassMap.put(name, listBoxClass);
+        serializerMap.put(name, new RowTypeSerializer(rowType, listBoxClass));
+        deserializerMap.put(name, new RowTypeDeserializer(rowType, sliceBoxClass));
+
+        // TIE THE KNOT - BOX RECURSION
     }
 }
