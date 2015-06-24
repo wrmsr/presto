@@ -611,3 +611,157 @@ create table atom_log (
 );
 
 
+
+private MinimalPerfectHashing() {
+}
+
+public static class Data {
+
+    public int[] gs;
+    public int[] vs;
+
+    public Data(int[] gs, int[] vs) {
+        this.gs = gs;
+        this.vs = vs;
+    }
+}
+
+public static interface Hasher <K> {
+
+    public long hash(int d, K key);
+}
+
+// Computes a minimal perfect hash table using the given python dictionary. It
+// returns a tuple (G, V). G and V are both arrays. G contains the intermediate
+// table of values needed to compute the index of the value in V. V contains the
+// values of the dictionary.
+// Source: http://stevehanov.ca/blog/index.php?id=119
+// TODO(wtimoney): disk-back this.
+public static <K> Data create(Map<K, Integer> dct, Hasher<K> hasher) {
+    assert dct.size() > 0;
+
+    int size = dct.size();
+
+    // Step 1: Place all of the keys into buckets
+    @SuppressWarnings("unchecked")
+    List<K>[] buckets = new List[size];
+    for (int i = 0; i < size; ++i)
+        buckets[i] = new ArrayList<>();
+    int[] gs = new int[size];
+    Integer[] vs = new Integer[size];
+
+    for (K key : dct.keySet())
+        buckets[(int) (hasher.hash(0, key) % size)].add(key);
+
+    // Step 2: Sort the buckets and process the ones with the most items first.
+    Arrays.sort(buckets, new Comparator<List<K>>() {
+        @Override
+        public int compare(List<K> strings, List<K> strings2) {
+            return strings2.size() - strings.size();
+        }
+    });
+
+    int b = 0;
+    for (; b < size; ++b) {
+        List<K> bucket = buckets[b];
+        if (bucket.size() <= 1)
+            break;
+
+        int d = 1;
+        int item = 0;
+        List<Integer> slots = new ArrayList<>();
+
+        // Repeatedly try different values of d until we find a hash function
+        // that places all items in the bucket into free slots
+        while (item < bucket.size()) {
+            int slot = (int) (hasher.hash(d, bucket.get(item)) % size);
+
+            if (vs[slot] != null || slots.contains(slot)) {
+                d += 1;
+                item = 0;
+                slots = new ArrayList<>();
+            } else {
+                slots.add(slot);
+                item += 1;
+            }
+        }
+
+        gs[(int) (hasher.hash(0, bucket.get(0)) % size)] = d;
+
+        for (int i = 0; i < bucket.size(); ++i)
+            vs[slots.get(i)] = dct.get(bucket.get(i));
+    }
+
+    // Only buckets with 1 item remain. Process them more quickly by directly
+    // placing them into a free slot. Use a negative value of d to indicate
+    // this.
+    List<Integer> freelist = new ArrayList<>();
+    for (int i = 0; i < size; ++i)
+        if (vs[i] == null)
+            freelist.add(i);
+
+    for (; b < size; ++b) {
+        List<K> bucket = buckets[b];
+        if (bucket.size() == 0)
+            break;
+
+        int slot = freelist.remove(freelist.size() - 1);
+
+        // We subtract one to ensure it's negative even if the zeroeth slot was
+        // used.
+        gs[(int) (hasher.hash(0, bucket.get(0)) % size)] = -slot - 1;
+
+        vs[slot] = dct.get(bucket.get(0));
+    }
+
+    int[] vsa = new int[vs.length];
+    for (int i = 0; i < vs.length; ++i)
+        vsa[i] = vs[i];
+
+    return new Data(gs, vsa);
+}
+
+// Look up a value in the hash table, defined by G and V.
+public static <K> int lookup(int[] gs, int[] vs, K key, Hasher<K> hasher) {
+    int d = gs[(int) (hasher.hash(0, key) % gs.length)];
+
+    if (d < 0)
+        return vs[-d - 1];
+
+    return vs[(int) (hasher.hash(d, key) % vs.length)];
+}
+
+public static <K> void verify(int[] gs, int[] vs, Map<K, Integer> dct, Hasher<K> hasher) {
+    for (Map.Entry<K, Integer> e : dct.entrySet()) {
+        K k = e.getKey();
+        int v = e.getValue();
+        int v_ = lookup(gs, vs, k, hasher);
+
+        if (v != v_)
+            throw new IllegalStateException(); // ValueError((k, v, v_))
+    }
+}
+
+private static final long FNV_32_KEY = 0x01000193L;
+
+// Calculates a distinct hash function for a given string. Each value of the
+// integer d results in a different hash value.
+public static long fnv32Hash(long d, byte[] b) {
+    if (d == 0)
+        d = FNV_32_KEY;
+
+    // Use the FNV algorithm from http://isthe.com/chongo/tech/comp/fnv/
+    for (int i = 0; i < b.length; ++i) {
+        byte c = b[i];
+        d = ((d * FNV_32_KEY) ^ c) & 0xffffffffL;
+    }
+
+    return d;
+}
+
+public static Hasher<String> FNV_32_STRING_HASHER = new Hasher<String>() {
+    @Override
+    public long hash(int d, String key) {
+        return fnv32Hash(d, key.getBytes());
+    }
+};
