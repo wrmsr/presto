@@ -23,7 +23,7 @@ public class TestPythonPlugin
     @Test
     public void testStuff() throws Throwable
     {
-        PythonInterpreter interp = new PythonInterpreter();
+        PythonInterpreter interp = PythonInterpreter.threadLocalStateInterpreter(null); // new PythonInterpreter();
 
         System.out.println("Hello, brave new world");
         interp.exec("import sys");
