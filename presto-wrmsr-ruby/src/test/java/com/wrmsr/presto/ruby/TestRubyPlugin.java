@@ -13,7 +13,25 @@
  */
 package com.wrmsr.presto.ruby;
 
+import org.jruby.Ruby;
+import org.jruby.RubyRuntimeAdapter;
+import org.jruby.javasupport.JavaEmbedUtils;
+import org.testng.annotations.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class TestRubyPlugin
 {
+    @Test
+    public void testStuff() throws Throwable
+    {
+        List<String> loadPaths = new ArrayList<String>();
+        Ruby runtime = JavaEmbedUtils.initialize(loadPaths);
+        RubyRuntimeAdapter evaler = JavaEmbedUtils.newRuntimeAdapter();
 
+        evaler.eval(runtime, "puts 1+2");
+
+        JavaEmbedUtils.terminate(runtime);
+    }
 }
