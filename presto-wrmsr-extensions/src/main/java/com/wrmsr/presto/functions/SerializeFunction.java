@@ -37,6 +37,8 @@ public class SerializeFunction
 
     private final FunctionRegistry functionRegistry;
 
+    private final ThreadLocal<ConnectorSession> connectorSessionThreadLocal = new ThreadLocal<ConnectorSession>();
+
     public SerializeFunction(FunctionRegistry functionRegistry)
     {
         this.functionRegistry = functionRegistry;
@@ -73,12 +75,14 @@ public class SerializeFunction
         Type type = types.get("E");
         MethodHandle methodHandle = METHOD_HANDLE.bindTo(type);
 
+        /*
         if (type instanceof RowType) {
             RowType rowType = (RowType) type;
             for (RowType.RowField field : rowType.getFields()) {
                 FunctionInfo functionInfo = functionRegistry.resolveFunction(new QualifiedName("serialize"), ImmutableList.of(field.getType().getTypeSignature()), false);
             }
         }
+        */
 
         // functionRegistry.resolveFunction(new QualifiedName("serialize"), List< TypeSignature > parameterTypes, false)
         return new FunctionInfo(new Signature("serialize", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature()), getDescription(), isHidden(), methodHandle, isDeterministic(), false, ImmutableList.of(true));

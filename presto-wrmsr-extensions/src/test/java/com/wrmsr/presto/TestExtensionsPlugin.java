@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.ExtensionsPlugin;
 import com.wrmsr.presto.functions.TypeRegistrar;
+import com.wrmsr.presto.util.Box;
 import io.airlift.slice.BasicSliceOutput;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
@@ -156,5 +157,45 @@ public class TestExtensionsPlugin
         catch (Exception e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    @Test
+    public void testBoxes() throws Throwable
+    {
+        RowType rowType = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
+
+        /*
+        List<RowType.RowField> fieldTypes = rowType.getFields();
+
+        ClassDefinition definition = new ClassDefinition(
+                a(PUBLIC, FINAL),
+                CompilerUtils.makeClassName(rowType.getTypeSignature().getBase() + "$serializer")
+                type(Object.class));
+
+        definition.declareDefaultConstructor(a(PRIVATE));
+
+        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), "serialize", type(Slice.class), ImmutableList.of(arg("obj", rowType.getJavaType()));
+
+        Scope scope = methodDefinition.getScope();
+        CallSiteBinder binder = new CallSiteBinder();
+        com.facebook.presto.byteCode.Block body = methodDefinition.getBody();
+
+        Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
+        */
+
+        ClassDefinition definition = new ClassDefinition(
+                a(PUBLIC, FINAL),
+                CompilerUtils.makeClassName(rowType.getTypeSignature().getBase() + "$box"),
+                type(Box.class, Slice.class));
+
+        MethodDefinition methodDefinition = definition.declareConstructor(a(PRIVATE), ImmutableList.of(arg("slice", Slice.class)));
+        methodDefinition.getBody()
+                .getVariable(methodDefinition.getThis())
+                .getVariable(methodDefinition.getScope().getVariable("slice"))
+                .invokeConstructor(type(Box.class, Slice.class))
+                .ret();
+
+        Class<?> cls = defineClass(definition, Object.class, new CallSiteBinder().getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()));
+        System.out.println(cls);
     }
 }
