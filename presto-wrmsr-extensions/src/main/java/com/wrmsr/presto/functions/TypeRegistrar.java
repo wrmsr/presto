@@ -494,6 +494,10 @@ public class TypeRegistrar
         return defineClass(definition, Object.class, new CallSiteBinder().getBindings(), new DynamicClassLoader(TypeRegistrar.class.getClassLoader()));
     }
 
+    // FIXME just a fuckin RowTypeInfo class plz
+    // TODO compile? bench bitch
+    // TODO direct in-session serializers via thread local, no intermediate lists / slices
+    // raw is trivial just dont add names
     public final Map<String, Class<?>> sliceBoxClassMap = new MapMaker().makeMap();
     public final Map<String, Class<?>> listBoxClassMap = new MapMaker().makeMap();
     public final Map<String, StdSerializer> serializerMap = new MapMaker().makeMap();
@@ -512,7 +516,21 @@ public class TypeRegistrar
         @Override
         public void serialize(Box<List> value, JsonGenerator jgen, SerializerProvider provider) throws IOException
         {
-
+            checkNotNull(value);
+            List list = value.getValue();
+            if (list == null) {
+                jgen.writeNull();
+                return;
+            }
+            List<RowType.RowField> rowFields = rowType.getFields();
+            checkArgument(list.size() == rowFields.size());
+            jgen.writeStartObject();
+            for (int i = 0; i < list.size(); ++i) {
+                RowType.RowField rowField = rowFields.get(i);
+                // FIXME nameless = lists
+                jgen.writeObjectField(rowField.getName().get(), list.get(i));
+            }
+            jgen.writeEndObject();
         }
     }
 
