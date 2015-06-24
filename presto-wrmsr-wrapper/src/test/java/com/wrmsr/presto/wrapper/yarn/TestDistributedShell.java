@@ -39,7 +39,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.util.JarFinder;
+// import org.apache.hadoop.util.JarFinder;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
@@ -63,8 +63,7 @@ public class TestDistributedShell {
   protected YarnConfiguration conf = null;
   private static final int NUM_NMS = 1;
 
-  protected final static String APPMASTER_JAR =
-      JarFinder.getJar(ApplicationMaster.class);
+  protected final static String APPMASTER_JAR = null; // FIXME JarFinder.getJar(ApplicationMaster.class);
 
   @Before
   public void setup() throws Exception {
