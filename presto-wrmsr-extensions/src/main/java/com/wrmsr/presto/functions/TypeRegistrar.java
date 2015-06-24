@@ -559,6 +559,49 @@ public class TypeRegistrar
         }
     }
 
+    public Object boxValue(Type type, Object value)
+    {
+        String typeName = type.getTypeSignature().getBase();
+        if (value == null) {
+            return null;
+        }
+        else if (type instanceof RowType && listBoxClassMap.containsKey(typeName)) {
+            checkState(value instanceof List);
+            List list = (List) value;
+            return boxRow((RowType) type, list);
+        }
+        else if (type instanceof ArrayType) {
+            checkState(value instanceof List);
+            List list = (List) value;
+            ArrayType arrayType = (ArrayType) type;
+            Type elementType = arrayType.getTypeParameters().get(0);
+            String elementTypeName = elementType.getTypeSignature().getBase();
+            if (elementType instanceof RowType && listBoxClassMap.containsKey(elementTypeName)) {
+                return ImmutableList.copyOf(Lists.<List, Box<List>>transform(list, e -> boxRow((RowType) elementType, e)));
+            }
+            else {
+                return value;
+            }
+        }
+        else if (type instanceof MapType) {
+            checkState(value instanceof Map);
+            Map map = (Map) value;
+            MapType mapType = (MapType) type;
+            // FIXME keyzzz
+            Type valueType = mapType.getTypeParameters().get(1);
+            String valueTypeName = valueType.getTypeSignature().getBase();
+            if (valueType instanceof RowType && listBoxClassMap.containsKey(valueTypeName)) {
+                return ImmutableMap.copyOf(Maps.<Object, List, Box<List>>transformValues(map, e -> boxRow((RowType) valueType, e)));
+            }
+            else {
+                return value;
+            }
+        }
+        else {
+            return value;
+        }
+    }
+
     public Box<List> boxRow(RowType rowType, List rowValues)
     {
         Constructor<Box<List>> listBoxCtor;
@@ -575,48 +618,7 @@ public class TypeRegistrar
             RowType.RowField rowField = rowFields.get(i);
             Type fieldType = rowField.getType();
             Object fieldValue = rowValues.get(i);
-            String fieldTypeName = fieldType.getTypeSignature().getBase();
-            final Object boxedValue;
-
-            if (fieldValue == null) {
-                boxedValue = null;
-            }
-            else if (fieldType instanceof RowType && listBoxClassMap.containsKey(fieldTypeName)) {
-                checkState(fieldValue instanceof List);
-                List list = (List) fieldValue;
-                boxedValue = boxRow((RowType) fieldType, list);
-            }
-            else if (fieldType instanceof ArrayType) {
-                checkState(fieldValue instanceof List);
-                List list = (List) fieldValue;
-                ArrayType arrayType = (ArrayType) fieldType;
-                Type elementType = arrayType.getTypeParameters().get(0);
-                String elementTypeName = elementType.getTypeSignature().getBase();
-                if (elementType instanceof RowType && listBoxClassMap.containsKey(elementTypeName)) {
-                    boxedValue = ImmutableList.copyOf(Lists.<List, Box<List>>transform(list, e -> boxRow((RowType) elementType, e)));
-                }
-                else {
-                    boxedValue = fieldValue;
-                }
-            }
-            else if (fieldType instanceof MapType) {
-                checkState(fieldValue instanceof Map);
-                Map map = (Map) fieldValue;
-                MapType mapType = (MapType) fieldType;
-                // FIXME keyzzz
-                Type valueType = mapType.getTypeParameters().get(1);
-                String valueTypeName = valueType.getTypeSignature().getBase();
-                if (valueType instanceof RowType && listBoxClassMap.containsKey(valueTypeName)) {
-                    boxedValue = ImmutableMap.copyOf(Maps.<Object, List, Box<List>>transformValues(map, e -> boxRow((RowType) valueType, e)));
-                }
-                else {
-                    boxedValue = fieldValue;
-                }
-            }
-            else {
-                boxedValue = fieldValue;
-            }
-
+            Object boxedValue = boxValue(fieldType, fieldValue);
             builder.add(boxedValue);
         }
         List boxedValues = builder.build();

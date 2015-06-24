@@ -213,14 +213,18 @@ public class ExtensionsPlugin
                     featuresConfig
             ).run();
 
-            new TypeRegistrar(
+            TypeRegistrar typeRegistrar = new TypeRegistrar(
                     connectorManager,
                     typeRegistry,
                     metadata,
                     sqlParser,
                     planOptimizers,
                     featuresConfig
-            ).run();
+            );
+            typeRegistrar.run();
+
+            ExtensionFunctionFactory functionFactory = new ExtensionFunctionFactory(typeRegistry, metadata.getFunctionRegistry(), typeRegistrar);
+            metadata.addFunctions(functionFactory.listFunctions());
         }
     }
 
@@ -243,11 +247,13 @@ public class ExtensionsPlugin
                     type.cast(new ExtendedJdbcConnectorFactory("temp", new TempClientModule(), optionalConfig, TempClientModule.createProperties(), getClassLoader()))
             );
         }
+        /*
         else if (type == com.facebook.presto.metadata.FunctionFactory.class) {
             return ImmutableList.of(
                     type.cast(new ExtensionFunctionFactory(typeRegistry, metadata.getFunctionRegistry()))
             );
         }
+        */
         else if (type == ServerEvent.Listener.class) {
             return ImmutableList.of(type.cast(this));
         }

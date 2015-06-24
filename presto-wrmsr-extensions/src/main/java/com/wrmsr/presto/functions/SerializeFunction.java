@@ -46,15 +46,29 @@ public class SerializeFunction
 {
     private static final Signature SIGNATURE = new Signature( // FIXME nullable
             "serialize", ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"), false, false);
-    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", Type.class, ConnectorSession.class, Object.class);
+    private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", SerializationContext.class, ConnectorSession.class, Object.class);
+
+    private static class SerializationContext
+    {
+        private final TypeRegistrar typeRegistrar;
+        private final Type type;
+
+        public SerializationContext(TypeRegistrar typeRegistrar, Type type)
+        {
+            this.typeRegistrar = typeRegistrar;
+            this.type = type;
+        }
+    }
 
     private final FunctionRegistry functionRegistry;
+    private final TypeRegistrar typeRegistrar;
 
     private final ThreadLocal<ConnectorSession> connectorSessionThreadLocal = new ThreadLocal<ConnectorSession>();
 
-    public SerializeFunction(FunctionRegistry functionRegistry)
+    public SerializeFunction(FunctionRegistry functionRegistry, TypeRegistrar typeRegistrar)
     {
         this.functionRegistry = functionRegistry;
+        this.typeRegistrar = typeRegistrar;
     }
 
     @Override
@@ -86,7 +100,7 @@ public class SerializeFunction
     {
         checkArgument(types.size() == 1, "Cardinality expects only one argument");
         Type type = types.get("E");
-        MethodHandle methodHandle = METHOD_HANDLE.bindTo(type);
+        MethodHandle methodHandle = METHOD_HANDLE.bindTo(new SerializationContext(typeRegistrar, type));
 
         /*
         if (type instanceof RowType) {
@@ -101,10 +115,11 @@ public class SerializeFunction
         return new FunctionInfo(new Signature("serialize", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature()), getDescription(), isHidden(), methodHandle, isDeterministic(), false, ImmutableList.of(true));
     }
 
-    public static Slice serialize(Type type, ConnectorSession session, @Nullable Object object)
+    public static Slice serialize(SerializationContext serializationContext, ConnectorSession session, @Nullable Object object)
     {
         try {
-            return Slices.wrappedBuffer(OBJECT_MAPPER.get().writeValueAsBytes(object));
+            Object boxed = serializationContext.typeRegistrar.boxValue(serializationContext.type, object);
+            return Slices.wrappedBuffer(OBJECT_MAPPER.get().writeValueAsBytes(boxed));
         }
         catch (JsonProcessingException e) {
             throw Throwables.propagate(e);

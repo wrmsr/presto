@@ -26,11 +26,13 @@ public class ExtensionFunctionFactory
 {
     private final TypeManager typeManager;
     private final FunctionRegistry functionRegistry;
+    private final TypeRegistrar typeRegistrar;
 
-    public ExtensionFunctionFactory(TypeManager typeManager, FunctionRegistry functionRegistry)
+    public ExtensionFunctionFactory(TypeManager typeManager, FunctionRegistry functionRegistry, TypeRegistrar typeRegistrar)
     {
         this.typeManager = typeManager;
         this.functionRegistry = functionRegistry;
+        this.typeRegistrar = typeRegistrar;
     }
 
     @Override
@@ -38,7 +40,7 @@ public class ExtensionFunctionFactory
     {
         return new FunctionListBuilder(typeManager)
                 .scalar(CompressionFunctions.class)
-                .function(new SerializeFunction(functionRegistry))
+                .function(new SerializeFunction(functionRegistry, typeRegistrar))
                 .function(Hash.HASH)
                 .getFunctions();
     }
