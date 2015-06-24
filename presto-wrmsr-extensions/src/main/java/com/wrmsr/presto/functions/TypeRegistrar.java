@@ -527,7 +527,7 @@ public class TypeRegistrar
         }
 
         @Override
-        public Box<Slice> deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException
+        public Box<Slice> deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException
         {
             return null;
         }
