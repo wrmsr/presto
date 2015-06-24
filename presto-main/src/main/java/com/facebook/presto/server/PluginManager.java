@@ -19,6 +19,7 @@ import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.Plugin;
+import com.facebook.presto.spi.ScriptEngineProvider;
 import com.facebook.presto.spi.block.BlockEncodingFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
 import com.facebook.presto.spi.type.Type;
@@ -27,6 +28,7 @@ import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.MapMaker;
 import com.google.common.collect.Ordering;
 import com.google.inject.Injector;
 import io.airlift.configuration.ConfigurationFactory;
@@ -87,8 +89,8 @@ public class PluginManager
     private final AtomicBoolean pluginsLoading = new AtomicBoolean();
     private final AtomicBoolean pluginsLoaded = new AtomicBoolean();
     private final List<ServerEvent.Listener> serverEventListeners = new CopyOnWriteArrayList<>();
+    private final Map<String, ScriptEngineProvider> scriptEngineProviders = new MapMaker().makeMap();
 
-    @Inject
     public PluginManager(Injector injector,
             NodeInfo nodeInfo,
             HttpServerInfo httpServerInfo,
@@ -138,6 +140,11 @@ public class PluginManager
         for (ServerEvent.Listener listener : serverEventListeners) {
             listener.onServerEvent(event);
         }
+    }
+
+    public Map<String, ScriptEngineProvider> getScriptEngineProviders()
+    {
+        return Collections.unmodifiableMap(scriptEngineProviders);
     }
 
     public void loadPlugins()
@@ -221,6 +228,11 @@ public class PluginManager
         for (ServerEvent.Listener serverEventListener : plugin.getServices(ServerEvent.Listener.class)) {
             log.info("Registering server event listener %s", serverEventListener.getClass().getName());
             serverEventListeners.add(serverEventListener);
+        }
+
+        for (ScriptEngineProvider scriptEngineProvider : plugin.getServices(ScriptEngineProvider.class)) {
+            log.info("Registering script engine provider %s", scriptEngineProvider.getName());
+            scriptEngineProviders.put(scriptEngineProvider.getName(), scriptEngineProvider);
         }
     }
 

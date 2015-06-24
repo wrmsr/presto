@@ -47,6 +47,8 @@ import com.facebook.presto.sql.parser.ParsingException;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
+import com.facebook.presto.type.ArrayType;
+import com.facebook.presto.type.MapType;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.SqlType;
 import com.facebook.presto.type.TypeRegistry;
@@ -58,8 +60,12 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
+import com.google.common.collect.Maps;
 import com.wrmsr.presto.util.Box;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
@@ -67,6 +73,8 @@ import io.airlift.slice.Slices;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -548,6 +556,76 @@ public class TypeRegistrar
         public Box<Slice> deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException
         {
             return null;
+        }
+    }
+
+    public Box<List> boxRow(RowType rowType, List rowValues)
+    {
+        Constructor<Box<List>> listBoxCtor;
+        try {
+            Class listBoxClass = listBoxClassMap.get(rowType.getTypeSignature().getBase());
+            listBoxCtor = listBoxClass.getDeclaredConstructor(List.class);
+        }
+        catch (NoSuchMethodException e) {
+            throw Throwables.propagate(e);
+        }
+        ImmutableList.Builder<Object> builder = ImmutableList.builder();
+        List<RowType.RowField> rowFields = rowType.getFields();
+        for (int i = 0; i < rowFields.size(); ++i) {
+            RowType.RowField rowField = rowFields.get(i);
+            Type fieldType = rowField.getType();
+            Object fieldValue = rowValues.get(i);
+            String fieldTypeName = fieldType.getTypeSignature().getBase();
+            final Object boxedValue;
+
+            if (fieldValue == null) {
+                boxedValue = null;
+            }
+            else if (fieldType instanceof RowType && listBoxClassMap.containsKey(fieldTypeName)) {
+                checkState(fieldValue instanceof List);
+                List list = (List) fieldValue;
+                boxedValue = boxRow((RowType) fieldType, list);
+            }
+            else if (fieldType instanceof ArrayType) {
+                checkState(fieldValue instanceof List);
+                List list = (List) fieldValue;
+                ArrayType arrayType = (ArrayType) fieldType;
+                Type elementType = arrayType.getTypeParameters().get(0);
+                String elementTypeName = elementType.getTypeSignature().getBase();
+                if (elementType instanceof RowType && listBoxClassMap.containsKey(elementTypeName)) {
+                    boxedValue = ImmutableList.copyOf(Lists.transform(list, e -> boxRow((RowType) elementType, e)));
+                }
+                else {
+                    boxedValue = fieldValue;
+                }
+            }
+            else if (fieldType instanceof MapType) {
+                checkState(fieldValue instanceof Map);
+                Map map = (Map) fieldValue;
+                MapType mapType = (MapType) fieldType;
+                // FIXME keyzzz
+                Type valueType = mapType.getTypeParameters().get(1);
+                String valueTypeName = valueType.getTypeSignature().getBase();
+                if (valueType instanceof RowType && listBoxClassMap.containsKey(valueTypeName)) {
+                    boxedValue = ImmutableMap.copyOf(Maps.transformValues(map, e -> boxRow((RowType) valueType, e)));
+                }
+                else {
+                    boxedValue = fieldValue;
+                }
+            }
+            else {
+                boxedValue = fieldValue;
+            }
+
+            builder.add(boxedValue);
+        }
+        List boxedValues = builder.build();
+        try {
+            // FIXME lel
+            return listBoxCtor.newInstance(boxedValues);
+        }
+        catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
+            throw Throwables.propagate(e);
         }
     }
 
