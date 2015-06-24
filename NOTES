@@ -132,7 +132,7 @@ hierarchical config - can just fucking redundantly serialize to fit into map<str
 
 http://jyni.org/
 
-streams + sqs + kkgearman
+streams + sqs + gearman
 
 https://github.com/johnewart/gearman-java
 
