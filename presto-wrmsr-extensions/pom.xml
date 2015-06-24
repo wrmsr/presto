@@ -40,24 +40,6 @@
             <version>2.2.5.Final</version>
         </dependency>
 
-        <!-- FIXME THESE NEED CL ISOLATION - separate poms? -->
-
-        <dependency>
-            <groupId>org.jruby</groupId>
-            <artifactId>jruby</artifactId>
-            <version>9.0.0.0.rc1</version>
-        </dependency>
-
-        <!--
-        <dependency>
-            <groupId>org.jruby</groupId>
-            <artifactId>jruby</artifactId>
-            <version>1.7.20.1</version>
-        </dependency>
-        -->
-
-        <!-- /FIXME -->
-
         <dependency>
             <groupId>com.github.jnr</groupId>
             <artifactId>jnr-ffi</artifactId>
