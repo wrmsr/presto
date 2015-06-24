@@ -534,3 +534,8 @@ user defined type aliases? parser type literal limitation bypass?
 
 http://mesos.apache.org/api/latest/java/org/apache/mesos/Scheduler.html
 https://github.com/apache/mesos/blob/master/src/examples/java/TestFramework.java
+
+
+find java 8 shebang, exec with minimal heap, spawn child w flock and die
+
+
