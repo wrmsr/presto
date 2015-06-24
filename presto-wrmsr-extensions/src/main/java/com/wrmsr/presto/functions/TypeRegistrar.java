@@ -652,7 +652,7 @@ public class TypeRegistrar
                 .setSchema("yelp");
         Session session = builder.build();
 
-        RowType rowType = buildRowType(session, "thing", "select 1, 'hi', cast(null as bigint), cast(null as varbinary)");
+        RowType rowType = buildRowType(session, "thing", "select 1 as \"anumber\", 'hi' as \"somestr\", cast(null as bigint) as \"someint\", cast(null as varbinary) as \"somebinary\"");
 
         String name = rowType.getTypeSignature().getBase();
         typeRegistry.addType(rowType);
