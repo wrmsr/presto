@@ -9,7 +9,7 @@
 
     <groupId>com.wrmsr.presto</groupId>
     <artifactId>presto-wrmsr-memcache</artifactId>
-    <description>Presto - Elasticsearch Connector</description>
+    <description>Presto - Memcache Connector</description>
     <packaging>presto-plugin</packaging>
 
     <properties>
