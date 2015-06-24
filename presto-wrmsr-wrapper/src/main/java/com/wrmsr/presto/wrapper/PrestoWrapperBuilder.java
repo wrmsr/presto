@@ -346,7 +346,7 @@ public class PrestoWrapperBuilder
             System.out.println(s);
         }
 
-        String outPath = "/Users/wtimoney/presto/foo.jar";
+        String outPath = System.getProperty("user.home") + "/presto/foo.jar";
         BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outPath));
         JarOutputStream jo = new JarOutputStream(bo);
 
