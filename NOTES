@@ -752,3 +752,5 @@ http://stackoverflow.com/a/2946402 > http://docs.oracle.com/javase/8/docs/api/ja
 
 msgpack
 bson
+
+schema inference :/
