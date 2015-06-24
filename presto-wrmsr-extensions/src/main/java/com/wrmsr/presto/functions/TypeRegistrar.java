@@ -593,7 +593,7 @@ public class TypeRegistrar
                 Type elementType = arrayType.getTypeParameters().get(0);
                 String elementTypeName = elementType.getTypeSignature().getBase();
                 if (elementType instanceof RowType && listBoxClassMap.containsKey(elementTypeName)) {
-                    boxedValue = ImmutableList.copyOf(Lists.transform(list, e -> boxRow((RowType) elementType, e)));
+                    boxedValue = ImmutableList.copyOf(Lists.<List, Box<List>>transform(list, e -> boxRow((RowType) elementType, e)));
                 }
                 else {
                     boxedValue = fieldValue;
@@ -607,7 +607,7 @@ public class TypeRegistrar
                 Type valueType = mapType.getTypeParameters().get(1);
                 String valueTypeName = valueType.getTypeSignature().getBase();
                 if (valueType instanceof RowType && listBoxClassMap.containsKey(valueTypeName)) {
-                    boxedValue = ImmutableMap.copyOf(Maps.transformValues(map, e -> boxRow((RowType) valueType, e)));
+                    boxedValue = ImmutableMap.copyOf(Maps.<Object, List, Box<List>>transformValues(map, e -> boxRow((RowType) valueType, e)));
                 }
                 else {
                     boxedValue = fieldValue;
