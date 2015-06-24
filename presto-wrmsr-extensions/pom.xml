@@ -46,6 +46,14 @@
             <version>2.7.0</version>
         </dependency>
 
+        <!--
+        <dependency>
+            <groupId>org.jruby</groupId>
+            <artifactId>jruby</artifactId>
+            <version>1.7.20</version>
+        </dependency>
+        -->
+
         <dependency>
             <groupId>com.github.jnr</groupId>
             <artifactId>jnr-ffi</artifactId>

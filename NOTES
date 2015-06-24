@@ -1,14 +1,11 @@
-es driver
- - jest + transportclient
 auto jdbc partitioning
 further jdbc predicate pushdown
+ - composite pk scrolling :|
 jdbc aggregate pushdown
 yarn
  - http://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/WritingYarnApplications.html
 (python) ffi
 event sources
-memcache
-general-purpose decoding
 random access stores
 first layer caching
 vitess shit
@@ -133,27 +130,9 @@ hierarchical config - can just fucking redundantly serialize to fit into map<str
 
 
 
-<dependency>
-    <groupId>org.python</groupId>
-    <artifactId>jython</artifactId>
-    <version>2.7.0</version>
-</dependency>
-
-<dependency>
-    <groupId>org.mvel</groupId>
-    <artifactId>mvel2</artifactId>
-    <version>2.2.4.Final</version>
-</dependency>
-
-<dependency>
-    <groupId>org.jruby</groupId>
-    <artifactId>jruby</artifactId>
-    <version>1.7.20</version>
-</dependency>
-
 http://jyni.org/
 
-streams + sqs + gearman
+streams + sqs + kkgearman
 
 https://github.com/johnewart/gearman-java
 
@@ -161,8 +140,6 @@ https://github.com/johnewart/gearman-java
 
 
 lucene analysis scalars
-
-explode/deagg
 
 
 https://github.com/elastic/elasticsearch-hadoop
