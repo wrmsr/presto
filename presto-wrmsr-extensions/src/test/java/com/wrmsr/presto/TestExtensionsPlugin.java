@@ -183,8 +183,8 @@ public class TestExtensionsPlugin
         Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
         */
 
-        Class<?> cls = TypeRegistrar.generateBox(rowType.getTypeSignature().getBase());
-        cls.getDeclaredConstructor(Slice.class).newInstance(new Object[]{null});
-        System.out.println(cls);
+        // Class<?> cls = TypeRegistrar.generateBox(rowType.getTypeSignature().getBase());
+        // cls.getDeclaredConstructor(Slice.class).newInstance(new Object[]{null});
+        // System.out.println(cls);
     }
 }
