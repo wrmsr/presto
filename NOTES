@@ -216,6 +216,10 @@ decoder predicate pushdown to capable stores lols
 
 split on scalar fn
 
+00000000: 2321 2f62 696e 2f73 680a 0a65 7865 6320  #!/bin/sh..exec
+00000010: 6a61 7661 202d 586d 7831 4720 2d6a 6172  java -Xmx1G -jar
+00000020: 2022 2430 2220 2224 4022 0a0a 504b 0304   "$0" "$@"..PK..
+
 
 
     @Override
