@@ -19,6 +19,7 @@ import org.python.core.PyObject;
 import org.python.core.PySystemState;
 import org.python.util.PythonInterpreter;
 import org.testng.annotations.Test;
+import org.python.jsr223.PyScriptEngineFactory;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
@@ -46,11 +47,13 @@ public class TestPythonPlugin
     @Test
     public void testJsr223() throws Throwable
     {
+        PyScriptEngineFactory factory = new PyScriptEngineFactory();
+
         PySystemState engineSys = new PySystemState();
         engineSys.path.append(Py.newString("my/lib/directory"));
         Py.setSystemState(engineSys);
 
-        ScriptEngine engine = new ScriptEngineManager().getEngineByName("python");
+        ScriptEngine engine = factory.getScriptEngine();
         engine.eval("import sys");
         engine.eval("print sys");
         engine.put("a", 42);
