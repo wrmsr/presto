@@ -746,3 +746,9 @@ public static Hasher<String> FNV_32_STRING_HASHER = new Hasher<String>() {
 
 
 memcached cachedump
+
+
+http://stackoverflow.com/a/2946402 > http://docs.oracle.com/javase/8/docs/api/javax/tools/JavaCompiler.html
+
+msgpack
+bson
