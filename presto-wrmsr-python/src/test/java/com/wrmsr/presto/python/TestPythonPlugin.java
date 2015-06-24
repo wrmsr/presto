@@ -13,10 +13,15 @@
  */
 package com.wrmsr.presto.python;
 
+import org.python.core.Py;
 import org.python.core.PyInteger;
 import org.python.core.PyObject;
+import org.python.core.PySystemState;
 import org.python.util.PythonInterpreter;
 import org.testng.annotations.Test;
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 
 public class TestPythonPlugin
 {
@@ -36,5 +41,22 @@ public class TestPythonPlugin
 
         System.out.println("x: "+x);
         System.out.println("Goodbye, cruel world");
+    }
+
+    @Test
+    public void testJsr223() throws Throwable
+    {
+        PySystemState engineSys = new PySystemState();
+        engineSys.path.append(Py.newString("my/lib/directory"));
+        Py.setSystemState(engineSys);
+
+        ScriptEngine engine = new ScriptEngineManager().getEngineByName("python");
+        engine.eval("import sys");
+        engine.eval("print sys");
+        engine.put("a", 42);
+        engine.eval("print a");
+        engine.eval("x = 2 + 2");
+        Object x = engine.get("x");
+        System.out.println("x: " + x);
     }
 }
