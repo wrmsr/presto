@@ -29,6 +29,8 @@ import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.type.RowType;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
@@ -56,11 +58,13 @@ public class SerializeFunction
     private static class SerializationContext
     {
         private final TypeRegistrar typeRegistrar;
+        private final Supplier<ObjectMapper> objectMapperSupplier;
         private final Type type;
 
-        public SerializationContext(TypeRegistrar typeRegistrar, Type type)
+        public SerializationContext(TypeRegistrar typeRegistrar, Supplier<ObjectMapper> objectMapperSupplier, Type type)
         {
             this.typeRegistrar = typeRegistrar;
+            this.objectMapperSupplier = objectMapperSupplier;
             this.type = type;
         }
     }
@@ -105,7 +109,7 @@ public class SerializeFunction
     {
         checkArgument(types.size() == 1, "Cardinality expects only one argument");
         Type type = types.get("E");
-        MethodHandle methodHandle = METHOD_HANDLE.bindTo(new SerializationContext(typeRegistrar, type));
+        MethodHandle methodHandle = METHOD_HANDLE.bindTo(new SerializationContext(typeRegistrar, OBJECT_MAPPER, type));
 
         /*
         if (type instanceof RowType) {
@@ -124,7 +128,7 @@ public class SerializeFunction
     {
         try {
             Object boxed = serializationContext.typeRegistrar.boxValue(serializationContext.type, object, session);
-            return Slices.wrappedBuffer(OBJECT_MAPPER.get().writeValueAsBytes(boxed));
+            return Slices.wrappedBuffer(serializationContext.objectMapperSupplier.get().writeValueAsBytes(boxed));
         }
         catch (JsonProcessingException e) {
             throw Throwables.propagate(e);

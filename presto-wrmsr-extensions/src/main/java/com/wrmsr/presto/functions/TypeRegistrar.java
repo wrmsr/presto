@@ -61,6 +61,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -100,6 +101,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Locale.ENGLISH;
+import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
 public class TypeRegistrar
 {
@@ -663,7 +665,13 @@ public class TypeRegistrar
         sliceBoxClassMap.put(name, sliceBoxClass);
         Class<?> listBoxClass = generateBox(name, List.class);
         listBoxClassMap.put(name, listBoxClass);
-        serializerMap.put(name, new RowTypeSerializer(rowType, listBoxClass));
+        StdSerializer serializer = new RowTypeSerializer(rowType, listBoxClass);
+
+        SimpleModule module = new SimpleModule();
+        module.addSerializer(listBoxClass, serializer);
+        OBJECT_MAPPER.get().registerModule(module);
+
+        serializerMap.put(name, serializer);
         deserializerMap.put(name, new RowTypeDeserializer(rowType, sliceBoxClass));
 
         // TIE THE KNOT - BOX RECURSION
