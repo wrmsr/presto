@@ -531,3 +531,6 @@ https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html
 https://www.elastic.co/blog/es-hadoop-2-1-rc1-released
 
 user defined type aliases? parser type literal limitation bypass?
+
+http://mesos.apache.org/api/latest/java/org/apache/mesos/Scheduler.html
+https://github.com/apache/mesos/blob/master/src/examples/java/TestFramework.java
