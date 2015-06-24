@@ -345,6 +345,32 @@ public class PrestoWrapperBuilder
         for (String s : keys) {
             System.out.println(s);
         }
+
+        String outPath = "/Users/wtimoney/presto/foo.jar";
+        BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outPath));
+        JarOutputStream jo = new JarOutputStream(bo);
+
+        for (Entry e : entries) {
+            if (!(e instanceof FileEntry)) {
+                continue;
+            }
+            FileEntry f = (FileEntry) e;
+            BufferedInputStream bi = new BufferedInputStream(new FileInputStream(f.getFile()));
+
+            JarEntry je = new JarEntry(f.getJarPath());
+            jo.putNextEntry(je);
+
+            byte[] buf = new byte[1024];
+            int anz;
+
+            while ((anz = bi.read(buf)) != -1) {
+                jo.write(buf, 0, anz);
+            }
+
+            bi.close();
+        }
+        jo.close();
+        bo.close();
     }
 }
 
