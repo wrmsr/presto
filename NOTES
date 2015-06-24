@@ -538,4 +538,72 @@ https://github.com/apache/mesos/blob/master/src/examples/java/TestFramework.java
 
 find java 8 shebang, exec with minimal heap, spawn child w flock and die
 
+create type atom_state as enum (
+	'committing',
+	'committed',
+	'compensating',
+	'compensated'
+);
+
+create sequence atom_id;
+
+create table atom (
+	id int unique not null,
+
+	root_id int not null references atom (id) on delete restrict,
+	parent_id int references atom (id) on delete restrict,
+	prev_sibling_id int references atom (id) on delete restrict,
+	active_child_id int references atom (id) on delete restrict,
+
+	primary key (root_id, id),
+
+	time_created timestamp not null default now(),
+	user_created name not null default current_user,
+	time_updated timestamp not null default now(),
+	user_updated name not null default current_user,
+
+	ttl_absolute interval,
+	deadline_absolute timestamp,
+	ttl_relative interval,
+	deadline_relative timestamp,
+
+	is_faulted boolean not null default false,
+	fault_info text,
+
+	state atom_state not null default 'committing',
+	compensation_attempts int not null default 0,
+
+	input text,
+	context text,
+	output text,
+
+	constraint self_root_no_parent_check check ((id = root_id) = (parent_id is null)),
+	constraint no_output_without_input_check check (not (output is not null and input is null)),
+	constraint no_children_with_input_check check
+		(not (active_child_id is not null and input is not null)),
+
+	constraint no_absolute_deadline_if_not_committing_check check
+		(not (deadline_absolute is not null and state != 'committing')),
+	constraint no_relative_deadline_if_not_committing_check check
+		(not (deadline_relative is not null and state != 'committing'))
+);
+
+create type atom_log_action as enum (
+	'insert',
+	'update'
+);
+
+create sequence atom_log_id;
+
+create table atom_log (
+	log_id int unique,
+	log_action atom_log_action not null,
+
+	like atom,
+
+	primary key (root_id, log_id),
+
+	constraint root_id_fk foreign key (root_id) references atom (id) match full on delete cascade
+);
+
 
