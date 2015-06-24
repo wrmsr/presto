@@ -18,6 +18,11 @@ import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.ParametricScalar;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.block.Block;
+import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.block.FixedWidthBlock;
+import com.facebook.presto.spi.block.FixedWidthBlockBuilder;
+import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
@@ -118,7 +123,7 @@ public class SerializeFunction
     public static Slice serialize(SerializationContext serializationContext, ConnectorSession session, @Nullable Object object)
     {
         try {
-            Object boxed = serializationContext.typeRegistrar.boxValue(serializationContext.type, object);
+            Object boxed = serializationContext.typeRegistrar.boxValue(serializationContext.type, object, session);
             return Slices.wrappedBuffer(OBJECT_MAPPER.get().writeValueAsBytes(boxed));
         }
         catch (JsonProcessingException e) {

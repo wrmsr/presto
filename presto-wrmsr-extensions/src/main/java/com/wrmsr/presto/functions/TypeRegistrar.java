@@ -26,10 +26,12 @@ import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.operator.scalar.ScalarFunction;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.BlockEncoding;
+import com.facebook.presto.spi.block.FixedWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockEncoding;
 import com.facebook.presto.spi.type.Type;
@@ -76,6 +78,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -95,6 +98,7 @@ import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Locale.ENGLISH;
 
 public class TypeRegistrar
@@ -559,16 +563,21 @@ public class TypeRegistrar
         }
     }
 
-    public Object boxValue(Type type, Object value)
+    public Object boxValue(Type type, Object value, @Nullable ConnectorSession connectorSession)
     {
         String typeName = type.getTypeSignature().getBase();
         if (value == null) {
             return null;
         }
         else if (type instanceof RowType && listBoxClassMap.containsKey(typeName)) {
+            if (value instanceof Slice) {
+                Slice slice = (Slice) value;
+                com.facebook.presto.spi.block.Block block = new com.facebook.presto.spi.block.FixedWidthBlockBuilder(slice.length(), new com.facebook.presto.spi.block.BlockBuilderStatus()).writeBytes(slice, 0, slice.length()).closeEntry().build();
+                value = type.getObjectValue(connectorSession, block, 0);
+            }
             checkState(value instanceof List);
             List list = (List) value;
-            return boxRow((RowType) type, list);
+            return boxRow((RowType) type, list, connectorSession);
         }
         else if (type instanceof ArrayType) {
             checkState(value instanceof List);
@@ -577,7 +586,7 @@ public class TypeRegistrar
             Type elementType = arrayType.getTypeParameters().get(0);
             String elementTypeName = elementType.getTypeSignature().getBase();
             if (elementType instanceof RowType && listBoxClassMap.containsKey(elementTypeName)) {
-                return ImmutableList.copyOf(Lists.<List, Box<List>>transform(list, e -> boxRow((RowType) elementType, e)));
+                return ImmutableList.copyOf(Lists.<List, Box<List>>transform(list, e -> boxRow((RowType) elementType, e, connectorSession)));
             }
             else {
                 return value;
@@ -591,7 +600,7 @@ public class TypeRegistrar
             Type valueType = mapType.getTypeParameters().get(1);
             String valueTypeName = valueType.getTypeSignature().getBase();
             if (valueType instanceof RowType && listBoxClassMap.containsKey(valueTypeName)) {
-                return ImmutableMap.copyOf(Maps.<Object, List, Box<List>>transformValues(map, e -> boxRow((RowType) valueType, e)));
+                return ImmutableMap.copyOf(Maps.<Object, List, Box<List>>transformValues(map, e -> boxRow((RowType) valueType, e, connectorSession)));
             }
             else {
                 return value;
@@ -602,7 +611,7 @@ public class TypeRegistrar
         }
     }
 
-    public Box<List> boxRow(RowType rowType, List rowValues)
+    public Box<List> boxRow(RowType rowType, List rowValues, @Nullable ConnectorSession connectorSession)
     {
         Constructor<Box<List>> listBoxCtor;
         try {
@@ -612,19 +621,18 @@ public class TypeRegistrar
         catch (NoSuchMethodException e) {
             throw Throwables.propagate(e);
         }
-        ImmutableList.Builder<Object> builder = ImmutableList.builder();
+        List<Object> boxedValues = newArrayList();
         List<RowType.RowField> rowFields = rowType.getFields();
         for (int i = 0; i < rowFields.size(); ++i) {
             RowType.RowField rowField = rowFields.get(i);
             Type fieldType = rowField.getType();
             Object fieldValue = rowValues.get(i);
-            Object boxedValue = boxValue(fieldType, fieldValue);
-            builder.add(boxedValue);
+            Object boxedValue = boxValue(fieldType, fieldValue, connectorSession);
+            boxedValues.add(boxedValue);
         }
-        List boxedValues = builder.build();
         try {
             // FIXME lel
-            return listBoxCtor.newInstance(boxedValues);
+            return listBoxCtor.newInstance(Collections.unmodifiableList(boxedValues));
         }
         catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
             throw Throwables.propagate(e);
