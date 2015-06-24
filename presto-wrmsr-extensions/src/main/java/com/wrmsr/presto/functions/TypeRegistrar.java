@@ -38,6 +38,7 @@ import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.SqlType;
 import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.util.Box;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
@@ -450,6 +451,23 @@ public class TypeRegistrar
                     .pop()
                     .visitLabel(done);
         }
+    }
+
+    public static Class<?> generateBox(String name)
+    {
+        ClassDefinition definition = new ClassDefinition(
+                a(PUBLIC, FINAL),
+                CompilerUtils.makeClassName(name + "$box"),
+                type(Box.class, Slice.class));
+
+        MethodDefinition methodDefinition = definition.declareConstructor(a(PUBLIC), ImmutableList.of(arg("slice", Slice.class)));
+        methodDefinition.getBody()
+                .getVariable(methodDefinition.getThis())
+                .getVariable(methodDefinition.getScope().getVariable("slice"))
+                .invokeConstructor(Box.class, Object.class)
+                .ret();
+
+        return defineClass(definition, Object.class, new CallSiteBinder().getBindings(), new DynamicClassLoader(TypeRegistrar.class.getClassLoader()));
     }
 
     public void run()

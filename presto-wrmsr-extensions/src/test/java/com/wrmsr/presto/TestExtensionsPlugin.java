@@ -183,19 +183,8 @@ public class TestExtensionsPlugin
         Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
         */
 
-        ClassDefinition definition = new ClassDefinition(
-                a(PUBLIC, FINAL),
-                CompilerUtils.makeClassName(rowType.getTypeSignature().getBase() + "$box"),
-                type(Box.class, Slice.class));
-
-        MethodDefinition methodDefinition = definition.declareConstructor(a(PRIVATE), ImmutableList.of(arg("slice", Slice.class)));
-        methodDefinition.getBody()
-                .getVariable(methodDefinition.getThis())
-                .getVariable(methodDefinition.getScope().getVariable("slice"))
-                .invokeConstructor(type(Box.class, Slice.class))
-                .ret();
-
-        Class<?> cls = defineClass(definition, Object.class, new CallSiteBinder().getBindings(), new DynamicClassLoader(TestExtensionsPlugin.class.getClassLoader()));
+        Class<?> cls = TypeRegistrar.generateBox(rowType.getTypeSignature().getBase());
+        cls.getDeclaredConstructor(Slice.class).newInstance(null);
         System.out.println(cls);
     }
 }
