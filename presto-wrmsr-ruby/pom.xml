@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>org.jruby</groupId>
-            <artifactId>jruby</artifactId>
+            <artifactId>jruby-complete</artifactId>
             <version>9.0.0.0.rc1</version>
         </dependency>
 

@@ -352,7 +352,8 @@ public class PrestoWrapperBuilder
         BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outPath));
         JarOutputStream jo = new JarOutputStream(bo);
 
-        for (Entry e : entries) {
+        for (String key : keys) {
+            Entry e = entryMap.get(key);
             if (!(e instanceof FileEntry)) {
                 continue;
             }

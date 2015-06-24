@@ -52,6 +52,7 @@ public class TestPythonPlugin
         PySystemState engineSys = new PySystemState();
         engineSys.path.append(Py.newString("my/lib/directory"));
         Py.setSystemState(engineSys);
+        System.setProperty("python.home", "/Users/wtimoney/.m2/repository/org/python/jython/2.7.0/");
 
         ScriptEngine engine = factory.getScriptEngine();
         engine.eval("import sys");

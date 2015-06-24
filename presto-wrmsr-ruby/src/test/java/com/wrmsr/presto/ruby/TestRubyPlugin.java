@@ -40,7 +40,7 @@ public class TestRubyPlugin
         JavaEmbedUtils.terminate(runtime);
     }
 
-    private Jsr223SimpleEvalSample() throws ScriptException {
+    private void go() throws ScriptException {
         System.out.println("[" + getClass().getName() + "]");
         defaultBehavior();
         transientBehavior();
@@ -51,8 +51,7 @@ public class TestRubyPlugin
         ScriptEngine engine = manager.getEngineByName("jruby");
         Bindings bindings = new SimpleBindings();
         bindings.put("message", "global variable");
-        String script =
-                "puts $message";
+        String script = "puts $message";
         engine.eval(script, bindings);
     }
 
