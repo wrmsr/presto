@@ -119,4 +119,16 @@
             <unpack />
         </artifact>
     </artifactSet>
+
+    <artifactSet to="plugin/python">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-python:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/ruby">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-ruby:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
 </runtime>

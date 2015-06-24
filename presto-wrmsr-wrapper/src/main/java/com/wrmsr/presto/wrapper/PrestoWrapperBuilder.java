@@ -252,6 +252,8 @@ public class PrestoWrapperBuilder
                 "presto-raptor",
                 "presto-tpch",
                 "presto-wrmsr-extensions",
+                "presto-wrmsr-python",
+                "presto-wrmsr-ruby",
                 wrapperProject // BOOTSTRAP SELF
         );
         Set<String> localGroups = ImmutableSet.of(

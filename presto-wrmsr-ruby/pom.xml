@@ -4,11 +4,11 @@
     <parent>
         <groupId>com.facebook.presto</groupId>
         <artifactId>presto-root</artifactId>
-        <version>0.107</version>
+        <version>0.108-SNAPSHOT</version>
     </parent>
 
     <groupId>com.wrmsr.presto</groupId>
-    <artifactId>presto-wrmsr-memcache</artifactId>
+    <artifactId>presto-wrmsr-ruby</artifactId>
     <description>Presto - Ruby Scripting</description>
     <packaging>presto-plugin</packaging>
 
