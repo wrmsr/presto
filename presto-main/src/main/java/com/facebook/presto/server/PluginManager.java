@@ -91,6 +91,7 @@ public class PluginManager
     private final List<ServerEvent.Listener> serverEventListeners = new CopyOnWriteArrayList<>();
     private final Map<String, ScriptEngineProvider> scriptEngineProviders = new MapMaker().makeMap();
 
+    @Inject
     public PluginManager(Injector injector,
             NodeInfo nodeInfo,
             HttpServerInfo httpServerInfo,
