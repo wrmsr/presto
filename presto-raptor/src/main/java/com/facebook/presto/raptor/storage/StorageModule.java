@@ -28,17 +28,27 @@ public class StorageModule
         implements Module
 {
     private final String connectorId;
+    private final StorageEngine storageEngine;
 
-    public StorageModule(String connectorId)
+    public StorageModule(String connectorId, StorageEngine storageEngine)
     {
         this.connectorId = checkNotNull(connectorId, "connectorId is null");
+        this.storageEngine = checkNotNull(storageEngine);
     }
 
     @Override
     public void configure(Binder binder)
     {
         configBinder(binder).bindConfig(StorageManagerConfig.class);
-        binder.bind(StorageManager.class).to(OrcStorageManager.class).in(Scopes.SINGLETON);
+        if (storageEngine == StorageEngine.ORC) {
+            binder.bind(StorageManager.class).to(OrcStorageManager.class).in(Scopes.SINGLETON);
+        }
+        else if (storageEngine == StorageEngine.RAW) {
+            binder.bind(StorageManager.class).to(RawStorageManager.class).in(Scopes.SINGLETON);
+        }
+        else {
+            throw new IllegalArgumentException("Unhandled storage engine: " + storageEngine);
+        }
         binder.bind(StorageService.class).to(FileStorageService.class).in(Scopes.SINGLETON);
         binder.bind(ShardManager.class).to(DatabaseShardManager.class).in(Scopes.SINGLETON);
         binder.bind(ShardRecoveryManager.class).in(Scopes.SINGLETON);

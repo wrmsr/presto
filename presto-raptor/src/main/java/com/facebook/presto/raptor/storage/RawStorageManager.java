@@ -140,7 +140,7 @@ public class RawStorageManager
     @Override
     public PageBuffer createPageBuffer()
     {
-        return null;
+        return new PageBuffer(maxBufferSize.toBytes(), Integer.MAX_VALUE);
     }
 
     private void writeShard(UUID shardUuid)
@@ -347,6 +347,5 @@ public class RawStorageManager
                 throw new PrestoException(RAPTOR_ERROR, "Failed to close writer", e);
             }
         }
-
     }
 }

@@ -99,7 +99,7 @@ public class RaptorConnectorFactory
                     },
                     metadataModule,
                     new BackupModule(backupProviders),
-                    new StorageModule(connectorId),
+                    new StorageModule(connectorId, storageEngine),
                     new RaptorModule(connectorId));
 
             Injector injector = app
