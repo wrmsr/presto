@@ -571,12 +571,12 @@ public class TypeRegistrar
         if (value == null) {
             return null;
         }
-        else if (type instanceof RowType && listBoxClassMap.containsKey(typeName)) {
-            if (value instanceof Slice) {
-                Slice slice = (Slice) value;
-                com.facebook.presto.spi.block.Block block = new com.facebook.presto.spi.block.FixedWidthBlockBuilder(slice.length(), new com.facebook.presto.spi.block.BlockBuilderStatus()).writeBytes(slice, 0, slice.length()).closeEntry().build();
-                value = type.getObjectValue(connectorSession, block, 0);
-            }
+        if (value instanceof Slice) {
+            Slice slice = (Slice) value;
+            com.facebook.presto.spi.block.Block block = new com.facebook.presto.spi.block.FixedWidthBlockBuilder(slice.length(), new com.facebook.presto.spi.block.BlockBuilderStatus()).writeBytes(slice, 0, slice.length()).closeEntry().build();
+            value = type.getObjectValue(connectorSession, block, 0);
+        }
+        if (type instanceof RowType && listBoxClassMap.containsKey(typeName)) {
             checkState(value instanceof List);
             List list = (List) value;
             return boxRow((RowType) type, list, connectorSession);
