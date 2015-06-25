@@ -90,7 +90,7 @@ public class RaptorConnectorFactory
             StorageEngine storageEngine = StorageEngine.ORC;
             if (config.containsKey(STORAGE_ENGINE_KEY)) {
                 config = Maps.newHashMap(config);
-                String storageEngineStr = config.get(STORAGE_ENGINE_KEY);
+                String storageEngineStr = config.get(STORAGE_ENGINE_KEY).toUpperCase();
                 config.remove(STORAGE_ENGINE_KEY);
                 storageEngine = StorageEngine.valueOf(storageEngineStr);
             }

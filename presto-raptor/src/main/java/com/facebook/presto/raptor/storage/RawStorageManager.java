@@ -321,12 +321,14 @@ public class RawStorageManager
 
         public void appendRow(Row row)
         {
+            if (row == null) {
+                return;
+            }
             List<Object> columns = row.getColumns();
             checkArgument(columns.size() == 1);
             Object value = row.getColumns().get(0);
-            checkArgument(value instanceof Slice);
-            Slice slice = (Slice) value;
-            byte[] bytes = slice.getBytes();
+            checkArgument(value instanceof byte[]);
+            byte[] bytes = (byte[]) value;
             try {
                 writer.write(bytes, 0, bytes.length);
             }
