@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.raptor.storage;
 
+import com.facebook.presto.hadoop.shaded.com.google.common.base.Throwables;
 import com.facebook.presto.raptor.RaptorColumnHandle;
 import com.facebook.presto.raptor.backup.BackupStore;
 import com.facebook.presto.raptor.metadata.ColumnInfo;
@@ -35,8 +36,12 @@ import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
 
 import javax.inject.Inject;
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -126,7 +131,7 @@ public class RawStorageManager
     public StoragePageSink createStoragePageSink(List<Long> columnIds, List<Type> columnTypes)
     {
         checkArgument(columnTypes.size() == 1 && columnTypes.get(0) instanceof VarbinaryType);
-        return null;
+        return new RawStoragePageSink(columnIds.get(0), columnTypes.get(0));
     }
 
     @Override
@@ -250,6 +255,8 @@ public class RawStorageManager
         private final Type columnType;
         private final File target;
 
+        private final BufferedOutputStream writer;
+
         private long rowCount;
         private long size;
 
@@ -257,6 +264,13 @@ public class RawStorageManager
         {
             this.columnType = columnType;
             this.target = target;
+
+            try {
+                writer = new BufferedOutputStream(new FileOutputStream(target));
+            }
+            catch (IOException e) {
+                throw new PrestoException(RAPTOR_ERROR, "ioex", e);
+            }
         }
 
         public long getRowCount()
@@ -290,12 +304,13 @@ public class RawStorageManager
         public void appendRow(Row row)
         {
             List<Object> columns = row.getColumns();
-            checkArgument(columns.size() == columnTypes.size());
-            for (int channel = 0; channel < columns.size(); channel++) {
-                tableInspector.setStructFieldData(orcRow, structFields.get(channel), columns.get(channel));
-            }
+            checkArgument(columns.size() == 1);
+            Object value = row.getColumns().get(0);
+            checkArgument(value instanceof Slice);
+            Slice slice = (Slice) value;
+            byte[] bytes = slice.getBytes();
             try {
-                recordWriter.write(serializer.serialize(orcRow, tableInspector));
+                writer.write(bytes, 0, bytes.length);
             }
             catch (IOException e) {
                 throw new PrestoException(RAPTOR_ERROR, "Failed to write record", e);
@@ -308,7 +323,7 @@ public class RawStorageManager
         public void close()
         {
             try {
-                target.close();
+                writer.close();
             }
             catch (IOException e) {
                 throw new PrestoException(RAPTOR_ERROR, "Failed to close writer", e);
