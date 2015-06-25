@@ -43,6 +43,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -57,7 +58,10 @@ import static com.facebook.presto.raptor.storage.ShardStats.computeColumnStats;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static io.airlift.units.DataSize.Unit.BYTE;
+import static io.airlift.units.Duration.nanosSince;
 import static java.lang.Math.min;
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 
 public class RawStorageManager
     implements StorageManager
@@ -144,6 +148,27 @@ public class RawStorageManager
     public PageBuffer createPageBuffer()
     {
         return null;
+    }
+
+    private void writeShard(UUID shardUuid)
+    {
+        File stagingFile = storageService.getStagingFile(shardUuid);
+        File storageFile = storageService.getStorageFile(shardUuid);
+
+        storageService.createParents(storageFile);
+
+        try {
+            Files.move(stagingFile.toPath(), storageFile.toPath(), ATOMIC_MOVE);
+        }
+        catch (IOException e) {
+            throw new PrestoException(RAPTOR_ERROR, "Failed to move shard file", e);
+        }
+
+        if (isBackupAvailable()) {
+            long start = System.nanoTime();
+            backupStore.get().backupShard(shardUuid, storageFile);
+            stats.addCopyShardDataRate(new DataSize(storageFile.length(), BYTE), nanosSince(start));
+        }
     }
 
     private ShardInfo createShardInfo(UUID shardUuid, File file, Set<String> nodes, long rowCount, Long columnId)
