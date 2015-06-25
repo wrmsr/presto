@@ -14,6 +14,7 @@
 package com.facebook.presto.raptor;
 
 import com.facebook.presto.raptor.backup.BackupModule;
+import com.facebook.presto.raptor.storage.StorageEngine;
 import com.facebook.presto.raptor.storage.StorageModule;
 import com.facebook.presto.raptor.util.CurrentNodeId;
 import com.facebook.presto.raptor.util.RebindSafeMBeanServer;
@@ -25,6 +26,7 @@ import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import io.airlift.bootstrap.Bootstrap;
@@ -79,10 +81,20 @@ public class RaptorConnectorFactory
         return name;
     }
 
+    private static final String STORAGE_ENGINE_KEY = "storage-engine";
+
     @Override
     public Connector create(String connectorId, Map<String, String> config)
     {
         try {
+            StorageEngine storageEngine = StorageEngine.ORC;
+            if (config.containsKey(STORAGE_ENGINE_KEY)) {
+                config = Maps.newHashMap(config);
+                String storageEngineStr = config.get(STORAGE_ENGINE_KEY);
+                config.remove(STORAGE_ENGINE_KEY);
+                storageEngine = StorageEngine.valueOf(storageEngineStr);
+            }
+
             Bootstrap app = new Bootstrap(
                     new JsonModule(),
                     new MBeanModule(),
