@@ -13,25 +13,48 @@
  */
 package com.facebook.presto.raptor.storage;
 
+import com.facebook.presto.orc.FileOrcDataSource;
+import com.facebook.presto.orc.OrcDataSource;
+import com.facebook.presto.orc.OrcReader;
+import com.facebook.presto.orc.metadata.OrcMetadataReader;
 import com.facebook.presto.raptor.RaptorColumnHandle;
 import com.facebook.presto.raptor.backup.BackupStore;
+import com.facebook.presto.raptor.metadata.ColumnInfo;
+import com.facebook.presto.raptor.metadata.ColumnStats;
 import com.facebook.presto.raptor.metadata.ShardDelta;
+import com.facebook.presto.raptor.metadata.ShardInfo;
 import com.facebook.presto.raptor.util.CurrentNodeId;
 import com.facebook.presto.raptor.util.PageBuffer;
 import com.facebook.presto.spi.ConnectorPageSource;
+import com.facebook.presto.spi.Page;
+import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.TupleDomain;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.VarbinaryType;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.airlift.json.JsonCodec;
+import io.airlift.slice.Slice;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
 
 import javax.inject.Inject;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
+import static com.facebook.presto.raptor.RaptorErrorCode.RAPTOR_ERROR;
+import static com.facebook.presto.raptor.storage.ShardStats.computeColumnStats;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Math.min;
 
 public class RawStorageManager
@@ -105,18 +128,142 @@ public class RawStorageManager
     @Override
     public StoragePageSink createStoragePageSink(List<Long> columnIds, List<Type> columnTypes)
     {
+        checkArgument(columnTypes.size() == 1 && columnTypes.get(0) instanceof VarbinaryType);
         return null;
     }
 
     @Override
     public boolean isBackupAvailable()
     {
-        return false;
+        return backupStore.isPresent();
     }
 
     @Override
     public PageBuffer createPageBuffer()
     {
         return null;
+    }
+
+    private ShardInfo createShardInfo(UUID shardUuid, File file, Set<String> nodes, long rowCount, Long columnId)
+    {
+        return new ShardInfo(shardUuid, nodes, ImmutableList.of(new ColumnStats(columnId, null, null)), rowCount, file.length(), file.length());
+    }
+
+    private class RawStoragePageSink implements StoragePageSink
+    {
+        private final Long columnId;
+        private final Type columnType;
+
+        private final List<ShardInfo> shards = new ArrayList<>();
+
+        private boolean committed;
+        private RawFileWriter writer;
+        private UUID shardUuid;
+
+        public RawStoragePageSink(Long columnId, Type columnType)
+        {
+            this.columnId = checkNotNull(columnId, "columnIds is null");
+            this.columnType = checkNotNull(columnType, "columnTypes is null");
+        }
+
+        @Override
+        public void appendPages(List<Page> pages)
+        {
+            createWriterIfNecessary();
+            writer.appendPages(pages);
+        }
+
+        @Override
+        public void appendPages(List<Page> inputPages, int[] pageIndexes, int[] positionIndexes)
+        {
+            createWriterIfNecessary();
+            writer.appendPages(inputPages, pageIndexes, positionIndexes);
+        }
+
+        @Override
+        public void appendRow(Row row)
+        {
+            createWriterIfNecessary();
+            writer.appendRow(row);
+        }
+
+        @Override
+        public boolean isFull()
+        {
+            if (writer == null) {
+                return false;
+            }
+            return (writer.getRowCount() >= maxShardRows) || (writer.getSize() >= maxShardSize.toBytes());
+        }
+
+        @Override
+        public void flush()
+        {
+            if (writer != null) {
+                writer.close();
+
+                File stagingFile = storageService.getStagingFile(shardUuid);
+
+                Set<String> nodes = ImmutableSet.of(nodeId);
+                long rowCount = writer.getRowCount();
+
+                shards.add(createShardInfo(shardUuid, stagingFile, nodes, rowCount, columnId));
+
+                writer = null;
+                shardUuid = null;
+            }
+        }
+
+        @Override
+        public List<ShardInfo> commit()
+        {
+            checkState(!committed, "already committed");
+            committed = true;
+
+            flush();
+            for (ShardInfo shard : shards) {
+                writeShard(shard.getShardUuid());
+            }
+            return ImmutableList.copyOf(shards);
+        }
+
+        @Override
+        public void rollback()
+        {
+            if (writer != null) {
+                writer.close();
+                writer = null;
+            }
+        }
+
+        private void createWriterIfNecessary()
+        {
+            if (writer == null) {
+                shardUuid = UUID.randomUUID();
+                File stagingFile = storageService.getStagingFile(shardUuid);
+                storageService.createParents(stagingFile);
+                writer = new RawFileWriter(stagingFile);
+            }
+        }
+    }
+
+    private class RawFileWriter
+        implements Closeable
+    {
+        private final File target;
+
+        private long rowCount;
+        private long size;
+
+        public RawFileWriter(File target)
+        {
+            this.target = target;
+        }
+
+        @Override
+        public void close()
+        {
+
+        }
     }
 }
