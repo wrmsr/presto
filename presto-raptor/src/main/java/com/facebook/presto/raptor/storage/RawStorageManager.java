@@ -13,10 +13,8 @@
  */
 package com.facebook.presto.raptor.storage;
 
-import com.facebook.presto.hadoop.shaded.com.google.common.base.Throwables;
 import com.facebook.presto.raptor.RaptorColumnHandle;
 import com.facebook.presto.raptor.backup.BackupStore;
-import com.facebook.presto.raptor.metadata.ColumnInfo;
 import com.facebook.presto.raptor.metadata.ColumnStats;
 import com.facebook.presto.raptor.metadata.ShardDelta;
 import com.facebook.presto.raptor.metadata.ShardInfo;
@@ -37,16 +35,12 @@ import io.airlift.units.Duration;
 
 import javax.inject.Inject;
 import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -54,7 +48,6 @@ import java.util.UUID;
 
 import static com.facebook.presto.raptor.RaptorErrorCode.RAPTOR_ERROR;
 import static com.facebook.presto.raptor.storage.Row.extractRow;
-import static com.facebook.presto.raptor.storage.ShardStats.computeColumnStats;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -64,7 +57,7 @@ import static java.lang.Math.min;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 
 public class RawStorageManager
-    implements StorageManager
+        implements StorageManager
 {
     private static final long MAX_ROWS = 1_000_000_000;
 
@@ -275,7 +268,7 @@ public class RawStorageManager
     }
 
     private class RawFileWriter
-        implements Closeable
+            implements Closeable
     {
         private final Type columnType;
         private final File target;
