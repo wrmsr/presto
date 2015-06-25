@@ -15,6 +15,21 @@ package com.facebook.presto.raptor.storage;
 
 public enum StorageEngine
 {
-    ORC,
-    RAW
+    ORC(".orc"),
+    RAW("")
+    ;
+
+    public static final StorageEngine DEFAULT = ORC;
+
+    private String fileExtension;
+
+    StorageEngine(String fileExtension)
+    {
+        this.fileExtension = fileExtension;
+    }
+
+    public String getFileExtension()
+    {
+        return fileExtension;
+    }
 }

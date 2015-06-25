@@ -13,6 +13,8 @@
  */
 package com.facebook.presto.raptor.backup;
 
+import com.facebook.presto.raptor.storage.FileStorageService;
+import com.facebook.presto.raptor.storage.StorageEngine;
 import com.facebook.presto.spi.PrestoException;
 import com.google.common.annotations.VisibleForTesting;
 
@@ -36,16 +38,23 @@ public class FileBackupStore
         implements BackupStore
 {
     private final File baseDir;
+    private final StorageEngine storageEngine;
 
     @Inject
-    public FileBackupStore(FileBackupConfig config)
+    public FileBackupStore(FileBackupConfig config, StorageEngine storageEngine)
     {
-        this(config.getBackupDirectory());
+        this(config.getBackupDirectory(), storageEngine);
     }
 
     public FileBackupStore(File baseDir)
     {
+        this(baseDir, StorageEngine.DEFAULT);
+    }
+
+    public FileBackupStore(File baseDir, StorageEngine storageEngine)
+    {
         this.baseDir = requireNonNull(baseDir, "baseDir is null");
+        this.storageEngine = requireNonNull(storageEngine);
     }
 
     @PostConstruct
@@ -98,7 +107,7 @@ public class FileBackupStore
     @VisibleForTesting
     public File getBackupFile(UUID uuid)
     {
-        return getFileSystemPath(baseDir, uuid);
+        return getFileSystemPath(baseDir, uuid, storageEngine);
     }
 
     private static void createDirectories(File dir)

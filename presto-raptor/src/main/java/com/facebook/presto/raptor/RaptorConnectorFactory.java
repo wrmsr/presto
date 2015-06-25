@@ -87,7 +87,7 @@ public class RaptorConnectorFactory
     public Connector create(String connectorId, Map<String, String> config)
     {
         try {
-            StorageEngine storageEngine = StorageEngine.ORC;
+            StorageEngine storageEngine = StorageEngine.DEFAULT;
             if (config.containsKey(STORAGE_ENGINE_KEY)) {
                 config = Maps.newHashMap(config);
                 String storageEngineStr = config.get(STORAGE_ENGINE_KEY).toUpperCase();

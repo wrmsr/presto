@@ -40,6 +40,7 @@ public class StorageModule
     public void configure(Binder binder)
     {
         configBinder(binder).bindConfig(StorageManagerConfig.class);
+        binder.bind(StorageEngine.class).toInstance(storageEngine);
         if (storageEngine == StorageEngine.ORC) {
             binder.bind(StorageManager.class).to(OrcStorageManager.class).in(Scopes.SINGLETON);
         }

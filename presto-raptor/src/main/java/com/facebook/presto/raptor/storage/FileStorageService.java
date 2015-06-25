@@ -86,6 +86,11 @@ public class FileStorageService
         }
     }
 
+    public static File getFileSystemPath(File base, UUID shardUuid)
+    {
+        return getFileSystemPath(base, shardUuid, StorageEngine.DEFAULT);
+    }
+
     /**
      * Generate a file system path for a shard UUID.
      * <p/>
@@ -98,13 +103,13 @@ public class FileStorageService
      * <p/>
      * This ensures that files are spread out evenly through the tree while a path can still be easily navigated by a human being.
      */
-    public static File getFileSystemPath(File base, UUID shardUuid)
+    public static File getFileSystemPath(File base, UUID shardUuid, StorageEngine storageEngine)
     {
         String uuid = shardUuid.toString().toLowerCase(ENGLISH);
         return base.toPath()
                 .resolve(uuid.substring(0, 3))
                 .resolve(uuid.substring(3, 6))
-                .resolve(uuid + ".orc")
+                .resolve(uuid + storageEngine.getFileExtension())
                 .toFile();
     }
 
