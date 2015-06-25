@@ -69,6 +69,8 @@ public class RawStorageManager
     private final DataSize maxShardSize;
     private final DataSize maxBufferSize;
     private final StorageManagerStats stats;
+    private final String compression;
+    private final byte[] delimiter;
 
     @Inject
     public RawStorageManager(
@@ -87,7 +89,9 @@ public class RawStorageManager
                 config.getShardRecoveryTimeout(),
                 config.getMaxShardRows(),
                 config.getMaxShardSize(),
-                config.getMaxBufferSize());
+                config.getMaxBufferSize(),
+                config.getRawCompression(),
+                config.getRawDelimiter());
     }
 
     public RawStorageManager(
@@ -99,7 +103,9 @@ public class RawStorageManager
             Duration shardRecoveryTimeout,
             long maxShardRows,
             DataSize maxShardSize,
-            DataSize maxBufferSize)
+            DataSize maxBufferSize,
+            String compression,
+            byte[] delimiter)
     {
         this.nodeId = checkNotNull(nodeId, "nodeId is null");
         this.storageService = checkNotNull(storageService, "storageService is null");
@@ -114,6 +120,8 @@ public class RawStorageManager
         this.maxShardSize = checkNotNull(maxShardSize, "maxShardSize is null");
         this.maxBufferSize = checkNotNull(maxBufferSize, "maxBufferSize is null");
         this.stats = new StorageManagerStats();
+        this.compression = compression;
+        this.delimiter = delimiter;
     }
 
     @Override

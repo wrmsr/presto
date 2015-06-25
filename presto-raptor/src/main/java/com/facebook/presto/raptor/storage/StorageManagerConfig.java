@@ -21,6 +21,7 @@ import io.airlift.units.Duration;
 import io.airlift.units.MaxDataSize;
 import io.airlift.units.MinDataSize;
 
+import javax.annotation.Nullable;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -209,5 +210,35 @@ public class StorageManagerConfig
     {
         this.maxBufferSize = maxBufferSize;
         return this;
+    }
+
+    @Nullable
+    private String rawCompression;
+
+    @Nullable
+    public String getRawCompression()
+    {
+        return rawCompression;
+    }
+
+    @Config("raw-storage.compression")
+    public void setRawCompression(String rawCompression)
+    {
+        this.rawCompression = rawCompression;
+    }
+
+    @Nullable
+    private byte[] rawDelimiter;
+
+    @Nullable
+    public byte[] getRawDelimiter()
+    {
+        return rawDelimiter;
+    }
+
+    @Config("raw-storage.delimiter")
+    public void setRawDelimiter(@Nullable byte[] rawDelimiter)
+    {
+        this.rawDelimiter = rawDelimiter;
     }
 }

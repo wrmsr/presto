@@ -850,3 +850,7 @@ olol fml
 [WARNING]   - org.objectweb.asm.Handler
 [WARNING]   - org.objectweb.asm.ByteVector
 [WARNING]   - 11 more...
+
+
+
+**** represent tables themselves as scalar values to be unnested? gzip<table<json<lucy_document>>> ....
