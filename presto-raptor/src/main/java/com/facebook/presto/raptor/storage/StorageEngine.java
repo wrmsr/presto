@@ -16,8 +16,7 @@ package com.facebook.presto.raptor.storage;
 public enum StorageEngine
 {
     ORC(".orc"),
-    RAW("")
-    ;
+    RAW("");
 
     public static final StorageEngine DEFAULT = ORC;
 
