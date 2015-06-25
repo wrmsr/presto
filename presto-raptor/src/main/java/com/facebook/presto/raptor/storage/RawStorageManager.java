@@ -13,10 +13,6 @@
  */
 package com.facebook.presto.raptor.storage;
 
-import com.facebook.presto.orc.FileOrcDataSource;
-import com.facebook.presto.orc.OrcDataSource;
-import com.facebook.presto.orc.OrcReader;
-import com.facebook.presto.orc.metadata.OrcMetadataReader;
 import com.facebook.presto.raptor.RaptorColumnHandle;
 import com.facebook.presto.raptor.backup.BackupStore;
 import com.facebook.presto.raptor.metadata.ColumnInfo;
@@ -51,6 +47,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static com.facebook.presto.raptor.RaptorErrorCode.RAPTOR_ERROR;
+import static com.facebook.presto.raptor.storage.Row.extractRow;
 import static com.facebook.presto.raptor.storage.ShardStats.computeColumnStats;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -242,7 +239,7 @@ public class RawStorageManager
                 shardUuid = UUID.randomUUID();
                 File stagingFile = storageService.getStagingFile(shardUuid);
                 storageService.createParents(stagingFile);
-                writer = new RawFileWriter(stagingFile);
+                writer = new RawFileWriter(columnType, stagingFile);
             }
         }
     }
@@ -250,20 +247,73 @@ public class RawStorageManager
     private class RawFileWriter
         implements Closeable
     {
+        private final Type columnType;
         private final File target;
 
         private long rowCount;
         private long size;
 
-        public RawFileWriter(File target)
+        public RawFileWriter(Type columnType, File target)
         {
+            this.columnType = columnType;
             this.target = target;
+        }
+
+        public long getRowCount()
+        {
+            return rowCount;
+        }
+
+        public long getSize()
+        {
+            return size;
+        }
+
+        public void appendPages(List<Page> pages)
+        {
+            for (Page page : pages) {
+                for (int position = 0; position < page.getPositionCount(); position++) {
+                    appendRow(extractRow(page, position, ImmutableList.of(columnType)));
+                }
+            }
+        }
+
+        public void appendPages(List<Page> inputPages, int[] pageIndexes, int[] positionIndexes)
+        {
+            checkArgument(pageIndexes.length == positionIndexes.length, "pageIndexes and positionIndexes do not match");
+            for (int i = 0; i < pageIndexes.length; i++) {
+                Page page = inputPages.get(pageIndexes[i]);
+                appendRow(extractRow(page, positionIndexes[i], ImmutableList.of(columnType)));
+            }
+        }
+
+        public void appendRow(Row row)
+        {
+            List<Object> columns = row.getColumns();
+            checkArgument(columns.size() == columnTypes.size());
+            for (int channel = 0; channel < columns.size(); channel++) {
+                tableInspector.setStructFieldData(orcRow, structFields.get(channel), columns.get(channel));
+            }
+            try {
+                recordWriter.write(serializer.serialize(orcRow, tableInspector));
+            }
+            catch (IOException e) {
+                throw new PrestoException(RAPTOR_ERROR, "Failed to write record", e);
+            }
+            rowCount++;
+            size += row.getSizeInBytes();
         }
 
         @Override
         public void close()
         {
-
+            try {
+                target.close();
+            }
+            catch (IOException e) {
+                throw new PrestoException(RAPTOR_ERROR, "Failed to close writer", e);
+            }
         }
+
     }
 }
