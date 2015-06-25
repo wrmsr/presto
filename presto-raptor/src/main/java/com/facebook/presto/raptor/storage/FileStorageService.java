@@ -33,15 +33,23 @@ public class FileStorageService
 {
     private final File baseStorageDir;
     private final File baseStagingDir;
+    private final StorageEngine storageEngine;
+
 
     @Inject
-    public FileStorageService(StorageManagerConfig config)
+    public FileStorageService(StorageManagerConfig config, StorageEngine storageEngine)
     {
-        this(config.getDataDirectory());
+        this(config.getDataDirectory(), storageEngine);
     }
 
     public FileStorageService(File dataDirectory)
     {
+        this(dataDirectory, StorageEngine.DEFAULT);
+    }
+
+    public FileStorageService(File dataDirectory, StorageEngine storageEngine)
+    {
+        this.storageEngine = checkNotNull(storageEngine);
         File baseDataDir = checkNotNull(dataDirectory, "dataDirectory is null");
         this.baseStorageDir = new File(baseDataDir, "storage");
         this.baseStagingDir = new File(baseDataDir, "staging");
@@ -67,13 +75,13 @@ public class FileStorageService
     @Override
     public File getStorageFile(UUID shardUuid)
     {
-        return getFileSystemPath(baseStorageDir, shardUuid);
+        return getFileSystemPath(baseStorageDir, shardUuid, storageEngine);
     }
 
     @Override
     public File getStagingFile(UUID shardUuid)
     {
-        String name = getFileSystemPath(new File("/"), shardUuid).getName();
+        String name = getFileSystemPath(new File("/"), shardUuid, storageEngine).getName();
         return new File(baseStagingDir, name);
     }
 
