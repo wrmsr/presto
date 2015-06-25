@@ -512,10 +512,30 @@ public class TypeRegistrar
     // TODO compile? bench bitch
     // TODO direct in-session serializers via thread local, no intermediate lists / slices
     // raw is trivial just dont add names
-    public final Map<String, Class<?>> sliceBoxClassMap = new MapMaker().makeMap();
-    public final Map<String, Class<?>> listBoxClassMap = new MapMaker().makeMap();
-    public final Map<String, StdSerializer> serializerMap = new MapMaker().makeMap();
-    public final Map<String, StdDeserializer> deserializerMap = new MapMaker().makeMap();
+    public final Map<String, StructInfo> structInfoMap = new MapMaker().makeMap();
+
+    public static final class StructInfo
+    {
+        private final RowType rowType;
+        private final Class<?> sliceBoxClass;
+        private final Class<?> listBoxClass;
+        private final StdSerializer serializer;
+        private final StdDeserializer deserializer;
+
+        public StructInfo(RowType rowType, Class<?> sliceBoxClass, Class<?> listBoxClass, StdSerializer serializer, StdDeserializer deserializer)
+        {
+            this.rowType = rowType;
+            this.sliceBoxClass = sliceBoxClass;
+            this.listBoxClass = listBoxClass;
+            this.serializer = serializer;
+            this.deserializer = deserializer;
+        }
+
+        public String getName()
+        {
+            return rowType.getTypeSignature().getBase();
+        }
+    }
 
     public static class RowTypeSerializer extends StdSerializer<Box<List>>
     {
@@ -576,7 +596,8 @@ public class TypeRegistrar
             com.facebook.presto.spi.block.Block block = new com.facebook.presto.spi.block.FixedWidthBlockBuilder(slice.length(), new com.facebook.presto.spi.block.BlockBuilderStatus()).writeBytes(slice, 0, slice.length()).closeEntry().build();
             value = type.getObjectValue(connectorSession, block, 0);
         }
-        if (type instanceof RowType && listBoxClassMap.containsKey(typeName)) {
+        StructInfo structInfo = structInfoMap.get(typeName);
+        if (type instanceof RowType && structInfo != null) {
             checkState(value instanceof List);
             List list = (List) value;
             return boxRow((RowType) type, list, connectorSession);
@@ -587,7 +608,7 @@ public class TypeRegistrar
             ArrayType arrayType = (ArrayType) type;
             Type elementType = arrayType.getTypeParameters().get(0);
             String elementTypeName = elementType.getTypeSignature().getBase();
-            if (elementType instanceof RowType && listBoxClassMap.containsKey(elementTypeName)) {
+            if (elementType instanceof RowType && structInfo != null) {
                 return ImmutableList.copyOf(Lists.<List, Box<List>>transform(list, e -> boxRow((RowType) elementType, e, connectorSession)));
             }
             else {
@@ -601,7 +622,7 @@ public class TypeRegistrar
             // FIXME keyzzz
             Type valueType = mapType.getTypeParameters().get(1);
             String valueTypeName = valueType.getTypeSignature().getBase();
-            if (valueType instanceof RowType && listBoxClassMap.containsKey(valueTypeName)) {
+            if (valueType instanceof RowType && structInfo != null) {
                 return ImmutableMap.copyOf(Maps.<Object, List, Box<List>>transformValues(map, e -> boxRow((RowType) valueType, e, connectorSession)));
             }
             else {
@@ -615,9 +636,10 @@ public class TypeRegistrar
 
     public Box<List> boxRow(RowType rowType, List rowValues, @Nullable ConnectorSession connectorSession)
     {
+        StructInfo structInfo = structInfoMap.get(rowType.getTypeSignature().getBase());
+        Class listBoxClass = structInfo.listBoxClass;
         Constructor<Box<List>> listBoxCtor;
         try {
-            Class listBoxClass = listBoxClassMap.get(rowType.getTypeSignature().getBase());
             listBoxCtor = listBoxClass.getDeclaredConstructor(List.class);
         }
         catch (NoSuchMethodException e) {
@@ -646,14 +668,17 @@ public class TypeRegistrar
         Session.SessionBuilder builder = Session.builder()
                 .setUser("system")
                 .setSource("system")
-                .setCatalog("yelp")
+                .setCatalog("default")
                 .setTimeZoneKey(UTC_KEY)
                 .setLocale(ENGLISH)
-                .setSchema("yelp");
+                .setSchema("default");
         Session session = builder.build();
 
         RowType rowType = buildRowType(session, "thing", "select 1 as \"anumber\", 'hi' as \"somestr\", cast(null as bigint) as \"someint\", cast(null as varbinary) as \"somebinary\"");
+    }
 
+    public void registerStruct(RowType rowType)
+    {
         String name = rowType.getTypeSignature().getBase();
         typeRegistry.addType(rowType);
         metadata.addFunctions(
@@ -662,17 +687,23 @@ public class TypeRegistrar
                         .scalar(new NullableRowTypeConstructorCompiler().run(rowType, name))
                         .getFunctions());
         Class<?> sliceBoxClass = generateBox(name, Slice.class);
-        sliceBoxClassMap.put(name, sliceBoxClass);
         Class<?> listBoxClass = generateBox(name, List.class);
-        listBoxClassMap.put(name, listBoxClass);
         StdSerializer serializer = new RowTypeSerializer(rowType, listBoxClass);
+        StdDeserializer deserializer = new RowTypeDeserializer(rowType, sliceBoxClass);
 
         SimpleModule module = new SimpleModule();
         module.addSerializer(listBoxClass, serializer);
+        module.addDeserializer(listBoxClass, deserializer);
         OBJECT_MAPPER.get().registerModule(module);
 
-        serializerMap.put(name, serializer);
-        deserializerMap.put(name, new RowTypeDeserializer(rowType, sliceBoxClass));
+        StructInfo structInfo = new StructInfo(
+                rowType,
+                sliceBoxClass,
+                listBoxClass,
+                serializer,
+                deserializer
+        );
+        structInfoMap.put(name, structInfo);
 
         // TIE THE KNOT - BOX RECURSION
     }

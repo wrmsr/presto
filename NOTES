@@ -773,18 +773,6 @@ https://github.com/JorenSix/TarsosLSH well hello.
 olol fml
 
 [INFO] Including org.apache.commons:commons-lang3:jar:3.4 in the shaded jar.
-[WARNING] annotations-2.0.3.jar, jsr305-3.0.0.jar define 35 overlappping classes:
-[WARNING]   - javax.annotation.RegEx
-[WARNING]   - javax.annotation.concurrent.Immutable
-[WARNING]   - javax.annotation.meta.TypeQualifierDefault
-[WARNING]   - javax.annotation.meta.TypeQualifier
-[WARNING]   - javax.annotation.Syntax
-[WARNING]   - javax.annotation.Nonnull
-[WARNING]   - javax.annotation.CheckReturnValue
-[WARNING]   - javax.annotation.CheckForNull
-[WARNING]   - javax.annotation.meta.TypeQualifierNickname
-[WARNING]   - javax.annotation.MatchesPattern
-[WARNING]   - 25 more...
 [WARNING] log4j-1.2.17.jar, log4j-over-slf4j-1.7.12.jar define 29 overlappping classes:
 [WARNING]   - org.apache.log4j.spi.OptionHandler
 [WARNING]   - org.apache.log4j.spi.LoggerRepository
@@ -819,18 +807,6 @@ olol fml
 [WARNING]   - org.slf4j.impl.StaticMarkerBinder
 [WARNING]   - org.slf4j.impl.StaticLoggerBinder
 [WARNING]   - org.slf4j.impl.StaticMDCBinder
-[WARNING] commons-beanutils-1.7.0.jar, commons-beanutils-core-1.8.0.jar define 82 overlappping classes:
-[WARNING]   - org.apache.commons.beanutils.ConvertUtilsBean
-[WARNING]   - org.apache.commons.beanutils.converters.SqlTimeConverter
-[WARNING]   - org.apache.commons.beanutils.Converter
-[WARNING]   - org.apache.commons.beanutils.converters.FloatArrayConverter
-[WARNING]   - org.apache.commons.beanutils.NestedNullException
-[WARNING]   - org.apache.commons.beanutils.ConvertingWrapDynaBean
-[WARNING]   - org.apache.commons.beanutils.converters.LongArrayConverter
-[WARNING]   - org.apache.commons.beanutils.converters.SqlDateConverter
-[WARNING]   - org.apache.commons.beanutils.converters.BooleanArrayConverter
-[WARNING]   - org.apache.commons.beanutils.converters.StringConverter
-[WARNING]   - 72 more...
 [WARNING] hadoop-yarn-common-2.7.0.jar, hadoop-yarn-client-2.7.0.jar define 2 overlappping classes:
 [WARNING]   - org.apache.hadoop.yarn.client.api.package-info
 [WARNING]   - org.apache.hadoop.yarn.client.api.impl.package-info
@@ -838,18 +814,6 @@ olol fml
 [WARNING]   - org.apache.hadoop.yarn.util.package-info
 [WARNING]   - org.apache.hadoop.yarn.factories.package-info
 [WARNING]   - org.apache.hadoop.yarn.factory.providers.package-info
-[WARNING] asm-5.0.3.jar, asm-3.1.jar define 21 overlappping classes:
-[WARNING]   - org.objectweb.asm.Type
-[WARNING]   - org.objectweb.asm.AnnotationVisitor
-[WARNING]   - org.objectweb.asm.MethodVisitor
-[WARNING]   - org.objectweb.asm.Attribute
-[WARNING]   - org.objectweb.asm.FieldWriter
-[WARNING]   - org.objectweb.asm.signature.SignatureWriter
-[WARNING]   - org.objectweb.asm.Edge
-[WARNING]   - org.objectweb.asm.MethodWriter
-[WARNING]   - org.objectweb.asm.Handler
-[WARNING]   - org.objectweb.asm.ByteVector
-[WARNING]   - 11 more...
 
 
 Downloaded: https://oss.sonatype.org/content/repositories/snapshots/com/facebook/presto/presto-server/0.109-SNAPSHOT/presto-server-0.109-20150625.205553-7.jar (626 B at 2.9 KB/sec)
