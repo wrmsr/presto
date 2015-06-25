@@ -228,16 +228,16 @@ public class StorageManagerConfig
     }
 
     @Nullable
-    private byte[] rawDelimiter;
+    private String rawDelimiter;
 
     @Nullable
-    public byte[] getRawDelimiter()
+    public String getRawDelimiter()
     {
         return rawDelimiter;
     }
 
     @Config("raw-storage.delimiter")
-    public void setRawDelimiter(@Nullable byte[] rawDelimiter)
+    public void setRawDelimiter(@Nullable String rawDelimiter)
     {
         this.rawDelimiter = rawDelimiter;
     }

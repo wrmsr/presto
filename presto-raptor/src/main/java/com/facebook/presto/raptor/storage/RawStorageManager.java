@@ -13,6 +13,8 @@
  */
 package com.facebook.presto.raptor.storage;
 
+import com.facebook.presto.hadoop.shaded.com.google.common.base.Strings;
+import com.facebook.presto.hadoop.shaded.com.google.common.base.Throwables;
 import com.facebook.presto.raptor.RaptorColumnHandle;
 import com.facebook.presto.raptor.backup.BackupStore;
 import com.facebook.presto.raptor.metadata.ShardDelta;
@@ -30,6 +32,8 @@ import com.google.common.collect.ImmutableSet;
 import io.airlift.json.JsonCodec;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
+import org.apache.commons.compress.compressors.CompressorException;
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
 
 import javax.inject.Inject;
 import java.io.BufferedOutputStream;
@@ -37,6 +41,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,7 +75,7 @@ public class RawStorageManager
     private final DataSize maxBufferSize;
     private final StorageManagerStats stats;
     private final String compression;
-    private final byte[] delimiter;
+    private final String delimiter;
 
     @Inject
     public RawStorageManager(
@@ -105,7 +110,7 @@ public class RawStorageManager
             DataSize maxShardSize,
             DataSize maxBufferSize,
             String compression,
-            byte[] delimiter)
+            String delimiter)
     {
         this.nodeId = checkNotNull(nodeId, "nodeId is null");
         this.storageService = checkNotNull(storageService, "storageService is null");
@@ -277,9 +282,8 @@ public class RawStorageManager
             implements Closeable
     {
         private final Type columnType;
-        private final File target;
 
-        private final BufferedOutputStream writer;
+        private final OutputStream writer;
 
         private long rowCount;
         private long size;
@@ -287,7 +291,8 @@ public class RawStorageManager
         public RawFileWriter(Type columnType, File target)
         {
             this.columnType = columnType;
-            this.target = target;
+
+            OutputStream writer;
 
             try {
                 writer = new BufferedOutputStream(new FileOutputStream(target));
@@ -295,6 +300,17 @@ public class RawStorageManager
             catch (IOException e) {
                 throw new PrestoException(RAPTOR_ERROR, "ioex", e);
             }
+
+            if (!Strings.isNullOrEmpty(compression)) {
+                try {
+                    writer = new CompressorStreamFactory().createCompressorOutputStream(compression, writer);
+                }
+                catch (CompressorException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+
+            this.writer = writer;
         }
 
         public long getRowCount()
@@ -343,6 +359,16 @@ public class RawStorageManager
             }
             rowCount++;
             size += row.getSizeInBytes();
+            if (!Strings.isNullOrEmpty(delimiter)) {
+                byte[] delimiterBytes = delimiter.getBytes();
+                try {
+                    writer.write(delimiterBytes, 0, delimiterBytes.length);
+                }
+                catch (IOException e) {
+                    throw new PrestoException(RAPTOR_ERROR, "Failed to write record", e);
+                }
+                size += delimiterBytes.length;
+            }
         }
 
         @Override

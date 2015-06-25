@@ -854,3 +854,4 @@ olol fml
 
 
 **** represent tables themselves as scalar values to be unnested? gzip<table<json<lucy_document>>> ....
+ - subclass of array
