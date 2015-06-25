@@ -35,7 +35,6 @@ public class FileStorageService
     private final File baseStagingDir;
     private final StorageEngine storageEngine;
 
-
     @Inject
     public FileStorageService(StorageManagerConfig config, StorageEngine storageEngine)
     {
