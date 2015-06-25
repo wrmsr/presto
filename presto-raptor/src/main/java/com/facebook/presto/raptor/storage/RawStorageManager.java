@@ -15,7 +15,6 @@ package com.facebook.presto.raptor.storage;
 
 import com.facebook.presto.raptor.RaptorColumnHandle;
 import com.facebook.presto.raptor.backup.BackupStore;
-import com.facebook.presto.raptor.metadata.ColumnStats;
 import com.facebook.presto.raptor.metadata.ShardDelta;
 import com.facebook.presto.raptor.metadata.ShardInfo;
 import com.facebook.presto.raptor.util.CurrentNodeId;
@@ -165,7 +164,7 @@ public class RawStorageManager
 
     private ShardInfo createShardInfo(UUID shardUuid, File file, Set<String> nodes, long rowCount, Long columnId)
     {
-        return new ShardInfo(shardUuid, nodes, ImmutableList.of(new ColumnStats(columnId, null, null)), rowCount, file.length(), file.length());
+        return new ShardInfo(shardUuid, nodes, ImmutableList.of(), rowCount, file.length(), file.length());
     }
 
     private class RawStoragePageSink implements StoragePageSink
