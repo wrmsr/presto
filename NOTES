@@ -762,3 +762,91 @@ serialize, serialize_raw
 
 
 https://en.wikipedia.org/wiki/EAR_(file_format)
+
+
+raptor > https://github.com/mpetazzoni/ttorrent
+https://github.com/JorenSix/TarsosLSH well hello.
+
+
+
+
+olol fml
+
+[INFO] Including org.apache.commons:commons-lang3:jar:3.4 in the shaded jar.
+[WARNING] annotations-2.0.3.jar, jsr305-3.0.0.jar define 35 overlappping classes:
+[WARNING]   - javax.annotation.RegEx
+[WARNING]   - javax.annotation.concurrent.Immutable
+[WARNING]   - javax.annotation.meta.TypeQualifierDefault
+[WARNING]   - javax.annotation.meta.TypeQualifier
+[WARNING]   - javax.annotation.Syntax
+[WARNING]   - javax.annotation.Nonnull
+[WARNING]   - javax.annotation.CheckReturnValue
+[WARNING]   - javax.annotation.CheckForNull
+[WARNING]   - javax.annotation.meta.TypeQualifierNickname
+[WARNING]   - javax.annotation.MatchesPattern
+[WARNING]   - 25 more...
+[WARNING] log4j-1.2.17.jar, log4j-over-slf4j-1.7.12.jar define 29 overlappping classes:
+[WARNING]   - org.apache.log4j.spi.OptionHandler
+[WARNING]   - org.apache.log4j.spi.LoggerRepository
+[WARNING]   - org.apache.log4j.NDC
+[WARNING]   - org.apache.log4j.PatternLayout
+[WARNING]   - org.apache.log4j.LogManager
+[WARNING]   - org.apache.log4j.BasicConfigurator
+[WARNING]   - org.apache.log4j.spi.ErrorHandler
+[WARNING]   - org.apache.log4j.MDC
+[WARNING]   - org.apache.log4j.AppenderSkeleton
+[WARNING]   - org.apache.log4j.WriterAppender
+[WARNING]   - 19 more...
+[WARNING] jcl-over-slf4j-1.7.12.jar, commons-logging-1.1.3.jar define 6 overlappping classes:
+[WARNING]   - org.apache.commons.logging.impl.SimpleLog$1
+[WARNING]   - org.apache.commons.logging.Log
+[WARNING]   - org.apache.commons.logging.impl.SimpleLog
+[WARNING]   - org.apache.commons.logging.LogConfigurationException
+[WARNING]   - org.apache.commons.logging.impl.NoOpLog
+[WARNING]   - org.apache.commons.logging.LogFactory
+[WARNING] commons-collections-3.2.1.jar, commons-beanutils-1.7.0.jar, commons-beanutils-core-1.8.0.jar define 10 overlappping classes:
+[WARNING]   - org.apache.commons.collections.FastHashMap$EntrySet
+[WARNING]   - org.apache.commons.collections.FastHashMap$KeySet
+[WARNING]   - org.apache.commons.collections.FastHashMap$CollectionView$CollectionViewIterator
+[WARNING]   - org.apache.commons.collections.ArrayStack
+[WARNING]   - org.apache.commons.collections.FastHashMap$Values
+[WARNING]   - org.apache.commons.collections.FastHashMap$CollectionView
+[WARNING]   - org.apache.commons.collections.FastHashMap$1
+[WARNING]   - org.apache.commons.collections.Buffer
+[WARNING]   - org.apache.commons.collections.FastHashMap
+[WARNING]   - org.apache.commons.collections.BufferUnderflowException
+[WARNING] slf4j-jdk14-1.7.12.jar, slf4j-log4j12-1.7.10.jar define 3 overlappping classes:
+[WARNING]   - org.slf4j.impl.StaticMarkerBinder
+[WARNING]   - org.slf4j.impl.StaticLoggerBinder
+[WARNING]   - org.slf4j.impl.StaticMDCBinder
+[WARNING] commons-beanutils-1.7.0.jar, commons-beanutils-core-1.8.0.jar define 82 overlappping classes:
+[WARNING]   - org.apache.commons.beanutils.ConvertUtilsBean
+[WARNING]   - org.apache.commons.beanutils.converters.SqlTimeConverter
+[WARNING]   - org.apache.commons.beanutils.Converter
+[WARNING]   - org.apache.commons.beanutils.converters.FloatArrayConverter
+[WARNING]   - org.apache.commons.beanutils.NestedNullException
+[WARNING]   - org.apache.commons.beanutils.ConvertingWrapDynaBean
+[WARNING]   - org.apache.commons.beanutils.converters.LongArrayConverter
+[WARNING]   - org.apache.commons.beanutils.converters.SqlDateConverter
+[WARNING]   - org.apache.commons.beanutils.converters.BooleanArrayConverter
+[WARNING]   - org.apache.commons.beanutils.converters.StringConverter
+[WARNING]   - 72 more...
+[WARNING] hadoop-yarn-common-2.7.0.jar, hadoop-yarn-client-2.7.0.jar define 2 overlappping classes:
+[WARNING]   - org.apache.hadoop.yarn.client.api.package-info
+[WARNING]   - org.apache.hadoop.yarn.client.api.impl.package-info
+[WARNING] hadoop-yarn-common-2.7.0.jar, hadoop-yarn-api-2.7.0.jar define 3 overlappping classes:
+[WARNING]   - org.apache.hadoop.yarn.util.package-info
+[WARNING]   - org.apache.hadoop.yarn.factories.package-info
+[WARNING]   - org.apache.hadoop.yarn.factory.providers.package-info
+[WARNING] asm-5.0.3.jar, asm-3.1.jar define 21 overlappping classes:
+[WARNING]   - org.objectweb.asm.Type
+[WARNING]   - org.objectweb.asm.AnnotationVisitor
+[WARNING]   - org.objectweb.asm.MethodVisitor
+[WARNING]   - org.objectweb.asm.Attribute
+[WARNING]   - org.objectweb.asm.FieldWriter
+[WARNING]   - org.objectweb.asm.signature.SignatureWriter
+[WARNING]   - org.objectweb.asm.Edge
+[WARNING]   - org.objectweb.asm.MethodWriter
+[WARNING]   - org.objectweb.asm.Handler
+[WARNING]   - org.objectweb.asm.ByteVector
+[WARNING]   - 11 more...
