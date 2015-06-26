@@ -72,6 +72,21 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-mesos</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-yarn</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+
     </dependencies>
 
     <build>
