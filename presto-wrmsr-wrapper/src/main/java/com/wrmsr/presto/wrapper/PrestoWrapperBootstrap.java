@@ -55,8 +55,9 @@ public class PrestoWrapperBootstrap
         String repositoryPathString = System.getProperty(REPOSITORY_PROPERTY_KEY);
         File repositoryPath;
         if (repositoryPathString == null || repositoryPathString.isEmpty()) {
-            repositoryPath = Files.createTempDirectory(null, null, null).toFile();
+            repositoryPath = Files.createTempDirectory(null, null).toFile();
             repositoryPath.deleteOnExit();
+            System.setProperty(REPOSITORY_PROPERTY_KEY, repositoryPath.getAbsolutePath());
         }
         else {
             repositoryPath = new File(repositoryPathString);
