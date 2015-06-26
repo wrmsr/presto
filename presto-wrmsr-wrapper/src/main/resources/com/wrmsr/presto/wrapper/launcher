@@ -51,7 +51,6 @@ for possible_jdk in "${possible_jdks[@]}" ; do
             jdk_version+=".0"
         fi
         jdk_version=$(echo "$jdk_version" | tr '_' '.')
-        echo "$jdk_version"
         if [ -z "$best_jdk" ] ; then
             best_jdk="$possible_jdk"
             best_jdk_version="$jdk_version"

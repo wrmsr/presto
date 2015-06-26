@@ -74,7 +74,6 @@ public class PrestoWrapperBootstrap
         try (Scanner scanner = new Scanner(classLoader.getResourceAsStream("classpaths/presto-wrmsr-wrapper"))) {
             while (scanner.hasNextLine()) {
                 String dep = scanner.nextLine();
-                System.out.println(dep);
                 File depFile = new File(repositoryPath, dep);
                 depFile.getParentFile().mkdirs();
                 try (InputStream bi = new BufferedInputStream(classLoader.getResourceAsStream(dep));

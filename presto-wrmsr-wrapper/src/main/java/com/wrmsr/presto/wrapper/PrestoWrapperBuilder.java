@@ -261,8 +261,10 @@ public class PrestoWrapperBuilder
                 "presto-raptor",
                 "presto-tpch",
                 "presto-wrmsr-extensions",
+                "presto-wrmsr-mesos",
                 "presto-wrmsr-python",
-                "presto-wrmsr-ruby"
+                "presto-wrmsr-ruby",
+                "presto-wrmsr-yarn"
         );
         Set<String> localGroups = ImmutableSet.of(
                 "com.facebook.presto",
