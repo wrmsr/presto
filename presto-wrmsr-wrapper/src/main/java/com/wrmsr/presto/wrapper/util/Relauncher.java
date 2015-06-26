@@ -125,12 +125,34 @@ java -help
 -Dcom.sun.management.jmxremote.authenticate=false
 -Dcom.sun.management.jmxremote.ssl=false
 
+#JAVA_HOME=/usr/lib/jvm/java-7-oracle \
+#  /usr/lib/jvm/java-7-oracle/bin/java \
+#  -Xms8192m -Xmx8192m \
+#  -XX:+PrintGCCause \
+#  -Xms24576m -Xmx24576m \
+# JAVA_HOME=/nail/home/wtimoney/jdk1.8.0
+#   /nail/home/wtimoney/jdk1.8.0/bin/java \
+  -server \
+  -XX:+UnlockDiagnosticVMOptions -XX:+PrintFlagsFinal \
+  -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:+PrintTenuringDistribution \
+  -Xms8192m -Xmx8192m \
+  -XX:+HeapDumpOnOutOfMemoryError \
+  -XX:+UseCompressedOops \
+  -Djava.security.egd=file:/dev/./urandom \
+  -XX:+AggressiveOpts \
+  -XX:+EliminateLocks -XX:+UseLargePages \
+  -Xdebug -Xrunjdwp:transport=dt_socket,address=48192,server=y,suspend=n \
+  -XX:+UseNUMA \
+#  -XX:+UseG1GC -XX:MaxGCPauseMillis=250 \
+
 RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
 List<String> arguments = runtimeMxBean.getInputArguments();
 */
 
 import jnr.posix.POSIX;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -167,7 +189,7 @@ public class Relauncher
         posix.libc().execv("/usr/bin/vim");
     }
 
-    public static void main(String[] args) throws Exception
+    public static void main2(String[] args) throws Exception
     {
         List<Map.Entry> systemProperties = new ArrayList<>(System.getProperties().entrySet());
         systemProperties.sort(new Comparator<Map.Entry>()
@@ -182,5 +204,14 @@ public class Relauncher
             System.out.println(entry);
         }
         exec();
+    }
+
+    public static void main(String[] args) throws Throwable
+    {
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        List<String> arguments = runtimeMxBean.getInputArguments();
+        for (String s : arguments) {
+            System.out.println(s);
+        }
     }
 }
