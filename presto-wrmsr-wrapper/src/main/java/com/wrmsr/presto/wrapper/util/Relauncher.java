@@ -130,7 +130,6 @@ List<String> arguments = runtimeMxBean.getInputArguments();
 */
 
 import jnr.posix.POSIX;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -146,8 +145,6 @@ public class Relauncher
     // check if piped to sh, if so just echo cmds and die
     // no tricks needed if daemonized
     // can also launch child and fwd fd's
-
-    private static final Logger logger = Logger.getLogger(Relauncher.class);
 
     public static interface Option
     {

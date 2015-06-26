@@ -17,15 +17,16 @@ import jnr.constants.platform.Errno;
 import jnr.posix.POSIX;
 import jnr.posix.POSIXFactory;
 import jnr.posix.POSIXHandler;
-import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public class POSIXUtils {
 
-    private static final Logger logger = Logger.getLogger(POSIXUtils.class);
+    private static final Logger logger = Logger.getLogger(POSIXUtils.class.getName());
 
     private POSIXUtils() {
     }
@@ -76,7 +77,7 @@ public class POSIXUtils {
 
         @Override
         public void error(Errno errno, String s, String s2) {
-            logger.error(errno + " : " + s + " : " + s2);
+            logger.log(Level.SEVERE, errno + " : " + s + " : " + s2);
         }
 
         @Override

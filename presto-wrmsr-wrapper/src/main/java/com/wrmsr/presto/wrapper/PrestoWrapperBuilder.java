@@ -245,6 +245,7 @@ public class PrestoWrapperBuilder
 
         String wrapperProject = "presto-wrmsr-wrapper";
         List<String> names = ImmutableList.of(
+                wrapperProject, // BOOTSTRAP SELF
                 "presto-main",
                 "presto-cli",
                 "presto-cassandra",
@@ -259,8 +260,7 @@ public class PrestoWrapperBuilder
                 "presto-tpch",
                 "presto-wrmsr-extensions",
                 "presto-wrmsr-python",
-                "presto-wrmsr-ruby",
-                wrapperProject // BOOTSTRAP SELF
+                "presto-wrmsr-ruby"
         );
         Set<String> localGroups = ImmutableSet.of(
                 "com.facebook.presto",
@@ -279,6 +279,9 @@ public class PrestoWrapperBuilder
 
             List<File> files = newArrayList();
             for (Artifact a : artifacts) {
+                if (a.getGroupId().equals("org.slf4j") && a.getArtifactId().equals(("slf4j-log4j12"))) {
+                    continue; // FIXME FUCK YOU
+                }
                 if (localGroups.contains(a.getGroupId()) && new File(cwd, a.getArtifactId()).exists()) {
                     File localPath = new File(cwd, a.getArtifactId());
                     File file;

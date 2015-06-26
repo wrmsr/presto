@@ -90,6 +90,6 @@ public class PrestoWrapperBootstrap
         }
 
         Class<?> cls = Class.forName("com.wrmsr.presto.wrapper.util.Relauncher");
-        cls.getDeclaredMethod("main", String[].class).invoke(null, args);
+        cls.getDeclaredMethod("exec").invoke(null);
     }
 }
