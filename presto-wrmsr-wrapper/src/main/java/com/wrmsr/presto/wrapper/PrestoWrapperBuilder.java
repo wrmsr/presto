@@ -418,16 +418,18 @@ public class PrestoWrapperBuilder
             launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, Charsets.UTF_8)).getBytes();
         }
 
-        String exePath = System.getProperty("user.home") + "/presto/presto.jar";
+        String exePath = System.getProperty("user.home") + "/presto/presto";
         try (InputStream fi = new BufferedInputStream(new FileInputStream(outPath));
              OutputStream fo = new BufferedOutputStream(new FileOutputStream(exePath))) {
             fo.write(launcherBytes, 0, launcherBytes.length);
+            fo.write(new byte[]{'\n', '\n'});
             byte[] buf = new byte[65536];
             int anz;
             while ((anz = fi.read(buf)) != -1) {
                 fo.write(buf, 0, anz);
             }
         }
+        new File(exePath).setExecutable(true, false);
     }
 }
 

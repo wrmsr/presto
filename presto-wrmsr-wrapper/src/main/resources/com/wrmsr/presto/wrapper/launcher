@@ -71,4 +71,4 @@ else
     java="$best_jdk/bin/java"
 fi
 
-exec "$java" -jar "$0" "$@
+exec "$java" -jar "$0" "$@"
