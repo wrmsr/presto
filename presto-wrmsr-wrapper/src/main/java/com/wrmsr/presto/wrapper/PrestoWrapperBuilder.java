@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.wrapper;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -36,6 +37,8 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.LoggingMXBean;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -346,40 +349,61 @@ public class PrestoWrapperBuilder
         Collections.sort(keys);
         checkState(keys.size() == newHashSet(keys).size());
 
-        System.out.println(wrapperJarFile);
-        for (String s : keys) {
-            System.out.println(s);
-        }
-
         String outPath = System.getProperty("user.home") + "/presto/foo.jar";
         BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outPath));
         JarOutputStream jo = new JarOutputStream(bo);
 
+        Set<String> contents = newHashSet();
         ZipFile wrapperJarZip = new ZipFile(wrapperJarFile);
         Enumeration<? extends ZipEntry> zipEntries;
         for (zipEntries = wrapperJarZip.entries(); zipEntries.hasMoreElements(); ) {
-            System.out.println(zipEntries.nextElement());
-        }
-
-        for (String key : keys) {
-            Entry e = entryMap.get(key);
-            if (!(e instanceof FileEntry)) {
-                continue;
-            }
-            FileEntry f = (FileEntry) e;
-            BufferedInputStream bi = new BufferedInputStream(new FileInputStream(f.getFile()));
-
-            JarEntry je = new JarEntry(f.getJarPath());
+            ZipEntry zipEntry = zipEntries.nextElement();
+            BufferedInputStream bi = new BufferedInputStream(wrapperJarZip.getInputStream(zipEntry));
+            JarEntry je = new JarEntry(zipEntry.getName());
             jo.putNextEntry(je);
-
             byte[] buf = new byte[1024];
             int anz;
-
             while ((anz = bi.read(buf)) != -1) {
                 jo.write(buf, 0, anz);
             }
-
             bi.close();
+            contents.add(zipEntry.getName());
+        }
+
+        for (String key : keys) {
+            if (contents.contains(key)) {
+                log.warn(key);
+                continue;
+            }
+            Entry e = entryMap.get(key);
+            String p = e.getJarPath();
+            List<String> pathParts = newArrayList(p.split("/"));
+            for (int i = 0; i < pathParts.size() - 1; ++i) {
+                String pathPart = Joiner.on("/").join(IntStream.rangeClosed(0, i).boxed().map(j -> pathParts.get(j)).collect(Collectors.toList())) + "/";
+                if (!contents.contains(pathPart)) {
+                    JarEntry je = new JarEntry(pathPart);
+                    jo.putNextEntry(je);
+                    jo.write(new byte[]{}, 0, 0);
+                    contents.add(pathPart);
+                }
+            }
+            JarEntry je = new JarEntry(p);
+            jo.putNextEntry(je);
+            if (e instanceof FileEntry) {
+                FileEntry f = (FileEntry) e;
+                BufferedInputStream bi = new BufferedInputStream(new FileInputStream(f.getFile()));
+                byte[] buf = new byte[1024];
+                int anz;
+                while ((anz = bi.read(buf)) != -1) {
+                    jo.write(buf, 0, anz);
+                }
+                bi.close();
+            }
+            else if (e instanceof BytesEntry) {
+                BytesEntry b = (BytesEntry) e;
+                jo.write(b.getBytes(), 0, b.getBytes().length);
+            }
+            contents.add(key);
         }
         jo.close();
         bo.close();
