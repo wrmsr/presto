@@ -26,6 +26,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +36,8 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.LoggingMXBean;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
@@ -351,6 +354,12 @@ public class PrestoWrapperBuilder
         String outPath = System.getProperty("user.home") + "/presto/foo.jar";
         BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outPath));
         JarOutputStream jo = new JarOutputStream(bo);
+
+        ZipFile wrapperJarZip = new ZipFile(wrapperJarFile);
+        Enumeration<? extends ZipEntry> zipEntries;
+        for (zipEntries = wrapperJarZip.entries(); zipEntries.hasMoreElements(); ) {
+            System.out.println(zipEntries.nextElement());
+        }
 
         for (String key : keys) {
             Entry e = entryMap.get(key);
