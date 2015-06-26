@@ -147,6 +147,9 @@ java -help
 
 RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
 List<String> arguments = runtimeMxBean.getInputArguments();
+
+http://hg.openjdk.java.net/jdk8/jdk8/hotspot/file/tip/src/share/vm/runtime/arguments.cpp
+http://hg.openjdk.java.net/jdk8/jdk8/hotspot/file/tip/src/share/vm/runtime/arguments.hpp
 */
 
 import jnr.posix.POSIX;
