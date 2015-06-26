@@ -966,3 +966,7 @@ Downloaded: https://oss.sonatype.org/content/repositories/snapshots/com/facebook
 
 **** represent tables themselves as scalar values to be unnested? gzip<table<json<lucy_document>>> ....
  - subclass of array
+
+
+** switch to autoexec-ing void sql functions style for cfg setup
+
