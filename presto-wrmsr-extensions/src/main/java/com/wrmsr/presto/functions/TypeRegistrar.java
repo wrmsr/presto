@@ -54,6 +54,8 @@ import com.facebook.presto.type.MapType;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.SqlType;
 import com.facebook.presto.type.TypeRegistry;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -82,6 +84,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.facebook.presto.byteCode.Access.FINAL;
@@ -102,6 +105,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Locale.ENGLISH;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
+import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 
 public class TypeRegistrar
 {
@@ -128,6 +132,20 @@ public class TypeRegistrar
         QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
         Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
         return analyzer.analyze(statement);
+    }
+
+    @Nullable
+    public RowType buildRowType(String name, String sql)
+    {
+        Session.SessionBuilder builder = Session.builder()
+                .setUser("system")
+                .setSource("system")
+                .setCatalog("default")
+                .setTimeZoneKey(UTC_KEY)
+                .setLocale(ENGLISH)
+                .setSchema("default");
+        Session session = builder.build();
+        return buildRowType(session, name, sql);
     }
 
     @Nullable
@@ -174,8 +192,7 @@ public class TypeRegistrar
             throw new RuntimeException(String.format("All fields must be named or no fields must be named for type: %s -> %s", name, sql));
         }
 
-        RowType rt = new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
-        return rt;
+        return new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
     }
 
     public static class RowTypeConstructorCompiler
@@ -663,18 +680,67 @@ public class TypeRegistrar
         }
     }
 
-    public void run()
+    public static class StructDefinition
     {
-        Session.SessionBuilder builder = Session.builder()
-                .setUser("system")
-                .setSource("system")
-                .setCatalog("default")
-                .setTimeZoneKey(UTC_KEY)
-                .setLocale(ENGLISH)
-                .setSchema("default");
-        Session session = builder.build();
+        public static class Field
+        {
+            @Nullable
+            private final String name;
+            private final String type;
 
-        RowType rowType = buildRowType(session, "thing", "select 1 as \"anumber\", 'hi' as \"somestr\", cast(null as bigint) as \"someint\", cast(null as varbinary) as \"somebinary\"");
+            @JsonCreator
+            public Field(
+                    @JsonProperty("name") @Nullable String name,
+                    @JsonProperty("type") String type)
+            {
+                this.name = name;
+                this.type = type;
+            }
+
+            @Nullable
+            public String getName()
+            {
+                return name;
+            }
+
+            public String getType()
+            {
+                return type;
+            }
+        }
+
+        private final String name;
+        private final List<Field> fields;
+
+        @JsonCreator
+        public StructDefinition(
+                @JsonProperty("name") String name,
+                @JsonProperty("fields") List<Field> fields)
+        {
+            this.name = name;
+            this.fields = fields;
+        }
+
+        public String getName()
+        {
+            return name;
+        }
+
+        public List<Field> getFields()
+        {
+            return fields;
+        }
+    }
+
+    public RowType buildRowType(StructDefinition def)
+    {
+        List<String> fieldNames = def.getFields().stream().map(StructDefinition.Field::getName).filter(Objects::nonNull).collect(toImmutableList());
+        checkArgument(fieldNames.isEmpty() || fieldNames.size() == def.getFields().size());
+        return new RowType(
+                parameterizedTypeName(def.getName()),
+                def.getFields().stream().map(f -> typeRegistry.getType(parseTypeSignature(f.getType()))).collect(toImmutableList()),
+                fieldNames.isEmpty() ? Optional.empty() : Optional.of(fieldNames)
+        );
     }
 
     public void registerStruct(RowType rowType)

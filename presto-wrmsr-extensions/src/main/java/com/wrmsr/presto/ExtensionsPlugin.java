@@ -29,6 +29,7 @@ import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
+import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
@@ -54,6 +55,7 @@ import com.wrmsr.presto.metaconnectors.partitioner.PartitionerModule;
 import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
 import com.wrmsr.presto.jdbc.postgresql.ExtendedPostgreSqlClientModule;
 import com.wrmsr.presto.util.Configs;
+import com.wrmsr.presto.util.Serialization;
 import io.airlift.json.JsonCodec;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 
@@ -152,12 +154,59 @@ public class ExtensionsPlugin
         public final Map<String, String> log = ImmutableMap.of();
         public final List<String> plugins = ImmutableList.of();
         public final Map<String, Object> connectors = ImmutableMap.of();
+        public final List<TypeRegistrar.StructDefinition> structs = ImmutableList.of();
+    }
+
+    public void installConfig(FileConfig fileConfig, TypeRegistrar typeRegistrar)
+    {
+        for (String plugin : fileConfig.plugins) {
+            try {
+                pluginManager.loadPlugin(plugin);
+            }
+            catch (Exception e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
+        for (Map.Entry<String, Object> e : fileConfig.connectors.entrySet()) {
+            HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(e.getValue());
+            Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
+
+            String targetConnectorName = connProps.get("connector.name");
+            connProps.remove("connector.name");
+            String targetName = e.getKey();
+            connectorManager.createConnection(targetName, targetConnectorName, connProps);
+            checkNotNull(connectorManager.getConnectors().get(targetName));
+        }
+
+        for (Connector connector : connectorManager.getConnectors().values()) {
+            if (connector instanceof ExtendedJdbcConnector) {
+                JdbcClient client = ((ExtendedJdbcConnector) connector).getJdbcClient();
+                if (client instanceof ExtendedJdbcClient) {
+                    ((ExtendedJdbcClient) client).runInitScripts();
+                }
+            }
+        }
+
+        for (TypeRegistrar.StructDefinition structDefinition : fileConfig.structs) {
+            RowType rowType = typeRegistrar.buildRowType(structDefinition);
+            typeRegistrar.registerStruct(rowType);
+        }
     }
 
     @Override
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.ConnectorsLoaded) {
+            TypeRegistrar typeRegistrar = new TypeRegistrar(
+                    connectorManager,
+                    typeRegistry,
+                    metadata,
+                    sqlParser,
+                    planOptimizers,
+                    featuresConfig
+            );
+
             byte[] cfgBytes;
             try {
                 cfgBytes = Files.readAllBytes(new File(System.getProperty("user.home") + "/presto/yelp-presto.yaml").toPath());
@@ -165,43 +214,20 @@ public class ExtensionsPlugin
             catch (IOException e) {
                 throw Throwables.propagate(e);
             }
+            String cfgStr = new String(cfgBytes);
+            for (Object part : Serialization.splitYaml(cfgStr)) {
+                String partStr = Serialization.YAML.get().dump(part);
 
-            ObjectMapper objectMapper = YAML_OBJECT_MAPPER.get();
-            FileConfig fileConfig;
-            try {
-                fileConfig = objectMapper.readValue(cfgBytes, FileConfig.class);
-            }
-            catch (IOException e) {
-                throw Throwables.propagate(e);
-            }
-
-            for (String plugin : fileConfig.plugins) {
+                ObjectMapper objectMapper = YAML_OBJECT_MAPPER.get();
+                FileConfig fileConfig;
                 try {
-                    pluginManager.loadPlugin(plugin);
+                    fileConfig = objectMapper.readValue(partStr.getBytes(), FileConfig.class);
                 }
-                catch (Exception e) {
+                catch (IOException e) {
                     throw Throwables.propagate(e);
                 }
-            }
 
-            for (Map.Entry<String, Object> e : fileConfig.connectors.entrySet()) {
-                HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(e.getValue());
-                Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
-
-                String targetConnectorName = connProps.get("connector.name");
-                connProps.remove("connector.name");
-                String targetName = e.getKey();
-                connectorManager.createConnection(targetName, targetConnectorName, connProps);
-                checkNotNull(connectorManager.getConnectors().get(targetName));
-            }
-
-            for (Connector connector : connectorManager.getConnectors().values()) {
-                if (connector instanceof ExtendedJdbcConnector) {
-                    JdbcClient client = ((ExtendedJdbcConnector) connector).getJdbcClient();
-                    if (client instanceof ExtendedJdbcClient) {
-                        ((ExtendedJdbcClient) client).runInitScripts();
-                    }
-                }
+                installConfig(fileConfig, typeRegistrar);
             }
 
             new HardcodedMetadataPopulator(
@@ -212,16 +238,6 @@ public class ExtensionsPlugin
                     planOptimizers,
                     featuresConfig
             ).run();
-
-            TypeRegistrar typeRegistrar = new TypeRegistrar(
-                    connectorManager,
-                    typeRegistry,
-                    metadata,
-                    sqlParser,
-                    planOptimizers,
-                    featuresConfig
-            );
-            typeRegistrar.run();
 
             ExtensionFunctionFactory functionFactory = new ExtensionFunctionFactory(typeRegistry, metadata.getFunctionRegistry(), typeRegistrar);
             metadata.addFunctions(functionFactory.listFunctions());
