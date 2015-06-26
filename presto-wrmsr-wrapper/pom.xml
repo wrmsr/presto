@@ -15,7 +15,7 @@
 
     <properties>
         <air.main.basedir>${project.parent.basedir}</air.main.basedir>
-        <main-class>com.wrmsr.presto.wrapper.PrestoWrapperMain</main-class>
+        <main-class>com.wrmsr.presto.wrapper.PrestoWrapperBootstrap</main-class>
     </properties>
 
     <dependencies>
