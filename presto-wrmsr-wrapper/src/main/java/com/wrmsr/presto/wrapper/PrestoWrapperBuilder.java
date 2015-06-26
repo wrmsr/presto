@@ -13,10 +13,12 @@
  */
 package com.wrmsr.presto.wrapper;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.io.CharStreams;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 import io.airlift.resolver.ArtifactResolver;
@@ -352,7 +354,7 @@ public class PrestoWrapperBuilder
         Collections.sort(keys);
         checkState(keys.size() == newHashSet(keys).size());
 
-        String outPath = System.getProperty("user.home") + "/presto/foo.jar";
+        String outPath = System.getProperty("user.home") + "/presto/presto.jar";
         BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outPath));
         JarOutputStream jo = new JarOutputStream(bo);
 
@@ -410,6 +412,22 @@ public class PrestoWrapperBuilder
         }
         jo.close();
         bo.close();
+
+        byte[] launcherBytes;
+        try (InputStream launcherStream = PrestoWrapperBuilder.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/wrapper/launcher")) {
+            launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, Charsets.UTF_8)).getBytes();
+        }
+
+        String exePath = System.getProperty("user.home") + "/presto/presto.jar";
+        try (InputStream fi = new BufferedInputStream(new FileInputStream(outPath));
+             OutputStream fo = new BufferedOutputStream(new FileOutputStream(exePath))) {
+            fo.write(launcherBytes, 0, launcherBytes.length);
+            byte[] buf = new byte[65536];
+            int anz;
+            while ((anz = fi.read(buf)) != -1) {
+                fo.write(buf, 0, anz);
+            }
+        }
     }
 }
 
