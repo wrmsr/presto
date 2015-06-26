@@ -31,6 +31,7 @@ public class PrestoWrapperBootstrap
     */
 
     public static final String REPOSITORY_PROPERTY_KEY = "wrmsr.repository.path";
+    public static final String SHOULD_DELLETE_REPOSITORY_PROPERTY_KEY = "wrmsr.repository.should-delete";
 
     public static void addClasspathUrl(URLClassLoader classLoader, URL url) throws IOException
     {
@@ -78,7 +79,7 @@ public class PrestoWrapperBootstrap
                 depFile.getParentFile().mkdirs();
                 try (InputStream bi = new BufferedInputStream(classLoader.getResourceAsStream(dep));
                      OutputStream bo = new BufferedOutputStream(new FileOutputStream(depFile))) {
-                    byte[] buf = new byte[1024];
+                    byte[] buf = new byte[65536];
                     int anz;
                     while ((anz = bi.read(buf)) != -1) {
                         bo.write(buf, 0, anz);
