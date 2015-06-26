@@ -118,6 +118,15 @@ JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
 The -X options are non-standard and subject to change without notice.
 
 java -help
+
+-Dcom.sun.management.jmxremote
+-Dcom.sun.management.jmxremote.port=9010
+-Dcom.sun.management.jmxremote.local.only=false
+-Dcom.sun.management.jmxremote.authenticate=false
+-Dcom.sun.management.jmxremote.ssl=false
+
+RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+List<String> arguments = runtimeMxBean.getInputArguments();
 */
 
 import jnr.posix.POSIX;
