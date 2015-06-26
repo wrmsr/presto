@@ -57,7 +57,7 @@ public class PrestoWrapperBootstrap
         File repositoryPath;
         if (repositoryPathString == null || repositoryPathString.isEmpty()) {
             repositoryPath = Files.createTempDirectory(null).toFile();
-            repositoryPath.deleteOnExit();
+            repositoryPath.deleteOnExit(); // FIXME OSX EXECVE SEGFAULT
             System.setProperty(REPOSITORY_PROPERTY_KEY, repositoryPath.getAbsolutePath());
         }
         else {
