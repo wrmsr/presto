@@ -50,6 +50,11 @@ public class ParentLastURLClassLoader extends ClassLoader
             this.realParent = realParent;
         }
 
+        public FindClassClassLoader getRealParent()
+        {
+            return realParent;
+        }
+
         @Override
         public Class<?> findClass(String name) throws ClassNotFoundException
         {
