@@ -6,7 +6,7 @@ public class PrestoWrapperBootstrap
 {
     public static void main(String[] args) throws Throwable
     {
-        Repositories.setupClassloaderForModule(PrestoWrapperBootstrap.class.getClassLoader(), "presto-wrmsr-wrapper");
+        Repositories.setupClassLoaderForModule(PrestoWrapperBootstrap.class.getClassLoader(), "presto-wrmsr-wrapper");
         Class<?> cls = Class.forName("com.wrmsr.presto.wrapper.PrestoWrapperMain");
         cls.getDeclaredMethod("main", String[].class).invoke(null, new Object[]{args});
     }

@@ -64,15 +64,16 @@ public class Repositories
         return repositoryPath;
     }
 
-    public static void setupClassloaderForModule(ClassLoader classLoader, String moduleName) throws IOException {
+    public static void setupClassLoaderForModule(ClassLoader sourceClassLoader,ClassLoader targetClassLoader, String moduleName) throws IOException
+    {
         File repositoryPath = getRepositoryPath();
 
-        try (Scanner scanner = new Scanner(classLoader.getResourceAsStream("classpaths/" + moduleName))) {
+        try (Scanner scanner = new Scanner(sourceClassLoader.getResourceAsStream("classpaths/" + moduleName))) {
             while (scanner.hasNextLine()) {
                 String dep = scanner.nextLine();
                 File depFile = new File(repositoryPath, dep);
                 depFile.getParentFile().mkdirs();
-                try (InputStream bi = new BufferedInputStream(classLoader.getResourceAsStream(dep));
+                try (InputStream bi = new BufferedInputStream(sourceClassLoader.getResourceAsStream(dep));
                      OutputStream bo = new BufferedOutputStream(new FileOutputStream(depFile))) {
                     byte[] buf = new byte[65536];
                     int anz;
@@ -80,8 +81,14 @@ public class Repositories
                         bo.write(buf, 0, anz);
                     }
                 }
-                addClasspathUrl(classLoader, depFile.toURL());
+                addClasspathUrl(targetClassLoader, depFile.toURL());
             }
         }
+    }
+
+    public static void setupClassLoaderForModule(ClassLoader classLoader, String moduleName) throws IOException
+    {
+        setupClassLoaderForModule(classLoader, classLoader, moduleName);
+
     }
 }
