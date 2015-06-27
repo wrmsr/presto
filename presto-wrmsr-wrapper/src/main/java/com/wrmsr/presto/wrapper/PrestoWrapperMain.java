@@ -124,6 +124,6 @@ public class PrestoWrapperMain
             }
         };
         thread.start();
-        thread.wait();
+        thread.join();
     }
 }
