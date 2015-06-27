@@ -18,16 +18,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.wrmsr.presto.util.Repositories;
+import com.wrmsr.presto.wrapper.util.POSIXUtils;
 import com.wrmsr.presto.wrapper.util.ParentLastURLClassLoader;
 import io.airlift.command.*;
 import io.airlift.resolver.ArtifactResolver;
 import io.airlift.log.Logger;
+import jnr.posix.POSIX;
+import jnr.posix.util.Platform;
 import org.sonatype.aether.artifact.Artifact;
 
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -41,21 +45,37 @@ public class PrestoWrapperMain
     {
         private final File path;
         private final int pidFile;
+        private final POSIX posix;
 
         private boolean locked;
 
         public Process(File path)
         {
+            final int openFlags;
+            if (Platform.IS_MAC) {
+                openFlags =
+                        jnr.constants.platform.darwin.OpenFlags.O_RDWR.intValue() |
+                        jnr.constants.platform.darwin.OpenFlags.O_CREAT.intValue();
+            }
+            else if (Platform.IS_LINUX) {
+                openFlags =
+                        jnr.constants.platform.linux.OpenFlags.O_RDWR.intValue() |
+                        jnr.constants.platform.linux.OpenFlags.O_CREAT.intValue();
+            }
+            else {
+                throw new IllegalStateException("Unsupported platform");
+            }
+            posix = POSIXUtils.getPOSIX();
             this.path = path;
             path.getParentFile().mkdirs();
-            // pidFile = os.fdopen(os.open(path, O_RDWR | O_CREAT, 0600), 'r+')
+            pidFile = posix.open(path.getAbsolutePath(), openFlags, 0600);
             refresh();
         }
 
         private void refresh()
         {
             try {
-                // flock(pidFile, LOCK_EX | LOCK_NB);
+                posix.flock(pidFile, 2 | 4); // LOCK_EX | LOCK_NB
                 locked = true;
             }
             catch (Exception e) {
@@ -66,50 +86,44 @@ public class PrestoWrapperMain
         private void clearPid()
         {
             checkState(locked, "pid file not locked by us");
-            // pid_file.seek(0)
-            // pid_file.truncate()
+            posix.lseek(pidFile, 0, 0);
+            posix.ftruncate(pidFile, 0);
         }
 
         private void writePid(int pid)
         {
             clearPid();
-            // pid_file.write(str(pid) + '\n')
-            // pid_file.flush()
+            byte[] bytes = String.format("%d\n", pid).getBytes();
+            posix.write(pidFile, bytes, bytes.length);
+            posix.fsync(pidFile);
         }
 
         private boolean alive()
         {
-            /*
-            self.refresh()
-            if self.locked:
-                return False
-
-            pid = self.read_pid()
-            try:
-            os.kill(pid, 0)
-            return True
-            except OSError, e:
-            raise Exception('Signaling pid %s failed: %s' % (pid, e))
-            */
+            refresh();
+            if (locked) {
+                return false;
+            }
+            int pid = readPid();
+            try {
+                posix.kill(pid, 0);
+                return true;
+            }
+            catch (Exception e) {
+                throw new IllegalStateException(String.format("Signaling pid %s failed: %s", pid, e));
+            }
         }
 
         private int readPid()
         {
-            /*
-            assert not self.locked, 'pid file is locked by us'
-            self.pid_file.seek(0)
-            line = self.pid_file.readline().strip()
-            if len(line) == 0:
-            raise Exception("Pid file '%s' is empty" % self.path)
-
-            try:
-            pid = int(line)
-                except ValueError:
-        raise Exception("Pid file '%s' contains garbage: %s" % (self.path, line))
-            if pid <= 0:
-            raise Exception("Pid file '%s' contains an invalid pid: %s" % (self.path, pid))
-            return pid
-            */
+            checkState(!locked, "pid file is locked by us");
+            posix.lseek(pidFile, 0, 0);
+            byte[] buf = new byte[1024];
+            int len = posix.read(pidFile, buf, buf.length);
+            checkState(len > 0 && len < buf.length);
+            int pid = Integer.valueOf(new String(Arrays.copyOf(buf, len)));
+            checkState(pid > 0);
+            return pid;
         }
     }
 
