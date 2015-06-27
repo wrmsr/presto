@@ -31,6 +31,7 @@ import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Map;
 
+// start stop run status mesos yarn cli restart kill
 public class PrestoWrapperMain
 {
     public static void main2(String[] args)
