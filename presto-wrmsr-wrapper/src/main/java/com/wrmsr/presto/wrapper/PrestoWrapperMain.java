@@ -112,8 +112,8 @@ public class PrestoWrapperMain
             public void run()
             {
                 try {
-                    ClassLoader cl = new ParentLastURLClassLoader(ImmutableList.of());
-                    Repositories.setupClassloaderForModule(cl, "presto-main");
+                    ParentLastURLClassLoader cl = new ParentLastURLClassLoader(ImmutableList.of());
+                    Repositories.setupClassloaderForModule(cl.getChildClassLoader(), "presto-main");
                     Class prestoServerClass = cl.loadClass("com.facebook.presto.server.PrestoServer");
                     Method prestoServerMain = prestoServerClass.getMethod("main", String[].class);
                     prestoServerMain.invoke(null, new Object[]{args});
