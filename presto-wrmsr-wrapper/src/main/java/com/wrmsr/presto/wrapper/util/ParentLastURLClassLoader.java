@@ -13,6 +13,11 @@ public class ParentLastURLClassLoader extends ClassLoader
 {
     private ChildURLClassLoader childClassLoader;
 
+    public ChildURLClassLoader getChildClassLoader()
+    {
+        return childClassLoader;
+    }
+
     /**
      * This class allows me to call findClass on a classloader
      */
@@ -34,7 +39,7 @@ public class ParentLastURLClassLoader extends ClassLoader
      * This class delegates (child then parent) for the findClass method for a URLClassLoader.
      * We need this because findClass is protected in URLClassLoader
      */
-    private static class ChildURLClassLoader extends URLClassLoader
+    public static class ChildURLClassLoader extends URLClassLoader
     {
         private FindClassClassLoader realParent;
 

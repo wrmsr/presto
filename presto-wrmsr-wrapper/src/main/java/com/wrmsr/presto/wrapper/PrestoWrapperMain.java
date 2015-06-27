@@ -13,9 +13,11 @@
  */
 package com.wrmsr.presto.wrapper;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.wrmsr.presto.util.Repositories;
 import com.wrmsr.presto.wrapper.util.ParentLastURLClassLoader;
 import io.airlift.resolver.ArtifactResolver;
 import io.airlift.log.Logger;
@@ -42,6 +44,7 @@ public class PrestoWrapperMain
     public void run(String[] args)
             throws Throwable
     {
+        /*
         Logger log = Logger.get(PrestoWrapperMain.class);
 
         ImmutableMap<String, String> props = ImmutableMap.<String, String>builder()
@@ -103,6 +106,24 @@ public class PrestoWrapperMain
         Class prestoServerClass = cl.loadClass("com.facebook.presto.server.PrestoServer");
         Method prestoServerMain = prestoServerClass.getMethod("main", String[].class);
         prestoServerMain.invoke(null, new Object[]{ args });
+        */
+        Thread thread = new Thread() {
+            @Override
+            public void run()
+            {
+                try {
+                    ClassLoader cl = new ParentLastURLClassLoader(ImmutableList.of());
+                    Repositories.setupClassloaderForModule(cl, "presto-main");
+                    Class prestoServerClass = cl.loadClass("com.facebook.presto.server.PrestoServer");
+                    Method prestoServerMain = prestoServerClass.getMethod("main", String[].class);
+                    prestoServerMain.invoke(null, new Object[]{args});
+                }
+                catch (Exception e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        };
+        thread.start();
+        thread.wait();
     }
-
 }
