@@ -37,7 +37,7 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkState;
 
-// start stop run status mesos yarn cli restart kill jarsync
+// mesos yarn cli jarsync
 
 public class PrestoWrapperMain
 {
@@ -131,11 +131,7 @@ public class PrestoWrapperMain
     {
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
-                .withCommands(Help.class, Start.class);
-
-        builder.withGroup("start")
-                .withDescription("Manage set of tracked repositories")
-                .withDefaultCommand(Start.class);
+                .withCommands(Help.class, Run.class, Start.class, Stop.class, Restart.class, Status.class, Kill.class, CliCommand.class);
 
         Cli<Runnable> gitParser = builder.build();
 
@@ -146,16 +142,19 @@ public class PrestoWrapperMain
     {
         @Option(type = OptionType.GLOBAL, name = "-v", description = "Verbose mode")
         public boolean verbose;
+
+        @Option(name = {"-c", "--config"}, description = "Specify config file path")
+        public String configFile;
     }
 
-    public static abstract class DaemonCommand extends WrapperCommand
+    public static abstract class ServerCommand extends WrapperCommand
     {
-        @Option(name = "-p", description = "Specify pidfile path")
+        @Option(name = {"-p", "--pidfile"}, description = "Specify pidfile path")
         public String pidFile;
     }
 
-    @Command(name = "start", description = "Starts presto server")
-    public static class Start extends DaemonCommand
+    @Command(name = "run", description = "Runs presto server")
+    public static class Run extends ServerCommand
     {
         @Override
         public void run()
@@ -163,6 +162,78 @@ public class PrestoWrapperMain
 
         }
     }
+
+    @Command(name = "start", description = "Starts presto server")
+    public static class Start extends ServerCommand
+    {
+        @Override
+        public void run()
+        {
+
+        }
+    }
+
+    @Command(name = "stop", description = "Stops presto server")
+    public static class Stop extends ServerCommand
+    {
+        @Override
+        public void run()
+        {
+
+        }
+    }
+
+    @Command(name = "restart", description = "Restarts presto server")
+    public static class Restart extends ServerCommand
+    {
+        @Override
+        public void run()
+        {
+
+        }
+    }
+
+    @Command(name = "status", description = "Gets status of presto server")
+    public static class Status extends ServerCommand
+    {
+        @Override
+        public void run()
+        {
+
+        }
+    }
+
+    @Command(name = "kill", description = "Kills presto server")
+    public static class Kill extends ServerCommand
+    {
+        @Override
+        public void run()
+        {
+
+        }
+    }
+
+    @Command(name = "cli", description = "Starts presto cli")
+    public static class CliCommand extends ServerCommand
+    {
+        @Override
+        public void run()
+        {
+
+        }
+    }
+
+    /*
+    @Command(name = "mesos", description = "Performs mesos operations")
+    public static class Mesos extends ServerCommand
+    {
+        @Override
+        public void run()
+        {
+
+        }
+    }
+    */
 
     /*
     @Command(name = "add", description = "Add file contents to the index")
@@ -203,7 +274,8 @@ public class PrestoWrapperMain
     public static void main(String[] args)
             throws Throwable
     {
-        new PrestoWrapperMain().run(args);
+        //new PrestoWrapperMain().run(args);
+        main2(args);
     }
 
     public void run(String[] args)
