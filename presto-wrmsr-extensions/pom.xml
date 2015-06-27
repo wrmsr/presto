@@ -35,6 +35,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derby</artifactId>
+            <version>10.11.1.1</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.turn</groupId>
             <artifactId>ttorrent</artifactId>
             <version>1.4</version>

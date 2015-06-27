@@ -971,7 +971,7 @@ Downloaded: https://oss.sonatype.org/content/repositories/snapshots/com/facebook
 ** switch to autoexec-ing void sql functions style for cfg setup
 defstruct cmd, connect cmd, ...
 
-
+http://codefutures.com/mesos-docker-tutorial-how-to-build-your-own-framework/
 
 <dependency>
     <groupId>org.apache.derby</groupId>
