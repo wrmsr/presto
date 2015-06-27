@@ -31,39 +31,128 @@ import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Map;
 
-// start stop run status mesos yarn cli restart kill
+import static com.google.common.base.Preconditions.checkState;
+
+// start stop run status mesos yarn cli restart kill jarsync
+
 public class PrestoWrapperMain
 {
+    public static class Process
+    {
+        private final File path;
+        private final int pidFile;
+
+        private boolean locked;
+
+        public Process(File path)
+        {
+            this.path = path;
+            path.getParentFile().mkdirs();
+            // pidFile = os.fdopen(os.open(path, O_RDWR | O_CREAT, 0600), 'r+')
+            refresh();
+        }
+
+        private void refresh()
+        {
+            try {
+                // flock(pidFile, LOCK_EX | LOCK_NB);
+                locked = true;
+            }
+            catch (Exception e) {
+                locked = false;
+            }
+        }
+
+        private void clearPid()
+        {
+            checkState(locked, "pid file not locked by us");
+            // pid_file.seek(0)
+            // pid_file.truncate()
+        }
+
+        private void writePid(int pid)
+        {
+            clearPid();
+            // pid_file.write(str(pid) + '\n')
+            // pid_file.flush()
+        }
+
+        private boolean alive()
+        {
+            /*
+            self.refresh()
+            if self.locked:
+                return False
+
+            pid = self.read_pid()
+            try:
+            os.kill(pid, 0)
+            return True
+            except OSError, e:
+            raise Exception('Signaling pid %s failed: %s' % (pid, e))
+            */
+        }
+
+        private int readPid()
+        {
+            /*
+            assert not self.locked, 'pid file is locked by us'
+            self.pid_file.seek(0)
+            line = self.pid_file.readline().strip()
+            if len(line) == 0:
+            raise Exception("Pid file '%s' is empty" % self.path)
+
+            try:
+            pid = int(line)
+                except ValueError:
+        raise Exception("Pid file '%s' contains garbage: %s" % (self.path, line))
+            if pid <= 0:
+            raise Exception("Pid file '%s' contains an invalid pid: %s" % (self.path, pid))
+            return pid
+            */
+        }
+    }
+
     public static void main2(String[] args)
     {
-        Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("git")
-                .withDescription("the stupid content tracker")
+        Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
-                .withCommands(Help.class, Add.class);
+                .withCommands(Help.class, Start.class);
 
-        builder.withGroup("remote")
+        builder.withGroup("start")
                 .withDescription("Manage set of tracked repositories")
-                .withDefaultCommand(RemoteShow.class)
-                .withCommands(RemoteShow.class, RemoteAdd.class);
+                .withDefaultCommand(Start.class);
 
         Cli<Runnable> gitParser = builder.build();
 
         gitParser.parse(args).run();
     }
 
-    public static class GitCommand implements Runnable
+    public static abstract class WrapperCommand implements Runnable
     {
         @Option(type = OptionType.GLOBAL, name = "-v", description = "Verbose mode")
         public boolean verbose;
+    }
 
+    public static abstract class DaemonCommand extends WrapperCommand
+    {
+        @Option(name = "-p", description = "Specify pidfile path")
+        public String pidFile;
+    }
+
+    @Command(name = "start", description = "Starts presto server")
+    public static class Start extends DaemonCommand
+    {
+        @Override
         public void run()
         {
-            System.out.println(getClass().getSimpleName());
+
         }
     }
 
+    /*
     @Command(name = "add", description = "Add file contents to the index")
-    public static class Add extends GitCommand
+    public static class Add extends WrapperCommand
     {
         @Arguments(description = "Patterns of files to be added")
         public List<String> patterns;
@@ -73,7 +162,7 @@ public class PrestoWrapperMain
     }
 
     @Command(name = "show", description = "Gives some information about the remote <name>")
-    public static class RemoteShow extends GitCommand
+    public static class RemoteShow extends WrapperCommand
     {
         @Option(name = "-n", description = "Do not query remote heads")
         public boolean noQuery;
@@ -83,7 +172,7 @@ public class PrestoWrapperMain
     }
 
     @Command(name = "add", description = "Adds a remote")
-    public static class RemoteAdd extends GitCommand
+    public static class RemoteAdd extends WrapperCommand
     {
         @Option(name = "-t", description = "Track only a specific branch")
         public String branch;
@@ -91,6 +180,7 @@ public class PrestoWrapperMain
         @Arguments(description = "Remote repository to add")
         public List<String> remote;
     }
+    */
 
     private PrestoWrapperMain()
     {
