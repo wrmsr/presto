@@ -26,6 +26,7 @@ import org.sonatype.aether.artifact.Artifact;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Map;
 
@@ -112,8 +113,10 @@ public class PrestoWrapperMain
             public void run()
             {
                 try {
+                    ClassLoader originalCl = Thread.currentThread().getContextClassLoader();
+                    Thread.currentThread().setContextClassLoader(new URLClassLoader(new URL[]{}, originalCl.getParent()));
                     ParentLastURLClassLoader cl = new ParentLastURLClassLoader(ImmutableList.of());
-                    Repositories.setupClassLoaderForModule(cl.getParent(),  cl.getChildClassLoader(), "presto-main");
+                    Repositories.setupClassLoaderForModule(cl.getParent(), cl.getChildClassLoader(), "presto-main");
                     Class prestoServerClass = cl.loadClass("com.facebook.presto.server.PrestoServer");
                     Method prestoServerMain = prestoServerClass.getMethod("main", String[].class);
                     prestoServerMain.invoke(null, new Object[]{args});
