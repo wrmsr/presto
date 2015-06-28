@@ -257,8 +257,7 @@ public class PluginManager
     private URLClassLoader buildClassLoaderFromEmbeddedModule(String plugin)
             throws Exception
     {
-        ClassLoader originalCl = Thread.currentThread().getContextClassLoader();
-        List<URL> urls = Repositories.resolveUrlsForModule(originalCl, plugin);
+        List<URL> urls = Repositories.resolveUrlsForModule(plugin);
         return createClassLoader(urls);
     }
 

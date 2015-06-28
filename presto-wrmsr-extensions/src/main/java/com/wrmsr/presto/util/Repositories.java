@@ -106,6 +106,13 @@ public class Repositories
     public static void setupClassLoaderForModule(ClassLoader classLoader, String moduleName) throws IOException
     {
         setupClassLoaderForModule(classLoader, classLoader, moduleName);
+    }
 
+    public static List<URL> resolveUrlsForModule(String moduleName) throws IOException
+    {
+        Thread[] threads = new Thread[1];
+        Thread.enumerate(threads);
+        ClassLoader classLoader = threads[0].getContextClassLoader();
+        return resolveUrlsForModule(classLoader, moduleName);
     }
 }
