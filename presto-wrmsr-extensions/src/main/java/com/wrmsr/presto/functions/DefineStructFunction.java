@@ -26,13 +26,16 @@ import static com.facebook.presto.spi.StandardErrorCode.INVALID_FUNCTION_ARGUMEN
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.util.Reflection.methodHandle;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
+import static com.wrmsr.presto.util.Lists.listOf;
 
 public class DefineStructFunction
             extends ParametricScalar
 {
     private static final Signature SIGNATURE = new Signature("define_struct", ImmutableList.of(comparableTypeParameter("varchar"), typeParameter("E")), "varchar", ImmutableList.of("varchar", "E"), true, false);
-    private static final MethodHandle METHOD_HANDLE = methodHandle(DefineStructFunction.class, "define_struct", DefineStructContext.class, Slice.class, Slice.class, Slice[].class);
+    private static final MethodHandle METHOD_HANDLE = methodHandle(DefineStructFunction.class, "defineStruct", DefineStructContext.class, Slice.class, Object[].class);
 
     private final TypeRegistrar typeRegistrar;
 
@@ -79,19 +82,37 @@ public class DefineStructFunction
     public FunctionInfo specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
         Type type = types.get("E");
-
+        checkArgument(type.getJavaType() == Slice.class);
+        checkArgument(arity % 2 == 1);
         ImmutableList.Builder<Class<?>> builder = ImmutableList.builder();
         builder.add(Slice.class);
         for (int i = 1; i < arity; i++) {
             builder.add(type.getJavaType());
         }
 
-        MethodHandle methodHandle = METHOD_HANDLE.bindTo(new DefineStructContext(typeRegistrar));
-        return new FunctionInfo(new Signature("define_struct", parseTypeSignature(StandardTypes.VARCHAR), IntStream.range(0, arity).boxed().map(i -> type.getTypeSignature()).collect(toImmutableList())), getDescription(), isHidden(), methodHandle, isDeterministic(), false, ImmutableList.of(true));
+        MethodHandle methodHandle = METHOD_HANDLE.bindTo(new DefineStructContext(typeRegistrar)).asVarargsCollector(Object[].class);
+        return new FunctionInfo(
+                new Signature(
+                        "define_struct",
+                        parseTypeSignature(StandardTypes.VARCHAR),
+                        listOf(arity, type.getTypeSignature())),
+                getDescription(),
+                isHidden(),
+                methodHandle,
+                isDeterministic(),
+                false,
+                listOf(arity, false));
     }
 
-    public static Slice defineStruct(DefineStructContext context, Slice name, Slice... strs)
+    public static Slice defineStruct(DefineStructContext context, Slice name, Object... strs)
     {
-        return null;
+        checkArgument(strs.length % 2 == 0);
+        List<TypeRegistrar.StructDefinition.Field> fields = newArrayList();
+        for (int i = 0; i < strs.length; i += 2) {
+            fields.add(new TypeRegistrar.StructDefinition.Field(((Slice) strs[i]).toString(), ((Slice) strs[i+1]).toString()));
+        }
+        TypeRegistrar.StructDefinition def = new TypeRegistrar.StructDefinition(name.toString(), fields);
+        context.typeRegistrar.registerStruct(context.typeRegistrar.buildRowType(def));
+        return name;
     }
 }
