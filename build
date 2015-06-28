@@ -1,2 +1,6 @@
 #!/usr/bin/env bash
-./mvnw clean package -Denforcer.skip=true -Dmaven.test.skip=true -Dmdep.skip=true -Dmdep.analyze.skip=true -DignoreNonCompile=true -Dlicense.skip=true -Dair.check.skip-all=true -e -Dair.check.skip-checkstyle=true -Dair.check.skip-license=true
+mvn clean package -Denforcer.skip=true -Dmaven.test.skip=true -Dmdep.skip=true -Dmdep.analyze.skip=true -DignoreNonCompile=true -Dlicense.skip=true -Dair.check.skip-all=true -e -Dair.check.skip-checkstyle=true -Dair.check.skip-license=true
+for m in presto-spi presto-base-jdbc presto-raptor ; do
+	mvn -pl "$m" install -DskipTests -Dair.check.skip-all
+done
+java -cp presto-wrmsr-wrapper/target/classes com.wrmsr.presto.wrapper.PrestoWrapperBuilder

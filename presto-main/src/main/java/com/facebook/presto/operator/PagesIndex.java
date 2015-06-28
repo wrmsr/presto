@@ -21,6 +21,7 @@ import com.facebook.presto.spi.block.SortOrder;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.gen.JoinCompiler;
 import com.facebook.presto.sql.gen.OrderingCompiler;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.airlift.log.Logger;
 import io.airlift.slice.Slice;
@@ -28,7 +29,14 @@ import io.airlift.units.DataSize;
 import it.unimi.dsi.fastutil.Swapper;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import org.iq80.leveldb.DB;
+import org.iq80.leveldb.Options;
+import org.iq80.leveldb.impl.Iq80DBFactory;
 
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,7 +61,7 @@ import static io.airlift.units.DataSize.Unit.BYTE;
  * </ul>
  */
 public class PagesIndex
-        implements Swapper
+        implements Swapper, AutoCloseable
 {
     private static final Logger log = Logger.get(PagesIndex.class);
 
@@ -72,6 +80,9 @@ public class PagesIndex
     private long pagesMemorySize;
     private long estimatedSize;
 
+    private final File dbPath;
+    private final DB db;
+
     public PagesIndex(List<Type> types, int expectedPositions)
     {
         this.types = ImmutableList.copyOf(checkNotNull(types, "types is null"));
@@ -82,6 +93,22 @@ public class PagesIndex
         for (int i = 0; i < channels.length; i++) {
             channels[i] = ObjectArrayList.wrap(new Block[1024], 0);
         }
+
+        try {
+            dbPath = Files.createTempDirectory(null).toFile();
+            dbPath.deleteOnExit();
+            db = Iq80DBFactory.factory.open(dbPath.getAbsoluteFile(), new Options().createIfMissing(true));
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    // FIXME CALL THIS SHIT LOL
+    @Override
+    public void close() throws IOException
+    {
+        db.close();
     }
 
     public List<Type> getTypes()
