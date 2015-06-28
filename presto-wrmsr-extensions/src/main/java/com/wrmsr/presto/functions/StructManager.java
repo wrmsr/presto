@@ -124,6 +124,7 @@ public class StructManager
         this.experimentalSyntaxEnabled = featuresConfig.isExperimentalSyntaxEnabled();
     }
 
+    /*
     public Analysis analyzeStatement(Statement statement, Session session)
     {
         QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
@@ -131,14 +132,12 @@ public class StructManager
         return analyzer.analyze(statement);
     }
 
-    /*
     @ScalarFunction("define_struct_for_query")
     @SqlType(StandardTypes.VARCHAR)
     public static Slice defineStructForQuery(@SqlType(StandardTypes.VARCHAR) Slice query)
     {
 
     }
-    */
 
     @Nullable
     public RowType buildRowType(String name, String sql)
@@ -200,6 +199,7 @@ public class StructManager
 
         return new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
     }
+    */
 
     public static class RowTypeConstructorCompiler
     {
