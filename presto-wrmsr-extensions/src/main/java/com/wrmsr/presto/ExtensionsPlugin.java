@@ -16,6 +16,7 @@ package com.wrmsr.presto;
 // import com.facebook.presto.metadata.FunctionFactory;
 
 import com.facebook.presto.connector.ConnectorManager;
+import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
@@ -36,9 +37,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.functions.ExtensionFunctionFactory;
-import com.wrmsr.presto.functions.PropertiesType;
-import com.wrmsr.presto.functions.StructManager;
+import com.wrmsr.presto.functions.*;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
@@ -236,16 +235,16 @@ public class ExtensionsPlugin
                     featuresConfig
             ).run();
 
-            ExtensionFunctionFactory functionFactory = new ExtensionFunctionFactory(
-                    typeRegistry,
-                    metadata.getFunctionRegistry(),
-                    structManager,
-                    sqlParser,
-                    planOptimizers,
-                    featuresConfig,
-                    metadata
-            );
-            metadata.addFunctions(functionFactory.listFunctions());
+            metadata.addFunctions(
+                new FunctionListBuilder(typeRegistry)
+                    .scalar(CompressionFunctions.class)
+                    .function(new SerializeFunction(metadata.getFunctionRegistry(), structManager))
+                    .function(new DefineStructFunction(structManager))
+                    .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata))
+                    .function(new PropertiesFunction(typeRegistry))
+                    //.function(new ConnectFunction())
+                    .function(Hash.HASH)
+                    .getFunctions());
         }
     }
 
