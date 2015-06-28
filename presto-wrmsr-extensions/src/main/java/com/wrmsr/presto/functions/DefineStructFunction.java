@@ -109,9 +109,9 @@ public class DefineStructFunction
         checkArgument(strs.length % 2 == 0);
         List<TypeRegistrar.StructDefinition.Field> fields = newArrayList();
         for (int i = 0; i < strs.length; i += 2) {
-            fields.add(new TypeRegistrar.StructDefinition.Field(((Slice) strs[i]).toString(), ((Slice) strs[i+1]).toString()));
+            fields.add(new TypeRegistrar.StructDefinition.Field(((Slice) strs[i]).toStringUtf8(), ((Slice) strs[i+1]).toStringUtf8()));
         }
-        TypeRegistrar.StructDefinition def = new TypeRegistrar.StructDefinition(name.toString(), fields);
+        TypeRegistrar.StructDefinition def = new TypeRegistrar.StructDefinition(name.toStringUtf8(), fields);
         context.typeRegistrar.registerStruct(context.typeRegistrar.buildRowType(def));
         return name;
     }
