@@ -151,7 +151,6 @@ public class DefineStructForQueryFunction
 
     }
 
-
     public static Slice defineStructForQuery(DefineStructForQueryFunction self, Slice name, Object... strs)
     {
         checkArgument(strs.length % 2 == 0);
