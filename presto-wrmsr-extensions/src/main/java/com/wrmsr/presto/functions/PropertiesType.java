@@ -3,6 +3,8 @@ package com.wrmsr.presto.functions;
 import com.facebook.presto.spi.type.VarcharType;
 import com.facebook.presto.type.MapType;
 
+import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
+
 public class PropertiesType
     extends MapType
 {
@@ -10,6 +12,6 @@ public class PropertiesType
 
     public PropertiesType()
     {
-        super(VarcharType.VARCHAR, VarcharType.VARCHAR);
+        super(parameterizedTypeName("properties"), VarcharType.VARCHAR, VarcharType.VARCHAR);
     }
 }

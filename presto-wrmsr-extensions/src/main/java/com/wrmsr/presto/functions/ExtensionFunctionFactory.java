@@ -54,7 +54,7 @@ public class ExtensionFunctionFactory
                 .function(new SerializeFunction(functionRegistry, structManager))
                 .function(new DefineStructFunction(structManager))
                 .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata))
-                //.function(new PropertiesFunction(typeManager))
+                .function(new PropertiesFunction(typeManager))
                 //.function(new ConnectFunction())
                 .function(Hash.HASH)
                 .getFunctions();

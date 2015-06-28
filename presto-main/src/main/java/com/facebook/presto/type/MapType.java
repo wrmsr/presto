@@ -20,6 +20,7 @@ import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.type.AbstractVariableWidthType;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeSignature;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 
@@ -45,7 +46,12 @@ public class MapType
 
     public MapType(Type keyType, Type valueType)
     {
-        super(parameterizedTypeName("map", keyType.getTypeSignature(), valueType.getTypeSignature()), Slice.class);
+        this(parameterizedTypeName("map", keyType.getTypeSignature(), valueType.getTypeSignature()), keyType, valueType);
+    }
+
+    public MapType(TypeSignature typeSignature, Type keyType, Type valueType)
+    {
+        super(typeSignature, Slice.class);
         checkArgument(keyType.isComparable(), "key type must be comparable");
         this.keyType = keyType;
         this.valueType = valueType;
