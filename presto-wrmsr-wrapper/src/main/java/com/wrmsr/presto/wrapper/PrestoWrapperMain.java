@@ -332,8 +332,8 @@ public class PrestoWrapperMain
     public static void main(String[] args)
             throws Throwable
     {
-        //new PrestoWrapperMain().run(args);
-        main2(args);
+        new PrestoWrapperMain().run(args);
+        // main2(args);
     }
 
     public void run(String[] args)
