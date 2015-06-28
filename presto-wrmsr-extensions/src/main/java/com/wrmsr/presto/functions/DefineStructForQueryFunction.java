@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
+import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -40,8 +41,8 @@ public class DefineStructForQueryFunction
         extends ParametricScalar
 {
     private static final Signature SIGNATURE = new Signature(
-            "connect", ImmutableList.of(comparableTypeParameter("varchar"), comparableTypeParameter("varchar")), StandardTypes.VARCHAR, ImmutableList.of(), false, false);
-    private static final MethodHandle METHOD_HANDLE = methodHandle(DefineStructForQueryFunction.class, "define_struct_for_query", DefineStructForQueryFunction.class, ConnectorSession.class, Slice.class, Slice.class);
+            "define_struct_for_query", ImmutableList.of(comparableTypeParameter("varchar")), StandardTypes.VARCHAR, ImmutableList.of(StandardTypes.VARCHAR, StandardTypes.VARCHAR), false, false);
+    private static final MethodHandle METHOD_HANDLE = methodHandle(DefineStructForQueryFunction.class, "defineStructForQuery", DefineStructForQueryFunction.class, ConnectorSession.class, Slice.class, Slice.class);
 
     private final SqlParser sqlParser;
     private final List<PlanOptimizer> planOptimizers;
@@ -154,7 +155,20 @@ public class DefineStructForQueryFunction
     @Override
     public FunctionInfo specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
-        return null;
+        checkArgument(arity == 2);
+        checkArgument(types.size() == 1);
+
+        return new FunctionInfo(
+                new Signature(
+                        "define_struct_for_query",
+                        StandardTypes.VARCHAR,
+                        ImmutableList.of(StandardTypes.VARCHAR, StandardTypes.VARCHAR)),
+                getDescription(),
+                isHidden(),
+                METHOD_HANDLE.bindTo(this),
+                isDeterministic(),
+                true,
+                ImmutableList.of(false, false));
     }
 
     public static Slice defineStructForQuery(DefineStructForQueryFunction self, ConnectorSession session, Slice name, Slice query)
