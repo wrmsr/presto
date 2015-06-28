@@ -41,6 +41,7 @@ public class ExtensionFunctionFactory
         return new FunctionListBuilder(typeManager)
                 .scalar(CompressionFunctions.class)
                 .function(new SerializeFunction(functionRegistry, typeRegistrar))
+                .function(new DefineStructFunction(typeRegistrar))
                 .function(Hash.HASH)
                 .getFunctions();
     }

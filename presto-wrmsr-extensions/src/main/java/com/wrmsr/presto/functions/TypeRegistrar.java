@@ -135,12 +135,14 @@ public class TypeRegistrar
         return analyzer.analyze(statement);
     }
 
+    /*
     @ScalarFunction("define_struct_for_query")
     @SqlType(StandardTypes.VARCHAR)
     public static Slice defineStructForQuery(@SqlType(StandardTypes.VARCHAR) Slice query)
     {
 
     }
+    */
 
     @Nullable
     public RowType buildRowType(String name, String sql)
