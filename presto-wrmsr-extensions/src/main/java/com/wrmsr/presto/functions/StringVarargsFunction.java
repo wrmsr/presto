@@ -30,7 +30,6 @@ public abstract class StringVarargsFunction
     private final String functionReturnType;
     private final String methodName;
     private final List<Class<?>> fixedMethodParametersClasses;
-    private final Class<?> methodReturnClass;
 
     private final Signature signature;
     private final MethodHandle methodHandle;
@@ -42,8 +41,7 @@ public abstract class StringVarargsFunction
             int varargGroupSize,
             String functionReturnType,
             String methodName,
-            List<Class<?>> fixedMethodParametersClasses,
-            Class<?> methodReturnClass)
+            List<Class<?>> fixedMethodParametersClasses)
     {
         this.functionName = functionName;
         this.description = description;
@@ -52,7 +50,6 @@ public abstract class StringVarargsFunction
         this.functionReturnType = functionReturnType;
         this.methodName = methodName;
         this.fixedMethodParametersClasses = fixedMethodParametersClasses;
-        this.methodReturnClass = methodReturnClass;
 
         List<TypeParameter> typeParameters = newArrayList();
         List<String> argumentTypes = newArrayList();
@@ -106,7 +103,7 @@ public abstract class StringVarargsFunction
     {
         Type type = types.get("E");
         checkArgument(type.getJavaType() == Slice.class);
-        checkArgument(arity % varargGroupSize == fixedMethodParametersClasses.size());
+        checkArgument(arity % varargGroupSize == fixedParameterTypes.size());
         ImmutableList.Builder<Class<?>> builder = ImmutableList.builder();
         builder.add(Slice.class);
         for (int i = 1; i < arity; i++) {
