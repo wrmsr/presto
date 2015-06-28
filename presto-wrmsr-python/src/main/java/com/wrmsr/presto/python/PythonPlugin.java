@@ -14,7 +14,11 @@
 package com.wrmsr.presto.python;
 
 import com.facebook.presto.spi.Plugin;
+import com.facebook.presto.spi.ScriptEngineProvider;
+import com.google.common.collect.ImmutableList;
+import org.python.jsr223.PyScriptEngineFactory;
 
+import javax.script.ScriptEngine;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +33,27 @@ public class PythonPlugin
     @Override
     public <T> List<T> getServices(Class<T> type)
     {
-        return null;
+        if (type == ScriptEngineProvider.class) {
+            return ImmutableList.<T>of(
+                    type.cast(
+                            new ScriptEngineProvider()
+                            {
+                                @Override
+                                public String getName()
+                                {
+                                    return "python";
+                                }
+
+                                @Override
+                                public ScriptEngine getScriptEngine()
+                                {
+                                    PyScriptEngineFactory factory = new PyScriptEngineFactory();
+                                    return factory.getScriptEngine();
+                                }
+                            }));
+        }
+        else {
+            return ImmutableList.of();
+        }
     }
 }

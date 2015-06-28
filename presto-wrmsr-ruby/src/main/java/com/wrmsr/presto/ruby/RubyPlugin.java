@@ -14,7 +14,13 @@
 package com.wrmsr.presto.ruby;
 
 import com.facebook.presto.spi.Plugin;
+import com.facebook.presto.spi.ScriptEngineProvider;
+import com.google.common.collect.ImmutableList;
+import org.jruby.embed.jsr223.JRubyEngineFactory;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +34,26 @@ public class RubyPlugin implements Plugin
     @Override
     public <T> List<T> getServices(Class<T> type)
     {
-        return null;
+        if (type == ScriptEngineProvider.class) {
+            return ImmutableList.<T>of(
+                    type.cast(
+            new ScriptEngineProvider() {
+                @Override
+                public String getName()
+                {
+                    return "ruby";
+                }
+
+                @Override
+                public ScriptEngine getScriptEngine()
+                {
+                    JRubyEngineFactory factory = new JRubyEngineFactory();
+                    return factory.getScriptEngine();
+                }
+            }));
+        }
+        else {
+            return ImmutableList.of();
+        }
     }
 }
