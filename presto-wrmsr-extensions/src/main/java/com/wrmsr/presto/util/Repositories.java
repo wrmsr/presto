@@ -66,15 +66,20 @@ public class Repositories
         return repositoryPath;
     }
 
-    public static File getRepositoryPath() throws IOException
+    public static File getOrMakeRepositoryPath() throws IOException
     {
         return getOrMakePropertyPath(REPOSITORY_PATH_PROPERTY_KEY);
+    }
+
+    public static String getRepositoryPath() throws IOException
+    {
+        return System.getProperty(REPOSITORY_PATH_PROPERTY_KEY);
     }
 
     public static List<URL> resolveUrlsForModule(ClassLoader sourceClassLoader, String moduleName) throws IOException
     {
         List<URL> urls = new ArrayList<>();
-        File repositoryPath = getRepositoryPath();
+        File repositoryPath = getOrMakeRepositoryPath();
 
         try (Scanner scanner = new Scanner(sourceClassLoader.getResourceAsStream("classpaths/" + moduleName))) {
             while (scanner.hasNextLine()) {

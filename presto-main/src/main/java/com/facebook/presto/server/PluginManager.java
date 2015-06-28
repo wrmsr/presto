@@ -25,6 +25,7 @@ import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.type.ParametricType;
 import com.facebook.presto.type.TypeRegistry;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -257,6 +258,9 @@ public class PluginManager
     private URLClassLoader buildClassLoaderFromEmbeddedModule(String plugin)
             throws Exception
     {
+        if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+            return buildClassLoaderFromPom(new File("../" + plugin + "/pom.xml"));
+        }
         List<URL> urls = Repositories.resolveUrlsForModule(plugin);
         return createClassLoader(urls);
     }
