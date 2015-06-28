@@ -173,20 +173,9 @@ public class DefineStructForQueryFunction
 
     public static Slice defineStructForQuery(DefineStructForQueryFunction self, ConnectorSession session, Slice name, Slice query)
     {
-        return null;
-    }
-
-    /*
-    public static Slice defineStructForQuery(DefineStructForQueryFunction self, Slice name, Object... strs)
-    {
-        checkArgument(strs.length % 2 == 0);
-        List<StructManager.StructDefinition.Field> fields = newArrayList();
-        for (int i = 0; i < strs.length; i += 2) {
-            fields.add(new StructManager.StructDefinition.Field(((Slice) strs[i]).toStringUtf8(), ((Slice) strs[i + 1]).toStringUtf8()));
-        }
-        StructManager.StructDefinition def = new StructManager.StructDefinition(name.toStringUtf8(), fields);
-        context.structManager.registerStruct(context.structManager.buildRowType(def));
+        // FIXME ConnectorSession
+        RowType rowType = self.buildRowType(name.toStringUtf8(), query.toStringUtf8());
+        self.structManager.registerStruct(rowType);
         return name;
     }
-    */
 }
