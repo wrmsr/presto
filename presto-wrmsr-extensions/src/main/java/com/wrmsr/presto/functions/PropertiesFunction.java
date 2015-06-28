@@ -47,6 +47,7 @@ public class PropertiesFunction
 
     public static Slice newProperties(Context context, Object... strs)
     {
+        /*
         checkArgument(strs.length % 2 == 0);
         List<StructManager.StructDefinition.Field> fields = newArrayList();
         for (int i = 0; i < strs.length; i += 2) {
@@ -55,5 +56,7 @@ public class PropertiesFunction
         StructManager.StructDefinition def = new StructManager.StructDefinition(name.toStringUtf8(), fields);
         context.structManager.registerStruct(context.structManager.buildRowType(def));
         return name;
+        */
+        return null;
     }
 }

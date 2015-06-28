@@ -1,11 +1,13 @@
 package com.wrmsr.presto.functions;
 
 import com.facebook.presto.Session;
-import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.metadata.*;
 import com.facebook.presto.operator.scalar.ScalarFunction;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.sql.analyzer.*;
 import com.facebook.presto.sql.parser.ParsingException;
 import com.facebook.presto.sql.parser.SqlParser;
@@ -20,9 +22,12 @@ import javax.annotation.Nullable;
 import java.lang.invoke.MethodHandle;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
+import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
@@ -32,8 +37,12 @@ import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static java.util.Locale.ENGLISH;
 
 public class DefineStructForQueryFunction
-        extends StringVarargsFunction
+        extends ParametricScalar
 {
+    private static final Signature SIGNATURE = new Signature(
+            "connect", ImmutableList.of(comparableTypeParameter("varchar"), comparableTypeParameter("varchar")), StandardTypes.VARCHAR, ImmutableList.of(), false, false);
+    private static final MethodHandle METHOD_HANDLE = methodHandle(DefineStructForQueryFunction.class, "define_struct_for_query", DefineStructForQueryFunction.class, ConnectorSession.class, Slice.class, Slice.class);
+
     private final SqlParser sqlParser;
     private final List<PlanOptimizer> planOptimizers;
     private final boolean experimentalSyntaxEnabled;
@@ -42,15 +51,6 @@ public class DefineStructForQueryFunction
 
     public DefineStructForQueryFunction(StructManager structManager, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig, Metadata metadata)
     {
-        super(
-                "define_struct",
-                "define a new struct type",
-                ImmutableList.of("varchar"),
-                2,
-                "varchar",
-                "defineStruct",
-                ImmutableList.of(DefineStructContext.class, Slice.class)
-        );
         this.structManager = structManager;
         this.sqlParser = checkNotNull(sqlParser);
         this.planOptimizers = checkNotNull(planOptimizers);
@@ -64,6 +64,30 @@ public class DefineStructForQueryFunction
         QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
         Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
         return analyzer.analyze(statement);
+    }
+
+    @Override
+    public Signature getSignature()
+    {
+        return SIGNATURE;
+    }
+
+    @Override
+    public boolean isHidden()
+    {
+        return false;
+    }
+
+    @Override
+    public boolean isDeterministic()
+    {
+        return false;
+    }
+
+    @Override
+    public String getDescription()
+    {
+        return "defines a new struct type for the results of a given query";
     }
 
     @Nullable
@@ -127,30 +151,18 @@ public class DefineStructForQueryFunction
         return new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
     }
 
-
-    private static class DefineStructContext
-    {
-        private final StructManager structManager;
-
-        public DefineStructContext(StructManager structManager)
-        {
-            this.structManager = structManager;
-        }
-    }
-
     @Override
-    protected MethodHandle bindMethodHandle()
+    public FunctionInfo specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
-        return super.bindMethodHandle().bindTo(new DefineStructContext(structManager));
+        return null;
     }
 
-    @ScalarFunction("define_struct_for_query")
-    @SqlType(StandardTypes.VARCHAR)
-    public static Slice defineStructForQuery(@SqlType(StandardTypes.VARCHAR) Slice query)
+    public static Slice defineStructForQuery(DefineStructForQueryFunction self, ConnectorSession session, Slice name, Slice query)
     {
-
+        return null;
     }
 
+    /*
     public static Slice defineStructForQuery(DefineStructForQueryFunction self, Slice name, Object... strs)
     {
         checkArgument(strs.length % 2 == 0);
@@ -162,4 +174,5 @@ public class DefineStructForQueryFunction
         context.structManager.registerStruct(context.structManager.buildRowType(def));
         return name;
     }
+    */
 }
