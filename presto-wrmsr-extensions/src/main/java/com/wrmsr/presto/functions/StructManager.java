@@ -91,8 +91,6 @@ import static com.facebook.presto.byteCode.Access.STATIC;
 import static com.facebook.presto.byteCode.Access.a;
 import static com.facebook.presto.byteCode.Parameter.arg;
 import static com.facebook.presto.byteCode.ParameterizedType.type;
-import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
-import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
@@ -100,105 +98,21 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
-import static java.util.Locale.ENGLISH;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 
 public class StructManager
 {
-    private final ConnectorManager connectorManager;
     private final TypeRegistry typeRegistry;
     private final Metadata metadata;
-    private final SqlParser sqlParser;
-    private final List<PlanOptimizer> planOptimizers;
-    private final boolean experimentalSyntaxEnabled;
 
-    public StructManager(ConnectorManager connectorManager, TypeRegistry typeRegistry, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
+    public StructManager(TypeRegistry typeRegistry, Metadata metadata)
     {
-        this.connectorManager = checkNotNull(connectorManager);
         this.typeRegistry = typeRegistry;
         this.metadata = checkNotNull(metadata);
-        this.sqlParser = checkNotNull(sqlParser);
-        this.planOptimizers = checkNotNull(planOptimizers);
-        checkNotNull(featuresConfig, "featuresConfig is null");
-        this.experimentalSyntaxEnabled = featuresConfig.isExperimentalSyntaxEnabled();
     }
 
     /*
-    public Analysis analyzeStatement(Statement statement, Session session)
-    {
-        QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
-        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
-        return analyzer.analyze(statement);
-    }
-
-    @ScalarFunction("define_struct_for_query")
-    @SqlType(StandardTypes.VARCHAR)
-    public static Slice defineStructForQuery(@SqlType(StandardTypes.VARCHAR) Slice query)
-    {
-
-    }
-
-    @Nullable
-    public RowType buildRowType(String name, String sql)
-    {
-        Session.SessionBuilder builder = Session.builder()
-                .setUser("system")
-                .setSource("system")
-                .setCatalog("default")
-                .setTimeZoneKey(UTC_KEY)
-                .setLocale(ENGLISH)
-                .setSchema("default");
-        Session session = builder.build();
-        return buildRowType(session, name, sql);
-    }
-
-    @Nullable
-    public RowType buildRowType(Session session, String name, String sql)
-    {
-        checkArgument(name.toLowerCase().equals(name));
-
-        // verify round-trip
-        Statement statement;
-        try {
-            statement = sqlParser.createStatement(sql);
-        }
-        catch (ParsingException e) {
-            throw new PrestoException(INTERNAL_ERROR, "Formatted query does not parse: " + sql);
-        }
-
-        Analysis analysis = analyzeStatement(statement, session);
-        TupleDescriptor tupleDescriptor;
-
-        try {
-            tupleDescriptor = analysis.getOutputDescriptor();
-        }
-        catch (SemanticException e) {
-            if (e.getCode() == SemanticErrorCode.MISSING_TABLE) {
-                return null;
-            }
-            else {
-                throw e;
-            }
-        }
-
-        Collection<Field> visibleFields = tupleDescriptor.getVisibleFields();
-        List<Type> fieldTypes = visibleFields.stream().map(f -> f.getType()).collect(toImmutableList());
-        List<Optional<String>> fieldNameOptions = visibleFields.stream().map(f -> f.getName()).collect(toImmutableList());
-        long numNamed = fieldNameOptions.stream().filter(o -> o.isPresent()).count();
-        Optional<List<String>> fieldNames;
-        if (numNamed == (long) fieldNameOptions.size()) {
-            fieldNames = Optional.of(fieldNameOptions.stream().map(o -> o.get()).collect(toImmutableList()));
-        }
-        else if (numNamed == 0) {
-            fieldNames = Optional.empty();
-        }
-        else {
-            throw new RuntimeException(String.format("All fields must be named or no fields must be named for type: %s -> %s", name, sql));
-        }
-
-        return new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
-    }
     */
 
     public static class RowTypeConstructorCompiler
