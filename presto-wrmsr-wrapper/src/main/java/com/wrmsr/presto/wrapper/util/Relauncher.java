@@ -153,6 +153,14 @@ http://hg.openjdk.java.net/jdk8/jdk8/hotspot/file/tip/src/share/vm/runtime/argum
 
 -Djava.awt.headless=true
 ulimits
+
+-server
+-Xmx16G
+-XX:+UseConcMarkSweepGC
+-XX:+ExplicitGCInvokesConcurrent
+-XX:+AggressiveOpts
+-XX:+HeapDumpOnOutOfMemoryError
+-XX:OnOutOfMemoryError=kill -9 %p
 */
 
 import jnr.posix.POSIX;

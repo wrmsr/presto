@@ -39,6 +39,64 @@ import static com.google.common.base.Preconditions.checkState;
 
 // mesos yarn cli jarsync
 
+/*
+# sample nodeId to provide consistency across test runs
+node.id=ffffffff-ffff-ffff-ffff-ffffffffffff
+node.environment=test
+http-server.http.port=8080
+
+discovery-server.enabled=true
+discovery.uri=http://localhost:8080
+
+exchange.http-client.max-connections=1000
+exchange.http-client.max-connections-per-server=1000
+exchange.http-client.connect-timeout=1m
+exchange.http-client.read-timeout=1m
+
+scheduler.http-client.max-connections=1000
+scheduler.http-client.max-connections-per-server=1000
+scheduler.http-client.connect-timeout=1m
+scheduler.http-client.read-timeout=1m
+
+query.client.timeout=5m
+query.max-age=30m
+
+plugin.bundles=../presto-wrmsr-extensions/pom.xml
+
+presto.version=testversion
+experimental-syntax-enabled=true
+distributed-joins-enabled=true
+
+node-scheduler.multiple-tasks-per-node-enabled=true
+
+com.facebook.presto=INFO
+com.sun.jersey.guice.spi.container.GuiceComponentProviderFactory=WARN
+com.ning.http.client=WARN
+com.facebook.presto.server.PluginManager=DEBUG
+
+coordinator=true
+node-scheduler.include-coordinator=false
+http-server.http.port=8080
+task.max-memory=1GB
+discovery-server.enabled=true
+discovery.uri=http://example.net:8080
+
+coordinator=false
+http-server.http.port=8080
+task.max-memory=1GB
+discovery.uri=http://example.net:8080
+
+coordinator=true
+node-scheduler.include-coordinator=true
+http-server.http.port=8080
+task.max-memory=1GB
+discovery-server.enabled=true
+discovery.uri=http://example.net:8080
+
+plugin.dir=/dev/null
+plugin.bundles=presto-wrmsr-extensions
+*/
+
 public class PrestoWrapperMain
 {
     public static class Process

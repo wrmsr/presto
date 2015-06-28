@@ -11,6 +11,8 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class Repositories
@@ -64,8 +66,9 @@ public class Repositories
         return repositoryPath;
     }
 
-    public static void setupClassLoaderForModule(ClassLoader sourceClassLoader,ClassLoader targetClassLoader, String moduleName) throws IOException
+    public static List<URL> resolveUrlsForModule(ClassLoader sourceClassLoader, String moduleName) throws IOException
     {
+        List<URL> urls = new ArrayList<>();
         File repositoryPath = getRepositoryPath();
 
         try (Scanner scanner = new Scanner(sourceClassLoader.getResourceAsStream("classpaths/" + moduleName))) {
@@ -81,8 +84,17 @@ public class Repositories
                         bo.write(buf, 0, anz);
                     }
                 }
-                addClasspathUrl(targetClassLoader, depFile.toURL());
+                urls.add(depFile.toURL());
             }
+        }
+
+        return urls;
+    }
+
+    public static void setupClassLoaderForModule(ClassLoader sourceClassLoader,ClassLoader targetClassLoader, String moduleName) throws IOException
+    {
+        for (URL url : resolveUrlsForModule(sourceClassLoader, moduleName)) {
+            addClasspathUrl(targetClassLoader, url);
         }
     }
 

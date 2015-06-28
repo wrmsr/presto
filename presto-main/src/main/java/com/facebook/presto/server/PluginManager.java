@@ -31,6 +31,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Ordering;
 import com.google.inject.Injector;
+import com.wrmsr.presto.util.Repositories;
 import io.airlift.configuration.ConfigurationFactory;
 import io.airlift.http.server.HttpServerInfo;
 import io.airlift.log.Logger;
@@ -240,6 +241,9 @@ public class PluginManager
     private URLClassLoader buildClassLoader(String plugin)
             throws Exception
     {
+        if (plugin.startsWith("|")) {
+            return buildClassLoaderFromEmbeddedModule(plugin.substring(1));
+        }
         File file = new File(plugin);
         if (file.isFile() && (file.getName().equals("pom.xml") || file.getName().endsWith(".pom"))) {
             return buildClassLoaderFromPom(file);
@@ -248,6 +252,14 @@ public class PluginManager
             return buildClassLoaderFromDirectory(file);
         }
         return buildClassLoaderFromCoordinates(plugin);
+    }
+
+    private URLClassLoader buildClassLoaderFromEmbeddedModule(String plugin)
+            throws Exception
+    {
+        ClassLoader originalCl = Thread.currentThread().getContextClassLoader();
+        List<URL> urls = Repositories.resolveUrlsForModule(originalCl, plugin);
+        return createClassLoader(urls);
     }
 
     private URLClassLoader buildClassLoaderFromPom(File pomFile)
