@@ -197,12 +197,8 @@ public class ExtensionsPlugin
     {
         if (event instanceof ServerEvent.ConnectorsLoaded) {
             StructManager structManager = new StructManager(
-                    connectorManager,
                     typeRegistry,
-                    metadata,
-                    sqlParser,
-                    planOptimizers,
-                    featuresConfig
+                    metadata
             );
 
             byte[] cfgBytes;

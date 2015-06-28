@@ -112,9 +112,6 @@ public class StructManager
         this.metadata = checkNotNull(metadata);
     }
 
-    /*
-    */
-
     public static class RowTypeConstructorCompiler
     {
         protected List<Parameter> createParameters(List<RowType.RowField> fieldTypes)
