@@ -125,8 +125,7 @@ https://github.com/wrmsr/presto-streaming omfg
 
 
 bitwise operators
-
-hierarchical config - can just fucking redundantly serialize to fit into map<str,str>'s
+hash algs
 
 
 
