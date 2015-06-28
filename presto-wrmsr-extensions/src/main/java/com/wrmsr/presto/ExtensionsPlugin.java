@@ -16,7 +16,6 @@ package com.wrmsr.presto;
 // import com.facebook.presto.metadata.FunctionFactory;
 
 import com.facebook.presto.connector.ConnectorManager;
-import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
@@ -36,8 +35,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.functions.ExtensionFunctionFactory;
-import com.wrmsr.presto.functions.Hash;
-import com.wrmsr.presto.functions.TypeRegistrar;
+import com.wrmsr.presto.functions.StructManager;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
@@ -154,10 +152,10 @@ public class ExtensionsPlugin
         public final Map<String, String> log = ImmutableMap.of();
         public final List<String> plugins = ImmutableList.of();
         public final Map<String, Object> connectors = ImmutableMap.of();
-        public final List<TypeRegistrar.StructDefinition> structs = ImmutableList.of();
+        public final List<StructManager.StructDefinition> structs = ImmutableList.of();
     }
 
-    public void installConfig(FileConfig fileConfig, TypeRegistrar typeRegistrar)
+    public void installConfig(FileConfig fileConfig, StructManager structManager)
     {
         for (String plugin : fileConfig.plugins) {
             try {
@@ -188,9 +186,9 @@ public class ExtensionsPlugin
             }
         }
 
-        for (TypeRegistrar.StructDefinition structDefinition : fileConfig.structs) {
-            RowType rowType = typeRegistrar.buildRowType(structDefinition);
-            typeRegistrar.registerStruct(rowType);
+        for (StructManager.StructDefinition structDefinition : fileConfig.structs) {
+            RowType rowType = structManager.buildRowType(structDefinition);
+            structManager.registerStruct(rowType);
         }
     }
 
@@ -198,7 +196,7 @@ public class ExtensionsPlugin
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.ConnectorsLoaded) {
-            TypeRegistrar typeRegistrar = new TypeRegistrar(
+            StructManager structManager = new StructManager(
                     connectorManager,
                     typeRegistry,
                     metadata,
@@ -227,7 +225,7 @@ public class ExtensionsPlugin
                     throw Throwables.propagate(e);
                 }
 
-                installConfig(fileConfig, typeRegistrar);
+                installConfig(fileConfig, structManager);
             }
 
             new HardcodedMetadataPopulator(
@@ -239,7 +237,7 @@ public class ExtensionsPlugin
                     featuresConfig
             ).run();
 
-            ExtensionFunctionFactory functionFactory = new ExtensionFunctionFactory(typeRegistry, metadata.getFunctionRegistry(), typeRegistrar);
+            ExtensionFunctionFactory functionFactory = new ExtensionFunctionFactory(typeRegistry, metadata.getFunctionRegistry(), structManager);
             metadata.addFunctions(functionFactory.listFunctions());
         }
     }

@@ -14,36 +14,24 @@
 package com.wrmsr.presto;
 
 import com.facebook.presto.Session;
-import com.facebook.presto.byteCode.*;
-import com.facebook.presto.byteCode.instruction.LabelNode;
-import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.spi.block.*;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.*;
-import com.facebook.presto.sql.gen.CallSiteBinder;
-import com.facebook.presto.sql.gen.CompilerUtils;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.type.RowType;
-import com.facebook.presto.type.SqlType;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.ExtensionsPlugin;
-import com.wrmsr.presto.functions.TypeRegistrar;
-import com.wrmsr.presto.util.Box;
-import io.airlift.slice.BasicSliceOutput;
+import com.wrmsr.presto.functions.StructManager;
 import io.airlift.slice.Slice;
-import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
-import java.util.List;
 import java.util.Optional;
 
-import static com.facebook.presto.byteCode.Access.*;
 import static com.facebook.presto.byteCode.Parameter.arg;
 import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
@@ -124,7 +112,7 @@ public class TestExtensionsPlugin
         blockBuilder.writeBytes(d, 0, d.length());
         blockBuilder.closeEntry();
 
-        return TypeRegistrar.RowTypeConstructorCompiler.blockBuilderToSlice(blockBuilder);
+        return StructManager.RowTypeConstructorCompiler.blockBuilderToSlice(blockBuilder);
     }
 
     @Test
@@ -135,7 +123,7 @@ public class TestExtensionsPlugin
         System.out.println(block);
 
         RowType rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
-        Class<?> cls = new TypeRegistrar.RowTypeConstructorCompiler().run(rt);
+        Class<?> cls = new StructManager.RowTypeConstructorCompiler().run(rt);
 
         try {
             Method m = cls.getMethod(rt.getTypeSignature().getBase(), long.class, Slice.class, long.class, Slice.class, boolean.class, double.class);
@@ -147,7 +135,7 @@ public class TestExtensionsPlugin
         }
 
         rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
-        cls = new TypeRegistrar.NullableRowTypeConstructorCompiler().run(rt);
+        cls = new StructManager.NullableRowTypeConstructorCompiler().run(rt);
 
         try {
             Method m = cls.getMethod(rt.getTypeSignature().getBase(), Long.class, Slice.class, Long.class, Slice.class, Boolean.class, Double.class);
@@ -183,7 +171,7 @@ public class TestExtensionsPlugin
         Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
         */
 
-        // Class<?> cls = TypeRegistrar.generateBox(rowType.getTypeSignature().getBase());
+        // Class<?> cls = StructManager.generateBox(rowType.getTypeSignature().getBase());
         // cls.getDeclaredConstructor(Slice.class).newInstance(new Object[]{null});
         // System.out.println(cls);
     }

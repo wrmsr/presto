@@ -4,31 +4,23 @@ import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.ParametricScalar;
 import com.facebook.presto.metadata.Signature;
-import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
-import com.facebook.presto.spi.type.TypeSignature;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 
 import java.lang.invoke.MethodHandle;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
 
 import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
 import static com.facebook.presto.metadata.Signature.internalFunction;
 import static com.facebook.presto.metadata.Signature.typeParameter;
-import static com.facebook.presto.spi.StandardErrorCode.INVALID_FUNCTION_ARGUMENT;
-import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.Lists.listOf;
 
 public class DefineStructFunction
@@ -37,20 +29,20 @@ public class DefineStructFunction
     private static final Signature SIGNATURE = new Signature("define_struct", ImmutableList.of(comparableTypeParameter("varchar"), typeParameter("E")), "varchar", ImmutableList.of("varchar", "E"), true, false);
     private static final MethodHandle METHOD_HANDLE = methodHandle(DefineStructFunction.class, "defineStruct", DefineStructContext.class, Slice.class, Object[].class);
 
-    private final TypeRegistrar typeRegistrar;
+    private final StructManager structManager;
 
-    public DefineStructFunction(TypeRegistrar typeRegistrar)
+    public DefineStructFunction(StructManager structManager)
     {
-        this.typeRegistrar = typeRegistrar;
+        this.structManager = structManager;
     }
 
     private static class DefineStructContext
     {
-        private final TypeRegistrar typeRegistrar;
+        private final StructManager structManager;
 
-        public DefineStructContext(TypeRegistrar typeRegistrar)
+        public DefineStructContext(StructManager structManager)
         {
-            this.typeRegistrar = typeRegistrar;
+            this.structManager = structManager;
         }
     }
 
@@ -90,7 +82,7 @@ public class DefineStructFunction
             builder.add(type.getJavaType());
         }
 
-        MethodHandle methodHandle = METHOD_HANDLE.bindTo(new DefineStructContext(typeRegistrar)).asVarargsCollector(Object[].class);
+        MethodHandle methodHandle = METHOD_HANDLE.bindTo(new DefineStructContext(structManager)).asVarargsCollector(Object[].class);
         return new FunctionInfo(
                 new Signature(
                         "define_struct",
@@ -107,12 +99,12 @@ public class DefineStructFunction
     public static Slice defineStruct(DefineStructContext context, Slice name, Object... strs)
     {
         checkArgument(strs.length % 2 == 0);
-        List<TypeRegistrar.StructDefinition.Field> fields = newArrayList();
+        List<StructManager.StructDefinition.Field> fields = newArrayList();
         for (int i = 0; i < strs.length; i += 2) {
-            fields.add(new TypeRegistrar.StructDefinition.Field(((Slice) strs[i]).toStringUtf8(), ((Slice) strs[i+1]).toStringUtf8()));
+            fields.add(new StructManager.StructDefinition.Field(((Slice) strs[i]).toStringUtf8(), ((Slice) strs[i+1]).toStringUtf8()));
         }
-        TypeRegistrar.StructDefinition def = new TypeRegistrar.StructDefinition(name.toStringUtf8(), fields);
-        context.typeRegistrar.registerStruct(context.typeRegistrar.buildRowType(def));
+        StructManager.StructDefinition def = new StructManager.StructDefinition(name.toStringUtf8(), fields);
+        context.structManager.registerStruct(context.structManager.buildRowType(def));
         return name;
     }
 }

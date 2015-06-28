@@ -18,16 +18,9 @@ import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.ParametricScalar;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.block.Block;
-import com.facebook.presto.spi.block.BlockBuilderStatus;
-import com.facebook.presto.spi.block.FixedWidthBlock;
-import com.facebook.presto.spi.block.FixedWidthBlockBuilder;
-import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
-import com.facebook.presto.sql.tree.QualifiedName;
-import com.facebook.presto.type.RowType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Supplier;
@@ -57,27 +50,27 @@ public class SerializeFunction
 
     private static class SerializationContext
     {
-        private final TypeRegistrar typeRegistrar;
+        private final StructManager structManager;
         private final Supplier<ObjectMapper> objectMapperSupplier;
         private final Type type;
 
-        public SerializationContext(TypeRegistrar typeRegistrar, Supplier<ObjectMapper> objectMapperSupplier, Type type)
+        public SerializationContext(StructManager structManager, Supplier<ObjectMapper> objectMapperSupplier, Type type)
         {
-            this.typeRegistrar = typeRegistrar;
+            this.structManager = structManager;
             this.objectMapperSupplier = objectMapperSupplier;
             this.type = type;
         }
     }
 
     private final FunctionRegistry functionRegistry;
-    private final TypeRegistrar typeRegistrar;
+    private final StructManager structManager;
 
     private final ThreadLocal<ConnectorSession> connectorSessionThreadLocal = new ThreadLocal<ConnectorSession>();
 
-    public SerializeFunction(FunctionRegistry functionRegistry, TypeRegistrar typeRegistrar)
+    public SerializeFunction(FunctionRegistry functionRegistry, StructManager structManager)
     {
         this.functionRegistry = functionRegistry;
-        this.typeRegistrar = typeRegistrar;
+        this.structManager = structManager;
     }
 
     @Override
@@ -109,7 +102,7 @@ public class SerializeFunction
     {
         checkArgument(types.size() == 1, "Cardinality expects only one argument");
         Type type = types.get("E");
-        MethodHandle methodHandle = METHOD_HANDLE.bindTo(new SerializationContext(typeRegistrar, OBJECT_MAPPER, type));
+        MethodHandle methodHandle = METHOD_HANDLE.bindTo(new SerializationContext(structManager, OBJECT_MAPPER, type));
 
         /*
         if (type instanceof RowType) {
@@ -127,7 +120,7 @@ public class SerializeFunction
     public static Slice serialize(SerializationContext serializationContext, ConnectorSession session, @Nullable Object object)
     {
         try {
-            Object boxed = serializationContext.typeRegistrar.boxValue(serializationContext.type, object, session);
+            Object boxed = serializationContext.structManager.boxValue(serializationContext.type, object, session);
             return Slices.wrappedBuffer(serializationContext.objectMapperSupplier.get().writeValueAsBytes(boxed));
         }
         catch (JsonProcessingException e) {

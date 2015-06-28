@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.functions;
 
-import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.ParametricFunction;
@@ -26,13 +25,13 @@ public class ExtensionFunctionFactory
 {
     private final TypeManager typeManager;
     private final FunctionRegistry functionRegistry;
-    private final TypeRegistrar typeRegistrar;
+    private final StructManager structManager;
 
-    public ExtensionFunctionFactory(TypeManager typeManager, FunctionRegistry functionRegistry, TypeRegistrar typeRegistrar)
+    public ExtensionFunctionFactory(TypeManager typeManager, FunctionRegistry functionRegistry, StructManager structManager)
     {
         this.typeManager = typeManager;
         this.functionRegistry = functionRegistry;
-        this.typeRegistrar = typeRegistrar;
+        this.structManager = structManager;
     }
 
     @Override
@@ -40,8 +39,8 @@ public class ExtensionFunctionFactory
     {
         return new FunctionListBuilder(typeManager)
                 .scalar(CompressionFunctions.class)
-                .function(new SerializeFunction(functionRegistry, typeRegistrar))
-                .function(new DefineStructFunction(typeRegistrar))
+                .function(new SerializeFunction(functionRegistry, structManager))
+                .function(new DefineStructFunction(structManager))
                 .function(Hash.HASH)
                 .getFunctions();
     }

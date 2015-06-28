@@ -31,10 +31,8 @@ import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.BlockEncoding;
-import com.facebook.presto.spi.block.FixedWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockEncoding;
-import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
@@ -57,10 +55,8 @@ import com.facebook.presto.type.SqlType;
 import com.facebook.presto.type.TypeRegistry;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
@@ -108,7 +104,7 @@ import static java.util.Locale.ENGLISH;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 
-public class TypeRegistrar
+public class StructManager
 {
     private final ConnectorManager connectorManager;
     private final TypeRegistry typeRegistry;
@@ -117,7 +113,7 @@ public class TypeRegistrar
     private final List<PlanOptimizer> planOptimizers;
     private final boolean experimentalSyntaxEnabled;
 
-    public TypeRegistrar(ConnectorManager connectorManager, TypeRegistry typeRegistry, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
+    public StructManager(ConnectorManager connectorManager, TypeRegistry typeRegistry, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
     {
         this.connectorManager = checkNotNull(connectorManager);
         this.typeRegistry = typeRegistry;
@@ -532,7 +528,7 @@ public class TypeRegistrar
                 .invokeConstructor(Box.class, Object.class)
                 .ret();
 
-        return defineClass(definition, Object.class, new CallSiteBinder().getBindings(), new DynamicClassLoader(TypeRegistrar.class.getClassLoader()));
+        return defineClass(definition, Object.class, new CallSiteBinder().getBindings(), new DynamicClassLoader(StructManager.class.getClassLoader()));
     }
 
     // FIXME just a fuckin RowTypeInfo class plz
