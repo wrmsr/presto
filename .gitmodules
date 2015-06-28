@@ -1,0 +1,3 @@
+[submodule "airpal"]
+	path = airpal
+	url = https://github.com/wrmsr/airpal

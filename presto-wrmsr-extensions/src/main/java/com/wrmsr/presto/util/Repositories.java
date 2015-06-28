@@ -21,8 +21,8 @@ public class Repositories
     {
     }
 
-    public static final String REPOSITORY_PROPERTY_KEY = "wrmsr.repository.path";
-    public static final String SHOULD_DELLETE_REPOSITORY_PROPERTY_KEY = "wrmsr.repository.should-delete";
+    public static final String REPOSITORY_PATH_PROPERTY_KEY = "wrmsr.repository.path";
+    public static final String SHOULD_DELETE_REPOSITORY_PROPERTY_KEY = "wrmsr.repository.should-delete";
 
     public static void addClasspathUrl(URLClassLoader classLoader, URL url) throws IOException
     {
@@ -42,14 +42,14 @@ public class Repositories
         addClasspathUrl((URLClassLoader) classLoader, url);
     }
 
-    public static File getRepositoryPath() throws IOException
+    public static File getOrMakePropertyPath(String key) throws IOException
     {
-        String repositoryPathString = System.getProperty(REPOSITORY_PROPERTY_KEY);
+        String repositoryPathString = System.getProperty(key);
         File repositoryPath;
         if (repositoryPathString == null || repositoryPathString.isEmpty()) {
             repositoryPath = Files.createTempDirectory(null).toFile();
             repositoryPath.deleteOnExit(); // FIXME OSX EXECVE SEGFAULT
-            System.setProperty(REPOSITORY_PROPERTY_KEY, repositoryPath.getAbsolutePath());
+            System.setProperty(key, repositoryPath.getAbsolutePath());
         }
         else {
             repositoryPath = new File(repositoryPathString);
@@ -59,11 +59,16 @@ public class Repositories
             if (!repositoryPath.isDirectory()) {
                 throw new IOException("Repository path is not a directory: " + repositoryPath);
             }
-            if (Boolean.valueOf(System.getProperty(SHOULD_DELLETE_REPOSITORY_PROPERTY_KEY))) {
+            if (Boolean.valueOf(System.getProperty(SHOULD_DELETE_REPOSITORY_PROPERTY_KEY))) {
                 repositoryPath.deleteOnExit();
             }
         }
         return repositoryPath;
+    }
+
+    public static File getRepositoryPath() throws IOException
+    {
+        return getOrMakePropertyPath(REPOSITORY_PATH_PROPERTY_KEY);
     }
 
     public static List<URL> resolveUrlsForModule(ClassLoader sourceClassLoader, String moduleName) throws IOException
