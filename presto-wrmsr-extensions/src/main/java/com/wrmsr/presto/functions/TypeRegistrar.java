@@ -34,6 +34,7 @@ import com.facebook.presto.spi.block.BlockEncoding;
 import com.facebook.presto.spi.block.FixedWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockEncoding;
+import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
@@ -132,6 +133,13 @@ public class TypeRegistrar
         QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
         Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
         return analyzer.analyze(statement);
+    }
+
+    @ScalarFunction("define_struct_for_query")
+    @SqlType(StandardTypes.VARCHAR)
+    public static Slice defineStructForQuery(@SqlType(StandardTypes.VARCHAR) Slice query)
+    {
+
     }
 
     @Nullable
