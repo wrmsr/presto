@@ -531,7 +531,6 @@ public class StructManager
         return defineClass(definition, Object.class, new CallSiteBinder().getBindings(), new DynamicClassLoader(StructManager.class.getClassLoader()));
     }
 
-    // FIXME just a fuckin RowTypeInfo class plz
     // TODO compile? bench bitch
     // TODO direct in-session serializers via thread local, no intermediate lists / slices
     // raw is trivial just dont add names
