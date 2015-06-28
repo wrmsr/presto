@@ -233,7 +233,15 @@ public class ExtensionsPlugin
                     featuresConfig
             ).run();
 
-            ExtensionFunctionFactory functionFactory = new ExtensionFunctionFactory(typeRegistry, metadata.getFunctionRegistry(), structManager);
+            ExtensionFunctionFactory functionFactory = new ExtensionFunctionFactory(
+                    typeRegistry,
+                    metadata.getFunctionRegistry(),
+                    structManager,
+                    sqlParser,
+                    planOptimizers,
+                    featuresConfig,
+                    metadata
+            );
             metadata.addFunctions(functionFactory.listFunctions());
         }
     }

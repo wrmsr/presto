@@ -15,8 +15,12 @@ package com.wrmsr.presto.functions;
 
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ParametricFunction;
 import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.sql.analyzer.FeaturesConfig;
+import com.facebook.presto.sql.parser.SqlParser;
+import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 
 import java.util.List;
 
@@ -26,12 +30,20 @@ public class ExtensionFunctionFactory
     private final TypeManager typeManager;
     private final FunctionRegistry functionRegistry;
     private final StructManager structManager;
+    private final SqlParser sqlParser;
+    private final List<PlanOptimizer> planOptimizers;
+    private final FeaturesConfig featuresConfig;
+    private final Metadata metadata;
 
-    public ExtensionFunctionFactory(TypeManager typeManager, FunctionRegistry functionRegistry, StructManager structManager)
+    public ExtensionFunctionFactory(TypeManager typeManager, FunctionRegistry functionRegistry, StructManager structManager, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig, Metadata metadata)
     {
         this.typeManager = typeManager;
         this.functionRegistry = functionRegistry;
         this.structManager = structManager;
+        this.sqlParser = sqlParser;
+        this.planOptimizers = planOptimizers;
+        this.featuresConfig = featuresConfig;
+        this.metadata = metadata;
     }
 
     @Override
@@ -41,6 +53,9 @@ public class ExtensionFunctionFactory
                 .scalar(CompressionFunctions.class)
                 .function(new SerializeFunction(functionRegistry, structManager))
                 .function(new DefineStructFunction(structManager))
+                .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata))
+                //.function(new PropertiesFunction(typeManager))
+                //.function(new ConnectFunction())
                 .function(Hash.HASH)
                 .getFunctions();
     }
