@@ -29,9 +29,9 @@ import io.airlift.units.DataSize;
 import it.unimi.dsi.fastutil.Swapper;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import org.iq80.leveldb.DB;
-import org.iq80.leveldb.Options;
-import org.iq80.leveldb.impl.Iq80DBFactory;
+//import org.iq80.leveldb.DB;
+//import org.iq80.leveldb.Options;
+//import org.iq80.leveldb.impl.Iq80DBFactory;
 
 import java.io.Closeable;
 import java.io.File;
@@ -80,9 +80,10 @@ public class PagesIndex
     private long pagesMemorySize;
     private long estimatedSize;
 
-    private final File dbPath;
-    private final DB db;
+    // private final File dbPath;
+    // private final DB db;
 
+    // block storage strats - row v column
     public PagesIndex(List<Type> types, int expectedPositions)
     {
         this.types = ImmutableList.copyOf(checkNotNull(types, "types is null"));
@@ -94,21 +95,21 @@ public class PagesIndex
             channels[i] = ObjectArrayList.wrap(new Block[1024], 0);
         }
 
-        try {
-            dbPath = Files.createTempDirectory(null).toFile();
-            dbPath.deleteOnExit();
-            db = Iq80DBFactory.factory.open(dbPath.getAbsoluteFile(), new Options().createIfMissing(true));
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
+        // try {
+        //     dbPath = Files.createTempDirectory(null).toFile();
+        //     dbPath.deleteOnExit();
+        //     db = Iq80DBFactory.factory.open(dbPath.getAbsoluteFile(), new Options().createIfMissing(true));
+        // }
+        // catch (IOException e) {
+        //     throw Throwables.propagate(e);
+        // }
     }
 
     // FIXME CALL THIS SHIT LOL
     @Override
     public void close() throws IOException
     {
-        db.close();
+        // db.close();
     }
 
     public List<Type> getTypes()
