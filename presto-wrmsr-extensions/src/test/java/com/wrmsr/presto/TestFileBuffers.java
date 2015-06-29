@@ -1,5 +1,6 @@
 package com.wrmsr.presto;
 
+import com.google.common.base.Throwables;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
 import org.testng.annotations.Test;
@@ -7,6 +8,9 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 
 public class TestFileBuffers
@@ -14,13 +18,40 @@ public class TestFileBuffers
     public static class RandomAccessSliceFileReader
             implements AutoCloseable
     {
-        protected final File dataFile;
+        protected final File file;
+        protected final String mode;
+        protected final FileChannel.MapMode mapMode;
+        protected final long mapPosition;
 
-        protected int length;
+        protected long length;
 
-        public RandomAccessSliceFileReader(File dataFile)
+        protected RandomAccessFile randomAccessFile;
+        protected FileChannel fileChannel;
+        protected MappedByteBuffer mappedByteBuffer;
+
+        public RandomAccessSliceFileReader(File file)
         {
-            this.dataFile = dataFile;
+            this(file, "r", FileChannel.MapMode.READ_ONLY, 0L);
+        }
+
+        protected RandomAccessSliceFileReader(File file, String mode, FileChannel.MapMode mapMode, long mapPosition)
+        {
+            this.file = file;
+            this.mode = mode;
+            this.mapMode = mapMode;
+            this.mapPosition = mapPosition;
+        }
+
+        protected void open()
+        {
+            try {
+                randomAccessFile = new RandomAccessFile(file, mode);
+                fileChannel = randomAccessFile.getChannel();
+                mappedByteBuffer = fileChannel.map(mapMode, mapPosition, length);
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
         }
 
         @Override
@@ -34,21 +65,21 @@ public class TestFileBuffers
     {
         protected int position;
 
-        public RandomAccessSliceFileWriter(File dataFile)
+        public RandomAccessSliceFileWriter(File file)
         {
-            super(dataFile);
+            super(file, "rw", FileChannel.MapMode.READ_WRITE, 0L); // FIXME rws?
         }
 
         public void write(Slice slice)
         {
-            int requiredLength = slice.length() + position;
+            long requiredLength = slice.length() + position;
             if (requiredLength >= length) {
                 grow(requiredLength - length);
             }
 
         }
 
-        private void grow(int by)
+        private void grow(long by)
         {
 
         }
