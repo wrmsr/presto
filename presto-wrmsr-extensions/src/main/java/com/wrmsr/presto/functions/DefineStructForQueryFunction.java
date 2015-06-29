@@ -15,7 +15,6 @@ package com.wrmsr.presto.functions;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.metadata.*;
-import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.type.StandardTypes;
@@ -27,7 +26,6 @@ import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.type.RowType;
-import com.facebook.presto.type.SqlType;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 
@@ -39,15 +37,13 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
-import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
+import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
+import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
-import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
-import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static java.util.Locale.ENGLISH;
 
 public class DefineStructForQueryFunction
@@ -73,13 +69,6 @@ public class DefineStructForQueryFunction
         this.metadata = metadata;
     }
 
-    public Analysis analyzeStatement(Statement statement, Session session)
-    {
-        QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
-        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
-        return analyzer.analyze(statement);
-    }
-
     @Override
     public Signature getSignature()
     {
@@ -102,6 +91,32 @@ public class DefineStructForQueryFunction
     public String getDescription()
     {
         return "defines a new struct type for the results of a given query";
+    }
+
+    public Analysis analyzeStatement(Statement statement, Session session)
+    {
+        QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
+        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
+        return analyzer.analyze(statement);
+    }
+
+    @Override
+    public FunctionInfo specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    {
+        checkArgument(arity == 2);
+        checkArgument(types.size() == 1);
+
+        return new FunctionInfo(
+                new Signature(
+                        "define_struct_for_query",
+                        StandardTypes.VARCHAR,
+                        ImmutableList.of(StandardTypes.VARCHAR, StandardTypes.VARCHAR)),
+                getDescription(),
+                isHidden(),
+                METHOD_HANDLE.bindTo(this),
+                isDeterministic(),
+                true,
+                ImmutableList.of(false, false));
     }
 
     @Nullable
@@ -163,25 +178,6 @@ public class DefineStructForQueryFunction
         }
 
         return new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
-    }
-
-    @Override
-    public FunctionInfo specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
-    {
-        checkArgument(arity == 2);
-        checkArgument(types.size() == 1);
-
-        return new FunctionInfo(
-                new Signature(
-                        "define_struct_for_query",
-                        StandardTypes.VARCHAR,
-                        ImmutableList.of(StandardTypes.VARCHAR, StandardTypes.VARCHAR)),
-                getDescription(),
-                isHidden(),
-                METHOD_HANDLE.bindTo(this),
-                isDeterministic(),
-                true,
-                ImmutableList.of(false, false));
     }
 
     public static Slice defineStructForQuery(DefineStructForQueryFunction self, ConnectorSession session, Slice name, Slice query)
