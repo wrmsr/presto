@@ -4,11 +4,13 @@ import com.google.common.base.Throwables;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
 import org.testng.annotations.Test;
+import sun.nio.ch.DirectBuffer;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.nio.Buffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
@@ -48,15 +50,33 @@ public class TestFileBuffers
                 randomAccessFile = new RandomAccessFile(file, mode);
                 fileChannel = randomAccessFile.getChannel();
                 mappedByteBuffer = fileChannel.map(mapMode, mapPosition, length);
+                // mappedByteBuffer.load();
             }
             catch (IOException e) {
                 throw Throwables.propagate(e);
             }
         }
 
+        public static void unmapBuffer(Buffer buffer)
+        {
+            sun.misc.Cleaner cleaner = ((DirectBuffer) buffer).cleaner();
+            cleaner.clean();
+        }
+
         @Override
         public void close() throws Exception
         {
+            if (mappedByteBuffer != null) {
+                unmapBuffer(mappedByteBuffer);
+                mappedByteBuffer = null;
+            }
+            if (fileChannel != null) {
+                fileChannel = null;
+            }
+            if (randomAccessFile != null) {
+                randomAccessFile.close();
+                randomAccessFile = null;
+            }
         }
     }
 
