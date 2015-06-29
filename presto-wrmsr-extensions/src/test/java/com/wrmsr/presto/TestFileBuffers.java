@@ -3,6 +3,7 @@ package com.wrmsr.presto;
 import com.google.common.base.Throwables;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
+import io.airlift.slice.Slices;
 import org.testng.annotations.Test;
 import sun.nio.ch.DirectBuffer;
 
@@ -14,6 +15,7 @@ import java.nio.Buffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.util.Optional;
 
 public class TestFileBuffers
 {
@@ -25,7 +27,7 @@ public class TestFileBuffers
         protected final FileChannel.MapMode mapMode;
         protected final long mapPosition;
 
-        protected long length;
+        protected long mapLength;
 
         protected RandomAccessFile randomAccessFile;
         protected FileChannel fileChannel;
@@ -33,26 +35,38 @@ public class TestFileBuffers
 
         public RandomAccessSliceFileReader(File file)
         {
-            this(file, "r", FileChannel.MapMode.READ_ONLY, 0L);
+            this(file, "r", FileChannel.MapMode.READ_ONLY, 0L, Optional.empty());
         }
 
-        protected RandomAccessSliceFileReader(File file, String mode, FileChannel.MapMode mapMode, long mapPosition)
+        protected RandomAccessSliceFileReader(File file, String mode, FileChannel.MapMode mapMode, long mapPosition, Optional<Long> initialLength)
         {
             this.file = file;
             this.mode = mode;
             this.mapMode = mapMode;
             this.mapPosition = mapPosition;
+            open();
+            map(initialLength.isPresent() ? initialLength.get() : file.length());
         }
 
         protected void open()
         {
             try {
                 randomAccessFile = new RandomAccessFile(file, mode);
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
+        protected void map(long length)
+        {
+            unmap();
+            try {
                 fileChannel = randomAccessFile.getChannel();
                 mappedByteBuffer = fileChannel.map(mapMode, mapPosition, length);
                 // mappedByteBuffer.load();
-            }
-            catch (IOException e) {
+                this.mapLength = length;
+            } catch (IOException e) {
                 throw Throwables.propagate(e);
             }
         }
@@ -60,11 +74,12 @@ public class TestFileBuffers
         public static void unmapBuffer(Buffer buffer)
         {
             sun.misc.Cleaner cleaner = ((DirectBuffer) buffer).cleaner();
-            cleaner.clean();
+            if (cleaner != null) {
+                cleaner.clean();
+            }
         }
 
-        @Override
-        public void close() throws Exception
+        protected void unmap()
         {
             if (mappedByteBuffer != null) {
                 unmapBuffer(mappedByteBuffer);
@@ -73,6 +88,13 @@ public class TestFileBuffers
             if (fileChannel != null) {
                 fileChannel = null;
             }
+            mapLength = 0L;
+        }
+
+        @Override
+        public void close() throws Exception
+        {
+            unmap();
             if (randomAccessFile != null) {
                 randomAccessFile.close();
                 randomAccessFile = null;
@@ -83,25 +105,29 @@ public class TestFileBuffers
     public static class RandomAccessSliceFileWriter
         extends RandomAccessSliceFileReader
     {
-        protected int position;
+        protected long writePosition;
 
         public RandomAccessSliceFileWriter(File file)
         {
-            super(file, "rw", FileChannel.MapMode.READ_WRITE, 0L); // FIXME rws?
+            super(file, "rw", FileChannel.MapMode.READ_WRITE, 0L, Optional.empty()); // FIXME rws?
         }
 
         public void write(Slice slice)
         {
-            long requiredLength = slice.length() + position;
-            if (requiredLength >= length) {
-                grow(requiredLength - length);
+            long requiredLength = writePosition + slice.length();
+            if (requiredLength >= mapLength) {
+                grow(requiredLength - mapLength);
             }
-
+            byte[] bytes = slice.getBytes(); // fixme bleh
+            mappedByteBuffer.position((int) writePosition);
+            mappedByteBuffer.put(bytes, 0, bytes.length);
+            writePosition += bytes.length;
         }
 
         private void grow(long by)
         {
-
+            long newLength = 1L << (64 - Long.numberOfLeadingZeros(mapLength + by));
+            map(newLength);
         }
     }
 
@@ -140,6 +166,12 @@ public class TestFileBuffers
     @Test
     public void testStuff() throws Throwable
     {
-
+        File f = File.createTempFile("foo", null);
+        f.deleteOnExit();
+        try (RandomAccessSliceFileWriter w = new RandomAccessSliceFileWriter(f)) {
+            for (int i = 0; i < 1000; ++i) {
+                w.write(Slices.wrappedBuffer((byte) 1, (byte) 2, (byte) 3));
+            }
+        }
     }
 }
