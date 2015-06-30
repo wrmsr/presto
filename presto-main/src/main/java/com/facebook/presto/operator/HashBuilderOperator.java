@@ -117,6 +117,12 @@ public class HashBuilderOperator
     }
 
     @Override
+    public void close() throws Exception
+    {
+        pagesIndex.close();
+    }
+
+    @Override
     public OperatorContext getOperatorContext()
     {
         return operatorContext;
