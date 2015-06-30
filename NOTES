@@ -860,3 +860,5 @@ hash join operator -> cassandra
 
 favor imperative config, include / exec / eval files / text from disk / sql sources
  - lacking loops should get cfg via jsr223 up
+
+async / background query execution ala bash & / fg, both interactive in cli and scriptable
