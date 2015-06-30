@@ -853,3 +853,4 @@ may also be nice to build docker images w/ deps in ~/.m2/repository, more idioma
 
 
 batched update mode? equiv to lazy de/re-jsoning done by ei partial aggs?
+ - pulsed/stepped at a regular interval? pipelined at a depth of max joins? (which = execution pipeline itself)
