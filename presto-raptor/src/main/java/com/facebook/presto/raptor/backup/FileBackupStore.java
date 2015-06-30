@@ -31,6 +31,7 @@ import static com.facebook.presto.raptor.RaptorErrorCode.RAPTOR_ERROR;
 import static com.facebook.presto.raptor.storage.FileStorageService.getFileSystemPath;
 import static com.facebook.presto.raptor.util.FileUtil.copyFile;
 import static java.nio.file.Files.readAttributes;
+import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
 public class FileBackupStore
@@ -65,7 +66,7 @@ public class FileBackupStore
     @Override
     public void backupShard(UUID uuid, File source)
     {
-        File backupFile = getBackupFile(uuid);
+        File backupFile = getFileSystemPath(baseDir, uuid);
         createDirectories(backupFile.getParentFile());
 
         try {
@@ -106,7 +107,23 @@ public class FileBackupStore
     @VisibleForTesting
     public File getBackupFile(UUID uuid)
     {
-        return getFileSystemPath(baseDir, uuid, storageEngine);
+        File file = getFileSystemPath(baseDir, uuid, storageEngine);
+        File legacy = getLegacyFileSystemPath(baseDir, uuid, storageEngine);
+        if (!file.exists() && legacy.exists()) {
+            return legacy;
+        }
+        return file;
+    }
+
+    // TODO: remove this after old data is migrated
+    private static File getLegacyFileSystemPath(File base, UUID shardUuid, StorageEngine storageEngine)
+    {
+        String uuid = shardUuid.toString().toLowerCase(ENGLISH);
+        return base.toPath()
+                .resolve(uuid.substring(0, 3))
+                .resolve(uuid.substring(3, 6))
+                .resolve(uuid + storageEngine.getFileExtension())
+                .toFile();
     }
 
     private static void createDirectories(File dir)

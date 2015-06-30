@@ -11,26 +11,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.operator;
+package com.facebook.presto.operator.scalar;
 
-import com.facebook.presto.spi.Page;
+import com.facebook.presto.metadata.OperatorType;
 
-import static com.google.common.base.Preconditions.checkState;
-
-public interface HashGenerator
-    extends PartitionGenerator
+public class ArrayMaxFunction
+        extends AbstractArrayMinMaxFunction
 {
-    int hashPosition(int position, Page page);
+    public static final ArrayMaxFunction ARRAY_MAX = new ArrayMaxFunction();
 
-    default int getPartitionBucket(int partitionCount, int position, Page page)
+    private ArrayMaxFunction()
     {
-        int rawHash = hashPosition(position, page);
-
-        // clear the sign bit
-        rawHash &= 0x7fff_ffffL;
-
-        int bucket = rawHash % partitionCount;
-        checkState(bucket >= 0 && bucket < partitionCount);
-        return bucket;
+        super(OperatorType.GREATER_THAN, "array_max", "Get maximum value of array");
     }
 }

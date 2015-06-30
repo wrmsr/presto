@@ -862,3 +862,7 @@ favor imperative config, include / exec / eval files / text from disk / sql sour
  - lacking loops should get cfg via jsr223 up
 
 async / background query execution ala bash & / fg, both interactive in cli and scriptable
+
+for paasta can just run as adhoc in context of another service, node disco can go through zk
+oo and how about a raw mode powered by just jsch, aws disco aware
+
