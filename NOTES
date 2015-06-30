@@ -799,7 +799,6 @@ https://github.com/dockerfile/java/blob/master/oracle-java8/Dockerfile
 
 
 http://ruedigermoeller.github.io/kontraktor/
-http://data.linkedin.com/opensource/kamikaze
 https://blog.twitter.com/2015/flying-faster-with-twitter-heron
 
 https://crate.io/overview/
@@ -841,3 +840,14 @@ http://www.h2database.com/html/advanced.html
 https://wiki.postgresql.org/wiki/Serializable
 
 https://github.com/JCTools/JCTools
+
+gon need curator / zk for state storage
+
+
+
+via http://mesos.apache.org/documentation/latest/docker-containerizer/
+ > attach jar and cfg as commandinfo files, override entrypoint to point to jar :D
+jarsync self-update and restart endpoint for cluster, jardiff own jar
+may also be nice to build docker images w/ deps in ~/.m2/repository, more idiomatic at least
+ > but requires private repository
+
