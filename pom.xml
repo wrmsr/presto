@@ -95,8 +95,8 @@
         <module>presto-wrmsr-extensions</module>
         <module>presto-wrmsr-lucene</module>
         <module>presto-wrmsr-mesos</module>
-        <module>presto-wrmsr-python</module>
-        <module>presto-wrmsr-ruby</module>
+        <module>presto-wrmsr-jython</module>
+        <module>presto-wrmsr-jruby</module>
         <module>presto-wrmsr-wrapper</module>
         <module>presto-wrmsr-yarn</module>
     </modules>

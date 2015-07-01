@@ -114,20 +114,20 @@
     </artifactSet>
     -->
 
-    <artifactSet to="plugin/extensions">
+    <artifactSet to="plugin/wrmsr-extensions">
         <artifact id="com.wrmsr.presto:presto-wrmsr-extensions:zip:${project.version}">
             <unpack />
         </artifact>
     </artifactSet>
 
-    <artifactSet to="plugin/python">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-python:zip:${project.version}">
+    <artifactSet to="plugin/wrmsr-jython">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-jython:zip:${project.version}">
             <unpack />
         </artifact>
     </artifactSet>
 
-    <artifactSet to="plugin/ruby">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-ruby:zip:${project.version}">
+    <artifactSet to="plugin/wrmsr-jruby">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-jruby:zip:${project.version}">
             <unpack />
         </artifact>
     </artifactSet>
