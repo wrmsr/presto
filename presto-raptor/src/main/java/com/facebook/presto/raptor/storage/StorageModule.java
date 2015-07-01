@@ -18,6 +18,8 @@ import com.facebook.presto.raptor.metadata.ShardManager;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Scopes;
+import com.wrmsr.presto.raptor.storage.RawStorageManager;
+import com.wrmsr.presto.raptor.storage.StorageEngine;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static io.airlift.configuration.ConfigBinder.configBinder;

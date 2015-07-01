@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.raptor.storage;
+package com.wrmsr.presto.raptor.storage;
 
 import com.facebook.presto.hadoop.shaded.com.google.common.base.Strings;
 import com.facebook.presto.hadoop.shaded.com.google.common.base.Throwables;
@@ -19,6 +19,13 @@ import com.facebook.presto.raptor.RaptorColumnHandle;
 import com.facebook.presto.raptor.backup.BackupStore;
 import com.facebook.presto.raptor.metadata.ShardDelta;
 import com.facebook.presto.raptor.metadata.ShardInfo;
+import com.facebook.presto.raptor.storage.Row;
+import com.facebook.presto.raptor.storage.ShardRecoveryManager;
+import com.facebook.presto.raptor.storage.StorageManager;
+import com.facebook.presto.raptor.storage.StorageManagerConfig;
+import com.facebook.presto.raptor.storage.StorageManagerStats;
+import com.facebook.presto.raptor.storage.StoragePageSink;
+import com.facebook.presto.raptor.storage.StorageService;
 import com.facebook.presto.raptor.util.CurrentNodeId;
 import com.facebook.presto.raptor.util.PageBuffer;
 import com.facebook.presto.spi.ConnectorPageSource;

@@ -14,6 +14,7 @@
 package com.facebook.presto.raptor.storage;
 
 import com.facebook.presto.spi.PrestoException;
+import com.wrmsr.presto.raptor.storage.StorageEngine;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;

@@ -14,7 +14,7 @@
 package com.facebook.presto.raptor;
 
 import com.facebook.presto.raptor.backup.BackupModule;
-import com.facebook.presto.raptor.storage.StorageEngine;
+import com.wrmsr.presto.raptor.storage.StorageEngine;
 import com.facebook.presto.raptor.storage.StorageModule;
 import com.facebook.presto.raptor.util.CurrentNodeId;
 import com.facebook.presto.raptor.util.RebindSafeMBeanServer;
