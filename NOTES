@@ -884,3 +884,9 @@ oo and how about a raw mode powered by just jsch, aws disco aware
     <artifactId>curator-recipes</artifactId>
     <version>2.8.0</version>
 </dependency>
+
+
+http://storagemojo.com/2015/06/29/the-storage-tipping-point/
+http://jmoiron.net/blog/thoughts-on-timeseries-databases/
+
+cache invalidator probes for mat-view engine ala cacheserv
