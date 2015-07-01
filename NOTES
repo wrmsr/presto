@@ -890,3 +890,5 @@ http://storagemojo.com/2015/06/29/the-storage-tipping-point/
 http://jmoiron.net/blog/thoughts-on-timeseries-databases/
 
 cache invalidator probes for mat-view engine ala cacheserv
+
+jar url plugin loading (for shades)
