@@ -13,8 +13,15 @@
  */
 package com.wrmsr.presto.swagger;
 
+import config.Config;
+import config.ConfigParser;
+import io.swagger.codegen.CliOption;
 import io.swagger.codegen.ClientOptInput;
+import io.swagger.codegen.ClientOpts;
 import io.swagger.codegen.CodegenConfig;
+import io.swagger.codegen.DefaultGenerator;
+import io.swagger.models.Swagger;
+import io.swagger.parser.SwaggerParser;
 import org.testng.annotations.Test;
 
 import javax.script.Bindings;
@@ -31,9 +38,10 @@ public class TestSwaggerPlugin
     @Test
     public void testStuff() throws Throwable
     {
+        // javax.tools.JavaCompiler
+
         ClientOptInput input = new ClientOptInput();
 
-        /*
         if (isNotEmpty(auth)) {
             input.setAuth(auth);
         }
@@ -60,6 +68,5 @@ public class TestSwaggerPlugin
 
         Swagger swagger = new SwaggerParser().read(spec, input.getAuthorizationValues(), true);
         new DefaultGenerator().opts(input.opts(new ClientOpts()).swagger(swagger)).generate();
-        */
     }
 }
