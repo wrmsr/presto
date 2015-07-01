@@ -892,3 +892,7 @@ http://jmoiron.net/blog/thoughts-on-timeseries-databases/
 cache invalidator probes for mat-view engine ala cacheserv
 
 jar url plugin loading (for shades)
+
+just install jdk in shebang lols
+cfg cmds must run on ALL NODES, make sure cfg does that
+make sure node dont take queries till cfg'd
