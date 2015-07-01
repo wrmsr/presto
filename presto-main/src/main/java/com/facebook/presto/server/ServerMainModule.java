@@ -89,6 +89,7 @@ import com.google.inject.Provides;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.MapBinder;
+import com.wrmsr.presto.server.ServerEvent;
 import io.airlift.configuration.AbstractConfigurationAwareModule;
 import io.airlift.discovery.client.ServiceDescriptor;
 import io.airlift.slice.Slice;

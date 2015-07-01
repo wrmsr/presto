@@ -14,7 +14,7 @@
 package com.wrmsr.presto.jruby;
 
 import com.facebook.presto.spi.Plugin;
-import com.facebook.presto.spi.ScriptEngineProvider;
+import com.wrmsr.presto.spi.ScriptEngineProvider;
 import com.google.common.collect.ImmutableList;
 import org.jruby.embed.jsr223.JRubyEngineFactory;
 

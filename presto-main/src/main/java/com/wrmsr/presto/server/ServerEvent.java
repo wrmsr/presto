@@ -11,13 +11,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.spi;
+package com.wrmsr.presto.server;
 
-import javax.script.ScriptEngine;
-
-public interface ScriptEngineProvider
+public abstract class ServerEvent
 {
-    String getName();
+    public interface Listener
+    {
+        default void onServerEvent(ServerEvent event)
+        {
+        }
+    }
 
-    ScriptEngine getScriptEngine();
+    public static final class PluginsLoaded extends ServerEvent
+    {
+    }
+
+    public static final class ConnectorsLoaded extends ServerEvent
+    {
+    }
 }

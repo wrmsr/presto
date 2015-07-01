@@ -24,12 +24,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.swagger</groupId>
-            <artifactId>swagger-core</artifactId>
-            <version>1.5.0</version>
-        </dependency>
-
-        <dependency>
             <groupId>com.facebook.presto</groupId>
             <artifactId>presto-parser</artifactId>
             <scope>provided</scope>

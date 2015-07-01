@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.lucene;
+package com.wrmsr.presto.swagger;
 
 import com.facebook.presto.spi.Plugin;
 import com.google.common.collect.ImmutableList;
@@ -19,7 +19,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 
-public class LucenePlugin implements Plugin
+public class SwaggerPlugin implements Plugin
 {
     @Override
     public void setOptionalConfig(Map<String, String> optionalConfig)

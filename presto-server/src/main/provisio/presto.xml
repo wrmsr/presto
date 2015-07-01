@@ -131,4 +131,16 @@
             <unpack />
         </artifact>
     </artifactSet>
+
+    <artifactSet to="plugin/wrmsr-lucene">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-lucene:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/wrmsr-swagger">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-swagger:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
 </runtime>

@@ -11,24 +11,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.lucene;
+package com.wrmsr.presto.swagger;
 
-import com.facebook.presto.spi.Plugin;
-import com.google.common.collect.ImmutableList;
-
+import javax.script.Bindings;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+import javax.script.SimpleBindings;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-public class LucenePlugin implements Plugin
+public class TestSwaggerPlugin
 {
-    @Override
-    public void setOptionalConfig(Map<String, String> optionalConfig)
+    @Test
+    public void testStuff() throws Throwable
     {
-    }
-
-    @Override
-    public <T> List<T> getServices(Class<T> type)
-    {
-        return ImmutableList.of();
     }
 }
