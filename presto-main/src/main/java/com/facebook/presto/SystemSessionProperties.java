@@ -27,6 +27,7 @@ public final class SystemSessionProperties
     private static final String TASK_HASH_BUILD_CONCURRENCY = "task_hash_build_concurrency";
     private static final String TASK_AGGREGATION_CONCURRENCY = "task_aggregation_concurrency";
     private static final String QUERY_MAX_MEMORY = "query_max_memory";
+    private static final String REDISTRIBUTE_WRITES = "redistribute_writes";
 
     private SystemSessionProperties() {}
 
@@ -116,5 +117,10 @@ public final class SystemSessionProperties
     public static DataSize getQueryMaxMemory(Session session, DataSize defaultValue)
     {
         return getDataSize(QUERY_MAX_MEMORY, session, defaultValue);
+    }
+
+    public static boolean isRedistributeWrites(Session session, boolean defaultValue)
+    {
+        return isEnabled(REDISTRIBUTE_WRITES, session, defaultValue);
     }
 }
