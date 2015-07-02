@@ -32,9 +32,28 @@ import javax.script.SimpleBindings;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ServiceLoader;
+
+import static java.util.ServiceLoader.load;
 
 public class TestSwaggerPlugin
 {
+    private static CodegenConfig forName(String name) {
+        ServiceLoader<CodegenConfig> loader = load(CodegenConfig.class);
+        for (CodegenConfig config : loader) {
+            if (config.getName().equals(name)) {
+                return config;
+            }
+        }
+
+        // else try to load directly
+        try {
+            return (CodegenConfig) Class.forName(name).newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("Can't load config class with name ".concat(name), e);
+        }
+    }
+
     @Test
     public void testStuff() throws Throwable
     {
@@ -42,29 +61,32 @@ public class TestSwaggerPlugin
 
         ClientOptInput input = new ClientOptInput();
 
-        if (isNotEmpty(auth)) {
-            input.setAuth(auth);
-        }
+        // if (isNotEmpty(auth)) {
+        //     input.setAuth(auth);
+        // }
+        String lang = "java";
 
         CodegenConfig config = forName(lang);
-        config.setOutputDir(new File(output).getAbsolutePath());
+        config.setOutputDir(new File(System.getProperty("user.home") + "/thing.java").getAbsolutePath());
 
-        if (null != templateDir) {
-            config.additionalProperties().put(TEMPLATE_DIR_PARAM, new File(templateDir).getAbsolutePath());
-        }
+        // if (null != templateDir) {
+        //     config.additionalProperties().put(TEMPLATE_DIR_PARAM, new File(templateDir).getAbsolutePath());
+        // }
 
-        if (null != configFile) {
-            Config genConfig = ConfigParser.read(configFile);
-            if (null != genConfig) {
-                for (CliOption langCliOption : config.cliOptions()) {
-                    if (genConfig.hasOption(langCliOption.getOpt())) {
-                        config.additionalProperties().put(langCliOption.getOpt(), genConfig.getOption(langCliOption.getOpt()));
-                    }
-                }
-            }
-        }
+        // if (null != configFile) {
+        //     Config genConfig = ConfigParser.read(configFile);
+        //     if (null != genConfig) {
+        //         for (CliOption langCliOption : config.cliOptions()) {
+        //             if (genConfig.hasOption(langCliOption.getOpt())) {
+        //                 config.additionalProperties().put(langCliOption.getOpt(), genConfig.getOption(langCliOption.getOpt()));
+        //             }
+        //         }
+        //     }
+        // }
 
         input.setConfig(config);
+
+        String spec = System.getProperty("user.home") + "/business.json";
 
         Swagger swagger = new SwaggerParser().read(spec, input.getAuthorizationValues(), true);
         new DefaultGenerator().opts(input.opts(new ClientOpts()).swagger(swagger)).generate();
