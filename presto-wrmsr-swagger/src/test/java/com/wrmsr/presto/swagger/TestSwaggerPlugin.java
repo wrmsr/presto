@@ -90,5 +90,10 @@ public class TestSwaggerPlugin
 
         Swagger swagger = new SwaggerParser().read(spec, input.getAuthorizationValues(), true);
         new DefaultGenerator().opts(input.opts(new ClientOpts()).swagger(swagger)).generate();
+
+        // need to :%s/Object/java.lang.Object jesus christ.
+
+        // compile with own classpath in child classloader
+
     }
 }
