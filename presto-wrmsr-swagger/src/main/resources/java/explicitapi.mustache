@@ -1,0 +1,121 @@
+package {{package}};
+
+import {{invokerPackage}}.ApiException;
+import {{invokerPackage}}.ApiClient;
+import {{invokerPackage}}.Configuration;
+
+// import {{modelPackage}};
+
+/*
+{{#imports}}import {{import}};
+{{/imports}}
+*/
+
+import com.sun.jersey.multipart.FormDataMultiPart;
+import com.sun.jersey.multipart.file.FileDataBodyPart;
+
+import javax.ws.rs.core.MediaType;
+
+{{#operations}}
+public class {{classname}} {
+  private ApiClient apiClient;
+
+  public {{classname}}() {
+    this(Configuration.getDefaultApiClient());
+  }
+
+  public {{classname}}(ApiClient apiClient) {
+    this.apiClient = apiClient;
+  }
+
+  public ApiClient getApiClient() {
+    return apiClient;
+  }
+
+  public void setApiClient(ApiClient apiClient) {
+    this.apiClient = apiClient;
+  }
+
+  {{#operation}}
+  /**
+   * {{summary}}
+   * {{notes}}
+{{#allParams}}   * @param {{paramName}} {{description}}
+{{/allParams}}   * @return {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}void{{/returnType}}
+   */
+  public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}void {{/returnType}}{{nickname}} ({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) throws ApiException {
+    java.lang.Object postBody = {{#bodyParam}}{{paramName}}{{/bodyParam}}{{^bodyParam}}null{{/bodyParam}};
+    {{#allParams}}{{#required}}
+    // verify the required parameter '{{paramName}}' is set
+    if ({{paramName}} == null) {
+       throw new ApiException(400, "Missing the required parameter '{{paramName}}' when calling {{nickname}}");
+    }
+    {{/required}}{{/allParams}}
+
+    // create path and map variables
+    java.lang.String path = "{{path}}".replaceAll("\\{format\\}","json"){{#pathParams}}
+      .replaceAll("\\{" + "{{paramName}}" + "\\}", apiClient.escapeString({{{paramName}}}.toString())){{/pathParams}};
+
+    // query params
+    java.util.Map<java.lang.String, java.lang.String> queryParams = new java.util.HashMap<java.lang.String, java.lang.String>();
+    java.util.Map<java.lang.String, java.lang.String> headerParams = new java.util.HashMap<java.lang.String, java.lang.String>();
+    java.util.Map<java.lang.String, java.lang.String> formParams = new java.util.HashMap<java.lang.String, java.lang.String>();
+
+    {{#queryParams}}if ({{paramName}} != null)
+      queryParams.put("{{baseName}}", apiClient.parameterToString({{paramName}}));
+    {{/queryParams}}
+
+    {{#headerParams}}if ({{paramName}} != null)
+      headerParams.put("{{baseName}}", apiClient.parameterToString({{paramName}}));
+    {{/headerParams}}
+
+    final java.lang.String[] accepts = {
+      {{#produces}}"{{mediaType}}"{{#hasMore}}, {{/hasMore}}{{/produces}}
+    };
+    final java.lang.String accept = apiClient.selectHeaderAccept(accepts);
+
+    final java.lang.String[] contentTypes = {
+      {{#consumes}}"{{mediaType}}"{{#hasMore}}, {{/hasMore}}{{/consumes}}
+    };
+    final java.lang.String contentType = apiClient.selectHeaderContentType(contentTypes);
+
+    if(contentType.startsWith("multipart/form-data")) {
+      boolean hasFields = false;
+      FormDataMultiPart mp = new FormDataMultiPart();
+      {{#formParams}}{{#notFile}}
+      if ({{paramName}} != null) {
+        hasFields = true;
+        mp.field("{{baseName}}", apiClient.parameterToString({{paramName}}), MediaType.MULTIPART_FORM_DATA_TYPE);
+      }
+      {{/notFile}}{{#isFile}}
+      if ({{paramName}} != null) {
+        hasFields = true;
+        mp.field("{{baseName}}", {{paramName}}.getName());
+        mp.bodyPart(new FileDataBodyPart("{{baseName}}", {{paramName}}, MediaType.MULTIPART_FORM_DATA_TYPE));
+      }
+      {{/isFile}}{{/formParams}}
+      if(hasFields)
+        postBody = mp;
+    }
+    else {
+      {{#formParams}}{{#notFile}}if ({{paramName}} != null)
+        formParams.put("{{baseName}}", apiClient.parameterToString({{paramName}}));{{/notFile}}
+      {{/formParams}}
+    }
+
+    try {
+      java.lang.String[] authNames = new java.lang.String[] { {{#authMethods}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/authMethods}} };
+      java.lang.String response = apiClient.invokeAPI(path, "{{httpMethod}}", queryParams, postBody, headerParams, formParams, accept, contentType, authNames);
+      if(response != null){
+        return {{#returnType}}({{{returnType}}}) apiClient.deserialize(response, "{{returnContainer}}", {{returnBaseType}}.class){{/returnType}};
+      }
+      else {
+        return {{#returnType}}null{{/returnType}};
+      }
+    } catch (ApiException ex) {
+      throw ex;
+    }
+  }
+  {{/operation}}
+}
+{{/operations}}

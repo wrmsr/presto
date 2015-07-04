@@ -14,8 +14,8 @@
 package com.wrmsr.presto.jython;
 
 import com.facebook.presto.spi.Plugin;
-import com.wrmsr.presto.spi.ScriptEngineProvider;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.spi.ScriptEngineProvider;
 import org.python.jsr223.PyScriptEngineFactory;
 
 import javax.script.ScriptEngine;

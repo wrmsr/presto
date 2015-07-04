@@ -64,9 +64,8 @@ public class TestSwaggerPlugin
         // if (isNotEmpty(auth)) {
         //     input.setAuth(auth);
         // }
-        String lang = "java";
 
-        CodegenConfig config = forName(lang);
+        CodegenConfig config = new ExplicitJavaClientCodegen();
         config.setOutputDir(new File(System.getProperty("user.home") + "/thing.java").getAbsolutePath());
 
         // if (null != templateDir) {
@@ -86,7 +85,7 @@ public class TestSwaggerPlugin
 
         input.setConfig(config);
 
-        String spec = System.getProperty("user.home") + "/business.json";
+        String spec = System.getProperty("user.home") + "/presto/swagger_1.2/business.json";
 
         Swagger swagger = new SwaggerParser().read(spec, input.getAuthorizationValues(), true);
         new DefaultGenerator().opts(input.opts(new ClientOpts()).swagger(swagger)).generate();
