@@ -3,4 +3,4 @@ mvn clean package -Denforcer.skip=true -Dmaven.test.skip=true -Dmdep.skip=true -
 for m in presto-spi presto-base-jdbc presto-raptor ; do
 	mvn -pl "$m" install -DskipTests -Dair.check.skip-all
 done
-java -cp presto-wrmsr-wrapper/target/presto-wrmsr-wrapper-0.109-SNAPSHOT-executable.jar com.wrmsr.presto.wrapper.PrestoWrapperBuilder
+# java -cp presto-wrmsr-wrapper/target/presto-wrmsr-wrapper-0.109-SNAPSHOT-executable.jar com.wrmsr.presto.wrapper.PrestoWrapperBuilder
