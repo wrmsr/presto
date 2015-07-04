@@ -47,6 +47,30 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derbytools</artifactId>
+            <version>10.11.1.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derbyoptionaltools</artifactId>
+            <version>10.11.1.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derbynet</artifactId>
+            <version>10.11.1.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derbyclient</artifactId>
+            <version>10.11.1.1</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.turn</groupId>
             <artifactId>ttorrent</artifactId>
             <version>1.4</version>
