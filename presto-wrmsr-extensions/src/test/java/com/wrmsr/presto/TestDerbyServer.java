@@ -18,7 +18,7 @@ public class TestDerbyServer
         NetworkServerControl server = new NetworkServerControl(InetAddress.getByName("localhost"),1527);
         server.start(null);
 
-        String nsURL="jdbc:derby://localhost:1527/sample";
+        String nsURL="jdbc:derby://localhost:1527/metastore_db;create=true";
         java.util.Properties props = new java.util.Properties();
         props.put("user","usr");
         props.put("password","pwd");
