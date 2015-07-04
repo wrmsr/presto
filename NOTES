@@ -898,3 +898,10 @@ cfg cmds must run on ALL NODES, make sure cfg does that
 make sure node dont take queries till cfg'd
 
 fuck it raw lucene connector
+
+https://github.com/eirslett/frontend-maven-plugin
+
+
+https://registry.hub.docker.com/u/cloudesire/java/tags/manage/
+https://registry.hub.docker.com/u/isuper/java-oracle/dockerfile/
+https://github.com/docker/docker/issues/3778#issuecomment-88208709
