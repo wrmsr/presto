@@ -163,6 +163,10 @@ public class PluginManager
             return;
         }
 
+        for (Plugin plugin : preloadedPlugins) {
+            installPlugin(plugin);
+        }
+
         for (File file : listFiles(installedPluginsDir)) {
             if (file.isDirectory()) {
                 loadPlugin(file.getAbsolutePath());

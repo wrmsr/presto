@@ -13,6 +13,8 @@
  */
 package com.wrmsr.presto.lucene;
 
+import org.testng.annotations.Test;
+
 import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;

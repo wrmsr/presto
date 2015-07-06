@@ -26,6 +26,7 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
+import com.wrmsr.presto.server.PreloadedPlugins;
 import com.wrmsr.presto.server.ServerEvent;
 import io.airlift.bootstrap.Bootstrap;
 import io.airlift.discovery.client.Announcer;
@@ -102,7 +103,7 @@ public class PrestoServer
 
         modules.addAll(getAdditionalModules());
 
-        Bootstrap app = new Bootstrap(modules.build());
+        Bootstrap app = new Bootstrap(PreloadedPlugins.processServerModules(modules.build()));
 
         try {
             Injector injector = app.strictConfig().initialize();
