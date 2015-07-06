@@ -47,6 +47,7 @@ import javax.inject.Inject;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -175,7 +176,7 @@ public class PluginManager
             throws Exception
     {
         log.info("-- Loading plugin %s --", plugin);
-        URLClassLoader pluginClassLoader = buildClassLoader(plugin);
+        URLClassLoader pluginClassLoader = buildClassLoader(resolver, plugin);
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(pluginClassLoader)) {
             loadPlugin(pluginClassLoader);
         }
@@ -240,40 +241,40 @@ public class PluginManager
         }
     }
 
-    private URLClassLoader buildClassLoader(String plugin)
+    private static URLClassLoader buildClassLoader(ArtifactResolver resolver, String plugin)
             throws Exception
     {
         if (plugin.startsWith("|")) {
-            return buildClassLoaderFromEmbeddedModule(plugin.substring(1));
+            return buildClassLoaderFromEmbeddedModule(resolver, plugin.substring(1));
         }
         File file = new File(plugin);
         if (file.isFile() && (file.getName().equals("pom.xml") || file.getName().endsWith(".pom"))) {
-            return buildClassLoaderFromPom(file);
+            return buildClassLoaderFromPom(resolver, file);
         }
         if (file.isDirectory()) {
             return buildClassLoaderFromDirectory(file);
         }
-        return buildClassLoaderFromCoordinates(plugin);
+        return buildClassLoaderFromCoordinates(resolver, plugin);
     }
 
-    private URLClassLoader buildClassLoaderFromEmbeddedModule(String plugin)
+    private static URLClassLoader buildClassLoaderFromEmbeddedModule(ArtifactResolver resolver, String plugin)
             throws Exception
     {
         if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
-            return buildClassLoaderFromPom(new File("../" + plugin + "/pom.xml"));
+            return buildClassLoaderFromPom(resolver, new File("../" + plugin + "/pom.xml"));
         }
         List<URL> urls = Repositories.resolveUrlsForModule(plugin);
         return createClassLoader(urls);
     }
 
-    private URLClassLoader buildClassLoaderFromPom(File pomFile)
+    private static URLClassLoader buildClassLoaderFromPom(ArtifactResolver resolver, File pomFile)
             throws Exception
     {
         List<Artifact> artifacts = resolver.resolvePom(pomFile);
         return createClassLoader(artifacts, pomFile.getPath());
     }
 
-    private URLClassLoader buildClassLoaderFromDirectory(File dir)
+    private static URLClassLoader buildClassLoaderFromDirectory(File dir)
             throws Exception
     {
         log.debug("Classpath for %s:", dir.getName());
@@ -285,7 +286,7 @@ public class PluginManager
         return createClassLoader(urls);
     }
 
-    private URLClassLoader buildClassLoaderFromCoordinates(String coordinates)
+    private static URLClassLoader buildClassLoaderFromCoordinates(ArtifactResolver resolver, String coordinates)
             throws Exception
     {
         Artifact rootArtifact = new DefaultArtifact(coordinates);
@@ -293,7 +294,7 @@ public class PluginManager
         return createClassLoader(artifacts, rootArtifact.toString());
     }
 
-    private URLClassLoader createClassLoader(List<Artifact> artifacts, String name)
+    private static URLClassLoader createClassLoader(List<Artifact> artifacts, String name)
             throws IOException
     {
         log.debug("Classpath for %s:", name);
@@ -309,9 +310,9 @@ public class PluginManager
         return createClassLoader(urls);
     }
 
-    private URLClassLoader createClassLoader(List<URL> urls)
+    private static URLClassLoader createClassLoader(List<URL> urls)
     {
-        ClassLoader parent = getClass().getClassLoader();
+        ClassLoader parent = MethodHandles.lookup().lookupClass().getClassLoader();
         return new PluginClassLoader(urls, parent, HIDDEN_CLASSES, PARENT_FIRST_CLASSES);
     }
 
