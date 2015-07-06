@@ -56,6 +56,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -86,6 +87,7 @@ public class PluginManager
     private final Metadata metadata;
     private final BlockEncodingManager blockEncodingManager;
     private final TypeRegistry typeRegistry;
+    private final Set<Plugin> preloadedPlugins;
     private final ArtifactResolver resolver;
     private final File installedPluginsDir;
     private final List<String> plugins;
@@ -104,7 +106,8 @@ public class PluginManager
             ConfigurationFactory configurationFactory,
             Metadata metadata,
             BlockEncodingManager blockEncodingManager,
-            TypeRegistry typeRegistry)
+            TypeRegistry typeRegistry,
+            Set<Plugin> preloadedPlugins)
     {
         checkNotNull(injector, "injector is null");
         checkNotNull(nodeInfo, "nodeInfo is null");
@@ -132,6 +135,7 @@ public class PluginManager
         this.metadata = checkNotNull(metadata, "metadata is null");
         this.blockEncodingManager = checkNotNull(blockEncodingManager, "blockEncodingManager is null");
         this.typeRegistry = checkNotNull(typeRegistry, "typeRegistry is null");
+        this.preloadedPlugins = checkNotNull(preloadedPlugins);
     }
 
     public boolean arePluginsLoaded()
@@ -241,7 +245,7 @@ public class PluginManager
         }
     }
 
-    private static URLClassLoader buildClassLoader(ArtifactResolver resolver, String plugin)
+    public static URLClassLoader buildClassLoader(ArtifactResolver resolver, String plugin)
             throws Exception
     {
         if (plugin.startsWith("|")) {
