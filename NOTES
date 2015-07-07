@@ -909,3 +909,6 @@ https://github.com/docker/docker/issues/3778#issuecomment-88208709
 postgres brin
 
 https://github.com/twitter/scrooge
+
+acidy materialization by honoring gtid alignment of events and propagating to final store only when at a txn boundary
+ .. where possible ofc
