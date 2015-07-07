@@ -111,12 +111,12 @@ public class PreloadedPlugins
         final Module finalModule = module;
         return ImmutableList.of(
                 new CombineConfigurationAwareModule(ImmutableSet.of(
+                        finalModule,
                         new Module()
                         {
                             @Override
                             public void configure(Binder binder)
                             {
-                                binder.install(finalModule);
                                 for (Plugin plugin : preloadedPlugins) {
                                     newSetBinder(binder, Plugin.class).addBinding().toInstance(plugin);
                                 }
