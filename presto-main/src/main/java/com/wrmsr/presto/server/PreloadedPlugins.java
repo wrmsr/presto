@@ -2,18 +2,17 @@ package com.wrmsr.presto.server;
 
 import com.facebook.presto.server.PluginManager;
 import com.facebook.presto.server.PluginManagerConfig;
-import com.facebook.presto.spi.ConnectorPageSourceProvider;
 import com.facebook.presto.spi.Plugin;
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
 import com.google.inject.Injector;
 import com.google.inject.Module;
-import com.google.inject.util.Modules;
 import io.airlift.bootstrap.Bootstrap;
+import io.airlift.configuration.AbstractConfigurationAwareModule;
+import io.airlift.configuration.ConfigurationAwareModule;
+import io.airlift.configuration.ConfigurationFactory;
 import io.airlift.log.Logger;
 import io.airlift.resolver.ArtifactResolver;
 
@@ -22,7 +21,6 @@ import java.util.ServiceLoader;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 import static io.airlift.configuration.ConfigBinder.configBinder;
@@ -33,6 +31,36 @@ public class PreloadedPlugins
 
     private PreloadedPlugins()
     {
+    }
+
+    public static class CombineConfigurationAwareModule extends AbstractConfigurationAwareModule
+    {
+        private final Set<Module> modulesSet;
+        private ConfigurationFactory configurationFactory; // wow fuck you.
+
+        public CombineConfigurationAwareModule(Iterable<? extends Module> modules)
+        {
+            this.modulesSet = ImmutableSet.copyOf(modules);
+        }
+
+        @Override
+        public synchronized void setConfigurationFactory(ConfigurationFactory configurationFactory)
+        {
+            super.setConfigurationFactory(configurationFactory);
+            this.configurationFactory = configurationFactory;
+        }
+
+        @Override
+        protected void setup(Binder binder)
+        {
+            binder = binder.skipSources(getClass());
+            for (Module module : modulesSet) {
+                if (module instanceof ConfigurationAwareModule) {
+                    ((ConfigurationAwareModule) module).setConfigurationFactory(configurationFactory);
+                }
+                binder.install(module);
+            }
+        }
     }
 
     public static Iterable<Module> processServerModules(Iterable<Module> modules)
@@ -56,7 +84,7 @@ public class PreloadedPlugins
         }
 
         final Set<Plugin> preloadedPlugins = newHashSet();
-        Module module = Modules.combine(modules);
+        Module module = new CombineConfigurationAwareModule(modules);
         ArtifactResolver resolver = new ArtifactResolver(config.getMavenLocalRepository(), config.getMavenRemoteRepository());
 
         for (String preloadedPluginStr : config.getPreloadedPlugins()) {
@@ -81,16 +109,18 @@ public class PreloadedPlugins
         }
 
         final Module finalModule = module;
-        return ImmutableList.of(new Module()
-        {
-            @Override
-            public void configure(Binder binder)
-            {
-                binder.install(finalModule);
-                for (Plugin plugin : preloadedPlugins) {
-                    newSetBinder(binder, Plugin.class).addBinding().toInstance(plugin);
-                }
-            }
-        });
+        return ImmutableList.of(
+                new CombineConfigurationAwareModule(ImmutableSet.of(
+                        new Module()
+                        {
+                            @Override
+                            public void configure(Binder binder)
+                            {
+                                binder.install(finalModule);
+                                for (Plugin plugin : preloadedPlugins) {
+                                    newSetBinder(binder, Plugin.class).addBinding().toInstance(plugin);
+                                }
+                            }
+                        })));
     }
 }
