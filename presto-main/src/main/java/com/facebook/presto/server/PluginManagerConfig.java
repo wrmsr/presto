@@ -28,10 +28,9 @@ public class PluginManagerConfig
     private File installedPluginsDir = new File("plugin");
     private List<String> plugins;
     private File pluginConfigurationDir = new File("etc/");
-    public static final String MAVEN_LOCAL_REPOSITORY_DEFAULT = ArtifactResolver.USER_LOCAL_REPO;
-    private String mavenLocalRepository = MAVEN_LOCAL_REPOSITORY_DEFAULT;
-    public static final List<String> MAVEN_REMOTE_REPOSITORY_DEFAULT = ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI);;
-    private List<String> mavenRemoteRepository = MAVEN_REMOTE_REPOSITORY_DEFAULT;
+    private String mavenLocalRepository = ArtifactResolver.USER_LOCAL_REPO;
+    private List<String> mavenRemoteRepository = ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI);
+    private List<String> preloadedPlugins = ImmutableList.of();
 
     public File getInstalledPluginsDir()
     {
@@ -87,9 +86,7 @@ public class PluginManagerConfig
         return mavenLocalRepository;
     }
 
-    public static final String MAVEN_LOCAL_REPOSITORY_CONFIG_KEY = "maven.repo.local";
-
-    @Config(MAVEN_LOCAL_REPOSITORY_CONFIG_KEY)
+    @Config("maven.repo.local")
     public PluginManagerConfig setMavenLocalRepository(String mavenLocalRepository)
     {
         this.mavenLocalRepository = mavenLocalRepository;
@@ -108,12 +105,29 @@ public class PluginManagerConfig
         return this;
     }
 
-    public static final String MAVEN_REMOTE_REPOSITORY_CONFIG_KEY = "maven.repo.remote";
-
-    @Config(MAVEN_REMOTE_REPOSITORY_CONFIG_KEY)
+    @Config("maven.repo.remote")
     public PluginManagerConfig setMavenRemoteRepository(String mavenRemoteRepository)
     {
         this.mavenRemoteRepository = ImmutableList.copyOf(Splitter.on(',').omitEmptyStrings().trimResults().split(mavenRemoteRepository));
+        return this;
+    }
+
+    @NotNull
+    public List<String> getPreloadedPlugins()
+    {
+        return preloadedPlugins;
+    }
+
+    public PluginManagerConfig setPreloadedPlugins(List<String> preloadedPlugins)
+    {
+        this.preloadedPlugins = preloadedPlugins;
+        return this;
+    }
+
+    @Config("plugin.preloaded")
+    public PluginManagerConfig setPreloadedPlugins(String preloadedPlugins)
+    {
+        this.preloadedPlugins = ImmutableList.copyOf(Splitter.on(',').omitEmptyStrings().trimResults().split(preloadedPlugins));
         return this;
     }
 }
