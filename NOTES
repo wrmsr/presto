@@ -927,3 +927,4 @@ package org.apache.hadoop.hive.metastore;
 public class HiveMetaStore extends ThriftHiveMetastore {
   public static void main(String[] args) throws Throwable {
 
+select hive_exec('catalog_name', 'create table ....');

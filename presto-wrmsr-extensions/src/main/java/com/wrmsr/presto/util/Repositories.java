@@ -34,6 +34,8 @@ public class Repositories
     {
     }
 
+    // FIXME add static ClassLoader, set in bootstrap via refl
+
     public static final String REPOSITORY_PATH_PROPERTY_KEY = "wrmsr.repository.path";
     public static final String SHOULD_DELETE_REPOSITORY_PROPERTY_KEY = "wrmsr.repository.should-delete";
 
