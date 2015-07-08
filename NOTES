@@ -912,3 +912,9 @@ https://github.com/twitter/scrooge
 
 acidy materialization by honoring gtid alignment of events and propagating to final store only when at a txn boundary
  .. where possible ofc
+
+biject structs and schemas (avro, swagger, ...)
+pojos/beans for structs for ffi
+
+
+https://github.com/jenkinsci/ssh-plugin/blob/master/pom.xml#L32 well hellooooo
