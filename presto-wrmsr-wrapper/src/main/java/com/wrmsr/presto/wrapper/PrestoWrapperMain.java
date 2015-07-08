@@ -189,7 +189,17 @@ public class PrestoWrapperMain
     {
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
-                .withCommands(Help.class, Run.class, Start.class, Stop.class, Restart.class, Status.class, Kill.class, CliCommand.class);
+                .withCommands(
+                        Help.class,
+                        Run.class,
+                        Start.class,
+                        Stop.class,
+                        Restart.class,
+                        Status.class,
+                        Kill.class,
+                        CliCommand.class,
+                        HiveMetastoreCommand.class
+                );
 
         Cli<Runnable> gitParser = builder.build();
 
@@ -273,6 +283,16 @@ public class PrestoWrapperMain
 
     @Command(name = "cli", description = "Starts presto cli")
     public static class CliCommand extends ServerCommand
+    {
+        @Override
+        public void run()
+        {
+
+        }
+    }
+
+    @Command(name = "hive-metastore", description = "Starts hive metastore")
+    public static class HiveMetastoreCommand extends ServerCommand
     {
         @Override
         public void run()
