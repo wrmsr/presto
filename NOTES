@@ -937,3 +937,5 @@ make it ssh to grab fresh s3 keys lols
 *** codegen for imperative retrieval of opted-out or non-reactive tables
 
 table aliases, imperative / service tables, DAG for view validation, ...
+
+JGIT INTEGRATION FOR MANAGING REPOS OF INCLUDES
