@@ -928,3 +928,10 @@ public class HiveMetaStore extends ThriftHiveMetastore {
   public static void main(String[] args) throws Throwable {
 
 select hive_exec('catalog_name', 'create table ....');
+
+
+so, uh, limit propagation...
+
+make it ssh to grab fresh s3 keys lols
+
+*** codegen for imperative retrieval of opted-out or non-reactive tables
