@@ -105,6 +105,8 @@ package com.wrmsr.presto.wrapper.util;
 
 import io.airlift.units.DataSize;
 
+import java.util.function.Supplier;
+
 public class JvmConfiguration
 {
     public enum Prefix
@@ -151,7 +153,7 @@ public class JvmConfiguration
         }
     }
 
-    public static abstract class Item
+    public static abstract class Item<T>
     {
         private final Prefix prefix;
         private final String name;
@@ -179,172 +181,193 @@ public class JvmConfiguration
             return separator;
         }
 
-        public abstract Object getValue(); // FIXME: getCurrentValue for running jvm :/ these become instances? -- omg vlaues inner classes?
+        public T getValue()
+        {
+            throw new UnsupportedOperationException();
+        }
 
-        public abstract String toString();
+        public abstract class Value implements Supplier<T>
+        {
+            public abstract String toString();
+        }
+
+        public abstract Value valueOf(T value);
     }
 
-    public static class ValuelessItem extends Item
+    public static class ValuelessItem extends Item<Void>
     {
         public ValuelessItem(Prefix prefix, String name)
         {
             super(prefix, name, Separator.NONE);
         }
 
-        @Override
-        public Object getValue()
+        public class Value extends Item.Value
         {
-            return null;
+            @Override
+            public String toString()
+            {
+                return getPrefix() + getName();
+            }
+
+            @Override
+            public Void get()
+            {
+                return null;
+            }
+        }
+
+        public Value valueOf()
+        {
+            return valueOf(null);
         }
 
         @Override
-        public String toString()
+        public Value valueOf(Void value)
         {
-            return getPrefix() + getName();
+            return new Value();
         }
     }
 
-    public static class StringItem extends Item
+    public static class StringItem extends Item<String>
     {
-        private final String value;
-
-        public StringItem(Prefix prefix, String name, Separator separator, String value)
+        public StringItem(Prefix prefix, String name, Separator separator)
         {
             super(prefix, name, separator);
-            this.value = value;
+        }
+
+        public class Value extends Item.Value
+        {
+            private final String value;
+
+            public Value(String value)
+            {
+                this.value = value;
+            }
+
+            @Override
+            public String toString()
+            {
+                return getPrefix() + getName() + getSeparator() + value;
+            }
+
+            @Override
+            public String get()
+            {
+                return value;
+            }
         }
 
         @Override
-        public String getValue()
+        public Value valueOf(String value)
         {
-            return value;
-        }
-
-        @Override
-        public String toString()
-        {
-            return getPrefix() + getName() + getSeparator() + value;
+            return new Value(value);
         }
     }
 
-    public static class DataSizeItem extends Item
+    public static class DataSizeItem extends Item<DataSize>
     {
-        private final DataSize value;
-
-        public DataSizeItem(Prefix prefix, String name, Separator separator, DataSize value)
+        public DataSizeItem(Prefix prefix, String name, Separator separator)
         {
             super(prefix, name, separator);
-            this.value = value;
         }
 
-        @Override
-        public DataSize getValue()
+        public class Value extends Item.Value
         {
-            return value;
-        }
+            private final DataSize value;
 
-        @Override
-        public String toString()
-        {
-            final String stringValue;
-            if (Double.toString(value.getValue()).endsWith(".0")) {  // lol
-                long longValue = (long) value.getValue();
-                switch (value.getUnit()) {
-                    case TERABYTE:
-                        stringValue = Long.toString(longValue) + "T";
-                        break;
-                    case GIGABYTE:
-                        stringValue = Long.toString(longValue) + "G";
-                        break;
-                    case MEGABYTE:
-                        stringValue = Long.toString(longValue) + "M";
-                        break;
-                    case KILOBYTE:
-                        stringValue = Long.toString(longValue) + "K";
-                        break;
-                    default:
-                        stringValue = Long.toString(value.toBytes());
+            public Value(DataSize value)
+            {
+                this.value = value;
+            }
+
+            @Override
+            public String toString()
+            {
+                final String stringValue;
+                if (Double.toString(value.getValue()).endsWith(".0")) {  // lol
+                    long longValue = (long) value.getValue();
+                    switch (value.getUnit()) {
+                        case TERABYTE:
+                            stringValue = Long.toString(longValue) + "T";
+                            break;
+                        case GIGABYTE:
+                            stringValue = Long.toString(longValue) + "G";
+                            break;
+                        case MEGABYTE:
+                            stringValue = Long.toString(longValue) + "M";
+                            break;
+                        case KILOBYTE:
+                            stringValue = Long.toString(longValue) + "K";
+                            break;
+                        default:
+                            stringValue = Long.toString(value.toBytes());
+                    }
                 }
-            }
-            else {
-                stringValue = Long.toString(value.toBytes());
+                else {
+                    stringValue = Long.toString(value.toBytes());
+                }
+
+                return getPrefix() + getName() + getSeparator() + stringValue;
             }
 
-            return getPrefix() + getName() + getSeparator() + stringValue;
+            @Override
+            public DataSize get()
+            {
+                return value;
+            }
+        }
+
+        @Override
+        public Value valueOf(DataSize value)
+        {
+            return new Value(value);
         }
     }
 
-    public static class ToggleItem extends Item
+    public static class ToggleItem extends Item<Boolean>
     {
-        private final boolean value;
-
-        public ToggleItem(Prefix prefix, String name, boolean value)
+        public ToggleItem(Prefix prefix, String name)
         {
             super(prefix, name, Separator.NONE);
-            this.value = value;
+        }
+
+        public class Value extends Item.Value
+        {
+            private final boolean value;
+
+            public Value(boolean value)
+            {
+                this.value = value;
+            }
+
+            @Override
+            public String toString()
+            {
+                return getPrefix() + (value ? "+" : "-") + getName();
+            }
+
+            @Override
+            public Boolean get()
+            {
+                return value;
+            }
         }
 
         @Override
-        public Boolean getValue()
+        public Value valueOf(Boolean value)
         {
-            return value;
-        }
-
-        @Override
-        public String toString()
-        {
-            return getPrefix() + (value ? "+" : "-") + getName();
+            return new Value(value);
         }
     }
 
-    public static final class MinHeapSize extends DataSizeItem
-    {
-        public MinHeapSize(DataSize value)
-        {
-            super(Prefix.NONSTANDARD, "ms", Separator.NONE, value);
-        }
-    }
+    public static final DataSizeItem MIN_HEAP_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "ms", Separator.NONE);
+    public static final DataSizeItem MAX_HEAP_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "mx", Separator.NONE);
+    public static final DataSizeItem YOUNG_GENERATION_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "mn", Separator.NONE);
+    public static final DataSizeItem THREAD_STACK_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "ss", Separator.NONE);
+    public static final DataSizeItem MAX_DIRECT_MEMORY_SIZE  = new DataSizeItem(Prefix.UNSTABLE, "MaxDirectMemorySize", Separator.EQUALS);
+    public static final ToggleItem PRINT_GC_DATE_STAMPS = new ToggleItem(Prefix.UNSTABLE, "PrintGCDateStamps");
 
-    public static final class MaxHeapSize extends DataSizeItem
-    {
-        public MaxHeapSize(DataSize value)
-        {
-            super(Prefix.NONSTANDARD, "mx", Separator.NONE, value);
-        }
-    }
-
-    public static final class YoungGenerationSize extends DataSizeItem
-    {
-        public YoungGenerationSize(DataSize value)
-        {
-            super(Prefix.NONSTANDARD, "mn", Separator.NONE, value);
-        }
-    }
-
-    public static final class ThreadStackSize extends DataSizeItem
-    {
-        public ThreadStackSize(DataSize value)
-        {
-            super(Prefix.NONSTANDARD, "ss", Separator.NONE, value);
-        }
-    }
-
-    public static final class MaxDirectMemorySize extends DataSizeItem
-    {
-        public MaxDirectMemorySize(DataSize value)
-        {
-            super(Prefix.UNSTABLE, "MaxDirectMemorySize", Separator.EQUALS, value);
-        }
-    }
-
-    public static final class PrintGcDateStamps extends ToggleItem
-    {
-        public PrintGcDateStamps(boolean value)
-        {
-            super(Prefix.UNSTABLE, "PrintGCDateStamps", value);
-        }
-    }
-
+    /*
     public static final class PrintGcDetails extends ToggleItem
     {
         public PrintGcDetails(boolean value)
@@ -523,11 +546,15 @@ public class JvmConfiguration
     public static abstract class CMSConfiguration extends GC
     {
     }
+    */
 
     public static void main(String[] args) throws Throwable
     {
+        /*
         System.out.println(new MaxHeapSize(DataSize.valueOf("100MB")));
         System.out.println(new RemoteDebug(41414, false));
         System.out.println(new AggressiveOpts(true));
+        */
+        System.out.println(MAX_HEAP_SIZE.valueOf(DataSize.valueOf("100MB")));
     }
 }
