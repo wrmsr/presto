@@ -556,5 +556,6 @@ public class JvmConfiguration
         System.out.println(new AggressiveOpts(true));
         */
         System.out.println(MAX_HEAP_SIZE.valueOf(DataSize.valueOf("100MB")));
+        System.out.println(PRINT_GC_DATE_STAMPS.valueOf(true));
     }
 }
