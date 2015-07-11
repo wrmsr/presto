@@ -247,13 +247,33 @@ public class JvmConfiguration
         public abstract String toString();
     }
 
+    public static class ValuelessItem extends Item
+    {
+        public ValuelessItem(Prefix prefix, String name)
+        {
+            super(prefix, name, Separator.NONE);
+        }
+
+        @Override
+        public Object getValue()
+        {
+            return null;
+        }
+
+        @Override
+        public String toString()
+        {
+            return getPrefix() + getName();
+        }
+    }
+
     public static class StringItem extends Item
     {
         private final String value;
 
-        public StringItem(Prefix prefix, String name, Separator seperator, String value)
+        public StringItem(Prefix prefix, String name, Separator separator, String value)
         {
-            super(prefix, name, seperator);
+            super(prefix, name, separator);
             this.value = value;
         }
 
@@ -274,9 +294,9 @@ public class JvmConfiguration
     {
         private final DataSize value;
 
-        public DataSizeItem(Prefix prefix, String name, Separator seperator, DataSize value)
+        public DataSizeItem(Prefix prefix, String name, Separator separator, DataSize value)
         {
-            super(prefix, name, seperator);
+            super(prefix, name, separator);
             this.value = value;
         }
 
@@ -340,7 +360,7 @@ public class JvmConfiguration
         }
     }
 
-    public static class MinHeapSize extends DataSizeItem
+    public static final class MinHeapSize extends DataSizeItem
     {
         public MinHeapSize(DataSize value)
         {
@@ -348,7 +368,7 @@ public class JvmConfiguration
         }
     }
 
-    public static class MaxHeapSize extends DataSizeItem
+    public static final class MaxHeapSize extends DataSizeItem
     {
         public MaxHeapSize(DataSize value)
         {
@@ -356,13 +376,127 @@ public class JvmConfiguration
         }
     }
 
-    public static abstract class Group implements Iterable<Item>
+    public static final class MaxDirectMemorySize extends DataSizeItem
     {
+        public MaxDirectMemorySize(DataSize value)
+        {
+            super(Prefix.UNSTABLE, "MaxDirectMemorySize", Separator.EQUALS, value);
+        }
     }
 
-    public static abstract class Debug extends Group
-    {
+    /*
+        -XX:+HeapDumpOnOutOfMemoryError \
+        -XX:+UseCompressedOops \
+        -Djava.security.egd=file:/dev/./urandom \
+        -XX:+AggressiveOpts \
+        -XX:+EliminateLocks -XX:+UseLargePages \
+    */
 
+    public static final class PrintGcDateStamps extends ToggleItem
+    {
+        public PrintGcDateStamps(boolean value)
+        {
+            super(Prefix.UNSTABLE, "PrintGCDateStamps", value);
+        }
+    }
+
+    public static final class PrintGcDetails extends ToggleItem
+    {
+        public PrintGcDetails(boolean value)
+        {
+            super(Prefix.UNSTABLE, "PrintGCDetails", value);
+        }
+    }
+
+    public static final class PrintTenuringDistribution extends ToggleItem
+    {
+        public PrintTenuringDistribution(boolean value)
+        {
+            super(Prefix.UNSTABLE, "PrintTenuringDistribution", value);
+        }
+    }
+
+    public static final class UseNuma extends ToggleItem
+    {
+        public UseNuma(boolean value)
+        {
+            super(Prefix.UNSTABLE, "UseNUMA", value);
+        }
+    }
+
+    public static final class HeapDumpOnOutOfMemoryError extends ToggleItem
+    {
+        public HeapDumpOnOutOfMemoryError(boolean value)
+        {
+            super(prefix, "HeapDumpOnOutOfMemoryError", value);
+        }
+    }
+
+    public static final class Server extends ValuelessItem
+    {
+        public Server()
+        {
+            super(Prefix.NONE, "server");
+        }
+    }
+
+    public static final class Interpreted extends ValuelessItem
+    {
+        public Interpreted()
+        {
+            super(Prefix.NONSTANDARD, "int");
+        }
+    }
+
+    public static class PrintFlags extends ToggleItem
+    {
+        public PrintFlags(boolean value)
+        {
+            super(Prefix.UNSTABLE, "PrintFlagsFinal", value);
+        }
+    }
+
+    public static class UnlockDiagnostics extends ToggleItem
+    {
+        public UnlockDiagnostics(boolean value)
+        {
+            super(Prefix.UNSTABLE, "UnlockDiagnosticVMOptions", value);
+        }
+    }
+
+    public static abstract class Debug extends ValuelessItem
+    {
+        public Debug()
+        {
+            super(Prefix.NONSTANDARD, "debug");
+        }
+    }
+
+    public static class RemoteDebug extends StringItem
+    {
+        private final int port;
+        private final boolean suspend;
+
+        public RemoteDebug(int port, boolean suspend)
+        {
+            super(Prefix.NONSTANDARD, "runjdwp", Separator.COLON, String.format("transport=dt_socket,address=%d,server=y,suspend=%s", port, suspend ? "y" : "n"));
+            this.port = port;
+            this.suspend = suspend;
+        }
+
+        public int getPort()
+        {
+            return port;
+        }
+
+        public boolean isSuspend()
+        {
+            return suspend;
+        }
+    }
+
+    public static abstract class Group implements Iterable<Item>
+    {
     }
 
     public static abstract class GC extends Group
@@ -376,6 +510,6 @@ public class JvmConfiguration
     public static void main(String[] args) throws Throwable
     {
         System.out.println(new MaxHeapSize(DataSize.valueOf("100MB")));
-
+        System.out.println(new RemoteDebug(41414, false));
     }
 }
