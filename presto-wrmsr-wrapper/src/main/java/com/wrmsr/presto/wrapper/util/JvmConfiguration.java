@@ -82,13 +82,7 @@ java -help
 -Dcom.sun.management.jmxremote.authenticate=false
 -Dcom.sun.management.jmxremote.ssl=false
 
-#JAVA_HOME=/usr/lib/jvm/java-7-oracle \
-#  /usr/lib/jvm/java-7-oracle/bin/java \
-#  -Xms8192m -Xmx8192m \
 #  -XX:+PrintGCCause \
-#  -Xms24576m -Xmx24576m \
-# JAVA_HOME=/nail/home/wtimoney/jdk1.8.0
-#   /nail/home/wtimoney/jdk1.8.0/bin/java \
   -Djava.security.egd=file:/dev/./urandom \
  -XX:+UseG1GC -XX:MaxGCPauseMillis=250 \
 
@@ -101,12 +95,8 @@ http://hg.openjdk.java.net/jdk8/jdk8/hotspot/file/tip/src/share/vm/runtime/argum
 -Djava.awt.headless=true
 ulimits
 
--server
 -XX:+UseConcMarkSweepGC
 -XX:+ExplicitGCInvokesConcurrent
-
--XX:+HeapDumpOnOutOfMemoryError
--XX:OnOutOfMemoryError=kill -9 %p
 
 hotspot/src/share/vm/runtime/globals.hpp
 */
@@ -189,7 +179,7 @@ public class JvmConfiguration
             return separator;
         }
 
-        public abstract Object getValue();
+        public abstract Object getValue(); // FIXME: getCurrentValue for running jvm :/ these become instances? -- omg vlaues inner classes?
 
         public abstract String toString();
     }
@@ -416,6 +406,14 @@ public class JvmConfiguration
         public Interpreted()
         {
             super(Prefix.NONSTANDARD, "int");
+        }
+    }
+
+    public static final class OnOutOfMemoryError extends StringItem
+    {
+        public OnOutOfMemoryError(String value)
+        {
+            super(Prefix.UNSTABLE, "OnOutOfMemoryError", Separator.EQUALS, value);
         }
     }
 
