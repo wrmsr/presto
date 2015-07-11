@@ -22,46 +22,18 @@ heap size
 
 -Djava.awt.headless=true
 
-parse java -XX:+PrintFlagsFinal -version
-
 http://www.oracle.com/technetwork/java/javase/tech/vmoptions-jsp-140102.html
 http://www.oracle.com/technetwork/java/javase/tech/exactoptions-jsp-141536.html
 
 ES_CLASSPATH=$ES_CLASSPATH:$ES_HOME/lib/elasticsearch-1.0.1.jar:$ES_HOME/lib/*:$ES_HOME/lib/sigar/*
 
-if [ "x$ES_MIN_MEM" = "x" ]; then
-    ES_MIN_MEM=256m
-fi
-if [ "x$ES_MAX_MEM" = "x" ]; then
-    ES_MAX_MEM=1g
-fi
-if [ "x$ES_HEAP_SIZE" != "x" ]; then
-    ES_MIN_MEM=$ES_HEAP_SIZE
-    ES_MAX_MEM=$ES_HEAP_SIZE
-fi
-
 # min and max heap sizes should be set to the same value to avoid
 # stop-the-world GC pauses during resize, and so that we can lock the
 # heap in memory on startup to prevent any of it from being swapped
 # out.
-JAVA_OPTS="$JAVA_OPTS -Xms${ES_MIN_MEM}"
-JAVA_OPTS="$JAVA_OPTS -Xmx${ES_MAX_MEM}"
-
-# new generation
-if [ "x$ES_HEAP_NEWSIZE" != "x" ]; then
-    JAVA_OPTS="$JAVA_OPTS -Xmn${ES_HEAP_NEWSIZE}"
-fi
-
-# max direct memory
-if [ "x$ES_DIRECT_SIZE" != "x" ]; then
-    JAVA_OPTS="$JAVA_OPTS -XX:MaxDirectMemorySize=${ES_DIRECT_SIZE}"
-fi
-
-# reduce the per-thread stack size
-JAVA_OPTS="$JAVA_OPTS -Xss256k"
-
-# set to headless, just in case
-JAVA_OPTS="$JAVA_OPTS -Djava.awt.headless=true"
+-XX:+PrintClassHistogram
+-XX:+PrintGCApplicationStoppedTime
+-Xloggc:/var/log/elasticsearch/gc.log
 
 # Force the JVM to use IPv4 stack
 if [ "x$ES_USE_IPV4" != "x" ]; then
@@ -76,22 +48,13 @@ JAVA_OPTS="$JAVA_OPTS -XX:+UseCMSInitiatingOccupancyOnly"
 
 # GC logging options
 if [ "x$ES_USE_GC_LOGGING" != "x" ]; then
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDetails"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCTimeStamps"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintClassHistogram"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintTenuringDistribution"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCApplicationStoppedTime"
-  JAVA_OPTS="$JAVA_OPTS -Xloggc:/var/log/elasticsearch/gc.log"
 fi
 
-# Causes the JVM to dump its heap on OutOfMemory.
-JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
 # The path to the heap dump location, note directory must exists and have enough
 # space for a full heap dump.
 #JAVA_OPTS="$JAVA_OPTS -XX:HeapDumpPath=$ES_HOME/logs/heapdump.hprof"bash-3.2$
 
     -Xmixed           mixed mode execution (default)
-    -Xint             interpreted mode execution only
     -Xbootclasspath:<directories and zip/jar files separated by ;>
                       set search path for bootstrap classes and resources
     -Xbootclasspath/a:<directories and zip/jar files separated by ;>
@@ -102,9 +65,6 @@ JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
     -Xincgc           enable incremental garbage collection
     -Xloggc:<file>    log GC status to a file with time stamps
     -Xbatch           disable background compilation
-    -Xms<size>        set initial Java heap size
-    -Xmx<size>        set maximum Java heap size
-    -Xss<size>        set java thread stack size
     -Xprof            output cpu profiling data
     -Xfuture          enable strictest checks, anticipating future default
     -Xcheck:jni       perform additional checks for JNI functions
@@ -129,18 +89,8 @@ java -help
 #  -Xms24576m -Xmx24576m \
 # JAVA_HOME=/nail/home/wtimoney/jdk1.8.0
 #   /nail/home/wtimoney/jdk1.8.0/bin/java \
-  -server \
-  -XX:+UnlockDiagnosticVMOptions -XX:+PrintFlagsFinal \
-  -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:+PrintTenuringDistribution \
-  -Xms8192m -Xmx8192m \
-  -XX:+HeapDumpOnOutOfMemoryError \
-  -XX:+UseCompressedOops \
   -Djava.security.egd=file:/dev/./urandom \
-  -XX:+AggressiveOpts \
-  -XX:+EliminateLocks -XX:+UseLargePages \
-  -Xdebug -Xrunjdwp:transport=dt_socket,address=48192,server=y,suspend=n \
-  -XX:+UseNUMA \
-#  -XX:+UseG1GC -XX:MaxGCPauseMillis=250 \
+ -XX:+UseG1GC -XX:MaxGCPauseMillis=250 \
 
 RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
 List<String> arguments = runtimeMxBean.getInputArguments();
@@ -148,16 +98,13 @@ List<String> arguments = runtimeMxBean.getInputArguments();
 http://hg.openjdk.java.net/jdk8/jdk8/hotspot/file/tip/src/share/vm/runtime/arguments.cpp
 http://hg.openjdk.java.net/jdk8/jdk8/hotspot/file/tip/src/share/vm/runtime/arguments.hpp
 
-    public stat
-
 -Djava.awt.headless=true
 ulimits
 
 -server
--Xmx16G
 -XX:+UseConcMarkSweepGC
 -XX:+ExplicitGCInvokesConcurrent
--XX:+AggressiveOpts
+
 -XX:+HeapDumpOnOutOfMemoryError
 -XX:OnOutOfMemoryError=kill -9 %p
 
@@ -376,6 +323,22 @@ public class JvmConfiguration
         }
     }
 
+    public static final class YoungGenerationSize extends DataSizeItem
+    {
+        public YoungGenerationSize(DataSize value)
+        {
+            super(Prefix.NONSTANDARD, "mn", Separator.NONE, value);
+        }
+    }
+
+    public static final class ThreadStackSize extends DataSizeItem
+    {
+        public ThreadStackSize(DataSize value)
+        {
+            super(Prefix.NONSTANDARD, "ss", Separator.NONE, value);
+        }
+    }
+
     public static final class MaxDirectMemorySize extends DataSizeItem
     {
         public MaxDirectMemorySize(DataSize value)
@@ -383,14 +346,6 @@ public class JvmConfiguration
             super(Prefix.UNSTABLE, "MaxDirectMemorySize", Separator.EQUALS, value);
         }
     }
-
-    /*
-        -XX:+HeapDumpOnOutOfMemoryError \
-        -XX:+UseCompressedOops \
-        -Djava.security.egd=file:/dev/./urandom \
-        -XX:+AggressiveOpts \
-        -XX:+EliminateLocks -XX:+UseLargePages \
-    */
 
     public static final class PrintGcDateStamps extends ToggleItem
     {
@@ -416,6 +371,14 @@ public class JvmConfiguration
         }
     }
 
+    public static final class PrintJniGcStalls extends ToggleItem
+    {
+        public PrintJniGcStalls(boolean value)
+        {
+            super(Prefix.UNSTABLE, "PrintJNIGCStalls", value);
+        }
+    }
+
     public static final class UseNuma extends ToggleItem
     {
         public UseNuma(boolean value)
@@ -428,7 +391,15 @@ public class JvmConfiguration
     {
         public HeapDumpOnOutOfMemoryError(boolean value)
         {
-            super(prefix, "HeapDumpOnOutOfMemoryError", value);
+            super(Prefix.UNSTABLE, "HeapDumpOnOutOfMemoryError", value);
+        }
+    }
+
+    public static final class HeapDumpPath extends StringItem
+    {
+        public HeapDumpPath( String value)
+        {
+            super(Prefix.UNSTABLE, "HeapDumpPath", Separator.EQUALS, value);
         }
     }
 
@@ -448,7 +419,7 @@ public class JvmConfiguration
         }
     }
 
-    public static class PrintFlags extends ToggleItem
+    public static final class PrintFlags extends ToggleItem
     {
         public PrintFlags(boolean value)
         {
@@ -456,7 +427,7 @@ public class JvmConfiguration
         }
     }
 
-    public static class UnlockDiagnostics extends ToggleItem
+    public static final class UnlockDiagnostics extends ToggleItem
     {
         public UnlockDiagnostics(boolean value)
         {
@@ -464,7 +435,31 @@ public class JvmConfiguration
         }
     }
 
-    public static abstract class Debug extends ValuelessItem
+    public static final class AggressiveOpts extends ToggleItem
+    {
+        public AggressiveOpts(boolean value)
+        {
+            super(Prefix.UNSTABLE, "AggressiveOpts", value);
+        }
+    }
+
+    public static final class EliminateLocks extends ToggleItem
+    {
+        public EliminateLocks(boolean value)
+        {
+            super(Prefix.UNSTABLE, "EliminateLocks", value);
+        }
+    }
+
+    public static final class UseLargePages extends ToggleItem
+    {
+        public UseLargePages(boolean value)
+        {
+            super(Prefix.UNSTABLE, "UseLargePages", value);
+        }
+    }
+
+    public static final class Debug extends ValuelessItem
     {
         public Debug()
         {
@@ -472,7 +467,31 @@ public class JvmConfiguration
         }
     }
 
-    public static class RemoteDebug extends StringItem
+    public static final class PrintInlining extends ToggleItem
+    {
+        public PrintInlining(boolean value)
+        {
+            super(Prefix.UNSTABLE, "PrintInlining", value);
+        }
+    }
+
+    public static final class PrintCompilation extends ToggleItem
+    {
+        public PrintCompilation(boolean value)
+        {
+            super(Prefix.UNSTABLE, "PrintCompilation", value);
+        }
+    }
+
+    public static final class UseCompressedOops extends ToggleItem
+    {
+        public UseCompressedOops(boolean value)
+        {
+            super(Prefix.UNSTABLE, "UseCompressedOops", value);
+        }
+    }
+
+    public static final class RemoteDebug extends StringItem
     {
         private final int port;
         private final boolean suspend;
@@ -511,5 +530,6 @@ public class JvmConfiguration
     {
         System.out.println(new MaxHeapSize(DataSize.valueOf("100MB")));
         System.out.println(new RemoteDebug(41414, false));
+        System.out.println(new AggressiveOpts(true));
     }
 }
