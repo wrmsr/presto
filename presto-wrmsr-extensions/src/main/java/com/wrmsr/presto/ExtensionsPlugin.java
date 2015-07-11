@@ -21,6 +21,8 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.server.PluginManager;
+import com.google.inject.Module;
+import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
@@ -69,6 +71,7 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.YAML_OBJECT_MAPPER;
+import static io.airlift.jaxrs.JaxrsBinder.jaxrsBinder;
 
 // import com.facebook.presto.type.ParametricType;
 
@@ -250,6 +253,16 @@ public class ExtensionsPlugin
     @Override
     public <T> List<T> getServices(Class<T> type)
     {
+        if (type == ModuleProcessor.class) {
+            return ImmutableList.of(type.cast(new ModuleProcessor() {
+                @Override
+                public Module apply(Module module)
+                {
+                    // jaxrsBinder(binder).bind(ShutdownResource.class);
+                    return module;
+                }
+            }));
+        }
         if (type == ConnectorFactory.class) {
             return ImmutableList.of(
                     type.cast(new PartitionerConnectorFactory(optionalConfig, new PartitionerModule(null), getClassLoader(), connectorManager)),
