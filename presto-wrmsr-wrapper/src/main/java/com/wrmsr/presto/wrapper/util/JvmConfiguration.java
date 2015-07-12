@@ -20,8 +20,6 @@ gc configs
 properties
 heap size
 
--Djava.awt.headless=true
-
 http://www.oracle.com/technetwork/java/javase/tech/vmoptions-jsp-140102.html
 http://www.oracle.com/technetwork/java/javase/tech/exactoptions-jsp-141536.html
 
@@ -76,12 +74,6 @@ The -X options are non-standard and subject to change without notice.
 
 java -help
 
--Dcom.sun.management.jmxremote
--Dcom.sun.management.jmxremote.port=9010
--Dcom.sun.management.jmxremote.local.only=false
--Dcom.sun.management.jmxremote.authenticate=false
--Dcom.sun.management.jmxremote.ssl=false
-
 #  -XX:+PrintGCCause \
   -Djava.security.egd=file:/dev/./urandom \
  -XX:+UseG1GC -XX:MaxGCPauseMillis=250 \
@@ -92,7 +84,6 @@ List<String> arguments = runtimeMxBean.getInputArguments();
 http://hg.openjdk.java.net/jdk8/jdk8/hotspot/file/tip/src/share/vm/runtime/arguments.cpp
 http://hg.openjdk.java.net/jdk8/jdk8/hotspot/file/tip/src/share/vm/runtime/arguments.hpp
 
--Djava.awt.headless=true
 ulimits
 
 -XX:+UseConcMarkSweepGC
@@ -360,180 +351,83 @@ public class JvmConfiguration
         }
     }
 
+    public static class ValuelessPropertyItem extends ValuelessItem
+    {
+        public ValuelessPropertyItem(String name)
+        {
+            super(Prefix.PROPERTY, name);
+        }
+    }
+
+    public static class PropertyItem extends StringItem
+    {
+        public PropertyItem(String name)
+        {
+            super(Prefix.PROPERTY, name, Separator.EQUALS);
+        }
+    }
+
     public static final DataSizeItem MIN_HEAP_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "ms", Separator.NONE);
     public static final DataSizeItem MAX_HEAP_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "mx", Separator.NONE);
     public static final DataSizeItem YOUNG_GENERATION_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "mn", Separator.NONE);
     public static final DataSizeItem THREAD_STACK_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "ss", Separator.NONE);
     public static final DataSizeItem MAX_DIRECT_MEMORY_SIZE  = new DataSizeItem(Prefix.UNSTABLE, "MaxDirectMemorySize", Separator.EQUALS);
     public static final ToggleItem PRINT_GC_DATE_STAMPS = new ToggleItem(Prefix.UNSTABLE, "PrintGCDateStamps");
+    public static final ToggleItem PRINT_GC_DETAILS = new ToggleItem(Prefix.UNSTABLE, "PrintGCDetails");
+    public static final ToggleItem PRINT_TENURING_DISTRIBUTION = new ToggleItem(Prefix.UNSTABLE, "PrintTenuringDistribution");
+    public static final ToggleItem PRINT_JNI_GC_STALLS = new ToggleItem(Prefix.UNSTABLE, "PrintJNIGCStalls");
+    public static final ToggleItem USE_NUMA = new ToggleItem(Prefix.UNSTABLE, "UseNUMA");
+    public static final ToggleItem HEAP_DUMP_ON_OUT_OF_MEMORY_ERROR = new ToggleItem(Prefix.UNSTABLE, "HeapDumpOnOutOfMemoryError");
+    public static final StringItem HEAP_DUMP_PATH = new StringItem(Prefix.UNSTABLE, "HeapDumpPath", Separator.EQUALS);
+    public static final ValuelessItem SERVER = new ValuelessItem(Prefix.NONE, "server");
+    public static final ValuelessItem INTERPRETED = new ValuelessItem(Prefix.NONSTANDARD, "int");
+    public static final StringItem ON_OUT_OF_MEMORY_ERROR = new StringItem(Prefix.UNSTABLE, "OnOutOfMemoryError", Separator.EQUALS);
+    public static final StringItem ON_ERROR = new StringItem(Prefix.UNSTABLE, "OnError", Separator.EQUALS);
+    public static final ToggleItem PRINT_FLAGS_FINAL = new ToggleItem(Prefix.UNSTABLE, "PrintFlagsFinal");
+    public static final ToggleItem UNLOCK_DIAGNOSTIC_VM_OPTIONS = new ToggleItem(Prefix.UNSTABLE, "UnlockDiagnosticVMOptions");
+    public static final ToggleItem AGGRESSIVE_OPTS = new ToggleItem(Prefix.UNSTABLE, "AggressiveOpts");
+    public static final ToggleItem ELIMINATE_LOCKS = new ToggleItem(Prefix.UNSTABLE, "EliminateLocks");
+    public static final ToggleItem USE_LARGE_PAGES = new ToggleItem(Prefix.UNSTABLE, "UseLargePages");
+    public static final ValuelessItem DEBUG = new ValuelessItem(Prefix.NONSTANDARD, "debug");
+    public static final ToggleItem PRINT_INLINING = new ToggleItem(Prefix.UNSTABLE, "PrintInlining");
+    public static final ToggleItem PRINT_COMPILATION = new ToggleItem(Prefix.UNSTABLE, "PrintCompilation");
+    public static final ToggleItem USE_COMPRESSED_OOPS = new ToggleItem(Prefix.UNSTABLE, "UseCompressedOops");
+    public static final StringItem OBJECT_ALIGNMENT_IN_BYTES = new StringItem(Prefix.UNSTABLE, "ObjectAlignmentInBytes", Separator.EQUALS);
+    public static final ToggleItem ALWAYS_PRE_TOUCH = new ToggleItem(Prefix.UNSTABLE, "AlwaysPreTouch");
+
+    public static final class RemoteDebugItem extends StringItem
+    {
+        public RemoteDebugItem()
+        {
+            super(Prefix.NONSTANDARD, "runjdwp", Separator.COLON);
+        }
+
+        public Value valueOf(int port, boolean suspend)
+        {
+            return valueOf(String.format("transport=dt_socket,address=%d,server=y,suspend=%s", port, suspend ? "y" : "n"));
+        }
+    }
+
+    public static final RemoteDebugItem REMOTE_DEBUG = new RemoteDebugItem();
+
+    public static final PropertyItem HEADLESS = new PropertyItem("java.awt.headless");
+    public static final ValuelessPropertyItem JMX_REMOTE = new ValuelessPropertyItem("com.sun.management.jmxremote");
+    public static final PropertyItem JMX_REMOTE_PORT = new PropertyItem("com.sun.management.jmxremote.port");
+    public static final PropertyItem JMX_REMOTE_LOCAL_ONLY = new PropertyItem("com.sun.management.jmxremote.local.only");
+    public static final PropertyItem JMX_REMOTE_AUTHENTICATE = new PropertyItem("com.sun.management.jmxremote.authenticate");
+    public static final PropertyItem JMX_REMOTE_SSL = new PropertyItem("com.sun.management.jmxremote.ssl");
 
     /*
-    public static final class PrintGcDetails extends ToggleItem
-    {
-        public PrintGcDetails(boolean value)
-        {
-            super(Prefix.UNSTABLE, "PrintGCDetails", value);
-        }
-    }
-
-    public static final class PrintTenuringDistribution extends ToggleItem
-    {
-        public PrintTenuringDistribution(boolean value)
-        {
-            super(Prefix.UNSTABLE, "PrintTenuringDistribution", value);
-        }
-    }
-
-    public static final class PrintJniGcStalls extends ToggleItem
-    {
-        public PrintJniGcStalls(boolean value)
-        {
-            super(Prefix.UNSTABLE, "PrintJNIGCStalls", value);
-        }
-    }
-
-    public static final class UseNuma extends ToggleItem
-    {
-        public UseNuma(boolean value)
-        {
-            super(Prefix.UNSTABLE, "UseNUMA", value);
-        }
-    }
-
-    public static final class HeapDumpOnOutOfMemoryError extends ToggleItem
-    {
-        public HeapDumpOnOutOfMemoryError(boolean value)
-        {
-            super(Prefix.UNSTABLE, "HeapDumpOnOutOfMemoryError", value);
-        }
-    }
-
-    public static final class HeapDumpPath extends StringItem
-    {
-        public HeapDumpPath( String value)
-        {
-            super(Prefix.UNSTABLE, "HeapDumpPath", Separator.EQUALS, value);
-        }
-    }
-
-    public static final class Server extends ValuelessItem
-    {
-        public Server()
-        {
-            super(Prefix.NONE, "server");
-        }
-    }
-
-    public static final class Interpreted extends ValuelessItem
-    {
-        public Interpreted()
-        {
-            super(Prefix.NONSTANDARD, "int");
-        }
-    }
-
-    public static final class OnOutOfMemoryError extends StringItem
-    {
-        public OnOutOfMemoryError(String value)
-        {
-            super(Prefix.UNSTABLE, "OnOutOfMemoryError", Separator.EQUALS, value);
-        }
-    }
-
-    public static final class PrintFlags extends ToggleItem
-    {
-        public PrintFlags(boolean value)
-        {
-            super(Prefix.UNSTABLE, "PrintFlagsFinal", value);
-        }
-    }
-
-    public static final class UnlockDiagnostics extends ToggleItem
-    {
-        public UnlockDiagnostics(boolean value)
-        {
-            super(Prefix.UNSTABLE, "UnlockDiagnosticVMOptions", value);
-        }
-    }
-
-    public static final class AggressiveOpts extends ToggleItem
-    {
-        public AggressiveOpts(boolean value)
-        {
-            super(Prefix.UNSTABLE, "AggressiveOpts", value);
-        }
-    }
-
-    public static final class EliminateLocks extends ToggleItem
-    {
-        public EliminateLocks(boolean value)
-        {
-            super(Prefix.UNSTABLE, "EliminateLocks", value);
-        }
-    }
-
-    public static final class UseLargePages extends ToggleItem
-    {
-        public UseLargePages(boolean value)
-        {
-            super(Prefix.UNSTABLE, "UseLargePages", value);
-        }
-    }
-
-    public static final class Debug extends ValuelessItem
-    {
-        public Debug()
-        {
-            super(Prefix.NONSTANDARD, "debug");
-        }
-    }
-
-    public static final class PrintInlining extends ToggleItem
-    {
-        public PrintInlining(boolean value)
-        {
-            super(Prefix.UNSTABLE, "PrintInlining", value);
-        }
-    }
-
-    public static final class PrintCompilation extends ToggleItem
-    {
-        public PrintCompilation(boolean value)
-        {
-            super(Prefix.UNSTABLE, "PrintCompilation", value);
-        }
-    }
-
-    public static final class UseCompressedOops extends ToggleItem
-    {
-        public UseCompressedOops(boolean value)
-        {
-            super(Prefix.UNSTABLE, "UseCompressedOops", value);
-        }
-    }
-
-    public static final class RemoteDebug extends StringItem
-    {
-        private final int port;
-        private final boolean suspend;
-
-        public RemoteDebug(int port, boolean suspend)
-        {
-            super(Prefix.NONSTANDARD, "runjdwp", Separator.COLON, String.format("transport=dt_socket,address=%d,server=y,suspend=%s", port, suspend ? "y" : "n"));
-            this.port = port;
-            this.suspend = suspend;
-        }
-
-        public int getPort()
-        {
-            return port;
-        }
-
-        public boolean isSuspend()
-        {
-            return suspend;
-        }
-    }
+    NUMAStats
+    PrintAssembly
+    RelaxAccessControlCheck
+    UseAdaptiveGCBoundary
+    UseGCTaskAffinity
+    UseSSE42Intrinsics
+    wizardmode
+    BiasedLockingStartupDelay
+    FenceInstruction
+    EmitSync
 
     public static abstract class Group implements Iterable<Item>
     {
