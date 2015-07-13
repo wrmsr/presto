@@ -99,7 +99,7 @@ plugin.bundles=presto-wrmsr-extensions
 
 public class PrestoWrapperMain
 {
-    public static void main2(String[] args)
+    public static void main(String[] args)
     {
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
@@ -198,6 +198,9 @@ public class PrestoWrapperMain
     @Command(name = "cli", description = "Starts presto cli")
     public static class CliCommand extends ServerCommand
     {
+        @Arguments(description = "arguments")
+        private List<String> args;
+
         @Override
         public void run()
         {
@@ -208,7 +211,7 @@ public class PrestoWrapperMain
                 Repositories.setupClassLoaderForModule(originalCl, cl.getChildClassLoader(), "presto-cli");
                 Class prestoServerClass = cl.loadClass("com.facebook.presto.cli.Presto");
                 Method prestoServerMain = prestoServerClass.getMethod("main", String[].class);
-                prestoServerMain.invoke(null, new Object[]{args});
+                prestoServerMain.invoke(null, new Object[]{args.toArray(new String[args.size()])});
             }
             catch (Exception e) {
                 throw Throwables.propagate(e);
@@ -274,7 +277,7 @@ public class PrestoWrapperMain
     {
     }
 
-    public static void main(String[] args)
+    public static void main2(String[] args)
             throws Throwable
     {
         new PrestoWrapperMain().run(args);
