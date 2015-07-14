@@ -396,6 +396,7 @@ public class PrestoWrapperBuilder
                     contents.add(pathPart);
                 }
             }
+            // FIXME: correct date modified
             JarEntry je = new JarEntry(p);
             jo.putNextEntry(je);
             if (e instanceof FileEntry) {
@@ -422,6 +423,7 @@ public class PrestoWrapperBuilder
             launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, Charsets.UTF_8)).getBytes();
         }
 
+        // TODO suffix with git sha
         String exePath = System.getProperty("user.home") + "/presto/presto";
         try (InputStream fi = new BufferedInputStream(new FileInputStream(outPath));
              OutputStream fo = new BufferedOutputStream(new FileOutputStream(exePath))) {
