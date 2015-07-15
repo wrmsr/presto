@@ -15,7 +15,7 @@ public class ShutdownResource
 {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
-    public Response createQuery(@Context HttpServletRequest servletRequest)
+    public Response shutdown(@Context HttpServletRequest servletRequest)
     {
         return Response.ok(ImmutableMap.of(), MediaType.APPLICATION_JSON_TYPE).build();
     }
