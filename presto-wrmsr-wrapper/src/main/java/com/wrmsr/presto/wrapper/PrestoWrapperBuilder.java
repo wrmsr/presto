@@ -66,10 +66,17 @@ public class PrestoWrapperBuilder
     public static abstract class Entry
     {
         private final String jarPath;
+        private final long time;
 
-        public Entry(String jarPath)
+        public Entry(String jarPath, long time)
         {
             this.jarPath = jarPath;
+            this.time = time;
+        }
+
+        public void processEntry(JarEntry je)
+        {
+            je.setTime(time);
         }
 
         public String getJarPath()
@@ -105,7 +112,7 @@ public class PrestoWrapperBuilder
 
         public FileEntry(String jarPath, File file)
         {
-            super(jarPath);
+            super(jarPath, file.lastModified());
             this.file = file;
         }
 
@@ -145,9 +152,9 @@ public class PrestoWrapperBuilder
     {
         public final byte[] bytes;
 
-        public BytesEntry(String jarPath, byte[] bytes)
+        public BytesEntry(String jarPath, byte[] bytes, long time)
         {
-            super(jarPath);
+            super(jarPath, time);
             this.bytes = bytes;
         }
 
@@ -180,15 +187,6 @@ public class PrestoWrapperBuilder
             int result = super.hashCode();
             result = 31 * result + (bytes != null ? Arrays.hashCode(bytes) : 0);
             return result;
-        }
-    }
-
-    public void build() throws IOException
-    {
-        Manifest manifest = new Manifest();
-        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        try (JarOutputStream target = new JarOutputStream(new FileOutputStream("output.jar"), manifest)) {
-            add(new File("inputDirectory"), target);
         }
     }
 
@@ -349,7 +347,7 @@ public class PrestoWrapperBuilder
             String classpathPath = new File(classpathBase, name).toString();
             checkState(classpathPath.startsWith("/"));
             classpathPath = classpathPath.substring(1);
-            entries.add(new BytesEntry(classpathPath, repoPathsStr.getBytes()));
+            entries.add(new BytesEntry(classpathPath, repoPathsStr.getBytes(), System.currentTimeMillis()));
         }
 
         checkState(wrapperJarFile != null);
