@@ -394,8 +394,8 @@ public class PrestoWrapperBuilder
                     contents.add(pathPart);
                 }
             }
-            // FIXME: correct date modified
             JarEntry je = new JarEntry(p);
+            e.processEntry(je);
             jo.putNextEntry(je);
             if (e instanceof FileEntry) {
                 FileEntry f = (FileEntry) e;
