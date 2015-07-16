@@ -252,9 +252,23 @@ public class PrestoWrapperMain
         {
             try {
                 ClassLoader cl = constructModuleClassloader(getModuleName());
-                Class cls = cl.loadClass(getClassName());
-                Method main = cls.getMethod("main", String[].class);
-                main.invoke(null, new Object[]{args.toArray(new String[args.size()])});
+                Thread t = new Thread() {
+                    @Override
+                    public void run()
+                    {
+                        try {
+                            Thread.currentThread().setContextClassLoader(cl);
+                            Class cls = cl.loadClass(getClassName());
+                            Method main = cls.getMethod("main", String[].class);
+                            main.invoke(null, new Object[]{args.toArray(new String[args.size()])});
+                        }
+                        catch (Exception e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
+                };
+                t.start();
+                t.wait();
             }
             catch (Exception e) {
                 throw Throwables.propagate(e);
