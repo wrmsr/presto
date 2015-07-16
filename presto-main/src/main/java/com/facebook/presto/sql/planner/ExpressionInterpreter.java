@@ -18,10 +18,12 @@ import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.OperatorType;
+import com.facebook.presto.operator.scalar.ArraySubscriptOperator;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.RecordCursor;
 import com.facebook.presto.spi.block.Block;
+import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.tree.ArithmeticBinaryExpression;
 import com.facebook.presto.sql.tree.ArithmeticUnaryExpression;
@@ -800,6 +802,9 @@ public class ExpressionInterpreter
             if (index == null) {
                 return null;
             }
+            if ((index instanceof Long) && isArray(expressionTypes.get(node.getBase()))) {
+                ArraySubscriptOperator.checkArrayIndex((Long) index);
+            }
 
             if (hasUnresolvedValue(base, index)) {
                 return new SubscriptExpression(toExpression(base, expressionTypes.get(node.getBase())), toExpression(index, expressionTypes.get(node.getIndex())));
@@ -883,5 +888,10 @@ public class ExpressionInterpreter
     private static boolean isNullLiteral(Expression entry)
     {
         return entry instanceof Literal && !(entry instanceof NullLiteral);
+    }
+
+    private static boolean isArray(Type type)
+    {
+        return type.getTypeSignature().getBase().equals(StandardTypes.ARRAY);
     }
 }
