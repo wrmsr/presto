@@ -141,12 +141,12 @@ public class PrestoWrapperMain
     }
 
     @Command(name = "run", description = "Runs presto server")
-    public static class Run extends ServerCommand
+    public static class Run extends WrapperCommand
     {
         @Override
         public void run()
         {
-
+            runStaticMethod(resolveModuleClassloaderUrls("presto-main"), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[]{String[].class}, new Object[]{new String[]{}});
         }
     }
 
@@ -240,8 +240,35 @@ public class PrestoWrapperMain
         return new ParentLastURLClassLoader(resolveModuleClassloaderUrls(name));
     }
 
+    public static void runStaticMethod(List<URL> urls, String className, String methodName, Class<?>[] parameterTypes, Object[] args)
+    {
+        Thread t = new Thread() {
+            @Override
+            public void run()
+            {
+                try {
+                    ClassLoader cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), getContextClassLoader().getParent());
+                    Thread.currentThread().setContextClassLoader(cl);
+                    Class cls = cl.loadClass(className);
+                    Method main = cls.getMethod(methodName, parameterTypes);
+                    main.invoke(null, args);
+                }
+                catch (Exception e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        };
+        t.start();
+        try {
+            t.join();
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw Throwables.propagate(e);
+        }
+    }
 
-    public static abstract class PassthroughCommand extends ServerCommand
+    public static abstract class PassthroughCommand extends WrapperCommand
     {
         public abstract String getModuleName();
 
@@ -253,30 +280,7 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
-            try {
-                List<URL> urls = resolveModuleClassloaderUrls(getModuleName());
-                Thread t = new Thread() {
-                    @Override
-                    public void run()
-                    {
-                        try {
-                            ClassLoader cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), getContextClassLoader().getParent());
-                            Thread.currentThread().setContextClassLoader(cl);
-                            Class cls = cl.loadClass(getClassName());
-                            Method main = cls.getMethod("main", String[].class);
-                            main.invoke(null, new Object[]{args.toArray(new String[args.size()])});
-                        }
-                        catch (Exception e) {
-                            throw Throwables.propagate(e);
-                        }
-                    }
-                };
-                t.start();
-                t.join();
-            }
-            catch (Exception e) {
-                throw Throwables.propagate(e);
-            }
+            runStaticMethod(resolveModuleClassloaderUrls(getModuleName()), getClassName(), "main", new Class<?>[]{String[].class}, new Object[]{args.toArray(new String[args.size()])});
         }
     }
 
