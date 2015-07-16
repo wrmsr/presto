@@ -207,13 +207,11 @@ public class PrestoWrapperMain
         return list;
     }
 
-    public static ClassLoader constructModuleClassloader(String name)
+    public static List<URL> resolveModuleClassloaderUrls(String name)
     {
-        List<URL> urls;
-
         try {
             if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
-                urls = Repositories.resolveUrlsForModule(name);
+                return Repositories.resolveUrlsForModule(name);
             }
             else {
                 ArtifactResolver resolver = new ArtifactResolver(
@@ -221,7 +219,7 @@ public class PrestoWrapperMain
                         ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
                 List<Artifact> artifacts = resolver.resolvePom(new File(name + "/pom.xml"));
 
-                urls = newArrayList();
+                List<URL> urls = newArrayList();
                 for (Artifact artifact : sortedArtifacts(artifacts)) {
                     if (artifact.getFile() == null) {
                         throw new RuntimeException("Could not resolve artifact: " + artifact);
@@ -229,14 +227,19 @@ public class PrestoWrapperMain
                     File file = artifact.getFile().getCanonicalFile();
                     urls.add(file.toURI().toURL());
                 }
+                return urls;
             }
         }
         catch (IOException e) {
             throw Throwables.propagate(e);
         }
-
-        return new ParentLastURLClassLoader(urls);
     }
+
+    public static ClassLoader constructModuleClassloader(String name)
+    {
+        return new ParentLastURLClassLoader(resolveModuleClassloaderUrls(name));
+    }
+
 
     public static abstract class PassthroughCommand extends ServerCommand
     {
@@ -251,12 +254,13 @@ public class PrestoWrapperMain
         public void run()
         {
             try {
-                ClassLoader cl = constructModuleClassloader(getModuleName());
+                List<URL> urls = resolveModuleClassloaderUrls(getModuleName());
                 Thread t = new Thread() {
                     @Override
                     public void run()
                     {
                         try {
+                            ClassLoader cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), getContextClassLoader().getParent());
                             Thread.currentThread().setContextClassLoader(cl);
                             Class cls = cl.loadClass(getClassName());
                             Method main = cls.getMethod("main", String[].class);
@@ -268,7 +272,7 @@ public class PrestoWrapperMain
                     }
                 };
                 t.start();
-                t.wait();
+                t.join();
             }
             catch (Exception e) {
                 throw Throwables.propagate(e);
