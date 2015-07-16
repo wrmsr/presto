@@ -238,9 +238,12 @@ public class PrestoWrapperMain
         return new ParentLastURLClassLoader(urls);
     }
 
-    @Command(name = "cli", description = "Starts presto cli")
-    public static class CliCommand extends ServerCommand
+    public static abstract class PassthroughCommand extends ServerCommand
     {
+        public abstract String getModuleName();
+
+        public abstract String getClassName();
+
         @Arguments(description = "arguments")
         private List<String> args = newArrayList();
 
@@ -248,10 +251,10 @@ public class PrestoWrapperMain
         public void run()
         {
             try {
-                ClassLoader cl = constructModuleClassloader("presto-cli");
-                Class prestoServerClass = cl.loadClass("com.facebook.presto.cli.Presto");
-                Method prestoServerMain = prestoServerClass.getMethod("main", String[].class);
-                prestoServerMain.invoke(null, new Object[]{args.toArray(new String[args.size()])});
+                ClassLoader cl = constructModuleClassloader(getModuleName());
+                Class cls = cl.loadClass(getClassName());
+                Method main = cls.getMethod("main", String[].class);
+                main.invoke(null, new Object[]{args.toArray(new String[args.size()])});
             }
             catch (Exception e) {
                 throw Throwables.propagate(e);
@@ -259,13 +262,35 @@ public class PrestoWrapperMain
         }
     }
 
-    @Command(name = "hive-metastore", description = "Starts hive metastore")
-    public static class HiveMetastoreCommand extends ServerCommand
+    @Command(name = "cli", description = "Starts presto cli")
+    public static class CliCommand extends PassthroughCommand
     {
         @Override
-        public void run()
+        public String getModuleName()
         {
+            return "presto-cli";
+        }
 
+        @Override
+        public String getClassName()
+        {
+            return "com.facebook.presto.cli.Presto";
+        }
+    }
+
+    @Command(name = "hive-metastore", description = "Starts hive metastore")
+    public static class HiveMetastoreCommand extends PassthroughCommand
+    {
+        @Override
+        public String getModuleName()
+        {
+            return "presto-hive-hadoop2";
+        }
+
+        @Override
+        public String getClassName()
+        {
+            return "org.apache.hadoop.hive.metastore.HiveMetaStore";
         }
     }
 
