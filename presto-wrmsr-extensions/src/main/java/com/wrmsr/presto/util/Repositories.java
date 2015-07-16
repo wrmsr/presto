@@ -86,7 +86,7 @@ public class Repositories
         return getOrMakePropertyPath(REPOSITORY_PATH_PROPERTY_KEY);
     }
 
-    public static String getRepositoryPath() throws IOException
+    public static String getRepositoryPath()
     {
         return System.getProperty(REPOSITORY_PATH_PROPERTY_KEY);
     }
@@ -132,7 +132,7 @@ public class Repositories
     {
         Thread[] threads = new Thread[1];
         Thread.enumerate(threads);
-        ClassLoader classLoader = threads[0].getContextClassLoader();
+        ClassLoader classLoader = threads[0].getContextClassLoader(); // FIXME: lol.
         return resolveUrlsForModule(classLoader, moduleName);
     }
 }

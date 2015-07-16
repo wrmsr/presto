@@ -13,10 +13,12 @@
  */
 package com.wrmsr.presto.wrapper;
 
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
 import com.wrmsr.presto.util.Repositories;
 import com.wrmsr.presto.wrapper.util.POSIXUtils;
 import com.wrmsr.presto.wrapper.util.ParentLastURLClassLoader;
@@ -28,14 +30,17 @@ import jnr.posix.util.Platform;
 import org.sonatype.aether.artifact.Artifact;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
 
 // mesos yarn cli jarsync
 
@@ -195,20 +200,55 @@ public class PrestoWrapperMain
         }
     }
 
+    private static List<Artifact> sortedArtifacts(List<Artifact> artifacts)
+    {
+        List<Artifact> list = Lists.newArrayList(artifacts);
+        Collections.sort(list, Ordering.natural().nullsLast().onResultOf(Artifact::getFile));
+        return list;
+    }
+
+    public static ClassLoader constructModuleClassloader(String name)
+    {
+        List<URL> urls;
+
+        try {
+            if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+                urls = Repositories.resolveUrlsForModule(name);
+            }
+            else {
+                ArtifactResolver resolver = new ArtifactResolver(
+                        ArtifactResolver.USER_LOCAL_REPO,
+                        ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
+                List<Artifact> artifacts = resolver.resolvePom(new File(name + "/pom.xml"));
+
+                urls = newArrayList();
+                for (Artifact artifact : sortedArtifacts(artifacts)) {
+                    if (artifact.getFile() == null) {
+                        throw new RuntimeException("Could not resolve artifact: " + artifact);
+                    }
+                    File file = artifact.getFile().getCanonicalFile();
+                    urls.add(file.toURI().toURL());
+                }
+            }
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+
+        return new ParentLastURLClassLoader(urls);
+    }
+
     @Command(name = "cli", description = "Starts presto cli")
     public static class CliCommand extends ServerCommand
     {
         @Arguments(description = "arguments")
-        private List<String> args;
+        private List<String> args = newArrayList();
 
         @Override
         public void run()
         {
             try {
-                ClassLoader originalCl = Thread.currentThread().getContextClassLoader();
-                Thread.currentThread().setContextClassLoader(new URLClassLoader(new URL[]{}, originalCl.getParent()));
-                ParentLastURLClassLoader cl = new ParentLastURLClassLoader(ImmutableList.of());
-                Repositories.setupClassLoaderForModule(originalCl, cl.getChildClassLoader(), "presto-cli");
+                ClassLoader cl = constructModuleClassloader("presto-cli");
                 Class prestoServerClass = cl.loadClass("com.facebook.presto.cli.Presto");
                 Method prestoServerMain = prestoServerClass.getMethod("main", String[].class);
                 prestoServerMain.invoke(null, new Object[]{args.toArray(new String[args.size()])});
@@ -275,13 +315,6 @@ public class PrestoWrapperMain
 
     private PrestoWrapperMain()
     {
-    }
-
-    public static void main2(String[] args)
-            throws Throwable
-    {
-        new PrestoWrapperMain().run(args);
-        // main2(args);
     }
 
     public void run(String[] args)
