@@ -100,10 +100,27 @@ discovery.uri=http://example.net:8080
 
 plugin.dir=/dev/null
 plugin.bundles=presto-wrmsr-extensions
+
+        ImmutableMap<String, String> props = ImmutableMap.<String, String>builder()
+                .put("node.environment", "production")
+                .put("node.id", "ffffffff-ffff-ffff-ffff-ffffffffffff")
+                .put("node.data-dir", "/Users/wtimoney/presto/data/")
+                .put("presto.version", "0.105-SNAPSHOT")
+                .put("coordinator", "true")
+                .put("node-scheduler.include-coordinator", "true")
+                .put("http-server.http.port", "8080")
+                .put("task.max-memory", "1GB")
+                .put("discovery-server.enabled", "true")
+                .put("discovery.uri", "http://localhost:8080")
+                .build();
 */
 
 public class PrestoWrapperMain
 {
+    private PrestoWrapperMain()
+    {
+    }
+
     public static void main(String[] args)
     {
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
@@ -134,7 +151,7 @@ public class PrestoWrapperMain
         public String configFile;
     }
 
-    public static abstract class ServerCommand extends WrapperCommand
+    public static abstract class DaemonCommand extends WrapperCommand
     {
         @Option(name = {"-p", "--pidfile"}, description = "Specify pidfile path")
         public String pidFile;
@@ -151,7 +168,7 @@ public class PrestoWrapperMain
     }
 
     @Command(name = "start", description = "Starts presto server")
-    public static class Start extends ServerCommand
+    public static class Start extends DaemonCommand
     {
         @Override
         public void run()
@@ -161,7 +178,7 @@ public class PrestoWrapperMain
     }
 
     @Command(name = "stop", description = "Stops presto server")
-    public static class Stop extends ServerCommand
+    public static class Stop extends DaemonCommand
     {
         @Override
         public void run()
@@ -171,7 +188,7 @@ public class PrestoWrapperMain
     }
 
     @Command(name = "restart", description = "Restarts presto server")
-    public static class Restart extends ServerCommand
+    public static class Restart extends DaemonCommand
     {
         @Override
         public void run()
@@ -181,7 +198,7 @@ public class PrestoWrapperMain
     }
 
     @Command(name = "status", description = "Gets status of presto server")
-    public static class Status extends ServerCommand
+    public static class Status extends DaemonCommand
     {
         @Override
         public void run()
@@ -191,7 +208,7 @@ public class PrestoWrapperMain
     }
 
     @Command(name = "kill", description = "Kills presto server")
-    public static class Kill extends ServerCommand
+    public static class Kill extends DaemonCommand
     {
         @Override
         public void run()
@@ -318,7 +335,7 @@ public class PrestoWrapperMain
 
     /*
     @Command(name = "mesos", description = "Performs mesos operations")
-    public static class Mesos extends ServerCommand
+    public static class Mesos extends DaemonCommand
     {
         @Override
         public void run()
@@ -329,126 +346,22 @@ public class PrestoWrapperMain
     */
 
     /*
-    @Command(name = "add", description = "Add file contents to the index")
-    public static class Add extends WrapperCommand
-    {
         @Arguments(description = "Patterns of files to be added")
         public List<String> patterns;
 
         @Option(name = "-i", description = "Add modified contents interactively.")
         public boolean interactive;
-    }
 
-    @Command(name = "show", description = "Gives some information about the remote <name>")
-    public static class RemoteShow extends WrapperCommand
-    {
         @Option(name = "-n", description = "Do not query remote heads")
         public boolean noQuery;
 
         @Arguments(description = "Remote to show")
         public String remote;
-    }
 
-    @Command(name = "add", description = "Adds a remote")
-    public static class RemoteAdd extends WrapperCommand
-    {
         @Option(name = "-t", description = "Track only a specific branch")
         public String branch;
 
         @Arguments(description = "Remote repository to add")
         public List<String> remote;
-    }
     */
-
-    private PrestoWrapperMain()
-    {
-    }
-
-    public void run(String[] args)
-            throws Throwable
-    {
-        /*
-        Logger log = Logger.get(PrestoWrapperMain.class);
-
-        ImmutableMap<String, String> props = ImmutableMap.<String, String>builder()
-                .put("node.environment", "production")
-                .put("node.id", "ffffffff-ffff-ffff-ffff-ffffffffffff")
-                .put("node.data-dir", "/Users/wtimoney/presto/data/")
-                .put("presto.version", "0.105-SNAPSHOT")
-                .put("coordinator", "true")
-                .put("node-scheduler.include-coordinator", "true")
-                .put("http-server.http.port", "8080")
-                .put("task.max-memory", "1GB")
-                .put("discovery-server.enabled", "true")
-                .put("discovery.uri", "http://localhost:8080")
-                .build();
-        for (Map.Entry<String, String> e : props.entrySet()) {
-            System.setProperty(e.getKey(), e.getValue());
-        }
-
-        File cwd = new File(System.getProperty("user.dir"));
-
-        List<URL> urls = Lists.newArrayList();
-        boolean isShaded = false;
-
-        if (isShaded) {
-            File shaded = new File(cwd, "presto-main/target/presto-main.jar");
-            if (!shaded.exists()) {
-                throw new IllegalStateException(shaded.getAbsolutePath());
-            }
-            URL url = new URL("file:" + shaded.getAbsolutePath());
-            urls.add(url);
-
-        } else {
-            ArtifactResolver resolver = new ArtifactResolver(
-                    ArtifactResolver.USER_LOCAL_REPO,
-                    ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
-
-            List<Artifact> artifacts = resolver.resolvePom(new File(cwd, "presto-main/pom.xml"));
-
-            List<File> files = Lists.newArrayList(
-                    new File(cwd, "presto-main/target/presto-main.jar"),
-                    new File(cwd, "presto-main/target/classes/")
-            );
-            for (Artifact a : artifacts) {
-                files.add(a.getFile());
-            }
-
-            for (File file : files) {
-                if (!file.exists()) {
-                    // throw new IllegalStateException(file.getAbsolutePath());
-                }
-                URL url = new URL("file:" + file.getAbsolutePath() + (file.isDirectory() ? "/" : ""));
-                System.out.println(url);
-                urls.add(url);
-            }
-        }
-
-        ClassLoader cl = new ParentLastURLClassLoader(urls);
-
-        Class prestoServerClass = cl.loadClass("com.facebook.presto.server.PrestoServer");
-        Method prestoServerMain = prestoServerClass.getMethod("main", String[].class);
-        prestoServerMain.invoke(null, new Object[]{ args });
-        */
-        Thread thread = new Thread() {
-            @Override
-            public void run()
-            {
-                try {
-                    ClassLoader originalCl = Thread.currentThread().getContextClassLoader();
-                    Thread.currentThread().setContextClassLoader(new URLClassLoader(new URL[]{}, originalCl.getParent()));
-                    ParentLastURLClassLoader cl = new ParentLastURLClassLoader(ImmutableList.of());
-                    Repositories.setupClassLoaderForModule(originalCl, cl.getChildClassLoader(), "presto-main");
-                    Class prestoServerClass = cl.loadClass("com.facebook.presto.server.PrestoServer");
-                    Method prestoServerMain = prestoServerClass.getMethod("main", String[].class);
-                    prestoServerMain.invoke(null, new Object[]{args});
-                }
-                catch (Exception e) {
-                    throw Throwables.propagate(e);
-                }
-            }
-        };
-        thread.start();
-        thread.join();
-    }
 }
