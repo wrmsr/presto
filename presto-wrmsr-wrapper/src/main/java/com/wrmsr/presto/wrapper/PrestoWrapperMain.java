@@ -127,6 +127,7 @@ public class PrestoWrapperMain
                 .withCommands(
                         Help.class,
                         Run.class,
+                        Launch.class,
                         Start.class,
                         Stop.class,
                         Restart.class,
@@ -141,19 +142,32 @@ public class PrestoWrapperMain
         gitParser.parse(args).run();
     }
 
+    @Command(name = "launch", description = "Launches presto server (argless)")
+    public static class Launch implements Runnable
+    {
+        @Override
+        public void run()
+        {
+            runStaticMethod(resolveModuleClassloaderUrls("presto-main"), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[]{String[].class}, new Object[]{new String[]{}});
+        }
+    }
+
     public static abstract class WrapperCommand implements Runnable
     {
         @Option(type = OptionType.GLOBAL, name = "-v", description = "Verbose mode")
         public boolean verbose;
+        public static final String VERBOSE_PROPERTY_KEY = "wrmsr.wrapper.verbose";
 
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config"}, description = "Specify config file path")
         public String configFile;
+        public static final String CONFIG_PROPERTY_KEY = "wrmsr.wrapper.config-file";
     }
 
     public static abstract class DaemonCommand extends WrapperCommand
     {
         @Option(name = {"-p", "--pidfile"}, description = "Specify pidfile path")
         public String pidFile;
+        public static final String PID_FILE_PROPERTY_KEY = "wrmsr.wrapper.pid-file";
 
         private DaemonProcess daemonProcess;
 
@@ -176,6 +190,34 @@ public class PrestoWrapperMain
     {
         @Option(name = {"-r", "--relaunch"}, description = "Whether or not to relaunch with appropriate JVM settings")
         public boolean relaunch;
+
+        public void relaunch()
+        {
+            POSIX posix = POSIXUtils.getPOSIX();
+            String java = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+            String jar;
+            try {
+                jar = new File(PrestoWrapperMain.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath();
+            }
+            catch (Exception e) {
+                throw Throwables.propagate(e);
+            }
+            List<String> argv = newArrayList();
+            argv.add("-jar");
+            argv.add(jar);
+            argv.add("launch");
+            posix.libc().execv(java, argv.toArray(new String[argv.size()]));
+        }
+
+        public void launch()
+        {
+            if (relaunch) {
+                relaunch();
+            }
+            else {
+                new Launch().run();
+            }
+        }
     }
 
     @Command(name = "run", description = "Runs presto server")
@@ -187,7 +229,7 @@ public class PrestoWrapperMain
             if (hasPidFile()) {
                 getDaemonProcess().writePid();
             }
-            runStaticMethod(resolveModuleClassloaderUrls("presto-main"), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[]{String[].class}, new Object[]{new String[]{}});
+            launch();
         }
     }
 
@@ -198,8 +240,7 @@ public class PrestoWrapperMain
             if (hasPidFile()) {
                 getDaemonProcess().writePid();
             }
-            Scanner scanner = new Scanner(System.in);
-            scanner.next();
+            // launch(); dameonize
         }
     }
 
@@ -219,12 +260,6 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
-            run(pidFile);
-        }
-
-        public static void run(String pidFile)
-        {
-
         }
     }
 
@@ -234,7 +269,9 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
-            Stop.run(pidFile);
+            Stop stop = new Stop();
+            stop.pidFile = pidFile;
+            stop.run();
             run(true);
         }
     }

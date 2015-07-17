@@ -532,12 +532,14 @@ public class JvmConfiguration
 
     public static void main(String[] args) throws Throwable
     {
+        /*
         RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
         List<String> arguments = runtimeMxBean.getInputArguments();
-        /*
         System.out.println(new MaxHeapSize(DataSize.valueOf("100MB")));
         System.out.println(new RemoteDebug(41414, false));
         System.out.println(new AggressiveOpts(true));
+        java = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+        new File(MyClass.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
         */
         //System.out.println(SERVER.getValue().get());
         System.out.println(AGGRESSIVE_OPTS.getValue().get());
