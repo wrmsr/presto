@@ -160,12 +160,12 @@ public class PrestoWrapperMain
 
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
         public String configFile;
-        public static final String CONFIG_PROPERTY_KEY = "wrmsr.wrapper.config-file";
+        public static final String CONFIG_FILE_PROPERTY_KEY = "wrmsr.wrapper.config-file";
     }
 
     public static abstract class DaemonCommand extends WrapperCommand
     {
-        @Option(name = {"-p", "--pid-file"}, description = "Specify pidfile path")
+        @Option(name = {"-p", "--pid-file"}, description = "Specify pid file path")
         public String pidFile;
         public static final String PID_FILE_PROPERTY_KEY = "wrmsr.wrapper.pid-file";
 
