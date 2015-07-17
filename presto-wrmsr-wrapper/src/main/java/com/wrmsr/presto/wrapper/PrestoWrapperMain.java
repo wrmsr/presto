@@ -157,6 +157,11 @@ public class PrestoWrapperMain
 
         private DaemonProcess daemonProcess;
 
+        public synchronized boolean hasPidFile()
+        {
+            return !Strings.isNullOrEmpty(pidFile);
+        }
+
         public synchronized DaemonProcess getDaemonProcess()
         {
             if (daemonProcess == null) {
@@ -165,26 +170,36 @@ public class PrestoWrapperMain
             }
             return daemonProcess;
         }
+    }
 
+    public static abstract class ServerCommand extends DaemonCommand
+    {
+        @Option(name = {"-r", "--relaunch"}, description = "Whether or not to relaunch with appropriate JVM settings")
+        public boolean relaunch;
     }
 
     @Command(name = "run", description = "Runs presto server")
-    public static class Run extends WrapperCommand
+    public static class Run extends ServerCommand
     {
         @Override
         public void run()
         {
+            if (hasPidFile()) {
+                getDaemonProcess().writePid();
+            }
             runStaticMethod(resolveModuleClassloaderUrls("presto-main"), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[]{String[].class}, new Object[]{new String[]{}});
         }
     }
 
     @Command(name = "start", description = "Starts presto server")
-    public static class Start extends DaemonCommand
+    public static class Start extends ServerCommand
     {
         @Override
         public void run()
         {
-            getDaemonProcess().writePid();
+            if (hasPidFile()) {
+                getDaemonProcess().writePid();
+            }
             Scanner scanner = new Scanner(System.in);
             scanner.next();
         }
