@@ -191,11 +191,9 @@ public class PrestoWrapperMain
         }
     }
 
-    @Command(name = "start", description = "Starts presto server")
-    public static class Start extends ServerCommand
+    public abstract static class StartCommand extends ServerCommand
     {
-        @Override
-        public void run()
+        public void run(boolean restart)
         {
             if (hasPidFile()) {
                 getDaemonProcess().writePid();
@@ -205,23 +203,32 @@ public class PrestoWrapperMain
         }
     }
 
+    @Command(name = "start", description = "Starts presto server")
+    public static class Start extends StartCommand
+    {
+        @Override
+        public void run()
+        {
+            run(false);
+        }
+    }
+
     @Command(name = "stop", description = "Stops presto server")
     public static class Stop extends DaemonCommand
     {
         @Override
         public void run()
         {
-
         }
     }
 
     @Command(name = "restart", description = "Restarts presto server")
-    public static class Restart extends DaemonCommand
+    public static class Restart extends StartCommand
     {
         @Override
         public void run()
         {
-
+            run(true);
         }
     }
 
