@@ -219,6 +219,12 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
+            run(pidFile);
+        }
+
+        public static void run(String pidFile)
+        {
+
         }
     }
 
@@ -228,6 +234,7 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
+            Stop.run(pidFile);
             run(true);
         }
     }
