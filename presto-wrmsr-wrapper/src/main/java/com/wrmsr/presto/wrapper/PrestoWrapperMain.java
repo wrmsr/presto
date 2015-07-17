@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.wrmsr.presto.util.Repositories;
+import com.wrmsr.presto.wrapper.util.DaemonProcess;
 import com.wrmsr.presto.wrapper.util.POSIXUtils;
 import com.wrmsr.presto.wrapper.util.ParentLastURLClassLoader;
 import io.airlift.command.*;
@@ -34,11 +35,9 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -155,6 +154,18 @@ public class PrestoWrapperMain
     {
         @Option(name = {"-p", "--pidfile"}, description = "Specify pidfile path")
         public String pidFile;
+
+        private DaemonProcess daemonProcess;
+
+        public synchronized DaemonProcess getDaemonProcess()
+        {
+            if (daemonProcess == null) {
+                checkArgument(!Strings.isNullOrEmpty(pidFile), "must set pidfile");
+                daemonProcess = new DaemonProcess(new File(pidFile));
+            }
+            return daemonProcess;
+        }
+
     }
 
     @Command(name = "run", description = "Runs presto server")
@@ -173,7 +184,9 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
-
+            getDaemonProcess().writePid();
+            Scanner scanner = new Scanner(System.in);
+            scanner.next();
         }
     }
 
@@ -203,17 +216,25 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
-
+            if (!getDaemonProcess().alive()) {
+                System.exit(DaemonProcess.LSB_NOT_RUNNING);
+            }
+            System.out.println(getDaemonProcess().readPid());
         }
     }
 
     @Command(name = "kill", description = "Kills presto server")
     public static class Kill extends DaemonCommand
     {
+        @Arguments(description = "arguments")
+        private List<String> args = newArrayList();
+
         @Override
         public void run()
         {
-
+            checkArgument(args.size() == 1);
+            int signal = Integer.valueOf(args.get(0));
+            getDaemonProcess().kill(signal);
         }
     }
 

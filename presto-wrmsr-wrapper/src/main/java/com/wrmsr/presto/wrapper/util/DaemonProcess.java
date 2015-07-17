@@ -17,17 +17,23 @@ import jnr.posix.POSIX;
 import jnr.posix.util.Platform;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 import static com.google.common.base.Preconditions.checkState;
 
 public class DaemonProcess
 {
-    private final File path;
-    private final int pidFile;
-    private final POSIX posix;
+    public static final int LSB_NOT_RUNNING = 3;
+    public static final int LSB_STATUS_UNKNOWN = 4;
 
-    private boolean locked;
+    public final File path;
+    public final int pidFile;
+    public final POSIX posix;
+
+    public boolean locked;
+
+    public final int EWOULDBLOCK;
 
     public DaemonProcess(File path)
     {
@@ -36,41 +42,52 @@ public class DaemonProcess
             openFlags =
                     jnr.constants.platform.darwin.OpenFlags.O_RDWR.intValue() |
                     jnr.constants.platform.darwin.OpenFlags.O_CREAT.intValue();
+            EWOULDBLOCK =
+                    -1;
+                    // jnr.constants.platform.darwin.Errno.EWOULDBLOCK.intValue();
         }
         else if (Platform.IS_LINUX) {
             openFlags =
                     jnr.constants.platform.linux.OpenFlags.O_RDWR.intValue() |
                     jnr.constants.platform.linux.OpenFlags.O_CREAT.intValue();
+            EWOULDBLOCK =
+                    jnr.constants.platform.linux.Errno.EWOULDBLOCK.intValue();
         }
         else {
             throw new IllegalStateException("Unsupported platform");
         }
         posix = POSIXUtils.getPOSIX();
-        this.path = path;
-        path.getParentFile().mkdirs();
-        pidFile = posix.open(path.getAbsolutePath(), openFlags, 0600);
+        this.path = path.getAbsoluteFile();
+        if (path.getParentFile() != null) {
+            path.getParentFile().mkdirs();
+        }
+        pidFile = posix.open(this.path.getAbsolutePath(), openFlags, 0600);
+        checkState(pidFile >= 0);
         refresh();
     }
 
-    private void refresh()
+    public synchronized void refresh()
     {
-        try {
-            posix.flock(pidFile, 2 | 4); // LOCK_EX | LOCK_NB
+        int ret = posix.flock(pidFile, 2 | 4); // LOCK_EX | LOCK_NB
+        if (ret == 0) {
             locked = true;
-        }
-        catch (Exception e) {
+        } else if (ret == EWOULDBLOCK) {
             locked = false;
+        }
+        else {
+            throw new RuntimeException("flock failed: " + ret);
         }
     }
 
-    private void clearPid()
+    public synchronized int clearPid()
     {
         checkState(locked, "pid file not locked by us");
         posix.lseek(pidFile, 0, 0);
         posix.ftruncate(pidFile, 0);
+        return 0; // FIXME
     }
 
-    private void writePid(int pid)
+    public synchronized void writePid(int pid)
     {
         clearPid();
         byte[] bytes = String.format("%d\n", pid).getBytes();
@@ -78,7 +95,14 @@ public class DaemonProcess
         posix.fsync(pidFile);
     }
 
-    private boolean alive()
+    public synchronized void writePid()
+    {
+        int pid = POSIXUtils.getPOSIX().getpid();
+        checkState(pid > 0);
+        writePid(pid);
+    }
+
+    public synchronized boolean alive()
     {
         refresh();
         if (locked) {
@@ -94,15 +118,21 @@ public class DaemonProcess
         }
     }
 
-    private int readPid()
+    public synchronized int readPid()
     {
         checkState(!locked, "pid file is locked by us");
         posix.lseek(pidFile, 0, 0);
         byte[] buf = new byte[1024];
         int len = posix.read(pidFile, buf, buf.length);
         checkState(len > 0 && len < buf.length);
-        int pid = Integer.valueOf(new String(Arrays.copyOf(buf, len)));
+        int pid = Integer.valueOf(new String(Arrays.copyOf(buf, len)).trim());
         checkState(pid > 0);
         return pid;
+    }
+
+    public synchronized int kill(int signal)
+    {
+        int pid = readPid();
+        return posix.kill(pid, signal);
     }
 }
