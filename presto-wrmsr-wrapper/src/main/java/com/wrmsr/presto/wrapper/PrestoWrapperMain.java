@@ -44,74 +44,40 @@ import static com.google.common.collect.Lists.newArrayList;
 // mesos yarn cli jarsync
 
 /*
-# sample nodeId to provide consistency across test runs
-node.id=ffffffff-ffff-ffff-ffff-ffffffffffff
-node.environment=test
-http-server.http.port=8080
-
+com.facebook.presto.server.PluginManager=DEBUG
+com.facebook.presto=INFO
+com.ning.http.client=WARN
+com.sun.jersey.guice.spi.container.GuiceComponentProviderFactory=WARN
+coordinator=false
+coordinator=true
 discovery-server.enabled=true
-discovery.uri=http://localhost:8080
-
-exchange.http-client.max-connections=1000
-exchange.http-client.max-connections-per-server=1000
+discovery.uri=http://example.net:8080
+distributed-joins-enabled=true
 exchange.http-client.connect-timeout=1m
+exchange.http-client.max-connections-per-server=1000
+exchange.http-client.max-connections=1000
 exchange.http-client.read-timeout=1m
-
-scheduler.http-client.max-connections=1000
-scheduler.http-client.max-connections-per-server=1000
-scheduler.http-client.connect-timeout=1m
-scheduler.http-client.read-timeout=1m
-
+experimental-syntax-enabled=true
+http-server.http.port=8080
+node-scheduler.include-coordinator=false
+node-scheduler.include-coordinator=true
+node-scheduler.multiple-tasks-per-node-enabled=true
+node.data-dir=/Users/wtimoney/presto/data/
+node.environment=production
+node.environment=test
+node.id=ffffffff-ffff-ffff-ffff-ffffffffffff
+plugin.bundles=../presto-wrmsr-extensions/pom.xml
+plugin.bundles=presto-wrmsr-extensions
+plugin.dir=/dev/null
+presto.version=0.105-SNAPSHOT
+presto.version=testversion
 query.client.timeout=5m
 query.max-age=30m
-
-plugin.bundles=../presto-wrmsr-extensions/pom.xml
-
-presto.version=testversion
-experimental-syntax-enabled=true
-distributed-joins-enabled=true
-
-node-scheduler.multiple-tasks-per-node-enabled=true
-
-com.facebook.presto=INFO
-com.sun.jersey.guice.spi.container.GuiceComponentProviderFactory=WARN
-com.ning.http.client=WARN
-com.facebook.presto.server.PluginManager=DEBUG
-
-coordinator=true
-node-scheduler.include-coordinator=false
-http-server.http.port=8080
+scheduler.http-client.connect-timeout=1m
+scheduler.http-client.max-connections-per-server=1000
+scheduler.http-client.max-connections=1000
+scheduler.http-client.read-timeout=1m
 task.max-memory=1GB
-discovery-server.enabled=true
-discovery.uri=http://example.net:8080
-
-coordinator=false
-http-server.http.port=8080
-task.max-memory=1GB
-discovery.uri=http://example.net:8080
-
-coordinator=true
-node-scheduler.include-coordinator=true
-http-server.http.port=8080
-task.max-memory=1GB
-discovery-server.enabled=true
-discovery.uri=http://example.net:8080
-
-plugin.dir=/dev/null
-plugin.bundles=presto-wrmsr-extensions
-
-        ImmutableMap<String, String> props = ImmutableMap.<String, String>builder()
-                .put("node.environment", "production")
-                .put("node.id", "ffffffff-ffff-ffff-ffff-ffffffffffff")
-                .put("node.data-dir", "/Users/wtimoney/presto/data/")
-                .put("presto.version", "0.105-SNAPSHOT")
-                .put("coordinator", "true")
-                .put("node-scheduler.include-coordinator", "true")
-                .put("http-server.http.port", "8080")
-                .put("task.max-memory", "1GB")
-                .put("discovery-server.enabled", "true")
-                .put("discovery.uri", "http://localhost:8080")
-                .build();
 */
 
 public class PrestoWrapperMain
