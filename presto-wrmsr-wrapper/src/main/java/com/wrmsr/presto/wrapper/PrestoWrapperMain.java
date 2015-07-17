@@ -205,11 +205,11 @@ public class PrestoWrapperMain
             }
             checkState(new File(jar).exists());
             List<CharSequence> argv = newArrayList();
+            argv.add(java);
             argv.add("-jar");
             argv.add(jar);
-            // argv.add(PrestoWrapperBootstrap.class.getName());
             argv.add("launch");
-            posix.libc().execv("echo", argv.toArray(new CharSequence[argv.size()]));
+            posix.libc().execv(java, argv.toArray(new CharSequence[argv.size()]));
         }
 
         public void launch()

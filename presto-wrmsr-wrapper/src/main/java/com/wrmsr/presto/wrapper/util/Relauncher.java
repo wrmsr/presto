@@ -29,34 +29,12 @@ public class Relauncher
     public static void exec() throws Exception
     {
         POSIX posix = POSIXUtils.getPOSIX();
-
-        System.out.println(posix.libc().getpid());
-        posix.libc().execv("/usr/bin/vim", "testing");
+        posix.libc().execv("/bin/bash", new String[]{"/bin/bash", "-c", "echo \"hi\""});
     }
 
-    public static void main2(String[] args) throws Exception
+    public static void main(String[] args) throws Exception
     {
         List<Map.Entry> systemProperties = new ArrayList<>(System.getProperties().entrySet());
-        systemProperties.sort(new Comparator<Map.Entry>()
-        {
-            @Override
-            public int compare(Map.Entry o1, Map.Entry o2)
-            {
-                return ((String) o1.getKey()).compareTo((String) o2.getKey());
-            }
-        });
-        for (Map.Entry entry : systemProperties) {
-            System.out.println(entry);
-        }
         exec();
-    }
-
-    public static void main(String[] args) throws Throwable
-    {
-        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-        List<String> arguments = runtimeMxBean.getInputArguments();
-        for (String s : arguments) {
-            System.out.println(s);
-        }
     }
 }
