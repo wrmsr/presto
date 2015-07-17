@@ -191,9 +191,8 @@ public class PrestoWrapperMain
         @Option(name = {"-r", "--relaunch"}, description = "Whether or not to relaunch with appropriate JVM settings")
         public boolean relaunch;
 
-        public void relaunch()
+        public String[] getLaunchArgs()
         {
-            POSIX posix = POSIXUtils.getPOSIX();
             String java = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java";
             checkState(new File(java).exists());
             String jar;
@@ -205,11 +204,19 @@ public class PrestoWrapperMain
             }
             checkState(new File(jar).exists());
             List<CharSequence> argv = newArrayList();
+            // FIXME repo path + deleteOnExit
             argv.add(java);
             argv.add("-jar");
             argv.add(jar);
             argv.add("launch");
-            posix.libc().execv(java, argv.toArray(new CharSequence[argv.size()]));
+            return argv.toArray(new CharSequence[argv.size());
+        }
+
+        public void relaunch()
+        {
+            POSIX posix = POSIXUtils.getPOSIX();
+            String[] args = getLaunchArgs();
+            posix.libc().execv(args[0], args);
         }
 
         public void launch()
