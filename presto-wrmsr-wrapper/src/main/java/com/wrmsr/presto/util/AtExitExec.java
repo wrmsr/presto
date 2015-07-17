@@ -1,15 +1,29 @@
-package com.wrmsr.presto.wrapper.util;
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.wrmsr.presto.util;
 
 import com.google.common.collect.Lists;
 import com.kenai.jffi.PageManager;
 import com.kenai.jffi.Platform;
+import com.wrmsr.presto.util.Exec;
+import com.wrmsr.presto.util.Native;
 import jnr.ffi.LibraryLoader;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.jffi.NativeLibrary;
 import jnr.x86asm.Asm;
 import jnr.x86asm.Assembler;
 import jnr.x86asm.CPU;
-import morgoth.common.NativeUtils;
 import org.apache.commons.lang.ArrayUtils;
 
 import javax.annotation.Nullable;
@@ -32,20 +46,20 @@ public class AtExitExec {
         protected final PageManager pageManager;
 
         public AbstractAtExitExec() {
-            clib = NativeUtils.newNativeLibrary(Lists.newArrayList("c"));
+            clib = Native.newNativeLibrary(Lists.newArrayList("c"));
             runtime = jnr.ffi.Runtime.getSystemRuntime();
             pageManager = PageManager.getInstance();
         }
 
         public long getExecAddr() {
-            return NativeUtils.getSymbolAddress(clib, "execve");
+            return Native.getSymbolAddress(clib, "execve");
         }
 
         public Pointer allocAndWriteString(String str) {
             byte[] byteArr = ArrayUtils.add(str.getBytes(), (byte) 0);
             int numPages = (int) (pageManager.pageSize() % byteArr.length) + 1;
             Pointer base = Pointer.wrap(runtime, PageManager.getInstance().allocatePages(
-                    numPages, NativeUtils.PROT_READ | NativeUtils.PROT_WRITE));
+                    numPages, Native.PROT_READ | Native.PROT_WRITE));
             base.put(0, byteArr, 0, byteArr.length);
             return base;
         }
@@ -71,7 +85,7 @@ public class AtExitExec {
             int numPages = (int) (pageManager.pageSize() % totalSize) + 1;
             Pointer base = Pointer.wrap(
                     runtime, PageManager.getInstance().allocatePages(
-                            numPages, NativeUtils.PROT_READ | NativeUtils.PROT_WRITE));
+                            numPages, Native.PROT_READ | Native.PROT_WRITE));
             writeByteArrTable(base, byteArrs);
             return base;
         }
@@ -114,7 +128,7 @@ public class AtExitExec {
 
             Pointer callbackBase = Pointer.wrap(
                     runtime, PageManager.getInstance().allocatePages(
-                            1, NativeUtils.PROT_READ | NativeUtils.PROT_WRITE | NativeUtils.PROT_EXEC));
+                            1, Native.PROT_READ | Native.PROT_WRITE | Native.PROT_EXEC));
             byte[] callbackByteArr = generateCallback(
                     filenamePtr, paramsPtr, envPtr, Pointer.wrap(runtime, getExecAddr()), callbackBase);
             callbackBase.put(0, callbackByteArr, 0, callbackByteArr.length);
@@ -141,7 +155,7 @@ public class AtExitExec {
 
             Pointer callbackBase = Pointer.wrap(
                     runtime, PageManager.getInstance().allocatePages(
-                            1, NativeUtils.PROT_READ | NativeUtils.PROT_WRITE | NativeUtils.PROT_EXEC));
+                            1, Native.PROT_READ | Native.PROT_WRITE | Native.PROT_EXEC));
             byte[] callbackByteArr = generateCallback(
                     filenamePtr, paramsPtr, envPtr, Pointer.wrap(runtime, getExecAddr()), callbackBase);
             callbackBase.put(0, callbackByteArr, 0, callbackByteArr.length);

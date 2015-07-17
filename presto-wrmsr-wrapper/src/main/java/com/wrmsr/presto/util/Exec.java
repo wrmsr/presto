@@ -21,14 +21,83 @@
  */
 package com.wrmsr.presto.util;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import org.apache.commons.lang.ArrayUtils;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import com.jcraft.jsch.*;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.InputStream;
 
-public class Exec
+public interface Exec
 {
+    public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException;
+
+    public default void exec(String path, String[] params) throws IOException {
+        exec(path, params, null);
+    }
+
+    public static abstract class AbstractExec implements Exec {
+
+        public static String[] convertEnv(@Nullable Map<String, String> env) {
+            if (env == null)
+                return null;
+            ArrayList<String> ret = Lists.newArrayList(Iterables.transform(
+                    env.entrySet(), entry -> String.format("%s=%s", entry.getKey(), entry.getValue())));
+            return ret.toArray(new String[ret.size()]);
+        }
+    }
+
+    public static class ProcessBuilderExec extends AbstractExec {
+
+        public static final Method environment;
+
+        static {
+            try {
+                environment = ProcessBuilder.class.getDeclaredMethod("environment", String[].class);
+                environment.setAccessible(true);
+
+            } catch (NoSuchMethodException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        @Override
+        public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException {
+            ProcessBuilder pb = new ProcessBuilder();
+            String[] envArr = convertEnv(env);
+            try {
+                environment.invoke(pb, new Object[]{ envArr });
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+            List<String> command = Lists.newArrayList(path);
+            command.addAll(Arrays.asList(params));
+            pb.command(command);
+            pb.redirectInput(ProcessBuilder.Redirect.INHERIT);
+            pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+            pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+            Process process = pb.start();
+            int ret;
+            try {
+                ret = process.waitFor();
+            } catch (InterruptedException e) {
+                throw new IllegalStateException(e);
+            }
+            System.exit(ret);
+        }
+    }
+
     public static void main(String[] arg)
     {
         try {

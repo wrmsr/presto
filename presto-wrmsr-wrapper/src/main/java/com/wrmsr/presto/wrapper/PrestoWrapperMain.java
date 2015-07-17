@@ -203,13 +203,13 @@ public class PrestoWrapperMain
                 throw Throwables.propagate(e);
             }
             checkState(new File(jar).exists());
-            List<CharSequence> argv = newArrayList();
+            List<String> argv = newArrayList();
             // FIXME repo path + deleteOnExit
             argv.add(java);
             argv.add("-jar");
             argv.add(jar);
             argv.add("launch");
-            return argv.toArray(new CharSequence[argv.size());
+            return argv.toArray(new String[argv.size()]);
         }
 
         public void relaunch()
