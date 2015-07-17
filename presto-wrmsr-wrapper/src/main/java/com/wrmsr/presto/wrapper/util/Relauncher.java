@@ -31,7 +31,7 @@ public class Relauncher
         POSIX posix = POSIXUtils.getPOSIX();
 
         System.out.println(posix.libc().getpid());
-        posix.libc().execv("/usr/bin/vim");
+        posix.libc().execv("/usr/bin/vim", "testing");
     }
 
     public static void main2(String[] args) throws Exception

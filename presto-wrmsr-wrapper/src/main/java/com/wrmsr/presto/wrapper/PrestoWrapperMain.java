@@ -204,12 +204,12 @@ public class PrestoWrapperMain
                 throw Throwables.propagate(e);
             }
             checkState(new File(jar).exists());
-            List<String> argv = newArrayList();
+            List<CharSequence> argv = newArrayList();
             argv.add("-jar");
             argv.add(jar);
             // argv.add(PrestoWrapperBootstrap.class.getName());
             argv.add("launch");
-            posix.libc().execv("echo", argv.toArray(new String[argv.size()]));
+            posix.libc().execv("echo", argv.toArray(new CharSequence[argv.size()]));
         }
 
         public void launch()
