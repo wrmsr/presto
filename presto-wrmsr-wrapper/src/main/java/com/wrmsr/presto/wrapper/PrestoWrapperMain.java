@@ -146,7 +146,7 @@ public class PrestoWrapperMain
         @Option(type = OptionType.GLOBAL, name = "-v", description = "Verbose mode")
         public boolean verbose;
 
-        @Option(name = {"-c", "--config"}, description = "Specify config file path")
+        @Option(type = OptionType.GLOBAL, name = {"-c", "--config"}, description = "Specify config file path")
         public String configFile;
     }
 
