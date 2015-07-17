@@ -195,6 +195,7 @@ public class PrestoWrapperMain
         {
             POSIX posix = POSIXUtils.getPOSIX();
             String java = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+            checkState(new File(java).exists());
             String jar;
             try {
                 jar = new File(PrestoWrapperMain.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath();
@@ -202,9 +203,11 @@ public class PrestoWrapperMain
             catch (Exception e) {
                 throw Throwables.propagate(e);
             }
+            checkState(new File(jar).exists());
             List<String> argv = newArrayList();
-            argv.add("-jar");
+            argv.add("-cp");
             argv.add(jar);
+            argv.add(PrestoWrapperBootstrap.class.getName());
             argv.add("launch");
             posix.libc().execv(java, argv.toArray(new String[argv.size()]));
         }
