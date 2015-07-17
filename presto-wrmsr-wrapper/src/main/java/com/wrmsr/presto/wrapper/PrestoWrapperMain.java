@@ -158,14 +158,14 @@ public class PrestoWrapperMain
         public boolean verbose;
         public static final String VERBOSE_PROPERTY_KEY = "wrmsr.wrapper.verbose";
 
-        @Option(type = OptionType.GLOBAL, name = {"-c", "--config"}, description = "Specify config file path")
+        @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
         public String configFile;
         public static final String CONFIG_PROPERTY_KEY = "wrmsr.wrapper.config-file";
     }
 
     public static abstract class DaemonCommand extends WrapperCommand
     {
-        @Option(name = {"-p", "--pidfile"}, description = "Specify pidfile path")
+        @Option(name = {"-p", "--pid-file"}, description = "Specify pidfile path")
         public String pidFile;
         public static final String PID_FILE_PROPERTY_KEY = "wrmsr.wrapper.pid-file";
 
