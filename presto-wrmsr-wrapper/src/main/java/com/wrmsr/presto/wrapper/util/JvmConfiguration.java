@@ -96,6 +96,10 @@ package com.wrmsr.presto.wrapper.util;
 
 import io.airlift.units.DataSize;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class JvmConfiguration
@@ -149,12 +153,14 @@ public class JvmConfiguration
         private final Prefix prefix;
         private final String name;
         private final Separator separator;
+        private final Supplier<Optional<T>> supplier;
 
-        public Item(Prefix prefix, String name, Separator separator)
+        public Item(Prefix prefix, String name, Separator separator, Supplier<Optional<T>> supplier)
         {
             this.prefix = prefix;
             this.name = name;
             this.separator = separator;
+            this.supplier = supplier;
         }
 
         public Prefix getPrefix()
@@ -172,8 +178,17 @@ public class JvmConfiguration
             return separator;
         }
 
-        public T getValue()
+        public Supplier<Optional<T>> getSupplier()
         {
+            return supplier;
+        }
+
+        public Optional<T> getValue()
+        {
+            Supplier<Optional<T>> supplier = getSupplier();
+            if (supplier != null) {
+                return supplier.get();
+            }
             throw new UnsupportedOperationException();
         }
 
@@ -187,9 +202,14 @@ public class JvmConfiguration
 
     public static class ValuelessItem extends Item<Void>
     {
+        public ValuelessItem(Prefix prefix, String name, Supplier<Optional<Void>> supplier)
+        {
+            super(prefix, name, Separator.NONE, supplier);
+        }
+
         public ValuelessItem(Prefix prefix, String name)
         {
-            super(prefix, name, Separator.NONE);
+            this(prefix, name, null);
         }
 
         public class Value extends Item.Value
@@ -221,9 +241,14 @@ public class JvmConfiguration
 
     public static class StringItem extends Item<String>
     {
+        public StringItem(Prefix prefix, String name, Separator separator, Supplier<Optional<String>> supplier)
+        {
+            super(prefix, name, separator, supplier);
+        }
+
         public StringItem(Prefix prefix, String name, Separator separator)
         {
-            super(prefix, name, separator);
+            this(prefix, name, separator, null);
         }
 
         public class Value extends Item.Value
@@ -253,13 +278,30 @@ public class JvmConfiguration
         {
             return new Value(value);
         }
+
+        @Override
+        public Optional<String> getValue()
+        {
+            String prefix = getPrefix() + getName() + getSeparator() + "=";
+            for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
+                if (arg.startsWith(prefix)) {
+                    return Optional.of(arg.substring(prefix.length()));
+                }
+            }
+            return Optional.empty();
+        }
     }
 
     public static class DataSizeItem extends Item<DataSize>
     {
+        public DataSizeItem(Prefix prefix, String name, Separator separator, Supplier<Optional<DataSize>> supplier)
+        {
+            super(prefix, name, separator, supplier);
+        }
+
         public DataSizeItem(Prefix prefix, String name, Separator separator)
         {
-            super(prefix, name, separator);
+            this(prefix, name, separator, null);
         }
 
         public class Value extends Item.Value
@@ -313,13 +355,30 @@ public class JvmConfiguration
         {
             return new Value(value);
         }
+
+        @Override
+        public Optional<DataSize> getValue()
+        {
+            String prefix = getPrefix() + getName() + getSeparator() + "=";
+            for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
+                if (arg.startsWith(prefix)) {
+                    //return Optional.of(DataSize.succinctBytes(Long.valueOf(arg.substring(prefix.length())));
+                }
+            }
+            return Optional.empty();
+        }
     }
 
     public static class ToggleItem extends Item<Boolean>
     {
+        public ToggleItem(Prefix prefix, String name, Supplier<Optional<Boolean>> supplier)
+        {
+            super(prefix, name, Separator.NONE, supplier);
+        }
+
         public ToggleItem(Prefix prefix, String name)
         {
-            super(prefix, name, Separator.NONE);
+            this(prefix, name, null);
         }
 
         public class Value extends Item.Value
@@ -349,13 +408,35 @@ public class JvmConfiguration
         {
             return new Value(value);
         }
+
+        @Override
+        public Optional<Boolean> getValue()
+        {
+            String truePrefix = getPrefix() + "+" + getName();
+            String falsePrefix = getPrefix() + "-" + getName();
+            for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
+                if (truePrefix.equals(arg)) {
+                    return Optional.of(true);
+                }
+                else if (falsePrefix.equals(arg)) {
+                    return Optional.of(false);
+                }
+            }
+            return Optional.empty();
+        }
     }
 
     public static class ValuelessPropertyItem extends ValuelessItem
     {
         public ValuelessPropertyItem(String name)
         {
-            super(Prefix.PROPERTY, name);
+            super(Prefix.PROPERTY, name, null);
+        }
+
+        @Override
+        public Optional<Void> getValue()
+        {
+            return System.getProperty(getName()) != null ? Optional.of(null) : Optional.empty();
         }
     }
 
@@ -363,15 +444,22 @@ public class JvmConfiguration
     {
         public PropertyItem(String name)
         {
-            super(Prefix.PROPERTY, name, Separator.EQUALS);
+            super(Prefix.PROPERTY, name, Separator.EQUALS, null);
+        }
+
+        @Override
+        public Optional<String> getValue()
+        {
+            String value = System.getProperty(getName());
+            return value != null ? Optional.of(value) : Optional.empty();
         }
     }
 
-    public static final DataSizeItem MIN_HEAP_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "ms", Separator.NONE);
-    public static final DataSizeItem MAX_HEAP_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "mx", Separator.NONE);
-    public static final DataSizeItem YOUNG_GENERATION_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "mn", Separator.NONE);
-    public static final DataSizeItem THREAD_STACK_SIZE  = new DataSizeItem(Prefix.NONSTANDARD, "ss", Separator.NONE);
-    public static final DataSizeItem MAX_DIRECT_MEMORY_SIZE  = new DataSizeItem(Prefix.UNSTABLE, "MaxDirectMemorySize", Separator.EQUALS);
+    public static final DataSizeItem MIN_HEAP_SIZE = new DataSizeItem(Prefix.NONSTANDARD, "ms", Separator.NONE);
+    public static final DataSizeItem MAX_HEAP_SIZE = new DataSizeItem(Prefix.NONSTANDARD, "mx", Separator.NONE);
+    public static final DataSizeItem YOUNG_GENERATION_SIZE = new DataSizeItem(Prefix.NONSTANDARD, "mn", Separator.NONE);
+    public static final DataSizeItem THREAD_STACK_SIZE = new DataSizeItem(Prefix.NONSTANDARD, "ss", Separator.NONE);
+    public static final DataSizeItem MAX_DIRECT_MEMORY_SIZE = new DataSizeItem(Prefix.UNSTABLE, "MaxDirectMemorySize", Separator.EQUALS);
     public static final ToggleItem PRINT_GC_DATE_STAMPS = new ToggleItem(Prefix.UNSTABLE, "PrintGCDateStamps");
     public static final ToggleItem PRINT_GC_DETAILS = new ToggleItem(Prefix.UNSTABLE, "PrintGCDetails");
     public static final ToggleItem PRINT_TENURING_DISTRIBUTION = new ToggleItem(Prefix.UNSTABLE, "PrintTenuringDistribution");
@@ -444,12 +532,18 @@ public class JvmConfiguration
 
     public static void main(String[] args) throws Throwable
     {
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        List<String> arguments = runtimeMxBean.getInputArguments();
         /*
         System.out.println(new MaxHeapSize(DataSize.valueOf("100MB")));
         System.out.println(new RemoteDebug(41414, false));
         System.out.println(new AggressiveOpts(true));
         */
+        //System.out.println(SERVER.getValue().get());
+        System.out.println(AGGRESSIVE_OPTS.getValue().get());
         System.out.println(MAX_HEAP_SIZE.valueOf(DataSize.valueOf("100MB")));
         System.out.println(PRINT_GC_DATE_STAMPS.valueOf(true));
+        System.out.println(MAX_HEAP_SIZE.getValue().get());
+        System.out.println(MAX_HEAP_SIZE.valueOf(MAX_HEAP_SIZE.getValue().get()));
     }
 }
