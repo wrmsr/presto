@@ -16,8 +16,6 @@ package com.wrmsr.presto.util;
 import com.google.common.collect.Lists;
 import com.kenai.jffi.PageManager;
 import com.kenai.jffi.Platform;
-import com.wrmsr.presto.util.Exec;
-import com.wrmsr.presto.util.Native;
 import jnr.ffi.LibraryLoader;
 import jnr.ffi.Pointer;
 import jnr.ffi.provider.jffi.NativeLibrary;
@@ -32,30 +30,34 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 
 
-public class AtExitExec {
-
-    private AtExitExec() {
+public class AtExitExec
+{
+    private AtExitExec()
+    {
     }
 
-    public static abstract class AbstractAtExitExec extends Exec.AbstractExec {
-
+    public static abstract class AbstractAtExitExec extends Exec.AbstractExec
+    {
         protected final int ptrSize = Platform.getPlatform().addressSize() >> 3;
 
         protected final NativeLibrary clib;
         protected final jnr.ffi.Runtime runtime;
         protected final PageManager pageManager;
 
-        public AbstractAtExitExec() {
+        public AbstractAtExitExec()
+        {
             clib = Native.newNativeLibrary(Lists.newArrayList("c"));
             runtime = jnr.ffi.Runtime.getSystemRuntime();
             pageManager = PageManager.getInstance();
         }
 
-        public long getExecAddr() {
+        public long getExecAddr()
+        {
             return Native.getSymbolAddress(clib, "execve");
         }
 
-        public Pointer allocAndWriteString(String str) {
+        public Pointer allocAndWriteString(String str)
+        {
             byte[] byteArr = ArrayUtils.add(str.getBytes(), (byte) 0);
             int numPages = (int) (pageManager.pageSize() % byteArr.length) + 1;
             Pointer base = Pointer.wrap(runtime, PageManager.getInstance().allocatePages(
@@ -64,7 +66,8 @@ public class AtExitExec {
             return base;
         }
 
-        public void writeByteArrTable(Pointer base, byte[][] byteArrs) {
+        public void writeByteArrTable(Pointer base, byte[][] byteArrs)
+        {
             long ofs = (byteArrs.length + 1) * ptrSize;
             for (int i = 0; i < byteArrs.length; ++i) {
                 byte[] byteArr = byteArrs[i];
@@ -75,7 +78,8 @@ public class AtExitExec {
             base.putAddress(byteArrs.length * ptrSize, 0L);
         }
 
-        public Pointer allocAndWriteStringTable(String[] strs) {
+        public Pointer allocAndWriteStringTable(String[] strs)
+        {
             byte[][] byteArrs = new byte[strs.length][];
             long totalSize = (strs.length + 1) * ptrSize;
             for (int i = 0; i < strs.length; ++i) {
@@ -91,10 +95,11 @@ public class AtExitExec {
         }
     }
 
-    public static abstract class Abstratx64AtExitExec extends AbstractAtExitExec {
-
+    public static abstract class Abstratx64AtExitExec extends AbstractAtExitExec
+    {
         public byte[] generateCallback(Pointer filename, Pointer argv, Pointer envp,
-                                       Pointer execve, Pointer callback) {
+                                       Pointer execve, Pointer callback)
+        {
             Assembler asm = new Assembler(CPU.X86_64);
             asm.mov(Asm.rdi, Asm.imm(filename.address()));
             asm.mov(Asm.rsi, Asm.imm(argv.address()));
@@ -111,19 +116,21 @@ public class AtExitExec {
         }
     }
 
-    public static class MacOSx64AtExitExec extends Abstratx64AtExitExec {
-
-        public static interface AtExitLibC {
-
-            public int atexit(Pointer function);
+    public static class MacOSx64AtExitExec extends Abstratx64AtExitExec
+    {
+        public interface AtExitLibC
+        {
+            int atexit(Pointer function);
         }
 
         @Override
-        public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException {
+        public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException
+        {
             Pointer filenamePtr = allocAndWriteString(path);
             Pointer paramsPtr = allocAndWriteStringTable(params);
-            if (env == null)
+            if (env == null) {
                 env = System.getenv();
+            }
             Pointer envPtr = allocAndWriteStringTable(convertEnv(env));
 
             Pointer callbackBase = Pointer.wrap(
@@ -138,19 +145,21 @@ public class AtExitExec {
         }
     }
 
-    public static class Linuxx64AtExitExec extends Abstratx64AtExitExec {
-
-        public static interface AtExitLibC {
-
-            public int __cxa_atexit(Pointer function, Pointer arg, Pointer dso_handle);
+    public static class Linuxx64AtExitExec extends Abstratx64AtExitExec
+    {
+        public interface AtExitLibC
+        {
+            int __cxa_atexit(Pointer function, Pointer arg, Pointer dso_handle);
         }
 
         @Override
-        public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException {
+        public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException
+        {
             Pointer filenamePtr = allocAndWriteString(path);
             Pointer paramsPtr = allocAndWriteStringTable(params);
-            if (env == null)
+            if (env == null) {
                 env = System.getenv();
+            }
             Pointer envPtr = allocAndWriteStringTable(convertEnv(env));
 
             Pointer callbackBase = Pointer.wrap(

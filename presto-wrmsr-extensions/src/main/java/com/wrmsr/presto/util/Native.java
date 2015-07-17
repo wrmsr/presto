@@ -27,15 +27,16 @@ import java.util.List;
 
 public class Native
 {
-
-    private Native() {
+    private Native()
+    {
     }
 
-    public static final int PROT_READ  = 0x1;
+    public static final int PROT_READ = 0x1;
     public static final int PROT_WRITE = 0x2;
-    public static final int PROT_EXEC  = 0x4;
+    public static final int PROT_EXEC = 0x4;
 
-    public static List<String> getPropertyPaths(String propName) {
+    public static List<String> getPropertyPaths(String propName)
+    {
         String value = System.getProperty(propName);
         if (value != null) {
             String[] paths = value.split(File.pathSeparator);
@@ -55,7 +56,7 @@ public class Native
     }
 
     public static final Constructor<NativeLibrary> newNativeLibrary;
-    public static final Method getSymbolAddress ;
+    public static final Method getSymbolAddress;
 
     static {
         try {
@@ -65,27 +66,33 @@ public class Native
             getSymbolAddress = NativeLibrary.class.getDeclaredMethod("getSymbolAddress", String.class);
             getSymbolAddress.setAccessible(true);
 
-        } catch (NoSuchMethodException e) {
+        }
+        catch (NoSuchMethodException e) {
             throw new IllegalStateException(e);
         }
     }
 
-    public static NativeLibrary newNativeLibrary(Collection<String> libraryNames, Collection<String> searchPaths) {
+    public static NativeLibrary newNativeLibrary(Collection<String> libraryNames, Collection<String> searchPaths)
+    {
         try {
             return newNativeLibrary.newInstance(libraryNames, searchPaths);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new IllegalStateException(e);
         }
     }
 
-    public static NativeLibrary newNativeLibrary(Collection<String> libraryNames) {
+    public static NativeLibrary newNativeLibrary(Collection<String> libraryNames)
+    {
         return newNativeLibrary(libraryNames, USER_LIBRARY_PATH);
     }
 
-    public static long getSymbolAddress(NativeLibrary library, String name) {
+    public static long getSymbolAddress(NativeLibrary library, String name)
+    {
         try {
             return (long) getSymbolAddress.invoke(library, name);
-        } catch (IllegalAccessException | InvocationTargetException e) {
+        }
+        catch (IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException(e);
         }
     }

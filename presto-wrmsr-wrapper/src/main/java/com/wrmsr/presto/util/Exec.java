@@ -23,42 +23,49 @@ package com.wrmsr.presto.util;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import org.apache.commons.lang.ArrayUtils;
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.UIKeyboardInteractive;
+import com.jcraft.jsch.UserInfo;
 
 import javax.annotation.Nullable;
+import javax.swing.*;
+import java.awt.*;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import com.jcraft.jsch.*;
-
-import javax.swing.*;
-import java.awt.*;
-import java.io.InputStream;
-
 public interface Exec
 {
-    public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException;
+    void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException;
 
-    public default void exec(String path, String[] params) throws IOException {
+    default void exec(String path, String[] params) throws IOException
+    {
         exec(path, params, null);
     }
 
-    public static abstract class AbstractExec implements Exec {
+    abstract class AbstractExec implements Exec
+    {
 
-        public static String[] convertEnv(@Nullable Map<String, String> env) {
-            if (env == null)
+        public static String[] convertEnv(@Nullable Map<String, String> env)
+        {
+            if (env == null) {
                 return null;
+            }
             ArrayList<String> ret = Lists.newArrayList(Iterables.transform(
                     env.entrySet(), entry -> String.format("%s=%s", entry.getKey(), entry.getValue())));
             return ret.toArray(new String[ret.size()]);
         }
     }
 
-    public static class ProcessBuilderExec extends AbstractExec {
+    class ProcessBuilderExec extends AbstractExec
+    {
 
         public static final Method environment;
 
@@ -67,18 +74,21 @@ public interface Exec
                 environment = ProcessBuilder.class.getDeclaredMethod("environment", String[].class);
                 environment.setAccessible(true);
 
-            } catch (NoSuchMethodException e) {
+            }
+            catch (NoSuchMethodException e) {
                 throw new IllegalStateException(e);
             }
         }
 
         @Override
-        public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException {
+        public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException
+        {
             ProcessBuilder pb = new ProcessBuilder();
             String[] envArr = convertEnv(env);
             try {
-                environment.invoke(pb, new Object[]{ envArr });
-            } catch (Exception e) {
+                environment.invoke(pb, new Object[]{envArr});
+            }
+            catch (Exception e) {
                 throw new IllegalStateException(e);
             }
             List<String> command = Lists.newArrayList(path);
@@ -91,14 +101,15 @@ public interface Exec
             int ret;
             try {
                 ret = process.waitFor();
-            } catch (InterruptedException e) {
+            }
+            catch (InterruptedException e) {
                 throw new IllegalStateException(e);
             }
             System.exit(ret);
         }
     }
 
-    public static void main(String[] arg)
+    static void main(String[] arg)
     {
         try {
             JSch jsch = new JSch();
@@ -110,7 +121,7 @@ public interface Exec
             else {
                 host = JOptionPane.showInputDialog("Enter username@hostname",
                         System.getProperty("user.name") + "@localhost"
-                        );
+                );
             }
             String user = host.substring(0, host.indexOf('@'));
             host = host.substring(host.indexOf('@') + 1);
@@ -223,7 +234,7 @@ http://www.jcraft.com/jsch/examples/
         }
     }
 
-    public static class MyUserInfo implements UserInfo, UIKeyboardInteractive
+    class MyUserInfo implements UserInfo, UIKeyboardInteractive
     {
         public String getPassword()
         {
