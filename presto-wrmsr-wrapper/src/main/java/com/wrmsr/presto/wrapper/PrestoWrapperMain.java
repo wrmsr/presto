@@ -145,10 +145,19 @@ public class PrestoWrapperMain
     @Command(name = "launch", description = "Launches presto server (argless)")
     public static class Launch implements Runnable
     {
+        private List<URL> classloaderUrls;
+
+        public synchronized List<URL> getClassloaderUrls()
+        {
+            if (classloaderUrls == null) {
+                classloaderUrls = ImmutableList.copyOf(resolveModuleClassloaderUrls("presto-main"));
+            }
+            return classloaderUrls;
+        }
         @Override
         public void run()
         {
-            runStaticMethod(resolveModuleClassloaderUrls("presto-main"), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[]{String[].class}, new Object[]{new String[]{}});
+            runStaticMethod(getClassloaderUrls(), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[]{String[].class}, new Object[]{new String[]{}});
         }
     }
 
@@ -188,8 +197,8 @@ public class PrestoWrapperMain
 
     public static abstract class ServerCommand extends DaemonCommand
     {
-        @Option(name = {"-r", "--relaunch"}, description = "Whether or not to relaunch with appropriate JVM settings")
-        public boolean relaunch;
+        @Option(name = {"-r", "--reexec"}, description = "Whether or not to reexec with appropriate JVM settings")
+        public boolean reexec;
 
         public String[] getLaunchArgs()
         {
@@ -212,7 +221,7 @@ public class PrestoWrapperMain
             return argv.toArray(new String[argv.size()]);
         }
 
-        public void relaunch()
+        public void reexec()
         {
             POSIX posix = POSIXUtils.getPOSIX();
             String[] args = getLaunchArgs();
@@ -221,11 +230,26 @@ public class PrestoWrapperMain
 
         public void launch()
         {
-            if (relaunch) {
-                relaunch();
+            Launch launch = reexec ? null : new Launch();
+            if (Strings.isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
+                System.setProperty("plugin.preloaded",  "|presto-wrmsr-extensions");
+            }
+            if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+                if (launch != null) {
+                    launch.getClassloaderUrls();
+                }
+                String wd = new File(new File(System.getProperty("user.dir")), "presto-main").getAbsolutePath();
+                File wdf = new File(wd);
+                checkState(wdf.exists() && wdf.isDirectory());
+                System.setProperty("user.dir", wd);
+                POSIX posix = POSIXUtils.getPOSIX();
+                checkState(posix.chdir(wd) == 0);
+            }
+            if (launch == null) {
+                reexec();
             }
             else {
-                new Launch().run();
+                launch.run();
             }
         }
     }
