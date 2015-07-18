@@ -24,3 +24,4 @@ data
 node_modules
 npm-debug.log
 derby.log
+*.pid

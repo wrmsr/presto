@@ -34,6 +34,8 @@ public class DaemonProcess
     public boolean locked;
 
     public final int EWOULDBLOCK;
+    public final int SIGTERM;
+    public final int SIGKILL;
 
     public DaemonProcess(File path)
     {
@@ -45,6 +47,10 @@ public class DaemonProcess
             EWOULDBLOCK =
                     -1;
                     // jnr.constants.platform.darwin.Errno.EWOULDBLOCK.intValue();
+            SIGTERM =
+                    jnr.constants.platform.darwin.Signal.SIGTERM.intValue();
+            SIGKILL =
+                    jnr.constants.platform.darwin.Signal.SIGKILL.intValue();
         }
         else if (Platform.IS_LINUX) {
             openFlags =
@@ -52,6 +58,10 @@ public class DaemonProcess
                     jnr.constants.platform.linux.OpenFlags.O_CREAT.intValue();
             EWOULDBLOCK =
                     jnr.constants.platform.linux.Errno.EWOULDBLOCK.intValue();
+            SIGTERM =
+                    jnr.constants.platform.linux.Signal.SIGTERM.intValue();
+            SIGKILL =
+                    jnr.constants.platform.linux.Signal.SIGKILL.intValue();
         }
         else {
             throw new IllegalStateException("Unsupported platform");
@@ -135,5 +145,15 @@ public class DaemonProcess
     {
         int pid = readPid();
         return posix.kill(pid, signal);
+    }
+
+    public synchronized int stop()
+    {
+        return kill(SIGTERM);
+    }
+
+    public synchronized int kill()
+    {
+        return kill(SIGKILL);
     }
 }

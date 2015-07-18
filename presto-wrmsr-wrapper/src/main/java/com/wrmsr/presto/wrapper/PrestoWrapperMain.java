@@ -41,9 +41,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 
-// mesos yarn cli jarsync
-
 /*
+--heap
+--debug-port
+--jmx-port
+
+--coordinator
+--node-id
+--random-node-id
+--discovery-uri
+
 com.facebook.presto.server.PluginManager=DEBUG
 com.facebook.presto=INFO
 com.ning.http.client=WARN
@@ -260,6 +267,7 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
+            getDaemonProcess().stop();
         }
     }
 
@@ -269,9 +277,7 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
-            Stop stop = new Stop();
-            stop.pidFile = pidFile;
-            stop.run();
+            getDaemonProcess().stop();
             run(true);
         }
     }
@@ -298,9 +304,16 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
-            checkArgument(args.size() == 1);
-            int signal = Integer.valueOf(args.get(0));
-            getDaemonProcess().kill(signal);
+            if (args.isEmpty()) {
+                getDaemonProcess().kill();
+            }
+            else if (args.size() == 1) {
+                int signal = Integer.valueOf(args.get(0));
+                getDaemonProcess().kill(signal);
+            }
+            else {
+                throw new IllegalArgumentException();
+            }
         }
     }
 
