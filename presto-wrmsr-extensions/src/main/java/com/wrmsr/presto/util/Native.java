@@ -65,7 +65,6 @@ public class Native
 
             getSymbolAddress = NativeLibrary.class.getDeclaredMethod("getSymbolAddress", String.class);
             getSymbolAddress.setAccessible(true);
-
         }
         catch (NoSuchMethodException e) {
             throw new IllegalStateException(e);

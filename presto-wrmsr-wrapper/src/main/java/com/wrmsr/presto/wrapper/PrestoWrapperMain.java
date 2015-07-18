@@ -143,6 +143,15 @@ public class PrestoWrapperMain
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
         public String configFile;
         public static final String CONFIG_FILE_PROPERTY_KEY = "wrmsr.wrapper.config-file";
+
+        public synchronized void deleteRepositoryOnExit()
+        {
+            if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+                File r = new File(Repositories.getRepositoryPath());
+                checkState(r.exists() && r.isDirectory());
+                r.deleteOnExit();
+            }
+        }
     }
 
     public static abstract class DaemonCommand extends WrapperCommand
@@ -173,7 +182,10 @@ public class PrestoWrapperMain
         @Option(name = {"-r", "--reexec"}, description = "Whether or not to reexec with appropriate JVM settings")
         public boolean reexec;
 
-        public String[] getLaunchArgs()
+        @Option(name = {"-D"}, description = "Sets system property")
+        public List<String> systemProperties;
+
+        public String[] getExecArgs()
         {
             String java = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java";
             checkState(new File(java).exists());
@@ -188,6 +200,12 @@ public class PrestoWrapperMain
             List<String> argv = newArrayList();
             // FIXME repo path + deleteOnExit
             argv.add(java);
+            for (String s : systemProperties) {
+                argv.add("-D" + s);
+            }
+            if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+                argv.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
+            }
             argv.add("-jar");
             argv.add(jar);
             argv.add("launch");
@@ -197,7 +215,7 @@ public class PrestoWrapperMain
         public void reexec()
         {
             POSIX posix = POSIXUtils.getPOSIX();
-            String[] args = getLaunchArgs();
+            String[] args = getExecArgs();
             posix.libc().execv(args[0], args);
         }
 
@@ -222,6 +240,11 @@ public class PrestoWrapperMain
                 reexec();
             }
             else {
+                for (String s : systemProperties) {
+                    int i = s.indexOf('=');
+                    System.setProperty(s.substring(0, i), s.substring(i + 1));
+                }
+                deleteRepositoryOnExit();
                 launch.run();
             }
         }
@@ -288,6 +311,7 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
+            deleteRepositoryOnExit();
             if (!getDaemonProcess().alive()) {
                 System.exit(DaemonProcess.LSB_NOT_RUNNING);
             }
@@ -304,6 +328,7 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
+            deleteRepositoryOnExit();
             if (args.isEmpty()) {
                 getDaemonProcess().kill();
             }
@@ -397,6 +422,7 @@ public class PrestoWrapperMain
         @Override
         public void run()
         {
+            deleteRepositoryOnExit();
             runStaticMethod(resolveModuleClassloaderUrls(getModuleName()), getClassName(), "main", new Class<?>[]{String[].class}, new Object[]{args.toArray(new String[args.size()])});
         }
     }
