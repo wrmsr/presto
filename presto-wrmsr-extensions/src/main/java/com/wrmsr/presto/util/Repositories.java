@@ -23,7 +23,11 @@ import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -37,7 +41,6 @@ public class Repositories
     // FIXME add static ClassLoader, set in bootstrap via refl
 
     public static final String REPOSITORY_PATH_PROPERTY_KEY = "wrmsr.repository.path";
-    public static final String SHOULD_DELETE_REPOSITORY_PROPERTY_KEY = "wrmsr.repository.should-delete";
 
     public static void addClasspathUrl(URLClassLoader classLoader, URL url) throws IOException
     {
@@ -73,9 +76,6 @@ public class Repositories
             }
             if (!repositoryPath.isDirectory()) {
                 throw new IOException("Repository path is not a directory: " + repositoryPath);
-            }
-            if (Boolean.valueOf(System.getProperty(SHOULD_DELETE_REPOSITORY_PROPERTY_KEY))) {
-                repositoryPath.deleteOnExit();
             }
         }
         return repositoryPath;
@@ -134,5 +134,44 @@ public class Repositories
         Thread.enumerate(threads);
         ClassLoader classLoader = threads[0].getContextClassLoader(); // FIXME: lol.
         return resolveUrlsForModule(classLoader, moduleName);
+    }
+
+    public static void removeRecursive(Path path) throws IOException
+    {
+        Files.walkFileTree(path, new SimpleFileVisitor<Path>()
+        {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                    throws IOException
+            {
+                Files.delete(file);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException
+            {
+                // try to delete the file anyway, even if its attributes
+                // could not be read, since delete-only access is
+                // theoretically possible
+                Files.delete(file);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException
+            {
+                if (exc == null)
+                {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+                else
+                {
+                    // directory iteration failed; propagate exception
+                    throw exc;
+                }
+            }
+        });
     }
 }

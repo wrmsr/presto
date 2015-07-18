@@ -73,8 +73,6 @@ node.data-dir=/Users/wtimoney/presto/data/
 node.environment=production
 node.environment=test
 node.id=ffffffff-ffff-ffff-ffff-ffffffffffff
-plugin.bundles=../presto-wrmsr-extensions/pom.xml
-plugin.bundles=presto-wrmsr-extensions
 plugin.dir=/dev/null
 presto.version=0.105-SNAPSHOT
 presto.version=testversion
@@ -149,7 +147,18 @@ public class PrestoWrapperMain
             if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 File r = new File(Repositories.getRepositoryPath());
                 checkState(r.exists() && r.isDirectory());
-                r.deleteOnExit();
+                Runtime.getRuntime().addShutdownHook(new Thread() {
+                    @Override
+                    public void run()
+                    {
+                        try {
+                            Repositories.removeRecursive(r.toPath());
+                        }
+                        catch (IOException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
+                });
             }
         }
     }
@@ -183,7 +192,7 @@ public class PrestoWrapperMain
         public boolean reexec;
 
         @Option(name = {"-D"}, description = "Sets system property")
-        public List<String> systemProperties;
+        public List<String> systemProperties = newArrayList();
 
         public String[] getExecArgs()
         {
