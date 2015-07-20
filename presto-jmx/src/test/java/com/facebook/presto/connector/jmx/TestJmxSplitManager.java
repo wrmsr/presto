@@ -11,12 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.split;
+package com.facebook.presto.connector.jmx;
 
-import com.facebook.presto.connector.jmx.JmxColumnHandle;
-import com.facebook.presto.connector.jmx.JmxConnectorId;
-import com.facebook.presto.connector.jmx.JmxSplitManager;
-import com.facebook.presto.connector.jmx.JmxTableHandle;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorPartitionResult;
 import com.facebook.presto.spi.ConnectorSplit;
@@ -35,23 +31,21 @@ import java.net.URI;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
-import static com.facebook.presto.util.ImmutableCollectors.toImmutableSet;
-import static io.airlift.concurrent.MoreFutures.getFutureValue;
 import static java.lang.String.format;
+import static java.util.stream.Collectors.toSet;
 import static org.testng.Assert.assertEquals;
 
 public class TestJmxSplitManager
 {
-    private static final String CONNECTOR_ID = "test_connector";
-
     private final Node localNode = new TestingNode("host1");
     private final Set<Node> nodes = ImmutableSet.of(localNode, new TestingNode("host2"), new TestingNode("host3"));
 
-    private final JmxColumnHandle columnHandle = new JmxColumnHandle(CONNECTOR_ID, "node", VARCHAR, 0);
-    private final JmxTableHandle tableHandle = new JmxTableHandle(CONNECTOR_ID, "objectName", ImmutableList.of(columnHandle));
-    private final JmxSplitManager splitManager = new JmxSplitManager(new JmxConnectorId(CONNECTOR_ID), new TestingNodeManager());
+    private final JmxColumnHandle columnHandle = new JmxColumnHandle("test", "node", VARCHAR);
+    private final JmxTableHandle tableHandle = new JmxTableHandle("test", "objectName", ImmutableList.of(columnHandle));
+    private final JmxSplitManager splitManager = new JmxSplitManager("test", new TestingNodeManager());
 
     @Test
     public void testPredicatePushdown()
@@ -80,7 +74,7 @@ public class TestJmxSplitManager
         List<ConnectorSplit> allSplits = getAllSplits(splitSource);
         assertEquals(allSplits.size(), nodes.size());
 
-        Set<String> actualNodes = nodes.stream().map(Node::getNodeIdentifier).collect(toImmutableSet());
+        Set<String> actualNodes = nodes.stream().map(Node::getNodeIdentifier).collect(toSet());
         Set<String> expectedNodes = new HashSet<>();
         for (ConnectorSplit split : allSplits) {
             List<HostAddress> addresses = split.getAddresses();
@@ -91,11 +85,11 @@ public class TestJmxSplitManager
     }
 
     private static List<ConnectorSplit> getAllSplits(ConnectorSplitSource splitSource)
-            throws InterruptedException
+            throws InterruptedException, ExecutionException
     {
         ImmutableList.Builder<ConnectorSplit> splits = ImmutableList.builder();
         while (!splitSource.isFinished()) {
-            List<ConnectorSplit> batch = getFutureValue(splitSource.getNextBatch(1000));
+            List<ConnectorSplit> batch = splitSource.getNextBatch(1000).get();
             splits.addAll(batch);
         }
         return splits.build();

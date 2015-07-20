@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.tpch;
+package com.facebook.presto.connector.jmx;
 
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
@@ -19,28 +19,40 @@ import com.facebook.presto.spi.Plugin;
 import com.google.common.collect.ImmutableList;
 
 import javax.inject.Inject;
+import javax.management.MBeanServer;
 
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
+import static java.util.Objects.requireNonNull;
 
-public class TpchPlugin
+public class JmxPlugin
         implements Plugin
 {
+    private final MBeanServer mBeanServer;
     private NodeManager nodeManager;
 
+    public JmxPlugin()
+    {
+        this(getPlatformMBeanServer());
+    }
+
+    public JmxPlugin(MBeanServer mBeanServer)
+    {
+        this.mBeanServer = requireNonNull(mBeanServer, "mBeanServer is null");
+    }
+
     @Inject
-    public void setNodeManager(NodeManager nodeManager)
+    public synchronized void setNodeManager(NodeManager nodeManager)
     {
         this.nodeManager = nodeManager;
     }
 
     @Override
-    public <T> List<T> getServices(Class<T> type)
+    public synchronized <T> List<T> getServices(Class<T> type)
     {
         if (type == ConnectorFactory.class) {
-            checkNotNull(nodeManager, "nodeManager is null");
-            return ImmutableList.of(type.cast(new TpchConnectorFactory(nodeManager)));
+            return ImmutableList.of(type.cast(new JmxConnectorFactory(mBeanServer, nodeManager)));
         }
         return ImmutableList.of();
     }

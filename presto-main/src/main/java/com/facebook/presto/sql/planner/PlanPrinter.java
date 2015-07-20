@@ -134,24 +134,24 @@ public class PlanPrinter
     {
         StringBuilder builder = new StringBuilder();
         for (PlanFragment fragment : plan.getAllFragments()) {
-            builder.append(String.format("Fragment %s [%s]\n",
+            builder.append(format("Fragment %s [%s]\n",
                     fragment.getId(),
                     fragment.getDistribution()));
 
             builder.append(indentString(1))
-                    .append(String.format("Output layout: [%s]\n",
+                    .append(format("Output layout: [%s]\n",
                             Joiner.on(", ").join(fragment.getOutputLayout())));
 
             if (fragment.getOutputPartitioning() == OutputPartitioning.HASH) {
                 List<Symbol> symbols = fragment.getPartitionBy().orElseGet(() -> ImmutableList.of(new Symbol("(absent)")));
                 builder.append(indentString(1));
                 if (Optional.of(REPLICATE).equals(fragment.getNullPartitionPolicy())) {
-                    builder.append(String.format("Output partitioning: (replicate nulls) [%s]\n",
+                    builder.append(format("Output partitioning: (replicate nulls) [%s]\n",
                             Joiner.on(", ").join(symbols)));
                 }
                 else {
-                    builder.append(String.format("Output partitioning: [%s]\n",
-                                   Joiner.on(", ").join(symbols)));
+                    builder.append(format("Output partitioning: [%s]\n",
+                            Joiner.on(", ").join(symbols)));
                 }
             }
 
@@ -196,6 +196,7 @@ public class PlanPrinter
     {
         private final Map<Symbol, Type> types;
 
+        @SuppressWarnings("AssignmentToCollectionOrArrayFieldFromParameter")
         public Visitor(Map<Symbol, Type> types)
         {
             this.types = types;
@@ -309,7 +310,7 @@ public class PlanPrinter
         }
 
         @Override
-        public Void visitWindow(final WindowNode node, Integer indent)
+        public Void visitWindow(WindowNode node, Integer indent)
         {
             List<String> partitionBy = Lists.transform(node.getPartitionBy(), Functions.toStringFunction());
 
@@ -359,7 +360,7 @@ public class PlanPrinter
         }
 
         @Override
-        public Void visitTopNRowNumber(final TopNRowNumberNode node, Integer indent)
+        public Void visitTopNRowNumber(TopNRowNumberNode node, Integer indent)
         {
             List<String> partitionBy = Lists.transform(node.getPartitionBy(), Functions.toStringFunction());
 
@@ -376,16 +377,16 @@ public class PlanPrinter
         }
 
         @Override
-        public Void visitRowNumber(final RowNumberNode node, Integer indent)
+        public Void visitRowNumber(RowNumberNode node, Integer indent)
         {
             List<String> partitionBy = Lists.transform(node.getPartitionBy(), Functions.toStringFunction());
             List<String> args = new ArrayList<>();
             if (!partitionBy.isEmpty()) {
-                args.add(format("partition by (%s) ", Joiner.on(", ").join(partitionBy)));
+                args.add(format("partition by (%s)", Joiner.on(", ").join(partitionBy)));
             }
 
             if (node.getMaxRowCountPerPartition().isPresent()) {
-                args.add(format("limit (%s) ", node.getMaxRowCountPerPartition().get()));
+                args.add(format("limit = %s", node.getMaxRowCountPerPartition().get()));
             }
 
             print(indent, "- RowNumber[%s] => [%s]", Joiner.on(", ").join(args), formatOutputs(node.getOutputSymbols()));
@@ -398,7 +399,7 @@ public class PlanPrinter
         public Void visitTableScan(TableScanNode node, Integer indent)
         {
             TableHandle table = node.getTable();
-            print(indent, "- TableScan[%s, original constraint=%s] => [%s]", table, node.getOriginalConstraint(), formatOutputs(node.getOutputSymbols()));
+            print(indent, "- TableScan[%s, originalConstraint = %s] => [%s]", table, node.getOriginalConstraint(), formatOutputs(node.getOutputSymbols()));
 
             TupleDomain<ColumnHandle> predicate = node.getLayout()
                     .map(metadata::getLayout)
@@ -494,7 +495,7 @@ public class PlanPrinter
         }
 
         @Override
-        public Void visitTopN(final TopNNode node, Integer indent)
+        public Void visitTopN(TopNNode node, Integer indent)
         {
             Iterable<String> keys = Iterables.transform(node.getOrderBy(), input -> input + " " + node.getOrderings().get(input));
 
@@ -503,7 +504,7 @@ public class PlanPrinter
         }
 
         @Override
-        public Void visitSort(final SortNode node, Integer indent)
+        public Void visitSort(SortNode node, Integer indent)
         {
             Iterable<String> keys = Iterables.transform(node.getOrderBy(), input -> input + " " + node.getOrderings().get(input));
 
