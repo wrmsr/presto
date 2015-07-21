@@ -234,6 +234,18 @@ public class PrestoWrapperMain
             if (Strings.isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
                 System.setProperty("plugin.preloaded",  "|presto-wrmsr-extensions");
             }
+            if (Strings.isNullOrEmpty(System.getProperty("node.environment"))) {
+                System.setProperty("node.environment",  "development");
+            }
+            if (Strings.isNullOrEmpty(System.getProperty("node.id"))) {
+                System.setProperty("node.id", UUID.randomUUID().toString());
+            }
+            if (Strings.isNullOrEmpty(System.getProperty("presto.version"))) {
+                System.setProperty("presto.version", "0.112-SNAPSHOT");
+            }
+            if (Strings.isNullOrEmpty(System.getProperty("node.coordinator"))) {
+                System.setProperty("node.coordinator", "true");
+            }
             if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 if (launch != null) {
                     launch.getClassloaderUrls();
