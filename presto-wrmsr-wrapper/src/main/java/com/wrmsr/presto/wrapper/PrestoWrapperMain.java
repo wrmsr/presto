@@ -241,7 +241,7 @@ public class PrestoWrapperMain
                 System.setProperty("node.id", UUID.randomUUID().toString());
             }
             if (Strings.isNullOrEmpty(System.getProperty("presto.version"))) {
-                System.setProperty("presto.version", "0.112-SNAPSHOT");
+                System.setProperty("presto.version", "0.113-SNAPSHOT");
             }
             if (Strings.isNullOrEmpty(System.getProperty("node.coordinator"))) {
                 System.setProperty("node.coordinator", "true");
