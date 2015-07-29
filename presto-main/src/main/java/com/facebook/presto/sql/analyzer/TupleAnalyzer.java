@@ -240,8 +240,8 @@ public class TupleAnalyzer
 
             throw new SemanticException(MISSING_TABLE, table, "Table %s does not exist", name);
         }
-        TableMetadata tableMetadata = metadata.getTableMetadata(tableHandle.get());
-        Map<String, ColumnHandle> columnHandles = metadata.getColumnHandles(tableHandle.get());
+        TableMetadata tableMetadata = metadata.getTableMetadata(session, tableHandle.get());
+        Map<String, ColumnHandle> columnHandles = metadata.getColumnHandles(session, tableHandle.get());
 
         // TODO: discover columns lazily based on where they are needed (to support datasources that can't enumerate all tables)
         ImmutableList.Builder<Field> fields = ImmutableList.builder();
@@ -1077,13 +1077,13 @@ public class TupleAnalyzer
         try {
             Session viewSession = Session.builder()
                     .setUser(session.getUser())
-                    .setSource(session.getSource())
+                    .setSource(session.getSource().orElse(null))
                     .setCatalog(catalog)
                     .setSchema(schema)
                     .setTimeZoneKey(session.getTimeZoneKey())
                     .setLocale(session.getLocale())
-                    .setRemoteUserAddress(session.getRemoteUserAddress())
-                    .setUserAgent(session.getUserAgent())
+                    .setRemoteUserAddress(session.getRemoteUserAddress().orElse(null))
+                    .setUserAgent(session.getUserAgent().orElse(null))
                     .setStartTime(session.getStartTime())
                     .build();
 

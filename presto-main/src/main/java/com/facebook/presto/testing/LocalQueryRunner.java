@@ -175,7 +175,7 @@ public class LocalQueryRunner
         Session session = localQueryRunner.getDefaultSession();
         Session.SessionBuilder builder = Session.builder()
                 .setUser(session.getUser())
-                .setSource(session.getSource())
+                .setSource(session.getSource().orElse(null))
                 .setCatalog(session.getCatalog())
                 .setTimeZoneKey(session.getTimeZoneKey())
                 .setLocale(session.getLocale())
@@ -206,6 +206,7 @@ public class LocalQueryRunner
         return typeRegistry;
     }
 
+    @Override
     public Metadata getMetadata()
     {
         return metadata;
@@ -368,7 +369,7 @@ public class LocalQueryRunner
         Plan plan = new LogicalPlanner(session, planOptimizersFactory.get(), idAllocator, metadata).plan(analysis);
 
         if (printPlan) {
-            System.out.println(PlanPrinter.textLogicalPlan(plan.getRoot(), plan.getTypes(), metadata));
+            System.out.println(PlanPrinter.textLogicalPlan(plan.getRoot(), plan.getTypes(), metadata, session));
         }
 
         SubPlan subplan = new PlanFragmenter().createSubPlans(plan);
@@ -403,7 +404,7 @@ public class LocalQueryRunner
         for (TableScanNode tableScan : findTableScanNodes(subplan.getFragment().getRoot())) {
             TableLayoutHandle layout = tableScan.getLayout().get();
 
-            SplitSource splitSource = splitManager.getSplits(layout);
+            SplitSource splitSource = splitManager.getSplits(session, layout);
 
             ImmutableSet.Builder<ScheduledSplit> scheduledSplits = ImmutableSet.builder();
             while (!splitSource.isFinished()) {
@@ -456,21 +457,21 @@ public class LocalQueryRunner
         checkArgument(tableHandle != null, "Table %s does not exist", tableName);
 
         // lookup the columns
-        Map<String, ColumnHandle> allColumnHandles = metadata.getColumnHandles(tableHandle);
+        Map<String, ColumnHandle> allColumnHandles = metadata.getColumnHandles(session, tableHandle);
         ImmutableList.Builder<ColumnHandle> columnHandlesBuilder = ImmutableList.builder();
         ImmutableList.Builder<Type> columnTypesBuilder = ImmutableList.builder();
         for (String columnName : columnNames) {
             ColumnHandle columnHandle = allColumnHandles.get(columnName);
             checkArgument(columnHandle != null, "Table %s does not have a column %s", tableName, columnName);
             columnHandlesBuilder.add(columnHandle);
-            ColumnMetadata columnMetadata = metadata.getColumnMetadata(tableHandle, columnHandle);
+            ColumnMetadata columnMetadata = metadata.getColumnMetadata(session, tableHandle, columnHandle);
             columnTypesBuilder.add(columnMetadata.getType());
         }
         List<ColumnHandle> columnHandles = columnHandlesBuilder.build();
         List<Type> columnTypes = columnTypesBuilder.build();
 
         // get the split for this table
-        List<TableLayoutResult> layouts = metadata.getLayouts(tableHandle, Constraint.alwaysTrue(), Optional.empty());
+        List<TableLayoutResult> layouts = metadata.getLayouts(session, tableHandle, Constraint.alwaysTrue(), Optional.empty());
         Split split = getLocalQuerySplit(layouts.get(0).getLayout().getHandle());
 
         return new OperatorFactory()
@@ -485,7 +486,7 @@ public class LocalQueryRunner
             public Operator createOperator(DriverContext driverContext)
             {
                 OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, "BenchmarkSource");
-                ConnectorPageSource pageSource = pageSourceManager.createPageSource(split, columnHandles);
+                ConnectorPageSource pageSource = pageSourceManager.createPageSource(session, split, columnHandles);
                 return new PageSourceOperator(pageSource, columnTypes, operatorContext);
             }
 
@@ -511,7 +512,7 @@ public class LocalQueryRunner
 
     private Split getLocalQuerySplit(TableLayoutHandle handle)
     {
-        SplitSource splitSource = splitManager.getSplits(handle);
+        SplitSource splitSource = splitManager.getSplits(defaultSession, handle);
         List<Split> splits = new ArrayList<>();
         splits.addAll(getFutureValue(splitSource.getNextBatch(1000)));
         while (!splitSource.isFinished()) {

@@ -57,6 +57,7 @@ import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.sql.tree.ExplainType.Type.DISTRIBUTED;
 import static com.facebook.presto.sql.tree.ExplainType.Type.LOGICAL;
 import static com.facebook.presto.testing.MaterializedResult.resultBuilder;
+import static com.facebook.presto.tests.QueryAssertions.assertContains;
 import static com.facebook.presto.tests.QueryAssertions.assertEqualsIgnoreOrder;
 import static com.google.common.collect.Iterables.transform;
 import static io.airlift.tpch.TpchTable.ORDERS;
@@ -685,7 +686,7 @@ public abstract class AbstractTestQueries
         MaterializedResult all = computeExpected("SELECT orderkey FROM ORDERS", actual.getTypes());
 
         assertEquals(actual.getMaterializedRows().size(), 10);
-        assertTrue(all.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(all, actual);
     }
 
     @Test
@@ -696,7 +697,7 @@ public abstract class AbstractTestQueries
         MaterializedResult all = computeExpected("SELECT custkey, SUM(totalprice) FROM ORDERS GROUP BY custkey", actual.getTypes());
 
         assertEquals(actual.getMaterializedRows().size(), 10);
-        assertTrue(all.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(all, actual);
     }
 
     @Test
@@ -707,7 +708,7 @@ public abstract class AbstractTestQueries
         MaterializedResult all = computeExpected("SELECT orderkey FROM ORDERS", actual.getTypes());
 
         assertEquals(actual.getMaterializedRows().size(), 10);
-        assertTrue(all.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(all, actual);
     }
 
     @Test
@@ -2207,7 +2208,7 @@ public abstract class AbstractTestQueries
                 ") WHERE NOT rn <= 10");
         MaterializedResult all = computeExpected("SELECT orderkey, orderstatus FROM ORDERS", actual.getTypes());
         assertEquals(actual.getMaterializedRows().size(), all.getMaterializedRows().size() - 10);
-        assertTrue(all.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(all, actual);
 
         actual = computeActual("" +
                 "SELECT orderkey, orderstatus FROM (\n" +
@@ -2216,7 +2217,7 @@ public abstract class AbstractTestQueries
                 ") WHERE rn - 5 <= 10");
         all = computeExpected("SELECT orderkey, orderstatus FROM ORDERS", actual.getTypes());
         assertEquals(actual.getMaterializedRows().size(), 15);
-        assertTrue(all.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(all, actual);
     }
 
     @Test
@@ -2290,7 +2291,7 @@ public abstract class AbstractTestQueries
                 .row(2, 2)
                 .build();
         assertEquals(actual.getMaterializedRows().size(), 2);
-        assertTrue(expected.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(expected, actual);
     }
 
     @Test
@@ -2304,7 +2305,7 @@ public abstract class AbstractTestQueries
                 ") WHERE rn <= 5 AND orderstatus != 'Z'");
         MaterializedResult all = computeExpected("SELECT orderkey, orderstatus FROM ORDERS", actual.getTypes());
         assertEquals(actual.getMaterializedRows().size(), 5);
-        assertTrue(all.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(all, actual);
 
         actual = computeActual("" +
                 "SELECT orderkey, orderstatus FROM (\n" +
@@ -2314,7 +2315,7 @@ public abstract class AbstractTestQueries
         all = computeExpected("SELECT orderkey, orderstatus FROM ORDERS", actual.getTypes());
 
         assertEquals(actual.getMaterializedRows().size(), 4);
-        assertTrue(all.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(all, actual);
 
         actual = computeActual("" +
                 "SELECT orderkey, orderstatus FROM (\n" +
@@ -2324,7 +2325,7 @@ public abstract class AbstractTestQueries
         all = computeExpected("SELECT orderkey, orderstatus FROM ORDERS", actual.getTypes());
 
         assertEquals(actual.getMaterializedRows().size(), 5);
-        assertTrue(all.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(all, actual);
     }
 
     @Test
@@ -2340,7 +2341,7 @@ public abstract class AbstractTestQueries
 
         // there are 3 distinct orderstatus, so expect 15 rows.
         assertEquals(actual.getMaterializedRows().size(), 15);
-        assertTrue(all.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(all, actual);
 
         // Test for unreferenced outputs
         actual = computeActual("" +
@@ -2352,7 +2353,7 @@ public abstract class AbstractTestQueries
 
         // there are 3 distinct orderstatus, so expect 15 rows.
         assertEquals(actual.getMaterializedRows().size(), 15);
-        assertTrue(all.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(all, actual);
     }
 
     @Test
@@ -3159,7 +3160,7 @@ public abstract class AbstractTestQueries
     @Test
     public void testDefaultExplainTextFormat()
     {
-        String query = "SELECT 123";
+        String query = "SELECT * FROM orders";
         MaterializedResult result = computeActual("EXPLAIN " + query);
         String actual = Iterables.getOnlyElement(transform(result.getMaterializedRows(), onlyColumnGetter()));
         assertEquals(actual, getExplainPlan(query, LOGICAL));
@@ -3168,7 +3169,7 @@ public abstract class AbstractTestQueries
     @Test
     public void testDefaultExplainGraphvizFormat()
     {
-        String query = "SELECT 123";
+        String query = "SELECT * FROM orders";
         MaterializedResult result = computeActual("EXPLAIN (FORMAT GRAPHVIZ) " + query);
         String actual = Iterables.getOnlyElement(transform(result.getMaterializedRows(), onlyColumnGetter()));
         assertEquals(actual, getGraphvizExplainPlan(query, LOGICAL));
@@ -3177,7 +3178,7 @@ public abstract class AbstractTestQueries
     @Test
     public void testLogicalExplain()
     {
-        String query = "SELECT 123";
+        String query = "SELECT * FROM orders";
         MaterializedResult result = computeActual("EXPLAIN (TYPE LOGICAL) " + query);
         String actual = Iterables.getOnlyElement(transform(result.getMaterializedRows(), onlyColumnGetter()));
         assertEquals(actual, getExplainPlan(query, LOGICAL));
@@ -3186,7 +3187,7 @@ public abstract class AbstractTestQueries
     @Test
     public void testLogicalExplainTextFormat()
     {
-        String query = "SELECT 123";
+        String query = "SELECT * FROM orders";
         MaterializedResult result = computeActual("EXPLAIN (TYPE LOGICAL, FORMAT TEXT) " + query);
         String actual = Iterables.getOnlyElement(transform(result.getMaterializedRows(), onlyColumnGetter()));
         assertEquals(actual, getExplainPlan(query, LOGICAL));
@@ -3195,7 +3196,7 @@ public abstract class AbstractTestQueries
     @Test
     public void testLogicalExplainGraphvizFormat()
     {
-        String query = "SELECT 123";
+        String query = "SELECT * FROM orders";
         MaterializedResult result = computeActual("EXPLAIN (TYPE LOGICAL, FORMAT GRAPHVIZ) " + query);
         String actual = Iterables.getOnlyElement(transform(result.getMaterializedRows(), onlyColumnGetter()));
         assertEquals(actual, getGraphvizExplainPlan(query, LOGICAL));
@@ -3204,7 +3205,7 @@ public abstract class AbstractTestQueries
     @Test
     public void testDistributedExplain()
     {
-        String query = "SELECT 123";
+        String query = "SELECT * FROM orders";
         MaterializedResult result = computeActual("EXPLAIN (TYPE DISTRIBUTED) " + query);
         String actual = Iterables.getOnlyElement(transform(result.getMaterializedRows(), onlyColumnGetter()));
         assertEquals(actual, getExplainPlan(query, DISTRIBUTED));
@@ -3213,7 +3214,7 @@ public abstract class AbstractTestQueries
     @Test
     public void testDistributedExplainTextFormat()
     {
-        String query = "SELECT 123";
+        String query = "SELECT * FROM orders";
         MaterializedResult result = computeActual("EXPLAIN (TYPE DISTRIBUTED, FORMAT TEXT) " + query);
         String actual = Iterables.getOnlyElement(transform(result.getMaterializedRows(), onlyColumnGetter()));
         assertEquals(actual, getExplainPlan(query, DISTRIBUTED));
@@ -3222,7 +3223,7 @@ public abstract class AbstractTestQueries
     @Test
     public void testDistributedExplainGraphvizFormat()
     {
-        String query = "SELECT 123";
+        String query = "SELECT * FROM orders";
         MaterializedResult result = computeActual("EXPLAIN (TYPE DISTRIBUTED, FORMAT GRAPHVIZ) " + query);
         String actual = Iterables.getOnlyElement(transform(result.getMaterializedRows(), onlyColumnGetter()));
         assertEquals(actual, getGraphvizExplainPlan(query, DISTRIBUTED));
@@ -3231,7 +3232,7 @@ public abstract class AbstractTestQueries
     @Test
     public void testExplainOfExplain()
     {
-        String query = "EXPLAIN SELECT 123";
+        String query = "EXPLAIN SELECT * FROM orders";
         MaterializedResult result = computeActual("EXPLAIN " + query);
         String actual = Iterables.getOnlyElement(transform(result.getMaterializedRows(), onlyColumnGetter()));
         assertEquals(actual, getExplainPlan(query, LOGICAL));
@@ -3455,6 +3456,7 @@ public abstract class AbstractTestQueries
     {
         assertQuery("SELECT orderkey FROM orders UNION SELECT custkey FROM orders");
         assertQuery("SELECT 123 UNION DISTINCT SELECT 123 UNION ALL SELECT 123");
+        assertQuery("SELECT NULL UNION SELECT NULL");
 
         // mixed single-node vs fixed vs source-distributed
         assertQuery("SELECT orderkey FROM orders UNION ALL SELECT 123 UNION ALL (SELECT custkey FROM orders GROUP BY custkey)");
@@ -3618,7 +3620,7 @@ public abstract class AbstractTestQueries
         MaterializedResult all = computeExpected("SELECT * FROM ORDERS", actual.getTypes());
 
         assertEquals(actual.getMaterializedRows().size(), 10);
-        assertTrue(all.getMaterializedRows().containsAll(actual.getMaterializedRows()));
+        assertContains(all, actual);
     }
 
     @Test
@@ -3670,6 +3672,20 @@ public abstract class AbstractTestQueries
                 "SELECT * FROM (SELECT * FROM orders ORDER BY orderkey LIMIT 5) a, " +
                 "(SELECT * FROM orders ORDER BY orderkey LIMIT 5) b, " +
                 "(SELECT * FROM orders ORDER BY orderkey LIMIT 5) c ");
+    }
+
+    @Test
+    public void testCrossJoinUnion()
+            throws Exception
+    {
+        assertQuery("" +
+                "SELECT t.c " +
+                "FROM (SELECT 1) " +
+                "CROSS JOIN (SELECT 0 AS c UNION ALL SELECT 1) t");
+        assertQuery("" +
+                "SELECT a, b " +
+                "FROM (VALUES (1, 1)) " +
+                "CROSS JOIN (SELECT 0 AS a, 0 AS b UNION ALL SELECT 1, 1) t");
     }
 
     @Test
@@ -4097,7 +4113,7 @@ public abstract class AbstractTestQueries
         MaterializedResult emptySample = computeActual("SELECT orderkey FROM orders TABLESAMPLE BERNOULLI (0)");
         MaterializedResult all = computeExpected("SELECT orderkey FROM orders", fullSample.getTypes());
 
-        assertTrue(all.getMaterializedRows().containsAll(fullSample.getMaterializedRows()));
+        assertContains(all, fullSample);
         assertEquals(emptySample.getMaterializedRows().size(), 0);
     }
 

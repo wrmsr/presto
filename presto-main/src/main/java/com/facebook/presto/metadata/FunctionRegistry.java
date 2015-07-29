@@ -49,32 +49,12 @@ import com.facebook.presto.operator.scalar.UrlFunctions;
 import com.facebook.presto.operator.scalar.VarbinaryFunctions;
 import com.facebook.presto.operator.window.CumulativeDistributionFunction;
 import com.facebook.presto.operator.window.DenseRankFunction;
-import com.facebook.presto.operator.window.FirstValueFunction.BigintFirstValueFunction;
-import com.facebook.presto.operator.window.FirstValueFunction.BooleanFirstValueFunction;
-import com.facebook.presto.operator.window.FirstValueFunction.DoubleFirstValueFunction;
-import com.facebook.presto.operator.window.FirstValueFunction.TimestampFirstValueFunction;
-import com.facebook.presto.operator.window.FirstValueFunction.VarcharFirstValueFunction;
-import com.facebook.presto.operator.window.LagFunction.BigintLagFunction;
-import com.facebook.presto.operator.window.LagFunction.BooleanLagFunction;
-import com.facebook.presto.operator.window.LagFunction.DoubleLagFunction;
-import com.facebook.presto.operator.window.LagFunction.TimestampLagFunction;
-import com.facebook.presto.operator.window.LagFunction.VarcharLagFunction;
-import com.facebook.presto.operator.window.LastValueFunction.BigintLastValueFunction;
-import com.facebook.presto.operator.window.LastValueFunction.BooleanLastValueFunction;
-import com.facebook.presto.operator.window.LastValueFunction.DoubleLastValueFunction;
-import com.facebook.presto.operator.window.LastValueFunction.TimestampLastValueFunction;
-import com.facebook.presto.operator.window.LastValueFunction.VarcharLastValueFunction;
-import com.facebook.presto.operator.window.LeadFunction.BigintLeadFunction;
-import com.facebook.presto.operator.window.LeadFunction.BooleanLeadFunction;
-import com.facebook.presto.operator.window.LeadFunction.DoubleLeadFunction;
-import com.facebook.presto.operator.window.LeadFunction.TimestampLeadFunction;
-import com.facebook.presto.operator.window.LeadFunction.VarcharLeadFunction;
+import com.facebook.presto.operator.window.FirstValueFunction;
+import com.facebook.presto.operator.window.LagFunction;
+import com.facebook.presto.operator.window.LastValueFunction;
+import com.facebook.presto.operator.window.LeadFunction;
 import com.facebook.presto.operator.window.NTileFunction;
-import com.facebook.presto.operator.window.NthValueFunction.BigintNthValueFunction;
-import com.facebook.presto.operator.window.NthValueFunction.BooleanNthValueFunction;
-import com.facebook.presto.operator.window.NthValueFunction.DoubleNthValueFunction;
-import com.facebook.presto.operator.window.NthValueFunction.TimestampNthValueFunction;
-import com.facebook.presto.operator.window.NthValueFunction.VarcharNthValueFunction;
+import com.facebook.presto.operator.window.NthValueFunction;
 import com.facebook.presto.operator.window.PercentRankFunction;
 import com.facebook.presto.operator.window.RankFunction;
 import com.facebook.presto.operator.window.RowNumberFunction;
@@ -102,6 +82,7 @@ import com.facebook.presto.type.TimeOperators;
 import com.facebook.presto.type.TimeWithTimeZoneOperators;
 import com.facebook.presto.type.TimestampOperators;
 import com.facebook.presto.type.TimestampWithTimeZoneOperators;
+import com.facebook.presto.type.UnknownOperators;
 import com.facebook.presto.type.VarbinaryOperators;
 import com.facebook.presto.type.VarcharOperators;
 import com.google.common.annotations.VisibleForTesting;
@@ -168,6 +149,7 @@ import static com.facebook.presto.operator.scalar.ArraySubscriptOperator.ARRAY_S
 import static com.facebook.presto.operator.scalar.ArrayToArrayCast.ARRAY_TO_ARRAY_CAST;
 import static com.facebook.presto.operator.scalar.ArrayToElementConcatFunction.ARRAY_TO_ELEMENT_CONCAT_FUNCTION;
 import static com.facebook.presto.operator.scalar.ArrayToJsonCast.ARRAY_TO_JSON;
+import static com.facebook.presto.operator.scalar.ConcatFunction.CONCAT;
 import static com.facebook.presto.operator.scalar.ElementToArrayConcatFunction.ELEMENT_TO_ARRAY_CONCAT_FUNCTION;
 import static com.facebook.presto.operator.scalar.Greatest.GREATEST;
 import static com.facebook.presto.operator.scalar.IdentityCast.IDENTITY_CAST;
@@ -250,51 +232,15 @@ public class FunctionRegistry
                 .window("percent_rank", DOUBLE, ImmutableList.<Type>of(), PercentRankFunction.class)
                 .window("cume_dist", DOUBLE, ImmutableList.<Type>of(), CumulativeDistributionFunction.class)
                 .window("ntile", BIGINT, ImmutableList.<Type>of(BIGINT), NTileFunction.class)
-                .window("first_value", BIGINT, ImmutableList.<Type>of(BIGINT), BigintFirstValueFunction.class)
-                .window("first_value", DOUBLE, ImmutableList.<Type>of(DOUBLE), DoubleFirstValueFunction.class)
-                .window("first_value", BOOLEAN, ImmutableList.<Type>of(BOOLEAN), BooleanFirstValueFunction.class)
-                .window("first_value", VARCHAR, ImmutableList.<Type>of(VARCHAR), VarcharFirstValueFunction.class)
-                .window("first_value", TIMESTAMP, ImmutableList.<Type>of(TIMESTAMP), TimestampFirstValueFunction.class)
-                .window("last_value", BIGINT, ImmutableList.<Type>of(BIGINT), BigintLastValueFunction.class)
-                .window("last_value", DOUBLE, ImmutableList.<Type>of(DOUBLE), DoubleLastValueFunction.class)
-                .window("last_value", BOOLEAN, ImmutableList.<Type>of(BOOLEAN), BooleanLastValueFunction.class)
-                .window("last_value", VARCHAR, ImmutableList.<Type>of(VARCHAR), VarcharLastValueFunction.class)
-                .window("last_value", TIMESTAMP, ImmutableList.<Type>of(TIMESTAMP), TimestampLastValueFunction.class)
-                .window("nth_value", BIGINT, ImmutableList.<Type>of(BIGINT, BIGINT), BigintNthValueFunction.class)
-                .window("nth_value", DOUBLE, ImmutableList.<Type>of(DOUBLE, BIGINT), DoubleNthValueFunction.class)
-                .window("nth_value", BOOLEAN, ImmutableList.<Type>of(BOOLEAN, BIGINT), BooleanNthValueFunction.class)
-                .window("nth_value", VARCHAR, ImmutableList.<Type>of(VARCHAR, BIGINT), VarcharNthValueFunction.class)
-                .window("nth_value", TIMESTAMP, ImmutableList.<Type>of(TIMESTAMP, BIGINT), TimestampNthValueFunction.class)
-                .window("lag", BIGINT, ImmutableList.<Type>of(BIGINT), BigintLagFunction.class)
-                .window("lag", BIGINT, ImmutableList.<Type>of(BIGINT, BIGINT), BigintLagFunction.class)
-                .window("lag", BIGINT, ImmutableList.<Type>of(BIGINT, BIGINT, BIGINT), BigintLagFunction.class)
-                .window("lag", DOUBLE, ImmutableList.<Type>of(DOUBLE), DoubleLagFunction.class)
-                .window("lag", DOUBLE, ImmutableList.<Type>of(DOUBLE, BIGINT), DoubleLagFunction.class)
-                .window("lag", DOUBLE, ImmutableList.<Type>of(DOUBLE, BIGINT, DOUBLE), DoubleLagFunction.class)
-                .window("lag", BOOLEAN, ImmutableList.<Type>of(BOOLEAN), BooleanLagFunction.class)
-                .window("lag", BOOLEAN, ImmutableList.<Type>of(BOOLEAN, BIGINT), BooleanLagFunction.class)
-                .window("lag", BOOLEAN, ImmutableList.<Type>of(BOOLEAN, BIGINT, BOOLEAN), BooleanLagFunction.class)
-                .window("lag", VARCHAR, ImmutableList.<Type>of(VARCHAR), VarcharLagFunction.class)
-                .window("lag", VARCHAR, ImmutableList.<Type>of(VARCHAR, BIGINT), VarcharLagFunction.class)
-                .window("lag", VARCHAR, ImmutableList.<Type>of(VARCHAR, BIGINT, VARCHAR), VarcharLagFunction.class)
-                .window("lag", TIMESTAMP, ImmutableList.<Type>of(TIMESTAMP), TimestampLagFunction.class)
-                .window("lag", TIMESTAMP, ImmutableList.<Type>of(TIMESTAMP, BIGINT), TimestampLagFunction.class)
-                .window("lag", TIMESTAMP, ImmutableList.<Type>of(TIMESTAMP, BIGINT, VARCHAR), TimestampLagFunction.class)
-                .window("lead", BIGINT, ImmutableList.<Type>of(BIGINT), BigintLeadFunction.class)
-                .window("lead", BIGINT, ImmutableList.<Type>of(BIGINT, BIGINT), BigintLeadFunction.class)
-                .window("lead", BIGINT, ImmutableList.<Type>of(BIGINT, BIGINT, BIGINT), BigintLeadFunction.class)
-                .window("lead", DOUBLE, ImmutableList.<Type>of(DOUBLE), DoubleLeadFunction.class)
-                .window("lead", DOUBLE, ImmutableList.<Type>of(DOUBLE, BIGINT), DoubleLeadFunction.class)
-                .window("lead", DOUBLE, ImmutableList.<Type>of(DOUBLE, BIGINT, DOUBLE), DoubleLeadFunction.class)
-                .window("lead", BOOLEAN, ImmutableList.<Type>of(BOOLEAN), BooleanLeadFunction.class)
-                .window("lead", BOOLEAN, ImmutableList.<Type>of(BOOLEAN, BIGINT), BooleanLeadFunction.class)
-                .window("lead", BOOLEAN, ImmutableList.<Type>of(BOOLEAN, BIGINT, BOOLEAN), BooleanLeadFunction.class)
-                .window("lead", VARCHAR, ImmutableList.<Type>of(VARCHAR), VarcharLeadFunction.class)
-                .window("lead", VARCHAR, ImmutableList.<Type>of(VARCHAR, BIGINT), VarcharLeadFunction.class)
-                .window("lead", VARCHAR, ImmutableList.<Type>of(VARCHAR, BIGINT, VARCHAR), VarcharLeadFunction.class)
-                .window("lead", TIMESTAMP, ImmutableList.<Type>of(TIMESTAMP), TimestampLeadFunction.class)
-                .window("lead", TIMESTAMP, ImmutableList.<Type>of(TIMESTAMP, BIGINT), TimestampLeadFunction.class)
-                .window("lead", TIMESTAMP, ImmutableList.<Type>of(TIMESTAMP, BIGINT, VARCHAR), TimestampLeadFunction.class)
+                .window("first_value", FirstValueFunction.class, "T", "T")
+                .window("last_value", LastValueFunction.class, "T", "T")
+                .window("nth_value", NthValueFunction.class, "T", "T", "bigint")
+                .window("lag", LagFunction.class, "T", "T")
+                .window("lag", LagFunction.class, "T", "T", "bigint")
+                .window("lag", LagFunction.class, "T", "T", "bigint", "T")
+                .window("lead", LeadFunction.class, "T", "T")
+                .window("lead", LeadFunction.class, "T", "T", "bigint")
+                .window("lead", LeadFunction.class, "T", "T", "bigint", "T")
                 .aggregate(CountAggregation.class)
                 .aggregate(VarianceAggregation.class)
                 .aggregate(ApproximateLongPercentileAggregations.class)
@@ -321,6 +267,7 @@ public class FunctionRegistry
                 .scalar(JsonFunctions.class)
                 .scalar(ColorFunctions.class)
                 .scalar(HyperLogLogFunctions.class)
+                .scalar(UnknownOperators.class)
                 .scalar(BooleanOperators.class)
                 .scalar(BigintOperators.class)
                 .scalar(DoubleOperators.class)
@@ -357,6 +304,7 @@ public class FunctionRegistry
                 .functions(MAX_AGGREGATION, MIN_AGGREGATION)
                 .function(COUNT_COLUMN)
                 .functions(ROW_HASH_CODE, ROW_TO_JSON, ROW_EQUAL, ROW_NOT_EQUAL)
+                .function(CONCAT)
                 .function(TRY_CAST);
 
         if (experimentalSyntaxEnabled) {

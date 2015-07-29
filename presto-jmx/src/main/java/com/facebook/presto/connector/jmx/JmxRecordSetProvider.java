@@ -15,9 +15,9 @@ package com.facebook.presto.connector.jmx;
 
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorRecordSetProvider;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.InMemoryRecordSet;
-import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.RecordSet;
 import com.facebook.presto.spi.type.Type;
 import com.google.common.collect.ImmutableList;
@@ -31,6 +31,7 @@ import javax.management.ObjectName;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -39,7 +40,6 @@ import java.util.Set;
 import static com.facebook.presto.connector.jmx.Types.checkType;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toMap;
 
 public class JmxRecordSetProvider
         implements ConnectorRecordSetProvider
@@ -47,14 +47,14 @@ public class JmxRecordSetProvider
     private final MBeanServer mbeanServer;
     private final String nodeId;
 
-    public JmxRecordSetProvider(MBeanServer mbeanServer, NodeManager nodeManager)
+    public JmxRecordSetProvider(MBeanServer mbeanServer, String nodeId)
     {
         this.mbeanServer = requireNonNull(mbeanServer, "mbeanServer is null");
-        this.nodeId = requireNonNull(nodeManager, "nodeManager is null").getCurrentNode().getNodeIdentifier();
+        this.nodeId = requireNonNull(nodeId, "nodeId is null");
     }
 
     @Override
-    public RecordSet getRecordSet(ConnectorSplit split, List<? extends ColumnHandle> columns)
+    public RecordSet getRecordSet(ConnectorSession session, ConnectorSplit split, List<? extends ColumnHandle> columns)
     {
         JmxTableHandle tableHandle = checkType(split, JmxSplit.class, "split").getTableHandle();
 
@@ -167,8 +167,10 @@ public class JmxRecordSetProvider
 
         String[] columnNamesArray = uniqueColumnNames.toArray(new String[uniqueColumnNames.size()]);
 
-        return mbeanServer.getAttributes(objectName, columnNamesArray)
-                .asList().stream()
-                .collect(toMap(Attribute::getName, Attribute::getValue));
+        Map<String, Object> map = new HashMap<>();
+        for (Attribute attribute : mbeanServer.getAttributes(objectName, columnNamesArray).asList()) {
+            map.put(attribute.getName(), attribute.getValue());
+        }
+        return map;
     }
 }
