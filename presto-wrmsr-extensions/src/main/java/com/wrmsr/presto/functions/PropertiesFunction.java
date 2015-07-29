@@ -16,6 +16,7 @@ package com.wrmsr.presto.functions;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.block.InterleavedBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.VarcharType;
@@ -56,7 +57,7 @@ public class PropertiesFunction
     public static Block newProperties(PropertiesFunction self, Object... strs)
     {
         checkArgument(strs.length % 2 == 0);
-        BlockBuilder blockBuilder = new InterleavedBlockBuilder(ImmutableList.of(keyType, valueType), new BlockBuilderStatus(), keys.getPositionCount() * 2);
+        BlockBuilder blockBuilder = new InterleavedBlockBuilder(ImmutableList.of(VarcharType.VARCHAR, VarcharType.VARCHAR), new BlockBuilderStatus(), strs.length / 2);
         for (int i = 0; i < strs.length; i += 2) {
             Slice key = ((Slice) strs[i]);
             Slice value = ((Slice) strs[i+1]);

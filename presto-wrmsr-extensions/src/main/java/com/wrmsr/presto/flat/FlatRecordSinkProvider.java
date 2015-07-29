@@ -16,6 +16,7 @@ package com.wrmsr.presto.flat;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
 import com.facebook.presto.spi.ConnectorRecordSinkProvider;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.RecordSink;
 import com.google.inject.Inject;
 
@@ -28,13 +29,13 @@ public class FlatRecordSinkProvider
     }
 
     @Override
-    public RecordSink getRecordSink(ConnectorOutputTableHandle tableHandle)
+    public RecordSink getRecordSink(ConnectorSession session,ConnectorOutputTableHandle tableHandle)
     {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public RecordSink getRecordSink(ConnectorInsertTableHandle tableHandle)
+    public RecordSink getRecordSink(ConnectorSession session,ConnectorInsertTableHandle tableHandle)
     {
         return new FlatRecordSink();
     }

@@ -86,23 +86,23 @@ public class PartitionerMetadata
     }
 
     @Override
-    public List<ConnectorTableLayoutResult> getTableLayouts(ConnectorTableHandle table, Constraint<ColumnHandle> constraint, Optional<Set<ColumnHandle>> desiredColumns)
+    public List<ConnectorTableLayoutResult> getTableLayouts(ConnectorSession session,ConnectorTableHandle table, Constraint<ColumnHandle> constraint, Optional<Set<ColumnHandle>> desiredColumns)
     {
         // FIXME
-        return target.getTableLayouts(table, constraint, desiredColumns);
+        return target.getTableLayouts(session, table, constraint, desiredColumns);
     }
 
     @Override
-    public ConnectorTableLayout getTableLayout(ConnectorTableLayoutHandle handle)
+    public ConnectorTableLayout getTableLayout(ConnectorSession session,ConnectorTableLayoutHandle handle)
     {
         // FIXME
-        return target.getTableLayout(handle);
+        return target.getTableLayout(session, handle);
     }
 
     @Override
-    public ConnectorTableMetadata getTableMetadata(ConnectorTableHandle table)
+    public ConnectorTableMetadata getTableMetadata(ConnectorSession session,ConnectorTableHandle table)
     {
-        return setPartitioning(target.getTableMetadata(table));
+        return setPartitioning(target.getTableMetadata(session, table));
     }
 
     @Override
@@ -112,9 +112,9 @@ public class PartitionerMetadata
     }
 
     @Override
-    public ColumnHandle getSampleWeightColumnHandle(ConnectorTableHandle tableHandle)
+    public ColumnHandle getSampleWeightColumnHandle(ConnectorSession session,ConnectorTableHandle tableHandle)
     {
-        return target.getSampleWeightColumnHandle(tableHandle);
+        return target.getSampleWeightColumnHandle(session, tableHandle);
     }
 
     @Override
@@ -124,15 +124,15 @@ public class PartitionerMetadata
     }
 
     @Override
-    public Map<String, ColumnHandle> getColumnHandles(ConnectorTableHandle tableHandle)
+    public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session,ConnectorTableHandle tableHandle)
     {
-        return target.getColumnHandles(tableHandle);
+        return target.getColumnHandles(session, tableHandle);
     }
 
     @Override
-    public ColumnMetadata getColumnMetadata(ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
+    public ColumnMetadata getColumnMetadata(ConnectorSession session,ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
     {
-        return setPartitioning(target.getColumnMetadata(tableHandle, columnHandle));
+        return setPartitioning(target.getColumnMetadata(session, tableHandle, columnHandle));
     }
 
     @Override
@@ -150,21 +150,21 @@ public class PartitionerMetadata
     }
 
     @Override
-    public void dropTable(ConnectorTableHandle tableHandle)
+    public void dropTable(ConnectorSession session,ConnectorTableHandle tableHandle)
     {
-        target.dropTable(tableHandle);
+        target.dropTable(session, tableHandle);
     }
 
     @Override
-    public void renameTable(ConnectorTableHandle tableHandle, SchemaTableName newTableName)
+    public void renameTable(ConnectorSession session,ConnectorTableHandle tableHandle, SchemaTableName newTableName)
     {
-        target.renameTable(tableHandle, newTableName);
+        target.renameTable(session, tableHandle, newTableName);
     }
 
     @Override
-    public void renameColumn(ConnectorTableHandle tableHandle, ColumnHandle source, String target)
+    public void renameColumn(ConnectorSession session,ConnectorTableHandle tableHandle, ColumnHandle source, String target)
     {
-        this.target.renameColumn(tableHandle, source, target);
+        this.target.renameColumn(session, tableHandle, source, target);
     }
 
     @Override
@@ -174,15 +174,15 @@ public class PartitionerMetadata
     }
 
     @Override
-    public void commitCreateTable(ConnectorOutputTableHandle tableHandle, Collection<Slice> fragments)
+    public void commitCreateTable(ConnectorSession session,ConnectorOutputTableHandle tableHandle, Collection<Slice> fragments)
     {
-        target.commitCreateTable(tableHandle, fragments);
+        target.commitCreateTable(session, tableHandle, fragments);
     }
 
     @Override
-    public void rollbackCreateTable(ConnectorOutputTableHandle tableHandle)
+    public void rollbackCreateTable(ConnectorSession session,ConnectorOutputTableHandle tableHandle)
     {
-        target.rollbackCreateTable(tableHandle);
+        target.rollbackCreateTable(session, tableHandle);
     }
 
     @Override
@@ -192,15 +192,15 @@ public class PartitionerMetadata
     }
 
     @Override
-    public void commitInsert(ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
+    public void commitInsert(ConnectorSession session,ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
     {
-        target.commitInsert(insertHandle, fragments);
+        target.commitInsert(session, insertHandle, fragments);
     }
 
     @Override
-    public void rollbackInsert(ConnectorInsertTableHandle insertHandle)
+    public void rollbackInsert(ConnectorSession session,ConnectorInsertTableHandle insertHandle)
     {
-        target.rollbackInsert(insertHandle);
+        target.rollbackInsert(session, insertHandle);
     }
 
     @Override

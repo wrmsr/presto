@@ -15,6 +15,7 @@ package com.wrmsr.presto.flat;
 
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorRecordSetProvider;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.RecordSet;
 import com.google.inject.Inject;
@@ -30,7 +31,7 @@ public class FlatRecordSetProvider
     }
 
     @Override
-    public RecordSet getRecordSet(ConnectorSplit split, List<? extends ColumnHandle> columns)
+    public RecordSet getRecordSet(ConnectorSession session,ConnectorSplit split, List<? extends ColumnHandle> columns)
     {
         return new FlatRecordSet();
     }
