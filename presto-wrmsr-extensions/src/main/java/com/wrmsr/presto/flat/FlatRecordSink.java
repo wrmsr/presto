@@ -94,6 +94,12 @@ public class FlatRecordSink
     }
 
     @Override
+    public void appendObject(Object value)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Collection<Slice> commit()
     {
         close();

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 mvn clean package -Denforcer.skip=true -Dmaven.test.skip=true -Dmdep.skip=true -Dmdep.analyze.skip=true -DignoreNonCompile=true -Dlicense.skip=true -Dair.check.skip-all=true -e -Dair.check.skip-checkstyle=true -Dair.check.skip-license=true
 for m in presto-spi presto-base-jdbc presto-raptor presto-wrmsr-mesos presto-wrmsr-yarn ; do
 	mvn -pl "$m" install -Denforcer.skip=true -Dmaven.test.skip=true -Dmdep.skip=true -Dmdep.analyze.skip=true -DignoreNonCompile=true -Dlicense.skip=true -Dair.check.skip-all=true -e -Dair.check.skip-checkstyle=true -Dair.check.skip-license=true
