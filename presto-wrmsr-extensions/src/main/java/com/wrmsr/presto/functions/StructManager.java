@@ -14,7 +14,6 @@
 package com.wrmsr.presto.functions;
 
 import com.facebook.presto.Session;
-import com.facebook.presto.byteCode.Block;
 import com.facebook.presto.byteCode.ClassDefinition;
 import com.facebook.presto.byteCode.DynamicClassLoader;
 import com.facebook.presto.byteCode.MethodDefinition;
@@ -206,6 +205,34 @@ public class StructManager
                     .visitLabel(done);
         }
 
+        protected void writeObject(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
+        {
+            LabelNode isNull = new LabelNode("isNull" + i);
+            LabelNode done = new LabelNode("done" + i);
+            body
+                    .getVariable(arg)
+                    .ifNullGoto(isNull)
+                    .getVariable(blockBuilder)
+
+                    .getVariable(arg)
+                    .push(0)
+                    .getVariable(arg)
+                    .invokeVirtual(com.facebook.presto.spi.block.Block.class, "length", int.class)
+                    .invokeInterface(BlockBuilder.class, "writeBytes", BlockBuilder.class, com.facebook.presto.spi.block.Block.class, int.class, int.class)
+                    .pop()
+
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop()
+
+                    .gotoLabel(done)
+                    .visitLabel(isNull)
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
+                    .pop()
+                    .visitLabel(done);
+        }
+
         public Class<?> run(RowType rowType)
         {
             return run(rowType, rowType.getTypeSignature().getBase());
@@ -225,7 +252,7 @@ public class StructManager
 
             List<Parameter> parameters = createParameters(fieldTypes);
 
-            MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), name, type(Slice.class), parameters);
+            MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), name, type(com.facebook.presto.spi.block.Block.class), parameters);
             methodDefinition.declareAnnotation(ScalarFunction.class);
             methodDefinition.declareAnnotation(SqlType.class).setValue("value", rowType.getTypeSignature().toString());
             annotateParameters(fieldTypes, methodDefinition);
@@ -264,6 +291,9 @@ public class StructManager
                 else if (javaType == Slice.class) {
                     writeSlice(body, blockBuilder, arg, i);
                 }
+                else if (javaType == com.facebook.presto.spi.block.Block.class) {
+                    writeObject(body, blockBuilder, arg, i);
+                }
                 else {
                     throw new IllegalArgumentException("bad value: " + javaType);
                 }
@@ -271,7 +301,7 @@ public class StructManager
 
             body
                     .getVariable(blockBuilder)
-                    .invokeStatic(RowTypeConstructorCompiler.class, "blockBuilderToSlice", Slice.class, BlockBuilder.class)
+                    .invokeStatic(BlockBuilder.class, "build", com.facebook.presto.spi.block.Block.class)
                     .retObject();
 
             return defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(RowTypeConstructorCompiler.class.getClassLoader()));
@@ -316,7 +346,10 @@ public class StructManager
                     javaType = Double.class;
                 }
                 else if (javaType == Slice.class) {
-                    // nop
+                    javaType = Slice.class;
+                }
+                else if (javaType == com.facebook.presto.spi.block.Block.class) {
+                    // FIXME
                 }
                 else {
                     throw new IllegalArgumentException("javaType: " + javaType.toString());
@@ -336,7 +369,7 @@ public class StructManager
         }
 
         @Override
-        protected void writeBoolean(Block body, Variable blockBuilder, Variable arg, int i)
+        protected void writeBoolean(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode isFalse = new LabelNode("isFalse" + i);
@@ -371,7 +404,7 @@ public class StructManager
         }
 
         @Override
-        protected void writeLong(Block body, Variable blockBuilder, Variable arg, int i)
+        protected void writeLong(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -398,7 +431,7 @@ public class StructManager
         }
 
         @Override
-        protected void writeDouble(Block body, Variable blockBuilder, Variable arg, int i)
+        protected void writeDouble(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode done = new LabelNode("done" + i);

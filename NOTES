@@ -946,3 +946,30 @@ write throttling for daytime - could just be for final store not intermediate st
 omg bloom filter / bitvector generator aggregate, exportable for use in py
  - partially updating by events :D
 https://issues.jenkins-ci.org/browse/JENKINS-20276
+
+
+
+http://www.sqlstyle.guide/
+
+
+
+create table out.business (id int primary key, name varchar) as
+select id, name from in.business;
+
+business.insert > insert into out.business (id, name) values (new.id, new.name);
+business.update > update out.business set out.business.id = new.id, out.business.name = new.name where out.business.id = old.business.id;
+business.delete > delete from out.business where out.business.id = old.id;
+
+
+
+
+create table out.review (id int primary key, comment varchar, business_id int, business_name varchar) as
+select in.review.id, in.review.comment, in.business.id, in.business.name
+from in.review
+inner join in.business on in.business.id = in.review.business_id;
+
+???
+
+business.insert > insert into out.business (id, name) values (new.id, new.name);
+business.update > update out.business set out.business.id = new.id, out.business.name = new.name where out.business.id = old.business.id;
+business.delete > delete from out.business where out.business.id = old.id;
