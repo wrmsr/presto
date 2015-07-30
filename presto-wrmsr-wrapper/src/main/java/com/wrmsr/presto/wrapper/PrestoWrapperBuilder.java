@@ -252,6 +252,7 @@ public class PrestoWrapperBuilder
                 "presto-blackhole",
                 "presto-example-http",
                 "presto-hive-hadoop2",
+                "presto-jmx",
                 "presto-kafka",
                 "presto-ml",
                 "presto-mysql",
