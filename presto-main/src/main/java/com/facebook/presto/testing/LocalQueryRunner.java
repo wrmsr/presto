@@ -262,7 +262,7 @@ public class LocalQueryRunner
     {
         private final AtomicReference<MaterializingOperator> materializingOperator = new AtomicReference<>();
 
-        private MaterializingOperator getMaterializingOperator()
+        public MaterializingOperator getMaterializingOperator()
         {
             MaterializingOperator operator = materializingOperator.get();
             checkState(operator != null, "Output not created");
@@ -355,6 +355,11 @@ public class LocalQueryRunner
 
         assertFormattedSql(sqlParser, statement);
 
+        return createDrivers(session, statement, outputFactory, taskContext);
+    }
+
+    public List<Driver> createDrivers(Session session, Statement statement , OutputFactory outputFactory, TaskContext taskContext)
+    {
         PlanNodeIdAllocator idAllocator = new PlanNodeIdAllocator();
         FeaturesConfig featuresConfig = new FeaturesConfig()
                 .setExperimentalSyntaxEnabled(true)

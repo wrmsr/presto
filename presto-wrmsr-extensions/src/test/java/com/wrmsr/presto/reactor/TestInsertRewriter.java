@@ -2,11 +2,16 @@ package com.wrmsr.presto.reactor;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.block.BlockEncodingManager;
+import com.facebook.presto.metadata.InMemoryNodeManager;
+import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.MetadataManager;
 import com.facebook.presto.metadata.QualifiedTableName;
 import com.facebook.presto.metadata.TableMetadata;
 import com.facebook.presto.metadata.ViewDefinition;
+import com.facebook.presto.operator.Driver;
+import com.facebook.presto.operator.TaskContext;
 import com.facebook.presto.spi.ColumnMetadata;
+import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.type.TypeManager;
@@ -25,13 +30,17 @@ import com.facebook.presto.sql.tree.Query;
 import com.facebook.presto.sql.tree.QuerySpecification;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.sql.tree.Table;
+import com.facebook.presto.testing.LocalQueryRunner;
+import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.airlift.json.JsonCodec;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.intellij.lang.annotations.Language;
 
+import java.util.List;
 import java.util.Optional;
 
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
@@ -39,6 +48,7 @@ import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.sql.QueryUtil.selectList;
 import static com.facebook.presto.sql.QueryUtil.simpleQuery;
 import static com.facebook.presto.sql.QueryUtil.table;
+import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Locale.ENGLISH;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
@@ -137,6 +147,29 @@ public class TestInsertRewriter
                 true);
     }
 
+    public static LocalQueryRunner createLocalQueryRunner()
+    {
+        LocalQueryRunner localQueryRunner = new LocalQueryRunner(SESSION);
+
+        // add tpch
+        InMemoryNodeManager nodeManager = localQueryRunner.getNodeManager();
+        localQueryRunner.createCatalog("tpch", new TpchConnectorFactory(nodeManager, 1), ImmutableMap.<String, String>of());
+
+        // add raptor
+        // ConnectorFactory raptorConnectorFactory = createRaptorConnectorFactory(TPCH_CACHE_DIR, nodeManager);
+        // localQueryRunner.createCatalog("default", raptorConnectorFactory, ImmutableMap.<String, String>of());
+
+        // Metadata metadata = localQueryRunner.getMetadata();
+        // if (!metadata.getTableHandle(session, new QualifiedTableName("default", "default", "orders")).isPresent()) {
+        //     localQueryRunner.execute("CREATE TABLE orders AS SELECT * FROM tpch.sf1.orders");
+        // }
+        // if (!metadata.getTableHandle(session, new QualifiedTableName("default", "default", "lineitem")).isPresent()) {
+        //     localQueryRunner.execute("CREATE TABLE lineitem AS SELECT * FROM tpch.sf1.lineitem");
+        // }
+        return localQueryRunner;
+    }
+
+
     @Test
     public void testShit() throws Throwable
     {
@@ -155,5 +188,27 @@ public class TestInsertRewriter
 
         Insert insert = new Insert(QualifiedName.of("t2"), query);
         Analysis insertAnalysis = analyzer.analyze(insert);
+
+        LocalQueryRunner lqr = createLocalQueryRunner();
+        // lqr.execute
+
+        LocalQueryRunner.MaterializedOutputFactory outputFactory = new LocalQueryRunner.MaterializedOutputFactory();
+
+        TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
+        List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), insert, outputFactory, taskContext);
+
+        boolean done = false;
+        while (!done) {
+            boolean processed = false;
+            for (Driver driver : drivers) {
+                if (!driver.isFinished()) {
+                    driver.process();
+                    processed = true;
+                }
+            }
+            done = !processed;
+        }
+
+        outputFactory.getMaterializingOperator().getMaterializedResult();
     }
 }
