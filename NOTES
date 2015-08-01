@@ -968,6 +968,10 @@ https://github.com/aol/cyclops
 hm.
 
 
+with/without provided preimage
+postimage can be retrieved albeit leakily
+
+
 create table out.business (id int primary key, name varchar) as
 select id, name from in.business;
 
