@@ -16,6 +16,7 @@ import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.split.SplitManager;
+import com.facebook.presto.sql.SqlFormatter;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
@@ -187,6 +188,9 @@ public class TestInsertRewriter
         Table table =  (Table) querySpecification.getFrom().get();
 
         Insert insert = new Insert(QualifiedName.of("t2"), query);
+        String insertStr = SqlFormatter.formatSql(insert);
+        System.out.println(insertStr);
+
         Analysis insertAnalysis = analyzer.analyze(insert);
 
         LocalQueryRunner lqr = createLocalQueryRunner();
