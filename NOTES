@@ -992,3 +992,7 @@ inner join in.business on in.business.id = in.review.business_id;
 business.insert > insert into out.business (id, name) values (new.id, new.name);
 business.update > update out.business set out.business.id = new.id, out.business.name = new.name where out.business.id = old.business.id;
 business.delete > delete from out.business where out.business.id = old.id;
+
+
+
+CRUD by pk
