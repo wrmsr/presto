@@ -17,6 +17,7 @@ import com.facebook.presto.Session;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.QualifiedTableName;
+import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
@@ -125,7 +126,7 @@ public class HardcodedMetadataPopulator
 
         public Session createSession(@Nullable String schemaName)
         {
-            Session.SessionBuilder builder = Session.builder()
+            Session.SessionBuilder builder = Session.builder(new SessionPropertyManager())
                     .setUser("system")
                     .setSource("system")
                     .setCatalog(name)
