@@ -14,6 +14,7 @@
 package com.wrmsr.presto.jdbc.mysql;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.testing.QueryRunner;
 import com.facebook.presto.tests.DistributedQueryRunner;
 import com.facebook.presto.tpch.TpchPlugin;
@@ -75,7 +76,7 @@ public final class MySqlQueryRunner
 
     public static Session createSession()
     {
-        return Session.builder()
+        return Session.builder(new SessionPropertyManager())
                 .setUser("user")
                 .setSource("test")
                 .setCatalog("mysql")

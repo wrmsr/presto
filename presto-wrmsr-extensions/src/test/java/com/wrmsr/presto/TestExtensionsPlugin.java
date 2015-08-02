@@ -14,6 +14,7 @@
 package com.wrmsr.presto;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.spi.block.*;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.*;
@@ -67,7 +68,7 @@ public class TestExtensionsPlugin
 
     private static LocalQueryRunner createLocalQueryRunner()
     {
-       Session defaultSession = Session.builder()
+       Session defaultSession = Session.builder(new SessionPropertyManager())
                .setUser("user")
                .setSource("test")
                .setCatalog("local")

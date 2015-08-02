@@ -15,12 +15,7 @@ package com.wrmsr.presto.reactor;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.block.BlockEncodingManager;
-import com.facebook.presto.metadata.InMemoryNodeManager;
-import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.MetadataManager;
-import com.facebook.presto.metadata.QualifiedTableName;
-import com.facebook.presto.metadata.TableMetadata;
-import com.facebook.presto.metadata.ViewDefinition;
+import com.facebook.presto.metadata.*;
 import com.facebook.presto.operator.Driver;
 import com.facebook.presto.operator.TaskContext;
 import com.facebook.presto.spi.ColumnMetadata;
@@ -71,7 +66,7 @@ import static java.lang.String.format;
 
 public class TestInsertRewriter
 {
-    public static final Session SESSION = Session.builder()
+    public static final Session SESSION = Session.builder(new SessionPropertyManager())
             .setUser("user")
             .setSource("test")
             .setCatalog("default")
@@ -89,7 +84,7 @@ public class TestInsertRewriter
             throws Exception
     {
         TypeManager typeManager = new TypeRegistry();
-        MetadataManager metadata = new MetadataManager(new FeaturesConfig().setExperimentalSyntaxEnabled(true), typeManager, new SplitManager(), new BlockEncodingManager(typeManager));
+        MetadataManager metadata = new MetadataManager(new FeaturesConfig().setExperimentalSyntaxEnabled(true), typeManager, new SplitManager(), new BlockEncodingManager(typeManager), new SessionPropertyManager());
         metadata.addConnectorMetadata("tpch", "tpch", new TestingMetadata());
         metadata.addConnectorMetadata("c2", "c2", new TestingMetadata());
         metadata.addConnectorMetadata("c3", "c3", new TestingMetadata());
@@ -147,7 +142,7 @@ public class TestInsertRewriter
         metadata.createView(SESSION, new QualifiedTableName("c3", "s3", "v3"), viewData3, false);
 
         analyzer = new Analyzer(
-                Session.builder()
+                Session.builder(new SessionPropertyManager())
                         .setUser("user")
                         .setSource("test")
                         .setCatalog("tpch")

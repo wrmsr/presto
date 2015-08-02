@@ -15,6 +15,7 @@ package com.wrmsr.presto.ffi;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.byteCode.DynamicClassLoader;
+import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.Analysis;
@@ -132,7 +133,7 @@ public class TestFFIPlugin
 
     private static LocalQueryRunner createLocalQueryRunner()
     {
-        Session defaultSession = Session.builder()
+        Session defaultSession = Session.builder(new SessionPropertyManager())
                 .setUser("user")
                 .setSource("test")
                 .setCatalog("local")
