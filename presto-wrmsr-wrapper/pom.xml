@@ -110,7 +110,7 @@
 
         <dependency>
             <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-yarn</artifactId>
+            <artifactId>presto-wrmsr-hadoop</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
