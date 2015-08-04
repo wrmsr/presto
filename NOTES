@@ -996,3 +996,10 @@ business.delete > delete from out.business where out.business.id = old.id;
 
 
 CRUD by pk
+
+
+
+es connector
+https://github.com/facebook/presto/pull/3240/commits
+
+https://github.com/facebook/presto/pull/2896
