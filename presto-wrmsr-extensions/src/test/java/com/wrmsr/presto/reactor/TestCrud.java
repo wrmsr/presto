@@ -23,10 +23,13 @@ import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.plugin.jdbc.JdbcMetadataConfig;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
+import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
 import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
+import com.facebook.presto.spi.RecordSink;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.testing.TestingConnectorSession;
 import com.google.common.collect.ImmutableList;
@@ -120,9 +123,25 @@ public class TestCrud
             connection.createStatement().execute("CREATE SCHEMA example");
         }
 
-        ConnectorOutputTableHandle th = metadata.beginCreateTable(session, new ConnectorTableMetadata(
+        ConnectorOutputTableHandle oth = metadata.beginCreateTable(session, new ConnectorTableMetadata(
                 new SchemaTableName("example", "foo"),
-                ImmutableList.of(new ColumnMetadata("text", VARCHAR, false))));
-        metadata.commitCreateTable(session, th, ImmutableList.of());
+                ImmutableList.of(new ColumnMetadata("text", VARCHAR, false)),
+                "bob"));
+        metadata.commitCreateTable(session, oth, ImmutableList.of());
+
+        /*
+        ConnectorTableHandle th = metadata.getTableHandle(session, new SchemaTableName("example", "foo"));
+        ConnectorInsertTableHandle ith = metadata.beginInsert(session, th);
+        metadata.commitInsert(session, ith, );
+        */
+
+        RecordSink rs = connector.getRecordSinkProvider().getRecordSink(session, oth);
+
+        rs.beginRecord(1);
+        rs.appendString("hi".getBytes());
+        rs.finishRecord();
+
+        rs.commit();
+
     }
 }
