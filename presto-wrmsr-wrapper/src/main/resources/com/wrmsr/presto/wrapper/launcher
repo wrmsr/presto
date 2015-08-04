@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# -*- mode: sh -*-
 
 vercomp () {
     if [[ $1 == $2 ]] ; then
