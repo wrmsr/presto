@@ -119,11 +119,10 @@ public class DefineStructForQueryFunction
                 ImmutableList.of(false, false));
     }
 
-    /*
     @Nullable
     public RowType buildRowType(String name, String sql)
     {
-        Session.SessionBuilder builder = Session.builder()
+        Session.SessionBuilder builder = Session.builder(new SessionPropertyManager())
                 .setUser("system")
                 .setSource("system")
                 .setCatalog("default")
@@ -133,7 +132,6 @@ public class DefineStructForQueryFunction
         Session session = builder.build();
         return buildRowType(session, name, sql);
     }
-    */
 
     @Nullable
     public RowType buildRowType(Session session, String name, String sql)
@@ -182,7 +180,6 @@ public class DefineStructForQueryFunction
         return new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
     }
 
-    /*
     public static Slice defineStructForQuery(DefineStructForQueryFunction self, ConnectorSession session, Slice name, Slice query)
     {
         // FIXME ConnectorSession
@@ -190,5 +187,4 @@ public class DefineStructForQueryFunction
         self.structManager.registerStruct(rowType);
         return name;
     }
-    */
 }
