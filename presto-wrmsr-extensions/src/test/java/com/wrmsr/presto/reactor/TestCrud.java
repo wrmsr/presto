@@ -15,6 +15,8 @@ package com.wrmsr.presto.reactor;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.metadata.SessionPropertyManager;
+import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
+import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorFactory;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
@@ -22,6 +24,7 @@ import com.facebook.presto.plugin.jdbc.JdbcMetadataConfig;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorMetadata;
+import com.facebook.presto.spi.ConnectorOutputTableHandle;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.SchemaTableName;
@@ -30,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.testng.annotations.Test;
 
+import java.sql.Connection;
 import java.util.List;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
@@ -110,8 +114,15 @@ public class TestCrud
         ConnectorMetadata metadata = connector.getMetadata();
         //new JdbcMetadata(new JdbcConnectorId(CONNECTOR_ID), database.getJdbcClient(), new JdbcMetadataConfig());
 
-        metadata.createTable(session, new ConnectorTableMetadata(
+        JdbcMetadata jdbcMetadata = (JdbcMetadata) metadata;
+        BaseJdbcClient jdbcClient = (BaseJdbcClient) jdbcMetadata.getJdbcClient();
+        try (Connection connection = jdbcClient.getConnection()) {
+            connection.createStatement().execute("CREATE SCHEMA example");
+        }
+
+        ConnectorOutputTableHandle th = metadata.beginCreateTable(session, new ConnectorTableMetadata(
                 new SchemaTableName("example", "foo"),
                 ImmutableList.of(new ColumnMetadata("text", VARCHAR, false))));
+        metadata.commitCreateTable(session, th, ImmutableList.of());
     }
 }

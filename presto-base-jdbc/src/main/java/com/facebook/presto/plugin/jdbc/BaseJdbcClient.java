@@ -112,6 +112,22 @@ public class BaseJdbcClient
         }
     }
 
+    public String getConnectionUrl()
+    {
+        return connectionUrl;
+    }
+
+    public Properties getConnectionProperties()
+    {
+        return connectionProperties;
+    }
+
+    public Connection getConnection() throws SQLException
+    {
+        return getConnection(connectionUrl, connectionProperties);
+
+    }
+
     public Connection getConnection(String url, Properties info) throws SQLException
     {
         return checkNotNull(driver).connect(url, info);
