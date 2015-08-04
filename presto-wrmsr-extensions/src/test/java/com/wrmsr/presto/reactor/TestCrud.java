@@ -21,6 +21,8 @@ import com.facebook.presto.plugin.jdbc.JdbcConnectorFactory;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.plugin.jdbc.JdbcMetadataConfig;
+import com.facebook.presto.plugin.jdbc.JdbcOutputTableHandle;
+import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
@@ -38,10 +40,14 @@ import org.testng.annotations.Test;
 
 import java.sql.Connection;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.testing.TestingConnectorSession.SESSION;
+import static com.google.common.collect.Maps.fromProperties;
+import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
 import static java.util.Locale.ENGLISH;
 
 public class TestCrud
@@ -134,6 +140,22 @@ public class TestCrud
         ConnectorInsertTableHandle ith = metadata.beginInsert(session, th);
         metadata.commitInsert(session, ith, );
         */
+
+        ConnectorTableHandle th = metadata.getTableHandle(session, new SchemaTableName("example", "foo"));
+        Map<String, ColumnHandle> m = metadata.getColumnHandles(session, th);
+        List<ColumnMetadata> cms = m.values().stream().map(h -> metadata.getColumnMetadata(session, th, h)).collect(toImmutableList());
+
+        oth = new JdbcOutputTableHandle(
+                "test",
+                "example",
+                "example",
+                "foo",
+                cms.stream().map(ColumnMetadata::getName).collect(toImmutableList()),
+                cms.stream().map(ColumnMetadata::getType).collect(toImmutableList()),
+                "bob",
+                "foo",
+                jdbcClient.getConnectionUrl(),
+                fromProperties(jdbcClient.getConnectionProperties()));
 
         RecordSink rs = connector.getRecordSinkProvider().getRecordSink(session, oth);
 
