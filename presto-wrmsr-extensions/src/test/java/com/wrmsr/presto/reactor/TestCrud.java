@@ -1,5 +1,8 @@
 package com.wrmsr.presto.reactor;
 
+import com.facebook.presto.plugin.jdbc.JdbcConnectorFactory;
+import com.facebook.presto.spi.Connector;
+import com.google.common.collect.ImmutableMap;
 import org.testng.annotations.Test;
 
 import java.util.List;
@@ -47,6 +50,12 @@ public class TestCrud
     @Test
     public void test() throws Throwable
     {
+        JdbcConnectorFactory connectorFactory = new JdbcConnectorFactory(
+                "test",
+                new TestingH2JdbcModule(),
+                ImmutableMap.<String, String>of(),
+                getClass().getClassLoader());
 
+        Connector connector = connectorFactory.create("test", TestingH2JdbcModule.createProperties());
     }
 }
