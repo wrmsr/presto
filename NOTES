@@ -1010,3 +1010,81 @@ https://github.com/garnaat/missingcloud
 https://github.com/powdahound/ec2instances.info/blob/master/www/instances.json
 https://a0.awsstatic.com/pricing/1/deprecated/ec2/linux-od.json
 http://www.ec2instances.info/
+
+
+
+
+
+
+if [ "$COMMAND" = "namenode" ] ; then
+  CLASS='org.apache.hadoop.hdfs.server.namenode.NameNode'
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_NAMENODE_OPTS"
+elif [ "$COMMAND" = "zkfc" ] ; then
+  CLASS='org.apache.hadoop.hdfs.tools.DFSZKFailoverController'
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_ZKFC_OPTS"
+elif [ "$COMMAND" = "secondarynamenode" ] ; then
+  CLASS='org.apache.hadoop.hdfs.server.namenode.SecondaryNameNode'
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_SECONDARYNAMENODE_OPTS"
+elif [ "$COMMAND" = "datanode" ] ; then
+  CLASS='org.apache.hadoop.hdfs.server.datanode.DataNode'
+  if [ "$starting_secure_dn" = "true" ]; then
+    HADOOP_OPTS="$HADOOP_OPTS -jvm server $HADOOP_DATANODE_OPTS"
+  else
+    HADOOP_OPTS="$HADOOP_OPTS -server $HADOOP_DATANODE_OPTS"
+  fi
+elif [ "$COMMAND" = "journalnode" ] ; then
+  CLASS='org.apache.hadoop.hdfs.qjournal.server.JournalNode'
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_JOURNALNODE_OPTS"
+elif [ "$COMMAND" = "dfs" ] ; then
+  CLASS=org.apache.hadoop.fs.FsShell
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_CLIENT_OPTS"
+elif [ "$COMMAND" = "dfsadmin" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.DFSAdmin
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_CLIENT_OPTS"
+elif [ "$COMMAND" = "haadmin" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.DFSHAAdmin
+  CLASSPATH=${CLASSPATH}:${TOOL_PATH}
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_CLIENT_OPTS"
+elif [ "$COMMAND" = "fsck" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.DFSck
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_CLIENT_OPTS"
+elif [ "$COMMAND" = "balancer" ] ; then
+  CLASS=org.apache.hadoop.hdfs.server.balancer.Balancer
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_BALANCER_OPTS"
+elif [ "$COMMAND" = "mover" ] ; then
+  CLASS=org.apache.hadoop.hdfs.server.mover.Mover
+  HADOOP_OPTS="${HADOOP_OPTS} ${HADOOP_MOVER_OPTS}"
+elif [ "$COMMAND" = "storagepolicies" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.GetStoragePolicies
+elif [ "$COMMAND" = "jmxget" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.JMXGet
+elif [ "$COMMAND" = "oiv" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.offlineImageViewer.OfflineImageViewerPB
+elif [ "$COMMAND" = "oiv_legacy" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.offlineImageViewer.OfflineImageViewer
+elif [ "$COMMAND" = "oev" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.offlineEditsViewer.OfflineEditsViewer
+elif [ "$COMMAND" = "fetchdt" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.DelegationTokenFetcher
+elif [ "$COMMAND" = "getconf" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.GetConf
+elif [ "$COMMAND" = "groups" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.GetGroups
+elif [ "$COMMAND" = "snapshotDiff" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.snapshot.SnapshotDiff
+elif [ "$COMMAND" = "lsSnapshottableDir" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.snapshot.LsSnapshottableDir
+elif [ "$COMMAND" = "portmap" ] ; then
+  CLASS=org.apache.hadoop.portmap.Portmap
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_PORTMAP_OPTS"
+elif [ "$COMMAND" = "nfs3" ] ; then
+  CLASS=org.apache.hadoop.hdfs.nfs.nfs3.Nfs3
+  HADOOP_OPTS="$HADOOP_OPTS $HADOOP_NFS3_OPTS"
+elif [ "$COMMAND" = "cacheadmin" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.CacheAdmin
+elif [ "$COMMAND" = "crypto" ] ; then
+  CLASS=org.apache.hadoop.hdfs.tools.CryptoAdmin
+elif [ "$COMMAND" = "version" ] ; then
+  CLASS=org.apache.hadoop.util.VersionInfo
+else
+  CLASS="$COMMAND"
