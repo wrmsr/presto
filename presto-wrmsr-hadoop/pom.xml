@@ -17,9 +17,18 @@
         <air.main.basedir>${project.parent.basedir}</air.main.basedir>
         <main-class>com.wrmsr.presto.wrapper.PrestoWrapperBootstrap</main-class>
         <hadoop.version>2.7.1</hadoop.version>
+        <!-- <protobuf.version>2.5.0</protobuf.version> -->
     </properties>
 
     <dependencies>
+
+        <!--
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+        -->
 
         <dependency>
             <groupId>com.google.guava</groupId>
