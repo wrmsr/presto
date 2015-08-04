@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.wrmsr.presto.wrapper.yarn;
+package com.wrmsr.presto.yarn;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

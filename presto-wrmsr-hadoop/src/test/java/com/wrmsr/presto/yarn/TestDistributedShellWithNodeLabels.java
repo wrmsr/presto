@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.wrmsr.presto.wrapper.yarn;
+package com.wrmsr.presto.yarn;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
