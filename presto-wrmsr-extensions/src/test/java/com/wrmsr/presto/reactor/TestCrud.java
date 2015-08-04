@@ -52,36 +52,35 @@ import static java.util.Locale.ENGLISH;
 
 public class TestCrud
 {
-    public interface CrudConnectorAdapter
+    public interface ConnectorAccessorAdapter
     {
-        List select();
+        List get();
 
-        void insert();
-
-        void update();
+        void put();
 
         void delete();
     }
 
-    public class CrudConnectorAdapterImpl implements CrudConnectorAdapter
+    /*
+    ConnectorAccessorAdapter
+
+    Put
+    Get
+    Delete
+     */
+
+    public class CrudConnectorAdapterImpl implements ConnectorAccessorAdapter
     {
         @Override
-        public List select()
+        public List get()
         {
             return null;
         }
 
         @Override
-        public void insert()
+        public void put()
         {
-            // upsert
-        }
 
-        @Override
-        public void update()
-        {
-            // default impl via select+upsert
-            // batched
         }
 
         @Override
