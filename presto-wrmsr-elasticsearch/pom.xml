@@ -14,7 +14,7 @@
 
     <properties>
         <air.main.basedir>${project.parent.basedir}</air.main.basedir>
-        <elasticsearch.version>1.4.4</elasticsearch.version>
+        <elasticsearch.version>1.7.1</elasticsearch.version>
         <jest.version>0.1.5</jest.version>
     </properties>
 
