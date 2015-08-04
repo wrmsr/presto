@@ -74,13 +74,14 @@ public class TestCrud
         @Override
         public void insert()
         {
-
+            // upsert
         }
 
         @Override
         public void update()
         {
-
+            // default impl via select+upsert
+            // batched
         }
 
         @Override
