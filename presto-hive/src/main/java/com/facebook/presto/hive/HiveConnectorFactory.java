@@ -30,9 +30,7 @@ import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
-import com.google.inject.Binder;
 import com.google.inject.Injector;
-import com.google.inject.Module;
 import io.airlift.bootstrap.Bootstrap;
 import io.airlift.bootstrap.LifeCycleManager;
 import io.airlift.json.JsonModule;
@@ -84,14 +82,9 @@ public class HiveConnectorFactory
                     new MBeanModule(),
                     new JsonModule(),
                     new HiveClientModule(connectorId, metastore, typeManager),
-                    new Module()
-                    {
-                        @Override
-                        public void configure(Binder binder)
-                        {
-                            MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
-                            binder.bind(MBeanServer.class).toInstance(new RebindSafeMBeanServer(platformMBeanServer));
-                        }
+                    binder -> {
+                        MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
+                        binder.bind(MBeanServer.class).toInstance(new RebindSafeMBeanServer(platformMBeanServer));
                     }
             );
 
@@ -109,6 +102,7 @@ public class HiveConnectorFactory
             ConnectorRecordSinkProvider recordSinkProvider = injector.getInstance(ConnectorRecordSinkProvider.class);
             ConnectorHandleResolver handleResolver = injector.getInstance(ConnectorHandleResolver.class);
             HiveSessionProperties hiveSessionProperties = injector.getInstance(HiveSessionProperties.class);
+            HiveTableProperties hiveTableProperties = injector.getInstance(HiveTableProperties.class);
 
             return new HiveConnector(
                     lifeCycleManager,
@@ -118,7 +112,8 @@ public class HiveConnectorFactory
                     new ClassLoaderSafeConnectorRecordSinkProvider(recordSinkProvider, classLoader),
                     new ClassLoaderSafeConnectorHandleResolver(handleResolver, classLoader),
                     ImmutableSet.of(),
-                    hiveSessionProperties.getSessionProperties());
+                    hiveSessionProperties.getSessionProperties(),
+                    hiveTableProperties.getTableProperties());
         }
         catch (Exception e) {
             throw Throwables.propagate(e);

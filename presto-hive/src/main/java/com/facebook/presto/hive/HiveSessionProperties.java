@@ -14,7 +14,7 @@
 package com.facebook.presto.hive;
 
 import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.session.SessionPropertyMetadata;
+import com.facebook.presto.spi.session.PropertyMetadata;
 import com.google.common.collect.ImmutableList;
 import io.airlift.units.DataSize;
 
@@ -22,33 +22,23 @@ import javax.inject.Inject;
 
 import java.util.List;
 
-import static com.facebook.presto.spi.session.SessionPropertyMetadata.booleanSessionProperty;
+import static com.facebook.presto.spi.session.PropertyMetadata.booleanSessionProperty;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
-import static java.util.Locale.ENGLISH;
 
 public final class HiveSessionProperties
 {
-    public static final String STORAGE_FORMAT_PROPERTY = "storage_format";
     private static final String FORCE_LOCAL_SCHEDULING = "force_local_scheduling";
     private static final String OPTIMIZED_READER_ENABLED = "optimized_reader_enabled";
     private static final String ORC_MAX_MERGE_DISTANCE = "orc_max_merge_distance";
     private static final String ORC_MAX_BUFFER_SIZE = "orc_max_buffer_size";
     private static final String ORC_STREAM_BUFFER_SIZE = "orc_stream_buffer_size";
 
-    private final List<SessionPropertyMetadata<?>> sessionProperties;
+    private final List<PropertyMetadata<?>> sessionProperties;
 
     @Inject
     public HiveSessionProperties(HiveClientConfig config)
     {
         sessionProperties = ImmutableList.of(
-                new SessionPropertyMetadata<>(
-                        STORAGE_FORMAT_PROPERTY,
-                        "Default storage format for new tables",
-                        VARCHAR,
-                        HiveStorageFormat.class,
-                        config.getHiveStorageFormat(),
-                        false,
-                        value -> HiveStorageFormat.valueOf(((String) value).toUpperCase(ENGLISH))),
                 booleanSessionProperty(
                         FORCE_LOCAL_SCHEDULING,
                         "Only schedule splits on workers colocated with data node",
@@ -76,14 +66,9 @@ public final class HiveSessionProperties
                         false));
     }
 
-    public List<SessionPropertyMetadata<?>> getSessionProperties()
+    public List<PropertyMetadata<?>> getSessionProperties()
     {
         return sessionProperties;
-    }
-
-    public static HiveStorageFormat getHiveStorageFormat(ConnectorSession session)
-    {
-        return session.getProperty(STORAGE_FORMAT_PROPERTY, HiveStorageFormat.class);
     }
 
     public static boolean isForceLocalScheduling(ConnectorSession session)
@@ -111,9 +96,9 @@ public final class HiveSessionProperties
         return session.getProperty(ORC_STREAM_BUFFER_SIZE, DataSize.class);
     }
 
-    public static SessionPropertyMetadata<DataSize> dataSizeSessionProperty(String name, String description, DataSize defaultValue, boolean hidden)
+    public static PropertyMetadata<DataSize> dataSizeSessionProperty(String name, String description, DataSize defaultValue, boolean hidden)
     {
-        return new SessionPropertyMetadata<>(
+        return new PropertyMetadata<>(
                 name,
                 description,
                 VARCHAR,

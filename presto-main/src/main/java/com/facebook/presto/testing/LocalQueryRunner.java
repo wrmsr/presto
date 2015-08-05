@@ -15,13 +15,13 @@ package com.facebook.presto.testing;
 
 import com.facebook.presto.ScheduledSplit;
 import com.facebook.presto.Session;
-import com.facebook.presto.SystemSessionProperties;
 import com.facebook.presto.TaskSource;
 import com.facebook.presto.block.BlockEncodingManager;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.connector.system.CatalogSystemTable;
 import com.facebook.presto.connector.system.NodeSystemTable;
 import com.facebook.presto.connector.system.SystemConnector;
+import com.facebook.presto.connector.system.TablePropertiesSystemTable;
 import com.facebook.presto.execution.TaskManagerConfig;
 import com.facebook.presto.index.IndexManager;
 import com.facebook.presto.metadata.HandleResolver;
@@ -35,6 +35,7 @@ import com.facebook.presto.metadata.Split;
 import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.metadata.TableLayoutHandle;
 import com.facebook.presto.metadata.TableLayoutResult;
+import com.facebook.presto.metadata.TablePropertyManager;
 import com.facebook.presto.operator.Driver;
 import com.facebook.presto.operator.DriverContext;
 import com.facebook.presto.operator.DriverFactory;
@@ -130,14 +131,12 @@ public class LocalQueryRunner
 
     private final ExpressionCompiler compiler;
     private final ConnectorManager connectorManager;
-    private final boolean hashEnabled;
 
     private boolean printPlan;
 
     public LocalQueryRunner(Session defaultSession)
     {
-        this.defaultSession = checkNotNull(defaultSession, "defaultSession is null");
-        this.hashEnabled = SystemSessionProperties.isOptimizeHashGenerationEnabled(defaultSession);
+        checkNotNull(defaultSession, "defaultSession is null");
         this.executor = newCachedThreadPool(daemonThreadsNamed("local-query-runner-%s"));
 
         this.sqlParser = new SqlParser();
@@ -148,7 +147,13 @@ public class LocalQueryRunner
 
         this.splitManager = new SplitManager();
         this.blockEncodingSerde = new BlockEncodingManager(typeRegistry);
-        this.metadata = new MetadataManager(new FeaturesConfig().setExperimentalSyntaxEnabled(true), typeRegistry, splitManager, blockEncodingSerde, new SessionPropertyManager());
+        this.metadata = new MetadataManager(
+                new FeaturesConfig().setExperimentalSyntaxEnabled(true),
+                typeRegistry,
+                splitManager,
+                blockEncodingSerde,
+                new SessionPropertyManager(),
+                new TablePropertyManager());
         this.pageSourceManager = new PageSourceManager();
 
         this.compiler = new ExpressionCompiler(metadata);
@@ -166,22 +171,25 @@ public class LocalQueryRunner
 
         Connector systemConnector = new SystemConnector(nodeManager, ImmutableSet.of(
                 new NodeSystemTable(nodeManager),
-                new CatalogSystemTable(metadata)));
+                new CatalogSystemTable(metadata),
+                new TablePropertiesSystemTable(metadata)));
 
         connectorManager.createConnection(SystemConnector.NAME, systemConnector);
-    }
 
-    public static LocalQueryRunner createHashEnabledQueryRunner(LocalQueryRunner localQueryRunner)
-    {
-        Session session = localQueryRunner.getDefaultSession();
-        Session.SessionBuilder builder = Session.builder(localQueryRunner.getMetadata().getSessionPropertyManager())
-                .setUser(session.getUser())
-                .setSource(session.getSource().orElse(null))
-                .setCatalog(session.getCatalog())
-                .setTimeZoneKey(session.getTimeZoneKey())
-                .setLocale(session.getLocale())
-                .setSystemProperties(ImmutableMap.of("optimizer.optimize_hash_generation", "true"));
-        return new LocalQueryRunner(builder.build());
+        // rewrite session to use managed SessionPropertyMetadata
+        this.defaultSession = new Session(
+                defaultSession.getUser(),
+                defaultSession.getSource(),
+                defaultSession.getCatalog(),
+                defaultSession.getSchema(),
+                defaultSession.getTimeZoneKey(),
+                defaultSession.getLocale(),
+                defaultSession.getRemoteUserAddress(),
+                defaultSession.getUserAgent(),
+                defaultSession.getStartTime(),
+                defaultSession.getSystemProperties(),
+                defaultSession.getCatalogProperties(),
+                metadata.getSessionPropertyManager());
     }
 
     @Override
@@ -251,11 +259,6 @@ public class LocalQueryRunner
     {
         printPlan = true;
         return this;
-    }
-
-    public boolean isHashEnabled()
-    {
-        return hashEnabled;
     }
 
     public static class MaterializedOutputFactory
@@ -459,8 +462,9 @@ public class LocalQueryRunner
             String... columnNames)
     {
         // look up the table
-        TableHandle tableHandle = metadata.getTableHandle(session, new QualifiedTableName(session.getCatalog(), session.getSchema(), tableName)).orElse(null);
-        checkArgument(tableHandle != null, "Table %s does not exist", tableName);
+        QualifiedTableName qualifiedTableName = new QualifiedTableName(session.getCatalog(), session.getSchema(), tableName);
+        TableHandle tableHandle = metadata.getTableHandle(session, qualifiedTableName).orElse(null);
+        checkArgument(tableHandle != null, "Table %s does not exist", qualifiedTableName);
 
         // lookup the columns
         Map<String, ColumnHandle> allColumnHandles = metadata.getColumnHandles(session, tableHandle);
