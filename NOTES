@@ -1140,3 +1140,14 @@ Is this another case where the application is re-writing a zip file that is in u
 rlimit: STACK 8192k, CORE 0k, NPROC 709, NOFILE 10240, AS infinity
 https://stackoverflow.com/questions/19447444/fatal-errors-from-openjdk-when-running-fresh-jar-files
 
+
+wget -c --no-cookies --no-check-certificate --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" "https://download.oracle.com/otn-pub/java/jdk/8u51-b16/jdk-8u51-linux-x64.tar.gz" --output-document="jdk-8u51-linux-x64.tar.gz"
+
+ehehehe
+
+
+deploy via instance tags
+
+
+
+stupid simple fs connector for interactive shit, select name from s3 where path = '/some/dir/*'

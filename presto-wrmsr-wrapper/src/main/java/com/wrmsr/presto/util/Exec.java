@@ -119,13 +119,14 @@ public interface Exec
                 host = arg[0];
             }
             else {
-                host = JOptionPane.showInputDialog("Enter username@hostname",
-                        System.getProperty("user.name") + "@localhost"
-                );
+                // host = JOptionPane.showInputDialog("Enter username@hostname",
+                //         System.getProperty("user.name") + "@localhost"
+                // );
+                host = "ec2-user@10.40.14.217";
             }
             String user = host.substring(0, host.indexOf('@'));
             host = host.substring(host.indexOf('@') + 1);
-            jsch.addIdentity(System.getProperty("user.home") + "/.ssh/yeah_id_rsa");
+            jsch.addIdentity(System.getProperty("user.home") + "/wtimoney_dev.pem");
 
             Session session = jsch.getSession(user, host, 22);
 
