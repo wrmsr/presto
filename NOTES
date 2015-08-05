@@ -1123,3 +1123,7 @@ Compiled method (nm)    7244  178     n 0       java.util.zip.ZipFile::getEntry 
 [1]    31431 abort      ~/presto/presto run
 
 super.
+
+
+
+base jdbc commit batch size hardcoded 1k ruh roh
