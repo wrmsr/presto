@@ -108,6 +108,7 @@ public class Repositories
                     while ((anz = bi.read(buf)) != -1) {
                         bo.write(buf, 0, anz);
                     }
+                    bo.flush();
                 }
                 urls.add(depFile.toURL());
             }
