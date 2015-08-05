@@ -1088,3 +1088,7 @@ elif [ "$COMMAND" = "version" ] ; then
   CLASS=org.apache.hadoop.util.VersionInfo
 else
   CLASS="$COMMAND"
+
+
+
+user defined enums?
