@@ -52,6 +52,11 @@ import static java.util.Locale.ENGLISH;
 
 public class TestCrud
 {
+    public interface ConnectorEventSource
+    {
+
+    }
+
     public interface ConnectorAccessorAdapter
     {
         List get();
