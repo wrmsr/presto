@@ -258,6 +258,7 @@ public class PrestoWrapperBuilder
                 "presto-mysql",
                 "presto-postgresql",
                 "presto-raptor",
+                "presto-teradata-functions",
                 "presto-tpch",
                 "presto-wrmsr-extensions",
                 "presto-wrmsr-hadoop",
