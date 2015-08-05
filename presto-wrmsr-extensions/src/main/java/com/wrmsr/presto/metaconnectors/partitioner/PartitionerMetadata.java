@@ -68,6 +68,7 @@ public class PartitionerMetadata
         return new ConnectorTableMetadata(
                 metadata.getTable(),
                 metadata.getColumns().stream().map(this::setPartitioning).collect(Collectors.toList()),
+                metadata.getProperties(),
                 metadata.getOwner(),
                 metadata.isSampled()
         );

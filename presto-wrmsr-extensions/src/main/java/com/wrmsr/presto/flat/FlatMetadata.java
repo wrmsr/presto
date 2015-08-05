@@ -62,6 +62,7 @@ public class FlatMetadata
             SCHEMA_TABLE_NAME,
             ImmutableList.of(COLUMN_METADATA),
             null,
+            null,
             false
     );
 
