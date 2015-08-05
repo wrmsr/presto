@@ -1092,3 +1092,34 @@ else
 
 
 user defined enums?
+
+
+
+2015-08-04T17:38:23.227-0700    INFO    Thread-1        com.facebook.presto.server.PluginManager        -- Loading plugin |presto-mysql --
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  SIGBUS (0xa) at pc=0x0000000108be4eb9, pid=31431, tid=36103
+#
+# JRE version: Java(TM) SE Runtime Environment (8.0_51-b16) (build 1.8.0_51-b16)
+# Java VM: Java HotSpot(TM) 64-Bit Server VM (25.51-b03 mixed mode bsd-amd64 compressed oops)
+# Problematic frame:
+# C  [libzip.dylib+0x2eb9]  newEntry+0x154
+#
+# Failed to write core dump. Core dumps have been disabled. To enable core dumping, try "ulimit -c unlimited" before starting Java again
+#
+# An error report file with more information is saved as:
+# /Users/wtimoney/src/wrmsr/presto/hs_err_pid31431.log
+Compiled method (nm)    7244  178     n 0       java.util.zip.ZipFile::getEntry (native)
+ total in heap  [0x000000010add6e90,0x000000010add71f0] = 864
+ relocation     [0x000000010add6fb8,0x000000010add6ff8] = 64
+ main code      [0x000000010add7000,0x000000010add71f0] = 496
+#
+# If you would like to submit a bug report, please visit:
+#   http://bugreport.java.com/bugreport/crash.jsp
+# The crash happened outside the Java Virtual Machine in native code.
+# See problematic frame for where to report the bug.
+#
+[1]    31431 abort      ~/presto/presto run
+
+super.
