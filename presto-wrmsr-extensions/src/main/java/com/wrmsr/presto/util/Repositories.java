@@ -16,6 +16,7 @@ package com.wrmsr.presto.util;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -91,6 +92,40 @@ public class Repositories
         return System.getProperty(REPOSITORY_PATH_PROPERTY_KEY);
     }
 
+    public static long MAX_UNLOCK_WAIT = 1000L;
+
+    // https://stackoverflow.com/questions/19447444/fatal-errors-from-openjdk-when-running-fresh-jar-files
+    public static void unlockFile(String jarFileName) throws IOException
+    {
+        long start = System.currentTimeMillis();
+        FileInputStream fis = null;
+        while (true) {
+            try {
+                fis = new FileInputStream(jarFileName);
+                return;
+            }
+            catch (Exception e) {
+                long elapsed = System.currentTimeMillis() - start;
+                if (elapsed >= MAX_UNLOCK_WAIT) {
+                    throw new RuntimeException("timeout while waiting for " + jarFileName);
+                }
+
+                try {
+                    Thread.sleep(1);
+                }
+                catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("interrupted", ie);
+                }
+            }
+            finally {
+                if (fis != null) {
+                    fis.close();
+                }
+            }
+        }
+    }
+
     public static List<URL> resolveUrlsForModule(ClassLoader sourceClassLoader, String moduleName) throws IOException
     {
         List<URL> urls = new ArrayList<>();
@@ -110,6 +145,7 @@ public class Repositories
                     }
                     bo.flush();
                 }
+                unlockFile(depFile.getAbsolutePath());
                 urls.add(depFile.toURL());
             }
         }

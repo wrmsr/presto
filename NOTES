@@ -1127,3 +1127,16 @@ super.
 
 
 base jdbc commit batch size hardcoded 1k ruh roh
+
+
+
+https://github.com/softwarevidal/mysql-connector-mxj-gpl haaaaaay
+
+https://bugs.openjdk.java.net/browse/JDK-8017777
+
+Is this another case where the application is re-writing a zip file that is in use? This can be worked around by running with the system property sun.zip.disableMemoryMapping set to true.
+
+
+rlimit: STACK 8192k, CORE 0k, NPROC 709, NOFILE 10240, AS infinity
+https://stackoverflow.com/questions/19447444/fatal-errors-from-openjdk-when-running-fresh-jar-files
+
