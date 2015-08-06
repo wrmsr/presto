@@ -14,8 +14,8 @@
 package com.facebook.presto.kafka;
 
 import com.facebook.presto.kafka.decoder.dummy.DummyKafkaRowDecoder;
-import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
@@ -23,20 +23,16 @@ import com.facebook.presto.spi.ReadOnlyConnectorMetadata;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.facebook.presto.spi.TableNotFoundException;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.inject.name.Named;
-import io.airlift.log.Logger;
 
 import javax.inject.Inject;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -48,29 +44,28 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class KafkaMetadata
         extends ReadOnlyConnectorMetadata
 {
-    private static final Logger log = Logger.get(KafkaMetadata.class);
-
     private final String connectorId;
-    private final KafkaConnectorConfig kafkaConnectorConfig;
     private final KafkaHandleResolver handleResolver;
-
-    private final Supplier<Map<SchemaTableName, KafkaTopicDescription>> kafkaTableDescriptionSupplier;
+    private final boolean hideInternalColumns;
+    private final Map<SchemaTableName, KafkaTopicDescription> tableDescriptions;
     private final Set<KafkaInternalFieldDescription> internalFieldDescriptions;
 
     @Inject
-    KafkaMetadata(@Named("connectorId") String connectorId,
+    public KafkaMetadata(
+            KafkaConnectorId connectorId,
             KafkaConnectorConfig kafkaConnectorConfig,
             KafkaHandleResolver handleResolver,
             Supplier<Map<SchemaTableName, KafkaTopicDescription>> kafkaTableDescriptionSupplier,
             Set<KafkaInternalFieldDescription> internalFieldDescriptions)
     {
-        this.connectorId = checkNotNull(connectorId, "connectorId is null");
-        this.kafkaConnectorConfig = checkNotNull(kafkaConnectorConfig, "kafkaConfig is null");
+        this.connectorId = checkNotNull(connectorId, "connectorId is null").toString();
         this.handleResolver = checkNotNull(handleResolver, "handleResolver is null");
 
-        log.debug("Loading kafka table definitions from %s", kafkaConnectorConfig.getTableDescriptionDir().getAbsolutePath());
+        checkNotNull(kafkaConnectorConfig, "kafkaConfig is null");
+        this.hideInternalColumns = kafkaConnectorConfig.isHideInternalColumns();
 
-        this.kafkaTableDescriptionSupplier = Suppliers.memoize(kafkaTableDescriptionSupplier);
+        checkNotNull(kafkaTableDescriptionSupplier, "kafkaTableDescriptionSupplier is null");
+        this.tableDescriptions = kafkaTableDescriptionSupplier.get();
         this.internalFieldDescriptions = checkNotNull(internalFieldDescriptions, "internalFieldDescriptions is null");
     }
 
@@ -78,7 +73,7 @@ public class KafkaMetadata
     public List<String> listSchemaNames(ConnectorSession session)
     {
         ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-        for (SchemaTableName tableName : getDefinedTables().keySet()) {
+        for (SchemaTableName tableName : tableDescriptions.keySet()) {
             builder.add(tableName.getSchemaName());
         }
         return ImmutableList.copyOf(builder.build());
@@ -87,7 +82,7 @@ public class KafkaMetadata
     @Override
     public KafkaTableHandle getTableHandle(ConnectorSession session, SchemaTableName schemaTableName)
     {
-        KafkaTopicDescription table = getDefinedTables().get(schemaTableName);
+        KafkaTopicDescription table = tableDescriptions.get(schemaTableName);
         if (table == null) {
             return null;
         }
@@ -116,7 +111,7 @@ public class KafkaMetadata
     public List<SchemaTableName> listTables(ConnectorSession session, String schemaNameOrNull)
     {
         ImmutableList.Builder<SchemaTableName> builder = ImmutableList.builder();
-        for (SchemaTableName tableName : getDefinedTables().keySet()) {
+        for (SchemaTableName tableName : tableDescriptions.keySet()) {
             if (schemaNameOrNull == null || tableName.getSchemaName().equals(schemaNameOrNull)) {
                 builder.add(tableName);
             }
@@ -137,7 +132,7 @@ public class KafkaMetadata
     {
         KafkaTableHandle kafkaTableHandle = handleResolver.convertTableHandle(tableHandle);
 
-        KafkaTopicDescription kafkaTopicDescription = getDefinedTables().get(kafkaTableHandle.toSchemaTableName());
+        KafkaTopicDescription kafkaTopicDescription = tableDescriptions.get(kafkaTableHandle.toSchemaTableName());
         if (kafkaTopicDescription == null) {
             throw new TableNotFoundException(kafkaTableHandle.toSchemaTableName());
         }
@@ -166,7 +161,7 @@ public class KafkaMetadata
         }
 
         for (KafkaInternalFieldDescription kafkaInternalFieldDescription : internalFieldDescriptions) {
-            columnHandles.put(kafkaInternalFieldDescription.getName(), kafkaInternalFieldDescription.getColumnHandle(connectorId, index++, kafkaConnectorConfig.isHideInternalColumns()));
+            columnHandles.put(kafkaInternalFieldDescription.getName(), kafkaInternalFieldDescription.getColumnHandle(connectorId, index++, hideInternalColumns));
         }
 
         return columnHandles.build();
@@ -200,16 +195,10 @@ public class KafkaMetadata
         return kafkaColumnHandle.getColumnMetadata();
     }
 
-    @VisibleForTesting
-    Map<SchemaTableName, KafkaTopicDescription> getDefinedTables()
-    {
-        return kafkaTableDescriptionSupplier.get();
-    }
-
     @SuppressWarnings("ValueOfIncrementOrDecrementUsed")
     private ConnectorTableMetadata getTableMetadata(SchemaTableName schemaTableName)
     {
-        KafkaTopicDescription table = getDefinedTables().get(schemaTableName);
+        KafkaTopicDescription table = tableDescriptions.get(schemaTableName);
         if (table == null) {
             throw new TableNotFoundException(schemaTableName);
         }
@@ -237,7 +226,7 @@ public class KafkaMetadata
         }
 
         for (KafkaInternalFieldDescription fieldDescription : internalFieldDescriptions) {
-            builder.add(fieldDescription.getColumnMetadata(kafkaConnectorConfig.isHideInternalColumns()));
+            builder.add(fieldDescription.getColumnMetadata(hideInternalColumns));
         }
 
         return new ConnectorTableMetadata(schemaTableName, builder.build());
