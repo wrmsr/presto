@@ -1185,3 +1185,16 @@ non-spot master, spot slaves....
 
 
 https://software.intel.com/en-us/articles/intel-performance-counter-monitor ehehehee
+
+
+
+aws emr create-cluster --name "Test cluster" --ami-version 3.3 \
+--applications Name=Hue Name=Hive Name=Pig Name=HBase \
+--use-default-roles --ec2-attributes KeyName=myKey \
+--instance-type c1.xlarge --instance-count 3 --termination-protected
+
+http://169.254.169.254/latest/user-data
+
+http://docs.datastax.com/en/cassandra/2.2/cassandra/install/installAMILaunch.html
+
+com.mysql.jdbc.ReplicationDriver

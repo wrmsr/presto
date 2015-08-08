@@ -352,7 +352,6 @@ public class JarSync
 
     public static abstract class Operation
     {
-
         public final String name;
 
         protected Operation(String name)
