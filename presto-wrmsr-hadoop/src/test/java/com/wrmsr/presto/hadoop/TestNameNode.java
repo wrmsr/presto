@@ -46,20 +46,20 @@ public class TestNameNode
 
         String[] args;
 
-        /*
         args = new String[]{};//"-format"};
         NameNode nn =  NameNode.createNameNode(args, config);
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 300; ++i) {
             System.out.println(nn.getState());
             Thread.sleep(1000);
         }
-        */
 
+        /*
         args = new String[]{};//"-format"};
         DataNode dn = DataNode.createDataNode(args, config, null);
-        for (int i = 0; i < 3; ++i) {
-            System.out.println(dn.getMetrics());
+        for (int i = 0; i < 300; ++i) {
+            // System.out.println(dn.getMetrics());
             Thread.sleep(1000);
         }
+        */
     }
 }

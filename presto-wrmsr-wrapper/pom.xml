@@ -103,7 +103,7 @@
 
         <dependency>
             <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-mesos</artifactId>
+            <artifactId>presto-wrmsr-aws</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
@@ -115,6 +115,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-mesos</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 
