@@ -1208,3 +1208,7 @@ alter table my_ranger add partition (dt='small') location 's3://yelp-emr-dev/foo
 
 https://github.com/apache/hive/blob/ac755ebe26361a4647d53db2a28500f71697b276/ql/src/java/org/apache/hadoop/hive/ql/udf/UDFParseUrl.java
 
+
+https://github.com/confluentinc/bottledwater-pg yay
+
+https://github.com/mpetazzoni/ttorrent/blob/master/cli/src/main/java/com/turn/ttorrent/cli/TorrentMain.java

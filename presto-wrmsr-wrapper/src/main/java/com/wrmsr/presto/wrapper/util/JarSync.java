@@ -194,17 +194,11 @@ public class JarSync
             }
         };
         try {
-            List<Callable<Entry>> callables = new ArrayList<Callable<Entry>>();
+            List<Callable<Entry>> callables = new ArrayList<>();
             for (final ZipEntry zipEntry : zipEntries) {
-                Callable callable = new Callable<Entry>()
-                {
-                    @Override
-                    public Entry call()
-                            throws Exception
-                    {
-                        ZipFile zipFile = zipFileTL.get();
-                        return generateEntry(zipFile, zipEntry);
-                    }
+                Callable callable = () -> {
+                    ZipFile zipFile = zipFileTL.get();
+                    return generateEntry(zipFile, zipEntry);
                 };
                 callables.add(callable);
             }
@@ -542,16 +536,16 @@ public class JarSync
             throws Exception
     {
         int nThreads = 8;
-        String fromJarPath = "/Users/wtimoney/morgoth-old.jar";
-        String toJarPath = "/Users/wtimoney/morgoth-new.jar";
-        String resultPath = "/Users/wtimoney/morgoth-syncd.jar";
+        String fromJarPath = "/Users/spinlock/presto/presto";
+        String toJarPath = "/Users/spinlock/presto/presto-old";
+        String resultPath = "/Users/spinlock/presto/presto-synced";
 
         ExecutorService executor = Executors.newFixedThreadPool(nThreads);
         try {
             Map<String, String> from = createEntryMap(generateJarEntries(fromJarPath, executor));
             Map<String, String> to = createEntryMap(generateJarEntries(toJarPath, executor));
 
-            String syncFile = "/Users/wtimoney/morgoth-old-new-diff.bin";
+            String syncFile = "/Users/spinlock/presto/presto.diff";
 
             try (ZipFile zipFile = new ZipFile(toJarPath);
                     FileOutputStream out = new FileOutputStream(syncFile);
