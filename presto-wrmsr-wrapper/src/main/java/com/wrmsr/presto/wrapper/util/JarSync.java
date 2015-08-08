@@ -40,13 +40,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-
 public class JarSync
 {
-
-    public static class Entry implements Comparable
+    public static class Entry
+            implements Comparable
     {
-
         public final String path;
         public final String digest;
 
@@ -141,7 +139,8 @@ public class JarSync
 
     public static final String DIGEST_ALG = "MD5";
 
-    public static Entry generateEntry(ZipFile zipFile, ZipEntry zipEntry) throws IOException
+    public static Entry generateEntry(ZipFile zipFile, ZipEntry zipEntry)
+            throws IOException
     {
         byte[] digest;
         BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(zipEntry));
@@ -200,7 +199,8 @@ public class JarSync
                 Callable callable = new Callable<Entry>()
                 {
                     @Override
-                    public Entry call() throws Exception
+                    public Entry call()
+                            throws Exception
                     {
                         ZipFile zipFile = zipFileTL.get();
                         return generateEntry(zipFile, zipEntry);
@@ -265,10 +265,10 @@ public class JarSync
 
     public static class IO
     {
-
         public static final int BLOCK_SIZE = 65536;
 
-        public static void move(InputStream in, OutputStream out, int len) throws IOException
+        public static void move(InputStream in, OutputStream out, int len)
+                throws IOException
         {
             byte[] buf = new byte[BLOCK_SIZE];
             int pos = 0;
@@ -286,7 +286,8 @@ public class JarSync
             }
         }
 
-        public static byte[] readBytes(InputStream in, int len) throws IOException
+        public static byte[] readBytes(InputStream in, int len)
+                throws IOException
         {
             byte[] buf = new byte[len];
             int pos = 0;
@@ -303,47 +304,55 @@ public class JarSync
             return buf;
         }
 
-        public static int readInt(InputStream in) throws IOException
+        public static int readInt(InputStream in)
+                throws IOException
         {
             return ByteBuffer.wrap(readBytes(in, 4)).getInt();
         }
 
-        public static byte[] readBytes(InputStream in) throws IOException
+        public static byte[] readBytes(InputStream in)
+                throws IOException
         {
             int len = readInt(in);
             return readBytes(in, len);
         }
 
-        public static String readString(InputStream in) throws IOException
+        public static String readString(InputStream in)
+                throws IOException
         {
             return new String(readBytes(in));
         }
 
-        public static void readStream(InputStream in, OutputStream out) throws IOException
+        public static void readStream(InputStream in, OutputStream out)
+                throws IOException
         {
             int len = readInt(in);
             move(in, out, len);
         }
 
-        public static void writeInt(OutputStream out, int i) throws IOException
+        public static void writeInt(OutputStream out, int i)
+                throws IOException
         {
             byte[] buf = new byte[4];
             ByteBuffer.wrap(buf).putInt(i);
             out.write(buf);
         }
 
-        public static void writeBytes(OutputStream out, byte[] buf) throws IOException
+        public static void writeBytes(OutputStream out, byte[] buf)
+                throws IOException
         {
             writeInt(out, buf.length);
             out.write(buf);
         }
 
-        public static void writeString(OutputStream out, String s) throws IOException
+        public static void writeString(OutputStream out, String s)
+                throws IOException
         {
             writeBytes(out, s.getBytes());
         }
 
-        public static void writeStream(OutputStream out, InputStream in, int len) throws IOException
+        public static void writeStream(OutputStream out, InputStream in, int len)
+                throws IOException
         {
             writeInt(out, len);
             move(in, out, len);
@@ -359,14 +368,16 @@ public class JarSync
             this.name = name;
         }
 
-        public void write(ZipFile zipFile, OutputStream out) throws IOException
+        public void write(ZipFile zipFile, OutputStream out)
+                throws IOException
         {
             IO.writeString(out, getClass().getSimpleName());
             IO.writeString(out, name);
             unapply(zipFile, out);
         }
 
-        public abstract void unapply(ZipFile zipFile, OutputStream out) throws IOException;
+        public abstract void unapply(ZipFile zipFile, OutputStream out)
+                throws IOException;
 
         public static class ReadContext
         {
@@ -382,7 +393,8 @@ public class JarSync
             }
         }
 
-        public static void read(InputStream in, ReadContext out) throws IOException
+        public static void read(InputStream in, ReadContext out)
+                throws IOException
         {
             String className = IO.readString(in);
             String name = IO.readString(in);
@@ -402,7 +414,8 @@ public class JarSync
             op.apply(in, out);
         }
 
-        public abstract void apply(InputStream in, ReadContext out) throws IOException;
+        public abstract void apply(InputStream in, ReadContext out)
+                throws IOException;
 
         @Override
         public String toString()
@@ -410,7 +423,8 @@ public class JarSync
             return String.format("%s(%s)", getClass().getSimpleName(), name);
         }
 
-        public static void writeAll(ZipFile zipFile, OutputStream out, List<Operation> ops) throws IOException
+        public static void writeAll(ZipFile zipFile, OutputStream out, List<Operation> ops)
+                throws IOException
         {
             IO.writeInt(out, ops.size());
             for (Operation op : ops) {
@@ -418,7 +432,8 @@ public class JarSync
             }
         }
 
-        public static void readAll(InputStream in, ZipFile srcFile, OutputStream out) throws IOException
+        public static void readAll(InputStream in, ZipFile srcFile, OutputStream out)
+                throws IOException
         {
             int count = IO.readInt(in);
             ZipOutputStream dstFile = new ZipOutputStream(out);
@@ -430,12 +445,8 @@ public class JarSync
                 for (ZipEntry ze : getZipEntries(srcFile)) {
                     if (!rc.filtered.contains(ze.getName())) {
                         dstFile.putNextEntry(ze);
-                        InputStream zeIn = srcFile.getInputStream(ze);
-                        try {
+                        try (InputStream zeIn = srcFile.getInputStream(ze)) {
                             IO.move(zeIn, dstFile, (int) ze.getSize());
-                        }
-                        finally {
-                            zeIn.close();
                         }
                     }
                 }
@@ -445,34 +456,32 @@ public class JarSync
             }
         }
 
-        public static abstract class PayloadOperation extends Operation
+        public static abstract class PayloadOperation
+                extends Operation
         {
-
             protected PayloadOperation(String name)
             {
                 super(name);
             }
 
             @Override
-            public void unapply(ZipFile zipFile, OutputStream out) throws IOException
+            public void unapply(ZipFile zipFile, OutputStream out)
+                    throws IOException
             {
                 ZipEntry entry = zipFile.getEntry(name);
                 if (entry == null) {
                     throw new IllegalArgumentException("name");
                 }
-                InputStream in = zipFile.getInputStream(entry);
-                try {
+                try (InputStream in = zipFile.getInputStream(entry)) {
                     int len = (int) entry.getSize();
                     IO.writeInt(out, len);
                     IO.move(in, out, len);
                 }
-                finally {
-                    in.close();
-                }
             }
 
             @Override
-            public void apply(InputStream in, ReadContext out) throws IOException
+            public void apply(InputStream in, ReadContext out)
+                    throws IOException
             {
                 out.filtered.add(name);
                 int len = IO.readInt(in);
@@ -482,34 +491,35 @@ public class JarSync
             }
         }
 
-        public static class Insert extends PayloadOperation
+        public static class Insert
+                extends PayloadOperation
         {
-
             public Insert(String name)
             {
                 super(name);
             }
         }
 
-        public static class Update extends PayloadOperation
+        public static class Update
+                extends PayloadOperation
         {
-
             public Update(String name)
             {
                 super(name);
             }
         }
 
-        public static class Delete extends Operation
+        public static class Delete
+                extends Operation
         {
-
             public Delete(String name)
             {
                 super(name);
             }
 
             @Override
-            public void unapply(ZipFile zipFile, OutputStream out) throws IOException
+            public void unapply(ZipFile zipFile, OutputStream out)
+                    throws IOException
             {
                 if (zipFile.getEntry(name) != null) {
                     throw new IllegalArgumentException("name");
@@ -517,7 +527,8 @@ public class JarSync
             }
 
             @Override
-            public void apply(InputStream in, ReadContext out) throws IOException
+            public void apply(InputStream in, ReadContext out)
+                    throws IOException
             {
                 if (out.srcFile.getEntry(name) == null) {
                     throw new IllegalArgumentException("name");
@@ -525,10 +536,10 @@ public class JarSync
                 out.filtered.add(name);
             }
         }
-
     }
 
-    public static void main(String[] args) throws Exception
+    public static void main(String[] args)
+            throws Exception
     {
         int nThreads = 8;
         String fromJarPath = "/Users/wtimoney/morgoth-old.jar";
@@ -542,45 +553,17 @@ public class JarSync
 
             String syncFile = "/Users/wtimoney/morgoth-old-new-diff.bin";
 
-            ZipFile zipFile = new ZipFile(toJarPath);
-            try {
-                FileOutputStream out = new FileOutputStream(syncFile);
-                try {
-                    GZIPOutputStream gzOut = new GZIPOutputStream(out);
-                    try {
-                        Operation.writeAll(zipFile, gzOut, diffEntryMaps(from, to));
-                    }
-                    finally {
-                        gzOut.close();
-                    }
-                }
-                finally {
-                    out.close();
-                }
-            }
-            finally {
-                zipFile.close();
+            try (ZipFile zipFile = new ZipFile(toJarPath);
+                    FileOutputStream out = new FileOutputStream(syncFile);
+                    GZIPOutputStream gzOut = new GZIPOutputStream(out)) {
+                Operation.writeAll(zipFile, gzOut, diffEntryMaps(from, to));
             }
 
-            zipFile = new ZipFile(fromJarPath);
-            InputStream syncIn = new FileInputStream(syncFile);
-            try {
-                GZIPInputStream syncGzIn = new GZIPInputStream(syncIn);
-                try {
-                    FileOutputStream resultOut = new FileOutputStream(resultPath);
-                    try {
-                        Operation.readAll(syncGzIn, zipFile, resultOut);
-                    }
-                    finally {
-                        resultOut.close();
-                    }
-                }
-                finally {
-                    syncGzIn.close();
-                }
-            }
-            finally {
-                syncIn.close();
+            try (ZipFile zipFile = new ZipFile(fromJarPath);
+                    InputStream syncIn = new FileInputStream(syncFile);
+                    GZIPInputStream syncGzIn = new GZIPInputStream(syncIn);
+                    FileOutputStream resultOut = new FileOutputStream(resultPath)) {
+                Operation.readAll(syncGzIn, zipFile, resultOut);
             }
         }
         finally {

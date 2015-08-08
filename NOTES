@@ -1198,3 +1198,13 @@ http://169.254.169.254/latest/user-data
 http://docs.datastax.com/en/cassandra/2.2/cassandra/install/installAMILaunch.html
 
 com.mysql.jdbc.ReplicationDriver
+
+.aws/credentials
+
+
+create external table my_stuff (id string, prev_id string, uri string, extra string) partitioned by (dt string)
+ row format serde 'com.amazon.elasticmapreduce.JsonSerde' with serdeproperties ('paths'='id, prev_id, url, extra');
+alter table my_ranger add partition (dt='small') location 's3://yelp-emr-dev/foo/';
+
+https://github.com/apache/hive/blob/ac755ebe26361a4647d53db2a28500f71697b276/ql/src/java/org/apache/hadoop/hive/ql/udf/UDFParseUrl.java
+
