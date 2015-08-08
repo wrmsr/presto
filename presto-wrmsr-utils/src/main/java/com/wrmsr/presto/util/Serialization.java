@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.util;
 
-import com.facebook.presto.server.SliceSerializer;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.DefaultDeserializationContext;

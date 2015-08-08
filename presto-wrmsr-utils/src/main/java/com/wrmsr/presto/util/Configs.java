@@ -17,9 +17,10 @@
 package com.wrmsr.presto.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
+import com.google.common.collect.Lists;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationMap;
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -105,7 +106,7 @@ public class Configs
 
         public ListPreservingDefaultExpressionEngine getExpressionEngine()
         {
-            return (ListPreservingDefaultExpressionEngine) checkNotNull(super.getExpressionEngine());
+            return (ListPreservingDefaultExpressionEngine) Preconditions.checkNotNull(super.getExpressionEngine());
         }
 
         @Override
@@ -233,7 +234,7 @@ public class Configs
                     namedChildren.get(child.getName()).add(child);
                 }
                 else {
-                    namedChildren.put(child.getName(), newArrayList(child));
+                    namedChildren.put(child.getName(), com.google.common.collect.Lists.newArrayList(child));
                 }
             }
             Map ret = newHashMap();
@@ -289,7 +290,7 @@ public class Configs
         List<String> values = hc.getList(key).stream().filter(o -> o != null).map(Object::toString).collect(Collectors.toList());
         try {
             HierarchicalConfiguration subhc = hc.configurationAt(key);
-            for (String subkey : newArrayList(subhc.getKeys())) {
+            for (String subkey : Lists.newArrayList(subhc.getKeys())) {
                 if (!isNullOrEmpty(subkey)) {
                     String subvalue = subhc.getString(subkey);
                     if (subvalue != null) {
@@ -476,8 +477,8 @@ public class Configs
                     .filter(e -> e.getValue() != null)
                     .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey().toString(), e -> e.getValue().toString()));
         }
-        else if (OBJECT_MAPPERS_BY_EXTENSION.containsKey(extension)) {
-            ObjectMapper objectMapper = OBJECT_MAPPERS_BY_EXTENSION.get(extension).get();
+        else if (Serialization.OBJECT_MAPPERS_BY_EXTENSION.containsKey(extension)) {
+            ObjectMapper objectMapper = Serialization.OBJECT_MAPPERS_BY_EXTENSION.get(extension).get();
             Object value;
             try {
                 value = objectMapper.readValue(data, Object.class);
@@ -513,7 +514,7 @@ public class Configs
 
         public <T> T decode(HierarchicalConfiguration data, Class<T> clazz)
         {
-            ObjectMapper mapper = OBJECT_MAPPER.get();
+            ObjectMapper mapper = Serialization.OBJECT_MAPPER.get();
             try {
                 byte[] bytes = mapper.writeValueAsBytes(decode(data));
                 return mapper.readValue(bytes, clazz);

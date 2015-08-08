@@ -95,15 +95,18 @@
         <module>presto-verifier</module>
         <!-- <module>presto-testing-server-launcher</module> -->
         <!-- <module>presto-streaming</module> -->
-        <!-- <module>presto-wrmsr-elasticsearch</module> -->
+        <!-- <module>presto-wrmsr-airpal</module> -->
         <module>presto-wrmsr-aws</module>
+        <!-- <module>presto-wrmsr-elasticsearch</module> -->
         <module>presto-wrmsr-extensions</module>
         <module>presto-wrmsr-hadoop</module>
         <module>presto-wrmsr-jython</module>
         <module>presto-wrmsr-jruby</module>
         <module>presto-wrmsr-lucene</module>
+        <!-- <module>presto-wrmsr-memcache</module> -->
         <module>presto-wrmsr-mesos</module>
         <module>presto-wrmsr-swagger</module>
+        <module>presto-wrmsr-utils</module>
         <module>presto-wrmsr-wrapper</module>
         <module>presto-wrmsr-wrapper-builder</module>
     </modules>
