@@ -235,6 +235,7 @@ public class PrestoWrapperBuilder
         }
 
         // FIXME: META-INF/MANIFEST.MF Class-Path
+        // https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html
         File jarRepoBase = new File("/repository");
         File classpathBase = new File("/classpaths");
         File repository = new File(System.getProperty("user.home"), ".m2/repository");
