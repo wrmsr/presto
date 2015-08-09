@@ -1227,3 +1227,18 @@ no omfg not COMPRESSED<bzip, ... ---- bzip<lines<json<business>>>
   ;;
 
     CLASS=org.apache.hadoop.fs.FsShell
+
+class S3(BasicCommand):
+    NAME = 's3'
+    DESCRIPTION = BasicCommand.FROM_FILE('s3/_concepts.rst')
+    SYNOPSIS = "aws s3 <Command> [<Arg> ...]"
+    SUBCOMMANDS = [
+        {'name': 'ls', 'command_class': ListCommand},
+        {'name': 'website', 'command_class': WebsiteCommand},
+        {'name': 'cp', 'command_class': CpCommand},
+        {'name': 'mv', 'command_class': MvCommand},
+        {'name': 'rm', 'command_class': RmCommand},
+        {'name': 'sync', 'command_class': SyncCommand},
+        {'name': 'mb', 'command_class': MbCommand},
+        {'name': 'rb', 'command_class': RbCommand}
+    ]
