@@ -1212,3 +1212,9 @@ https://github.com/apache/hive/blob/ac755ebe26361a4647d53db2a28500f71697b276/ql/
 https://github.com/confluentinc/bottledwater-pg yay
 
 https://github.com/mpetazzoni/ttorrent/blob/master/cli/src/main/java/com/turn/ttorrent/cli/TorrentMain.java
+
+
+IT ISNT THE TABLES THAT ARE COMPRESSED IT IS THE FILES. SPLITS OR PARTITIONS.
+in that sense yes it is an unnest of rows from n files
+no omfg not COMPRESSED<bzip, ... ---- bzip<lines<json<business>>>
+
