@@ -1218,3 +1218,12 @@ IT ISNT THE TABLES THAT ARE COMPRESSED IT IS THE FILES. SPLITS OR PARTITIONS.
 in that sense yes it is an unnest of rows from n files
 no omfg not COMPRESSED<bzip, ... ---- bzip<lines<json<business>>>
 
+
+
+  archive)
+    CLASS=org.apache.hadoop.tools.HadoopArchives
+    hadoop_debug "Injecting TOOL_PATH into CLASSPATH"
+    hadoop_add_classpath "${TOOL_PATH}"
+  ;;
+
+    CLASS=org.apache.hadoop.fs.FsShell
