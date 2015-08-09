@@ -75,7 +75,7 @@ import static io.airlift.jaxrs.JaxrsBinder.jaxrsBinder;
 
 // import com.facebook.presto.type.ParametricType;
 
-public class ExtensionsPlugin
+public class MainPlugin
         implements Plugin, ServerEvent.Listener
 {
     private Map<String, String> optionalConfig = ImmutableMap.of();
@@ -299,6 +299,6 @@ public class ExtensionsPlugin
 
     private static ClassLoader getClassLoader()
     {
-        return firstNonNull(Thread.currentThread().getContextClassLoader(), ExtensionsPlugin.class.getClassLoader());
+        return firstNonNull(Thread.currentThread().getContextClassLoader(), MainPlugin.class.getClassLoader());
     }
 }

@@ -20,7 +20,7 @@ import com.facebook.presto.tests.DistributedQueryRunner;
 import com.facebook.presto.tpch.TpchPlugin;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.ExtensionsPlugin;
+import com.wrmsr.presto.MainPlugin;
 import io.airlift.testing.mysql.TestingMySqlServer;
 import io.airlift.tpch.TpchTable;
 
@@ -61,7 +61,7 @@ public final class MySqlQueryRunner
                     .put("allow-drop-table", "true")
                     .build();
 
-            queryRunner.installPlugin(new ExtensionsPlugin());
+            queryRunner.installPlugin(new MainPlugin());
             queryRunner.createCatalog("mysql", "extended-mysql", properties);
 
             copyTpchTables(queryRunner, "tpch", TINY_SCHEMA_NAME, createSession(), tables);

@@ -30,7 +30,7 @@ import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.type.ParametricType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
-import com.wrmsr.presto.ExtensionsPlugin;
+import com.wrmsr.presto.MainPlugin;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.compressors.CompressorInputStream;
@@ -151,7 +151,7 @@ public class TestFFIPlugin
                 new TpchConnectorFactory(localQueryRunner.getNodeManager(), 1),
                 ImmutableMap.<String, String>of());
 
-        ExtensionsPlugin plugin = new ExtensionsPlugin();
+        MainPlugin plugin = new MainPlugin();
         plugin.setTypeRegistry(localQueryRunner.getTypeManager());
         for (Type type : plugin.getServices(Type.class)) {
             localQueryRunner.getTypeManager().addType(type);

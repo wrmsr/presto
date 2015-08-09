@@ -260,7 +260,7 @@ public class PrestoWrapperBuilder
                 "presto-raptor",
                 "presto-teradata-functions",
                 "presto-tpch",
-                "presto-wrmsr-extensions",
+                "presto-wrmsr-main",
                 "presto-wrmsr-hadoop",
                 "presto-wrmsr-mesos",
                 "presto-wrmsr-jython",

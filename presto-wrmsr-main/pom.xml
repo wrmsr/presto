@@ -8,8 +8,8 @@
     </parent>
 
     <groupId>com.wrmsr.presto</groupId>
-    <artifactId>presto-wrmsr-extensions</artifactId>
-    <description>Presto - Extensions Plugin</description>
+    <artifactId>presto-wrmsr-main</artifactId>
+    <description>Presto - Main Plugin</description>
     <packaging>presto-plugin</packaging>
 
     <properties>

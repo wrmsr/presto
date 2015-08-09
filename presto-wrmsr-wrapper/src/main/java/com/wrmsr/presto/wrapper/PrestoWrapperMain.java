@@ -232,7 +232,7 @@ public class PrestoWrapperMain
         {
             Launch launch = reexec ? null : new Launch();
             if (Strings.isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
-                System.setProperty("plugin.preloaded",  "|presto-wrmsr-extensions");
+                System.setProperty("plugin.preloaded",  "|presto-wrmsr-main");
             }
             if (Strings.isNullOrEmpty(System.getProperty("node.environment"))) {
                 System.setProperty("node.environment",  "development");

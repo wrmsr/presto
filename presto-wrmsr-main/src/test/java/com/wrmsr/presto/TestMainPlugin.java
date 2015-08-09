@@ -42,10 +42,10 @@ import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Locale.ENGLISH;
 
-public class TestExtensionsPlugin
+public class TestMainPlugin
         extends AbstractTestQueryFramework
 {
-    public TestExtensionsPlugin()
+    public TestMainPlugin()
     {
         super(createLocalQueryRunner());
     }
@@ -83,7 +83,7 @@ public class TestExtensionsPlugin
                defaultSession.getCatalog(),
                new TpchConnectorFactory(queryRunner.getNodeManager(), 1),
                ImmutableMap.<String, String>of());
-       ExtensionsPlugin plugin = new ExtensionsPlugin();
+       MainPlugin plugin = new MainPlugin();
        plugin.setTypeRegistry(queryRunner.getTypeManager());
        /*
        for (Type type : plugin.getServices(Type.class)) {
