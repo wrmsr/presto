@@ -234,6 +234,7 @@ public class PrestoWrapperBuilder
             java.util.logging.Logger.getLogger(logName).setLevel(Level.WARNING);
         }
 
+        // FIXME: META-INF/MANIFEST.MF Class-Path
         File jarRepoBase = new File("/repository");
         File classpathBase = new File("/classpaths");
         File repository = new File(System.getProperty("user.home"), ".m2/repository");
