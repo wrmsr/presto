@@ -13,21 +13,85 @@
  */
 package com.wrmsr.presto.wrapper.util;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Throwables;
+import com.wrmsr.presto.util.Serialization;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
 public class JarSync
 {
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.PROPERTY,
+            property = "type")
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = FileEntry.class, name = "file"),
+            @JsonSubTypes.Type(value = DirectoryEntry.class, name = "directory"),
+    })
     public static abstract class Entry
     {
-        private final String path;
+        private final String name;
+        private final long time;
 
-        public Entry(String path)
+        public Entry(String name, long time)
         {
-            this.path = path;
+            this.name = name;
+            this.time = time;
         }
 
-        public String getPath()
+        public Entry(ZipFile zipFile, ZipEntry zipEntry)
         {
-            return path;
+            name = zipEntry.getName();
+            time = zipEntry.getTime();
         }
+
+        @JsonProperty
+        public String getName()
+        {
+            return name;
+        }
+
+        @JsonProperty
+        public long getTime()
+        {
+            return time;
+        }
+
+        public static Entry create(ZipFile zipFile, ZipEntry zipEntry)
+        {
+            if (zipEntry.isDirectory()) {
+                return new DirectoryEntry(zipFile, zipEntry);
+            }
+            else {
+                return new FileEntry(zipFile, zipEntry);
+            }
+        }
+    }
+
+    public static String hexForBytes(byte[] bytes)
+    {
+        StringBuffer sb = new StringBuffer();
+        for (byte b : bytes) {
+            String h = Integer.toHexString((int) b & 0xff);
+            if (h.length() < 2) {
+                sb.append("0");
+            }
+            sb.append(h);
+        }
+        return sb.toString();
     }
 
     public static final class FileEntry
@@ -35,12 +99,50 @@ public class JarSync
     {
         private final String digest;
 
-        public FileEntry(String path, String digest)
+        @JsonCreator
+        public FileEntry(
+                @JsonProperty("name") String name,
+                @JsonProperty("time") long time,
+                @JsonProperty("digest") String digest)
         {
-            super(path);
+            super(name, time);
             this.digest = digest;
         }
 
+        public FileEntry(ZipFile zipFile, ZipEntry zipEntry)
+        {
+            super(zipFile, zipEntry);
+            digest = generateDigest(zipFile, zipEntry);
+        }
+
+        public static final String DIGEST_ALG = "MD5";
+
+        public static String generateDigest(ZipFile zipFile, ZipEntry zipEntry)
+        {
+            try {
+                byte[] digest;
+                try (BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(zipEntry))) {
+                    MessageDigest md;
+                    try {
+                        md = MessageDigest.getInstance(DIGEST_ALG);
+                    }
+                    catch (NoSuchAlgorithmException e) {
+                        System.err.println(e.toString());
+                        throw new IllegalArgumentException(DIGEST_ALG);
+                    }
+                    DigestInputStream dis = new DigestInputStream(bis, md);
+                    byte[] buffer = new byte[65536];
+                    while (dis.read(buffer, 0, buffer.length) > 0) {
+                    }
+                    return hexForBytes(md.digest());
+                }
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
+        @JsonProperty
         public String getDigest()
         {
             return digest;
@@ -50,15 +152,35 @@ public class JarSync
     public static final class DirectoryEntry
             extends Entry
     {
-        public DirectoryEntry(String path)
+        @JsonCreator
+        public DirectoryEntry(
+                @JsonProperty("name") String name,
+                @JsonProperty("time") long time)
         {
-            super(path);
+            super(name, time);
+        }
+
+        public DirectoryEntry(ZipFile zipFile, ZipEntry zipEntry)
+        {
+            super(zipFile, zipEntry);
         }
     }
 
     public static void main(String[] args)
             throws Throwable
     {
-
+        ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
+        File jarFile = new File("/Users/spinlock/presto/presto");
+        try (ZipFile zipFile = new ZipFile(jarFile)) {
+            Enumeration<? extends ZipEntry> entries;
+            for (entries = zipFile.entries(); entries.hasMoreElements(); ) {
+                ZipEntry zipEntry = entries.nextElement();
+                Entry entry = Entry.create(zipFile, zipEntry);
+                String entryJson = objectMapper.writeValueAsString(entry);
+                System.out.println(entryJson);
+                entry = objectMapper.readValue(entryJson, Entry.class);
+                System.out.println(entry);
+            }
+        }
     }
 }
