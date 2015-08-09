@@ -83,6 +83,10 @@ scheduler.http-client.max-connections-per-server=1000
 scheduler.http-client.max-connections=1000
 scheduler.http-client.read-timeout=1m
 task.max-memory=1GB
+
+s3
+ec2
+hdfs
 */
 
 public class PrestoWrapperMain
