@@ -1,37 +1,25 @@
 package {{package}};
 
-import {{invokerPackage}}.ApiException;
-import {{invokerPackage}}.ApiClient;
-import {{invokerPackage}}.Configuration;
-
-import {{modelPackage}}.*;
-
-import java.util.*;
-
 {{#imports}}import {{import}};
 {{/imports}}
 
-import java.io.File;
-import java.util.Map;
-import java.util.HashMap;
-
 {{#operations}}
 public class {{classname}} {
-  private ApiClient apiClient;
+  private {{invokerPackage}}.ApiClient apiClient;
 
   public {{classname}}() {
-    this(Configuration.getDefaultApiClient());
+    this({{invokerPackage}}.Configuration.getDefaultApiClient());
   }
 
-  public {{classname}}(ApiClient apiClient) {
+  public {{classname}}({{invokerPackage}}.ApiClient apiClient) {
     this.apiClient = apiClient;
   }
 
-  public ApiClient getApiClient() {
+  public {{invokerPackage}}.ApiClient getApiClient() {
     return apiClient;
   }
 
-  public void setApiClient(ApiClient apiClient) {
+  public void setApiClient({{invokerPackage}}.ApiClient apiClient) {
     this.apiClient = apiClient;
   }
 
@@ -42,12 +30,12 @@ public class {{classname}} {
 {{#allParams}}   * @param {{paramName}} {{description}}
 {{/allParams}}   * @return {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}void{{/returnType}}
    */
-  public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}void {{/returnType}}{{nickname}} ({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) throws ApiException {
+  public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}void {{/returnType}}{{nickname}} ({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) throws {{invokerPackage}}.ApiException {
     java.lang.Object postBody = {{#bodyParam}}{{paramName}}{{/bodyParam}}{{^bodyParam}}null{{/bodyParam}};
     {{#allParams}}{{#required}}
     // verify the required parameter '{{paramName}}' is set
     if ({{paramName}} == null) {
-       throw new ApiException(400, "Missing the required parameter '{{paramName}}' when calling {{nickname}}");
+       throw new {{invokerPackage}}.ApiException(400, "Missing the required parameter '{{paramName}}' when calling {{nickname}}");
     }
     {{/required}}{{/allParams}}
 
@@ -56,9 +44,9 @@ public class {{classname}} {
       .replaceAll("\\{" + "{{paramName}}" + "\\}", apiClient.escapeString({{{paramName}}}.toString())){{/pathParams}};
 
     // query params
-    Map<String, String> queryParams = new HashMap<String, String>();
-    Map<String, String> headerParams = new HashMap<String, String>();
-    Map<String, String> formParams = new HashMap<String, String>();
+    java.util.Map<String, String> queryParams = new java.util.HashMap<String, String>();
+    java.util.Map<String, String> headerParams = new java.util.HashMap<String, String>();
+    java.util.Map<String, String> formParams = new java.util.HashMap<String, String>();
 
     {{#queryParams}}if ({{paramName}} != null)
       queryParams.put("{{baseName}}", apiClient.parameterToString({{paramName}}));
@@ -111,7 +99,7 @@ public class {{classname}} {
       else {
         return {{#returnType}}null{{/returnType}};
       }
-    } catch (ApiException ex) {
+    } catch ({{invokerPackage}}.ApiException ex) {
       throw ex;
     }
   }
