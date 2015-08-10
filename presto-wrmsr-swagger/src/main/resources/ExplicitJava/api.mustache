@@ -11,11 +11,6 @@ import java.util.*;
 {{#imports}}import {{import}};
 {{/imports}}
 
-import com.sun.jersey.multipart.FormDataMultiPart;
-import com.sun.jersey.multipart.file.FileDataBodyPart;
-
-import javax.ws.rs.core.MediaType;
-
 import java.io.File;
 import java.util.Map;
 import java.util.HashMap;
@@ -48,7 +43,7 @@ public class {{classname}} {
 {{/allParams}}   * @return {{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}void{{/returnType}}
    */
   public {{#returnType}}{{{returnType}}} {{/returnType}}{{^returnType}}void {{/returnType}}{{nickname}} ({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) throws ApiException {
-    Object postBody = {{#bodyParam}}{{paramName}}{{/bodyParam}}{{^bodyParam}}null{{/bodyParam}};
+    java.lang.Object postBody = {{#bodyParam}}{{paramName}}{{/bodyParam}}{{^bodyParam}}null{{/bodyParam}};
     {{#allParams}}{{#required}}
     // verify the required parameter '{{paramName}}' is set
     if ({{paramName}} == null) {
@@ -85,17 +80,17 @@ public class {{classname}} {
 
     if(contentType.startsWith("multipart/form-data")) {
       boolean hasFields = false;
-      FormDataMultiPart mp = new FormDataMultiPart();
+      com.sun.jersey.multipart.FormDataMultiPart mp = new com.sun.jersey.multipart.FormDataMultiPart();
       {{#formParams}}{{#notFile}}
       if ({{paramName}} != null) {
         hasFields = true;
-        mp.field("{{baseName}}", apiClient.parameterToString({{paramName}}), MediaType.MULTIPART_FORM_DATA_TYPE);
+        mp.field("{{baseName}}", apiClient.parameterToString({{paramName}}), javax.ws.rs.core.MediaType.MULTIPART_FORM_DATA_TYPE);
       }
       {{/notFile}}{{#isFile}}
       if ({{paramName}} != null) {
         hasFields = true;
         mp.field("{{baseName}}", {{paramName}}.getName());
-        mp.bodyPart(new FileDataBodyPart("{{baseName}}", {{paramName}}, MediaType.MULTIPART_FORM_DATA_TYPE));
+        mp.bodyPart(new com.sun.jersey.multipart.file.FileDataBodyPart("{{baseName}}", {{paramName}}, javax.ws.rs.core.MediaType.MULTIPART_FORM_DATA_TYPE));
       }
       {{/isFile}}{{/formParams}}
       if(hasFields)
