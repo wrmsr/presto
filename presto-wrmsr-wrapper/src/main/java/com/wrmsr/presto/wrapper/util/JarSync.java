@@ -83,6 +83,23 @@ public class JarSync
         }
     }
 
+    public static final class DirectoryEntry
+            extends Entry
+    {
+        @JsonCreator
+        public DirectoryEntry(
+                @JsonProperty("name") String name,
+                @JsonProperty("time") long time)
+        {
+            super(name, time);
+        }
+
+        public DirectoryEntry(ZipFile zipFile, ZipEntry zipEntry)
+        {
+            super(zipFile, zipEntry);
+        }
+    }
+
     public static String hexForBytes(byte[] bytes)
     {
         StringBuffer sb = new StringBuffer();
@@ -149,24 +166,7 @@ public class JarSync
         }
     }
 
-    public static final class DirectoryEntry
-            extends Entry
-    {
-        @JsonCreator
-        public DirectoryEntry(
-                @JsonProperty("name") String name,
-                @JsonProperty("time") long time)
-        {
-            super(name, time);
-        }
-
-        public DirectoryEntry(ZipFile zipFile, ZipEntry zipEntry)
-        {
-            super(zipFile, zipEntry);
-        }
-    }
-
-    public static class Manifest
+    public static final class Manifest
     {
         private final String name;
         private final List<Entry> entries;
@@ -206,9 +206,61 @@ public class JarSync
         }
     }
 
-    public static abstract class Operation
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.PROPERTY,
+            property = "type")
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = CreateDirectoryOperation.class, name = "createDirectory"),
+            @JsonSubTypes.Type(value = CopyFileOperation.class, name = "copyFile"),
+            @JsonSubTypes.Type(value = TransferFileOperation.class, name = "transferFile"),
+    })
+    public static abstract class Operation<E extends Entry>
     {
+        private final E entry;
 
+        @JsonCreator
+        public Operation(
+                @JsonProperty("entry") E entry)
+        {
+            this.entry = entry;
+        }
+
+        @JsonProperty
+        public E getEntry()
+        {
+            return entry;
+        }
+    }
+
+    public static final class CreateDirectoryOperation extends Operation<DirectoryEntry>
+    {
+        @JsonCreator
+        public CreateDirectoryOperation(
+                @JsonProperty("entry") DirectoryEntry entry)
+        {
+            super(entry);
+        }
+    }
+
+    public static final class CopyFileOperation extends Operation<FileEntry>
+    {
+        @JsonCreator
+        public CopyFileOperation(
+                @JsonProperty("entry") FileEntry entry)
+        {
+            super(entry);
+        }
+    }
+
+    public static final class TransferFileOperation extends Operation<FileEntry>
+    {
+        @JsonCreator
+        public TransferFileOperation(
+                @JsonProperty("entry") FileEntry entry)
+        {
+            super(entry);
+        }
     }
 
     public static void main(String[] args)
