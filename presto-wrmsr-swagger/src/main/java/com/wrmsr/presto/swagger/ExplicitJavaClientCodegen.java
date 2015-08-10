@@ -69,6 +69,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,7 +84,10 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ExplicitJavaClientCodegen implements CodegenConfig {
+public class ExplicitJavaClientCodegen
+        implements CodegenConfig
+{
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ExplicitJavaClientCodegen.class);
 
     protected String outputFolder = "";
@@ -107,11 +111,13 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
     protected String artifactVersion = "1.0.0";
     protected String sourceFolder = "src/main/java";
 
-    public List<CliOption> cliOptions() {
+    public List<CliOption> cliOptions()
+    {
         return cliOptions;
     }
 
-    public void processOpts() {
+    public void processOpts()
+    {
         if (additionalProperties.containsKey("templateDir")) {
             this.setTemplateDir((String) additionalProperties.get("templateDir"));
         }
@@ -124,31 +130,34 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
             this.setApiPackage((String) additionalProperties.get("apiPackage"));
         }
 
-
         if (additionalProperties.containsKey("invokerPackage")) {
             this.setInvokerPackage((String) additionalProperties.get("invokerPackage"));
-        } else {
+        }
+        else {
             //not set, use default to be passed to template
             additionalProperties.put("invokerPackage", invokerPackage);
         }
 
         if (additionalProperties.containsKey("groupId")) {
             this.setGroupId((String) additionalProperties.get("groupId"));
-        } else {
+        }
+        else {
             //not set, use to be passed to template
             additionalProperties.put("groupId", groupId);
         }
 
         if (additionalProperties.containsKey("artifactId")) {
             this.setArtifactId((String) additionalProperties.get("artifactId"));
-        } else {
+        }
+        else {
             //not set, use to be passed to template
             additionalProperties.put("artifactId", artifactId);
         }
 
         if (additionalProperties.containsKey("artifactVersion")) {
             this.setArtifactVersion((String) additionalProperties.get("artifactVersion"));
-        } else {
+        }
+        else {
             //not set, use to be passed to template
             additionalProperties.put("artifactVersion", artifactVersion);
         }
@@ -172,47 +181,57 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         supportingFiles.add(new SupportingFile("auth/OAuth.mustache", authFolder, "OAuth.java"));
     }
 
-    public void setInvokerPackage(String invokerPackage) {
+    public void setInvokerPackage(String invokerPackage)
+    {
         this.invokerPackage = invokerPackage;
     }
 
-    public void setGroupId(String groupId) {
+    public void setGroupId(String groupId)
+    {
         this.groupId = groupId;
     }
 
-    public void setArtifactId(String artifactId) {
+    public void setArtifactId(String artifactId)
+    {
         this.artifactId = artifactId;
     }
 
-    public void setArtifactVersion(String artifactVersion) {
+    public void setArtifactVersion(String artifactVersion)
+    {
         this.artifactVersion = artifactVersion;
     }
 
-    public void setSourceFolder(String sourceFolder) {
+    public void setSourceFolder(String sourceFolder)
+    {
         this.sourceFolder = sourceFolder;
     }
 
     // override with any special post-processing
-    public Map<String, Object> postProcessModels(Map<String, Object> objs) {
+    public Map<String, Object> postProcessModels(Map<String, Object> objs)
+    {
         return objs;
     }
 
     // override with any special post-processing
-    public Map<String, Object> postProcessOperations(Map<String, Object> objs) {
+    public Map<String, Object> postProcessOperations(Map<String, Object> objs)
+    {
         return objs;
     }
 
     // override with any special post-processing
-    public Map<String, Object> postProcessSupportingFileData(Map<String, Object> objs) {
+    public Map<String, Object> postProcessSupportingFileData(Map<String, Object> objs)
+    {
         return objs;
     }
 
     // override with any special handling of the entire swagger spec
-    public void processSwagger(Swagger swagger) {
+    public void processSwagger(Swagger swagger)
+    {
     }
 
     // override with any special text escaping logic
-    public String escapeText(String input) {
+    public String escapeText(String input)
+    {
         if (input != null) {
             String output = input.replaceAll("\n", "\\\\n");
             output = output.replace("\"", "\\\"");
@@ -221,108 +240,134 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return input;
     }
 
-    public Set<String> defaultIncludes() {
+    public Set<String> defaultIncludes()
+    {
         return defaultIncludes;
     }
 
-    public Map<String, String> typeMapping() {
+    public Map<String, String> typeMapping()
+    {
         return typeMapping;
     }
 
-    public Map<String, String> instantiationTypes() {
+    public Map<String, String> instantiationTypes()
+    {
         return instantiationTypes;
     }
 
-    public Set<String> reservedWords() {
+    public Set<String> reservedWords()
+    {
         return reservedWords;
     }
 
-    public Set<String> languageSpecificPrimitives() {
+    public Set<String> languageSpecificPrimitives()
+    {
         return languageSpecificPrimitives;
     }
 
-    public Map<String, String> importMapping() {
+    public Map<String, String> importMapping()
+    {
         return importMapping;
     }
 
-    public String modelPackage() {
+    public String modelPackage()
+    {
         return modelPackage;
     }
 
-    public String apiPackage() {
+    public String apiPackage()
+    {
         return apiPackage;
     }
 
-    public String fileSuffix() {
+    public String fileSuffix()
+    {
         return fileSuffix;
     }
 
-    public String templateDir() {
+    public String templateDir()
+    {
         return templateDir;
     }
 
-    public Map<String, String> apiTemplateFiles() {
+    public Map<String, String> apiTemplateFiles()
+    {
         return apiTemplateFiles;
     }
 
-    public Map<String, String> modelTemplateFiles() {
+    public Map<String, String> modelTemplateFiles()
+    {
         return modelTemplateFiles;
     }
 
-    public String apiFileFolder() {
+    public String apiFileFolder()
+    {
         return outputFolder + "/" + sourceFolder + "/" + apiPackage().replace('.', File.separatorChar);
     }
 
-    public String modelFileFolder() {
+    public String modelFileFolder()
+    {
         return outputFolder + "/" + sourceFolder + "/" + modelPackage().replace('.', File.separatorChar);
     }
 
-    public Map<String, Object> additionalProperties() {
+    public Map<String, Object> additionalProperties()
+    {
         return additionalProperties;
     }
 
-    public List<SupportingFile> supportingFiles() {
+    public List<SupportingFile> supportingFiles()
+    {
         return supportingFiles;
     }
 
-    public String outputFolder() {
+    public String outputFolder()
+    {
         return outputFolder;
     }
 
-    public void setOutputDir(String dir) {
+    public void setOutputDir(String dir)
+    {
         this.outputFolder = dir;
     }
 
-    public String getOutputDir() {
+    public String getOutputDir()
+    {
         return outputFolder();
     }
 
-    public void setTemplateDir(String templateDir) {
+    public void setTemplateDir(String templateDir)
+    {
         this.templateDir = templateDir;
     }
 
-    public void setModelPackage(String modelPackage) {
+    public void setModelPackage(String modelPackage)
+    {
         this.modelPackage = modelPackage;
     }
 
-    public void setApiPackage(String apiPackage) {
+    public void setApiPackage(String apiPackage)
+    {
         this.apiPackage = apiPackage;
     }
 
-    public String toApiFilename(String name) {
+    public String toApiFilename(String name)
+    {
         return toApiName(name);
     }
 
-    public String toApiVarName(String name) {
+    public String toApiVarName(String name)
+    {
         return snakeCase(name);
     }
 
-    public String toModelFilename(String name) {
+    public String toModelFilename(String name)
+    {
         // should be the same as the model name
         return toModelName(name);
     }
 
-    public String toOperationId(String operationId) {
+    public String toOperationId(String operationId)
+    {
         if (reservedWords.contains(operationId)) {
             throw new RuntimeException(operationId + " (reserved word) cannot be used as method name");
         }
@@ -330,7 +375,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return camelize(operationId, true);
     }
 
-    public String toVarName(String name) {
+    public String toVarName(String name)
+    {
         // replace - with _ e.g. created-at => created_at
         name = name.replaceAll("-", "_");
 
@@ -351,32 +397,39 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return name;
     }
 
-    public String toParamName(String name) {
+    public String toParamName(String name)
+    {
         // should be the same as variable name
         return toVarName(name);
     }
 
-    public String toEnumName(CodegenProperty property) {
+    public String toEnumName(CodegenProperty property)
+    {
         return StringUtils.capitalize(property.name) + "Enum";
     }
 
-    public String escapeReservedWord(String name) {
+    public String escapeReservedWord(String name)
+    {
         return "_" + name;
     }
 
-    public String toModelImport(String name) {
+    public String toModelImport(String name)
+    {
         if ("".equals(modelPackage())) {
             return name;
-        } else {
+        }
+        else {
             return modelPackage() + "." + name;
         }
     }
 
-    public String toApiImport(String name) {
+    public String toApiImport(String name)
+    {
         return apiPackage() + "." + name;
     }
 
-    public ExplicitJavaClientCodegen() {
+    public ExplicitJavaClientCodegen()
+    {
         defaultIncludes = new HashSet<String>(
                 Arrays.asList("double",
                         "int",
@@ -512,20 +565,23 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         instantiationTypes.put("map", "java.util.HashMap");
     }
 
-    public CodegenType getTag() {
+    public CodegenType getTag()
+    {
         return CodegenType.CLIENT;
     }
 
-    public String getName() {
+    public String getName()
+    {
         return "java";
     }
 
-    public String getHelp() {
+    public String getHelp()
+    {
         return "Generates a Java client library.";
     }
 
-
-    public String generateExamplePath(String path, Operation operation) {
+    public String generateExamplePath(String path, Operation operation)
+    {
         StringBuilder sb = new StringBuilder();
         sb.append(path);
 
@@ -539,7 +595,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
 
                     if (count == 0) {
                         paramPart.append("?");
-                    } else {
+                    }
+                    else {
                         paramPart.append(",");
                     }
                     count += 1;
@@ -552,15 +609,19 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                         paramPart.append(param.getName() + "1");
                         if ("csv".equals(qp.getCollectionFormat())) {
                             paramPart.append(",");
-                        } else if ("pipes".equals(qp.getCollectionFormat())) {
+                        }
+                        else if ("pipes".equals(qp.getCollectionFormat())) {
                             paramPart.append("|");
-                        } else if ("tsv".equals(qp.getCollectionFormat())) {
+                        }
+                        else if ("tsv".equals(qp.getCollectionFormat())) {
                             paramPart.append("\t");
-                        } else if ("multi".equals(qp.getCollectionFormat())) {
+                        }
+                        else if ("multi".equals(qp.getCollectionFormat())) {
                             paramPart.append("&").append(param.getName()).append("=");
                             paramPart.append(param.getName() + "2");
                         }
-                    } else {
+                    }
+                    else {
                         paramPart.append(param.getName());
                     }
                     paramPart.append("}");
@@ -575,67 +636,82 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return sb.toString();
     }
 
-    public String toInstantiationType(Property p) {
+    public String toInstantiationType(Property p)
+    {
         if (p instanceof MapProperty) {
             MapProperty ap = (MapProperty) p;
             String inner = getSwaggerType(ap.getAdditionalProperties());
             return instantiationTypes.get("map") + "<String, " + inner + ">";
-        } else if (p instanceof ArrayProperty) {
+        }
+        else if (p instanceof ArrayProperty) {
             ArrayProperty ap = (ArrayProperty) p;
             String inner = getSwaggerType(ap.getItems());
             return instantiationTypes.get("array") + "<" + inner + ">";
-        } else {
+        }
+        else {
             return null;
         }
     }
 
-    public String toDefaultValue(Property p) {
+    public String toDefaultValue(Property p)
+    {
         if (p instanceof StringProperty) {
             return "null";
-        } else if (p instanceof BooleanProperty) {
+        }
+        else if (p instanceof BooleanProperty) {
             return "null";
-        } else if (p instanceof DateProperty) {
+        }
+        else if (p instanceof DateProperty) {
             return "null";
-        } else if (p instanceof DateTimeProperty) {
+        }
+        else if (p instanceof DateTimeProperty) {
             return "null";
-        } else if (p instanceof DoubleProperty) {
+        }
+        else if (p instanceof DoubleProperty) {
             DoubleProperty dp = (DoubleProperty) p;
             if (dp.getDefault() != null) {
                 return dp.getDefault().toString();
             }
             return "null";
-        } else if (p instanceof FloatProperty) {
+        }
+        else if (p instanceof FloatProperty) {
             FloatProperty dp = (FloatProperty) p;
             if (dp.getDefault() != null) {
                 return dp.getDefault().toString();
             }
             return "null";
-        } else if (p instanceof IntegerProperty) {
+        }
+        else if (p instanceof IntegerProperty) {
             IntegerProperty dp = (IntegerProperty) p;
             if (dp.getDefault() != null) {
                 return dp.getDefault().toString();
             }
             return "null";
-        } else if (p instanceof LongProperty) {
+        }
+        else if (p instanceof LongProperty) {
             LongProperty dp = (LongProperty) p;
             if (dp.getDefault() != null) {
                 return dp.getDefault().toString();
             }
             return "null";
-        } else if (p instanceof MapProperty) {
+        }
+        else if (p instanceof MapProperty) {
             MapProperty ap = (MapProperty) p;
             String inner = getSwaggerType(ap.getAdditionalProperties());
             return "new HashMap<String, " + inner + ">() ";
-        } else if (p instanceof ArrayProperty) {
+        }
+        else if (p instanceof ArrayProperty) {
             ArrayProperty ap = (ArrayProperty) p;
             String inner = getSwaggerType(ap.getItems());
             return "new ArrayList<" + inner + ">() ";
-        } else {
+        }
+        else {
             return "null";
         }
     }
 
-    public String getSwaggerType(Property p) {
+    public String getSwaggerType(Property p)
+    {
         if (p instanceof RefProperty) {
             RefProperty r = (RefProperty) p;
             String datatype = r.get$ref();
@@ -651,7 +727,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
             if (languageSpecificPrimitives.contains(type)) {
                 return toModelName(type);
             }
-        } else {
+        }
+        else {
             type = swaggerType;
         }
         return toModelName(type);
@@ -660,35 +737,47 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
     /**
      * returns the swagger type for the property
      **/
-    public String _getSwaggerType(Property p) {
+    public String _getSwaggerType(Property p)
+    {
         String datatype = null;
         if (p instanceof StringProperty) {
             datatype = "string";
-        } else if (p instanceof BooleanProperty) {
+        }
+        else if (p instanceof BooleanProperty) {
             datatype = "boolean";
-        } else if (p instanceof DateProperty) {
+        }
+        else if (p instanceof DateProperty) {
             datatype = "date";
-        } else if (p instanceof DateTimeProperty) {
+        }
+        else if (p instanceof DateTimeProperty) {
             datatype = "DateTime";
-        } else if (p instanceof DoubleProperty) {
+        }
+        else if (p instanceof DoubleProperty) {
             datatype = "double";
-        } else if (p instanceof FloatProperty) {
+        }
+        else if (p instanceof FloatProperty) {
             datatype = "float";
-        } else if (p instanceof IntegerProperty) {
+        }
+        else if (p instanceof IntegerProperty) {
             datatype = "integer";
-        } else if (p instanceof LongProperty) {
+        }
+        else if (p instanceof LongProperty) {
             datatype = "long";
-        } else if (p instanceof MapProperty) {
+        }
+        else if (p instanceof MapProperty) {
             datatype = "map";
-        } else if (p instanceof DecimalProperty) {
+        }
+        else if (p instanceof DecimalProperty) {
             datatype = "number";
-        } else if (p instanceof RefProperty) {
+        }
+        else if (p instanceof RefProperty) {
             RefProperty r = (RefProperty) p;
             datatype = r.get$ref();
             if (datatype.indexOf("#/definitions/") == 0) {
                 datatype = datatype.substring("#/definitions/".length());
             }
-        } else {
+        }
+        else {
             if (p != null) {
                 datatype = p.getType();
             }
@@ -696,24 +785,29 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return datatype;
     }
 
-    public String snakeCase(String name) {
+    public String snakeCase(String name)
+    {
         return (name.length() > 0) ? (Character.toLowerCase(name.charAt(0)) + name.substring(1)) : "";
     }
 
-    public String initialCaps(String name) {
+    public String initialCaps(String name)
+    {
         return StringUtils.capitalize(name);
     }
 
-    public String getTypeDeclaration(String name) {
+    public String getTypeDeclaration(String name)
+    {
         return name;
     }
 
-    public String getTypeDeclaration(Property p) {
+    public String getTypeDeclaration(Property p)
+    {
         if (p instanceof ArrayProperty) {
             ArrayProperty ap = (ArrayProperty) p;
             Property inner = ap.getItems();
             return getSwaggerType(p) + "<" + getTypeDeclaration(inner) + ">";
-        } else if (p instanceof MapProperty) {
+        }
+        else if (p instanceof MapProperty) {
             MapProperty mp = (MapProperty) p;
             Property inner = mp.getAdditionalProperties();
 
@@ -726,14 +820,16 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return swaggerType;
     }
 
-    public String toApiName(String name) {
+    public String toApiName(String name)
+    {
         if (name.length() == 0) {
             return "DefaultApi";
         }
         return initialCaps(name) + "Api";
     }
 
-    public String toModelName(String name) {
+    public String toModelName(String name)
+    {
         // model name cannot use reserved keyword, e.g. return
         if (reservedWords.contains(name)) {
             throw new RuntimeException(name + " (reserved word) cannot be used as a model name");
@@ -749,11 +845,13 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return camelize(name);
     }
 
-    public CodegenModel fromModel(String name, Model model) {
+    public CodegenModel fromModel(String name, Model model)
+    {
         CodegenModel m = CodegenModelFactory.newInstance(CodegenModelType.MODEL);
         if (reservedWords.contains(name)) {
             m.name = escapeReservedWord(name);
-        } else {
+        }
+        else {
             m.name = name;
         }
         m.description = escapeText(model.getDescription());
@@ -765,9 +863,11 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
             ArrayModel am = (ArrayModel) model;
             ArrayProperty arrayProperty = new ArrayProperty(am.getItems());
             addParentContainer(m, name, arrayProperty);
-        } else if (model instanceof RefModel) {
+        }
+        else if (model instanceof RefModel) {
             // TODO
-        } else if (model instanceof ComposedModel) {
+        }
+        else if (model instanceof ComposedModel) {
             final ComposedModel composed = (ComposedModel) model;
             final RefModel parent = (RefModel) composed.getParent();
             final String parentModel = toModelName(parent.getSimpleRef());
@@ -775,7 +875,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
             addImport(m, parentModel);
             final ModelImpl child = (ModelImpl) composed.getChild();
             addVars(m, child.getProperties(), child.getRequired());
-        } else {
+        }
+        else {
             ModelImpl impl = (ModelImpl) model;
             if (impl.getAdditionalProperties() != null) {
                 MapProperty mapProperty = new MapProperty(impl.getAdditionalProperties());
@@ -786,16 +887,17 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return m;
     }
 
-    public String getterAndSetterCapitalize(String name) {
+    public String getterAndSetterCapitalize(String name)
+    {
         if (name == null || name.length() == 0) {
             return name;
         }
 
         return camelize(toVarName(name));
-
     }
 
-    public CodegenProperty fromProperty(String name, Property p) {
+    public CodegenProperty fromProperty(String name, Property p)
+    {
         if (p == null) {
             LOGGER.error("unexpected missing property for name " + null);
             return null;
@@ -852,7 +954,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         // this can cause issues for clients which don't support enums
         if (property.isEnum) {
             property.datatypeWithEnum = toEnumName(property);
-        } else {
+        }
+        else {
             property.datatypeWithEnum = property.datatype;
         }
 
@@ -865,15 +968,18 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
             CodegenProperty cp = fromProperty("inner", ap.getItems());
             if (cp == null) {
                 LOGGER.warn("skipping invalid property " + Json.pretty(p));
-            } else {
+            }
+            else {
                 property.baseType = getSwaggerType(p);
                 if (!languageSpecificPrimitives.contains(cp.baseType)) {
                     property.complexType = cp.baseType;
-                } else {
+                }
+                else {
                     property.isPrimitiveType = true;
                 }
             }
-        } else if (p instanceof MapProperty) {
+        }
+        else if (p instanceof MapProperty) {
             property.isContainer = true;
             property.containerType = "map";
             MapProperty ap = (MapProperty) p;
@@ -882,25 +988,30 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
             property.baseType = getSwaggerType(p);
             if (!languageSpecificPrimitives.contains(cp.baseType)) {
                 property.complexType = cp.baseType;
-            } else {
+            }
+            else {
                 property.isPrimitiveType = true;
             }
-        } else {
+        }
+        else {
             setNonArrayMapProperty(property, type);
         }
         return property;
     }
 
-    protected void setNonArrayMapProperty(CodegenProperty property, String type) {
+    protected void setNonArrayMapProperty(CodegenProperty property, String type)
+    {
         property.isNotContainer = true;
         if (languageSpecificPrimitives().contains(type)) {
             property.isPrimitiveType = true;
-        } else {
+        }
+        else {
             property.complexType = property.baseType;
         }
     }
 
-    private Response findMethodResponse(Map<String, Response> responses) {
+    private Response findMethodResponse(Map<String, Response> responses)
+    {
 
         String code = null;
         for (String responseCode : responses.keySet()) {
@@ -916,7 +1027,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return responses.get(code);
     }
 
-    public CodegenOperation fromOperation(String path, String httpMethod, Operation operation, Map<String, Model> definitions) {
+    public CodegenOperation fromOperation(String path, String httpMethod, Operation operation, Map<String, Model> definitions)
+    {
         CodegenOperation op = CodegenModelFactory.newInstance(CodegenModelType.OPERATION);
         Set<String> imports = new HashSet<String>();
 
@@ -936,7 +1048,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                 if (part.length() > 0) {
                     if (builder.toString().length() == 0) {
                         part = Character.toLowerCase(part.charAt(0)) + part.substring(1);
-                    } else {
+                    }
+                    else {
                         part = initialCaps(part);
                     }
                     builder.append(part);
@@ -961,7 +1074,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                 count += 1;
                 if (count < operation.getConsumes().size()) {
                     mediaType.put("hasMore", "true");
-                } else {
+                }
+                else {
                     mediaType.put("hasMore", null);
                 }
                 c.add(mediaType);
@@ -979,7 +1093,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                 count += 1;
                 if (count < operation.getProduces().size()) {
                     mediaType.put("hasMore", "true");
-                } else {
+                }
+                else {
                     mediaType.put("hasMore", null);
                 }
                 c.add(mediaType);
@@ -1015,10 +1130,12 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                         ArrayProperty ap = (ArrayProperty) responseProperty;
                         CodegenProperty innerProperty = fromProperty("response", ap.getItems());
                         op.returnBaseType = innerProperty.baseType;
-                    } else {
+                    }
+                    else {
                         if (cm.complexType != null) {
                             op.returnBaseType = cm.complexType;
-                        } else {
+                        }
+                        else {
                             op.returnBaseType = cm.baseType;
                         }
                     }
@@ -1029,12 +1146,15 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                         op.returnContainer = cm.containerType;
                         if ("map".equals(cm.containerType)) {
                             op.isMapContainer = Boolean.TRUE;
-                        } else if ("list".equalsIgnoreCase(cm.containerType)) {
-                            op.isListContainer = Boolean.TRUE;
-                        } else if ("array".equalsIgnoreCase(cm.containerType)) {
+                        }
+                        else if ("list".equalsIgnoreCase(cm.containerType)) {
                             op.isListContainer = Boolean.TRUE;
                         }
-                    } else {
+                        else if ("array".equalsIgnoreCase(cm.containerType)) {
+                            op.isListContainer = Boolean.TRUE;
+                        }
+                    }
+                    else {
                         op.returnSimpleType = true;
                     }
                     if (languageSpecificPrimitives().contains(op.returnBaseType) || op.returnBaseType == null) {
@@ -1062,24 +1182,30 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                 if (param instanceof QueryParameter) {
                     p.isQueryParam = new Boolean(true);
                     queryParams.add(p.copy());
-                } else if (param instanceof PathParameter) {
+                }
+                else if (param instanceof PathParameter) {
                     p.required = true;
                     p.isPathParam = new Boolean(true);
                     pathParams.add(p.copy());
-                } else if (param instanceof HeaderParameter) {
+                }
+                else if (param instanceof HeaderParameter) {
                     p.isHeaderParam = new Boolean(true);
                     headerParams.add(p.copy());
-                } else if (param instanceof CookieParameter) {
+                }
+                else if (param instanceof CookieParameter) {
                     p.isCookieParam = new Boolean(true);
                     cookieParams.add(p.copy());
-                } else if (param instanceof BodyParameter) {
+                }
+                else if (param instanceof BodyParameter) {
                     p.isBodyParam = new Boolean(true);
                     bodyParam = p;
                     bodyParams.add(p.copy());
-                } else if (param instanceof FormParameter) {
+                }
+                else if (param instanceof FormParameter) {
                     if ("file".equalsIgnoreCase(((FormParameter) param).getType())) {
                         p.isFile = true;
-                    } else {
+                    }
+                    else {
                         p.notFile = true;
                     }
                     p.isFormParam = new Boolean(true);
@@ -1104,7 +1230,6 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         // legacy support
         op.nickname = op.operationId;
 
-
         if (op.allParams.size() > 0) {
             op.hasParams = true;
         }
@@ -1113,11 +1238,13 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return op;
     }
 
-    public CodegenResponse fromResponse(String responseCode, Response response) {
+    public CodegenResponse fromResponse(String responseCode, Response response)
+    {
         CodegenResponse r = CodegenModelFactory.newInstance(CodegenModelType.RESPONSE);
         if ("default".equals(responseCode)) {
             r.code = "0";
-        } else {
+        }
+        else {
             r.code = responseCode;
         }
         r.message = response.getDescription();
@@ -1135,10 +1262,12 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                 ArrayProperty ap = (ArrayProperty) responseProperty;
                 CodegenProperty innerProperty = fromProperty("response", ap.getItems());
                 r.baseType = innerProperty.baseType;
-            } else {
+            }
+            else {
                 if (cm.complexType != null) {
                     r.baseType = cm.complexType;
-                } else {
+                }
+                else {
                     r.baseType = cm.baseType;
                 }
             }
@@ -1148,7 +1277,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                 r.containerType = cm.containerType;
                 r.isMapContainer = "map".equals(cm.containerType);
                 r.isListContainer = "list".equals(cm.containerType);
-            } else {
+            }
+            else {
                 r.simpleType = true;
             }
             r.primitiveType = (r.baseType == null || languageSpecificPrimitives().contains(r.baseType));
@@ -1162,7 +1292,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return r;
     }
 
-    public CodegenParameter fromParameter(Parameter param, Set<String> imports) {
+    public CodegenParameter fromParameter(Parameter param, Set<String> imports)
+    {
         CodegenParameter p = CodegenModelFactory.newInstance(CodegenModelType.PARAMETER);
         p.baseName = param.getName();
         p.description = escapeText(param.getDescription());
@@ -1174,9 +1305,11 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         // move the defaultValue for headers, forms and params
         if (param instanceof QueryParameter) {
             p.defaultValue = ((QueryParameter) param).getDefaultValue();
-        } else if (param instanceof HeaderParameter) {
+        }
+        else if (param instanceof HeaderParameter) {
             p.defaultValue = ((HeaderParameter) param).getDefaultValue();
-        } else if (param instanceof FormParameter) {
+        }
+        else if (param instanceof FormParameter) {
             p.defaultValue = ((FormParameter) param).getDefaultValue();
         }
 
@@ -1196,7 +1329,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                 p.baseType = pr.datatype;
                 p.isContainer = true;
                 imports.add(pr.baseType);
-            } else if ("object".equals(qp.getType())) {
+            }
+            else if ("object".equals(qp.getType())) {
                 Property inner = qp.getItems();
                 if (inner == null) {
                     LOGGER.warn("warning!  No inner type supplied for map parameter \"" + qp.getName() + "\", using String");
@@ -1207,7 +1341,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                 CodegenProperty pr = fromProperty("inner", inner);
                 p.baseType = pr.datatype;
                 imports.add(pr.baseType);
-            } else {
+            }
+            else {
                 property = PropertyBuilder.build(qp.getType(), qp.getFormat(), null);
             }
             if (property == null) {
@@ -1223,7 +1358,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
             if (model.complexType != null) {
                 imports.add(model.complexType);
             }
-        } else {
+        }
+        else {
             BodyParameter bp = (BodyParameter) param;
             Model model = bp.getSchema();
 
@@ -1233,7 +1369,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                 if (cm.emptyVars != null && cm.emptyVars == false) {
                     p.dataType = getTypeDeclaration(cm.classname);
                     imports.add(p.dataType);
-                } else {
+                }
+                else {
                     // TODO: missing format, so this will not always work
                     Property prop = PropertyBuilder.build(impl.getType(), null, null);
                     prop.setRequired(bp.getRequired());
@@ -1242,7 +1379,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                         p.dataType = cp.datatype;
                     }
                 }
-            } else if (model instanceof ArrayModel) {
+            }
+            else if (model instanceof ArrayModel) {
                 // to use the built-in model parsing, we unwrap the ArrayModel
                 // and get a single property from it
                 ArrayModel impl = (ArrayModel) model;
@@ -1257,13 +1395,15 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                 imports.add(cp.baseType);
                 p.dataType = cp.datatype;
                 p.isContainer = true;
-            } else {
+            }
+            else {
                 Model sub = bp.getSchema();
                 if (sub instanceof RefModel) {
                     String name = ((RefModel) sub).getSimpleRef();
                     if (typeMapping.containsKey(name)) {
                         name = typeMapping.get(name);
-                    } else {
+                    }
+                    else {
                         name = toModelName(name);
                         if (defaultIncludes.contains(name)) {
                             imports.add(name);
@@ -1279,7 +1419,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return p;
     }
 
-    public List<CodegenSecurity> fromSecurity(Map<String, SecuritySchemeDefinition> schemes) {
+    public List<CodegenSecurity> fromSecurity(Map<String, SecuritySchemeDefinition> schemes)
+    {
         if (schemes == null) {
             return null;
         }
@@ -1300,7 +1441,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                 sec.keyParamName = apiKeyDefinition.getName();
                 sec.isKeyInHeader = apiKeyDefinition.getIn() == In.HEADER;
                 sec.isKeyInQuery = !sec.isKeyInHeader;
-            } else {
+            }
+            else {
                 sec.isKeyInHeader = sec.isKeyInQuery = sec.isApiKey = false;
                 sec.isBasic = schemeDefinition instanceof BasicAuthDefinition;
                 sec.isOAuth = !sec.isBasic;
@@ -1312,7 +1454,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return secs;
     }
 
-    protected List<Map<String, Object>> toExamples(Map<String, Object> examples) {
+    protected List<Map<String, Object>> toExamples(Map<String, Object> examples)
+    {
         if (examples == null) {
             return null;
         }
@@ -1327,7 +1470,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return output;
     }
 
-    private void addHeaders(Response response, List<CodegenProperty> target) {
+    private void addHeaders(Response response, List<CodegenProperty> target)
+    {
         if (response.getHeaders() != null) {
             for (Map.Entry<String, Property> headers : response.getHeaders().entrySet()) {
                 target.add(fromProperty(headers.getKey(), headers.getValue()));
@@ -1335,7 +1479,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         }
     }
 
-    private List<CodegenParameter> addHasMore(List<CodegenParameter> objs) {
+    private List<CodegenParameter> addHasMore(List<CodegenParameter> objs)
+    {
         if (objs != null) {
             for (int i = 0; i < objs.size(); i++) {
                 if (i > 0) {
@@ -1349,7 +1494,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return objs;
     }
 
-    private Map<String, Object> addHasMore(Map<String, Object> objs) {
+    private Map<String, Object> addHasMore(Map<String, Object> objs)
+    {
         if (objs != null) {
             for (int i = 0; i < objs.size() - 1; i++) {
                 if (i > 0) {
@@ -1363,7 +1509,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return objs;
     }
 
-    public void addOperationToGroup(String tag, String resourcePath, Operation operation, CodegenOperation co, Map<String, List<CodegenOperation>> operations) {
+    public void addOperationToGroup(String tag, String resourcePath, Operation operation, CodegenOperation co, Map<String, List<CodegenOperation>> operations)
+    {
         List<CodegenOperation> opList = operations.get(tag);
         if (opList == null) {
             opList = new ArrayList<CodegenOperation>();
@@ -1377,7 +1524,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
    * https://github.com/twitter/elephant-bird/blob/master/core/src/main/java/com/twitter/elephantbird/util/Strings.java
    */
 
-    private void addParentContainer(CodegenModel m, String name, Property property) {
+    private void addParentContainer(CodegenModel m, String name, Property property)
+    {
         final CodegenProperty tmp = fromProperty(name, property);
         addImport(m, tmp.complexType);
         m.parent = toInstantiationType(property);
@@ -1390,13 +1538,16 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         if (mappedType != null) {
             addImport(m, mappedType);
         }
-    }    /**
+    }
+
+    /**
      * Underscore the given word.
      *
      * @param word The word
      * @return The underscored version of the word
      */
-    public static String underscore(String word) {
+    public static String underscore(String word)
+    {
         String firstPattern = "([A-Z]+)([A-Z][a-z])";
         String secondPattern = "([a-z\\d])([A-Z])";
         String replacementPattern = "$1_$2";
@@ -1412,13 +1563,15 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return word;
     }
 
-    private void addImport(CodegenModel m, String type) {
+    private void addImport(CodegenModel m, String type)
+    {
         if (type != null && !languageSpecificPrimitives.contains(type) && !defaultIncludes.contains(type)) {
             m.imports.add(type);
         }
     }
 
-    private void addVars(CodegenModel m, Map<String, Property> properties, Collection<String> required) {
+    private void addVars(CodegenModel m, Map<String, Property> properties, Collection<String> required)
+    {
         if (properties != null && properties.size() > 0) {
             m.hasVars = true;
             m.hasEnums = false;
@@ -1431,7 +1584,8 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
 
                 if (prop == null) {
                     LOGGER.warn("null property for " + key);
-                } else {
+                }
+                else {
                     final CodegenProperty cp = fromProperty(key, prop);
                     cp.required = mandatory.contains(key) ? true : null;
                     if (cp.isEnum) {
@@ -1449,10 +1603,14 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
                     m.vars.add(cp);
                 }
             }
-        } else {
+        }
+        else {
             m.emptyVars = true;
         }
-    }    public static String camelize(String word) {
+    }
+
+    public static String camelize(String word)
+    {
         return camelize(word, false);
     }
 
@@ -1462,12 +1620,15 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
      * @param name
      * @return
      */
-    public String removeNonNameElementToCamelCase(String name) {
+    public String removeNonNameElementToCamelCase(String name)
+    {
         String nonNameElementPattern = "[-_:;#]";
-        name = StringUtils.join(Lists.transform(Lists.newArrayList(name.split(nonNameElementPattern)), new Function<String, String>() {
+        name = StringUtils.join(Lists.transform(Lists.newArrayList(name.split(nonNameElementPattern)), new Function<String, String>()
+        {
             @Nullable
             @Override
-            public String apply(String input) {
+            public String apply(String input)
+            {
                 return StringUtils.capitalize(input);
             }
         }), "");
@@ -1475,7 +1636,10 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
             name = name.substring(0, 1).toLowerCase() + name.substring(1);
         }
         return name;
-    }    public static String camelize(String word, boolean lowercaseFirstLetter) {
+    }
+
+    public static String camelize(String word, boolean lowercaseFirstLetter)
+    {
         // Replace all slashes with dots (package separator)
         Pattern p = Pattern.compile("\\/(.?)");
         Matcher m = p.matcher(word);
@@ -1532,12 +1696,14 @@ public class ExplicitJavaClientCodegen implements CodegenConfig {
         return word;
     }
 
-    public String apiFilename(String templateName, String tag) {
+    public String apiFilename(String templateName, String tag)
+    {
         String suffix = apiTemplateFiles().get(templateName);
         return apiFileFolder() + File.separator + toApiFilename(tag) + suffix;
     }
 
-    public boolean shouldOverwrite(String filename) {
+    public boolean shouldOverwrite(String filename)
+    {
         return true;
     }
 }
