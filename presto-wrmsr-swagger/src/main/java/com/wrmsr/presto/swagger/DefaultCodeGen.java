@@ -24,6 +24,7 @@ import io.swagger.codegen.CodegenParameter;
 import io.swagger.codegen.CodegenProperty;
 import io.swagger.codegen.CodegenResponse;
 import io.swagger.codegen.CodegenSecurity;
+import io.swagger.codegen.CodegenType;
 import io.swagger.codegen.SupportingFile;
 import io.swagger.codegen.examples.ExampleGenerator;
 import io.swagger.models.ArrayModel;
@@ -99,6 +100,12 @@ public class DefaultCodegen {
     protected List<SupportingFile> supportingFiles = new ArrayList<SupportingFile>();
     protected List<CliOption> cliOptions = new ArrayList<CliOption>();
 
+    protected String invokerPackage = "io.swagger.client";
+    protected String groupId = "io.swagger";
+    protected String artifactId = "swagger-java-client";
+    protected String artifactVersion = "1.0.0";
+    protected String sourceFolder = "src/main/java";
+
     public List<CliOption> cliOptions() {
         return cliOptions;
     }
@@ -115,6 +122,73 @@ public class DefaultCodegen {
         if (additionalProperties.containsKey("apiPackage")) {
             this.setApiPackage((String) additionalProperties.get("apiPackage"));
         }
+
+
+        if (additionalProperties.containsKey("invokerPackage")) {
+            this.setInvokerPackage((String) additionalProperties.get("invokerPackage"));
+        } else {
+            //not set, use default to be passed to template
+            additionalProperties.put("invokerPackage", invokerPackage);
+        }
+
+        if (additionalProperties.containsKey("groupId")) {
+            this.setGroupId((String) additionalProperties.get("groupId"));
+        } else {
+            //not set, use to be passed to template
+            additionalProperties.put("groupId", groupId);
+        }
+
+        if (additionalProperties.containsKey("artifactId")) {
+            this.setArtifactId((String) additionalProperties.get("artifactId"));
+        } else {
+            //not set, use to be passed to template
+            additionalProperties.put("artifactId", artifactId);
+        }
+
+        if (additionalProperties.containsKey("artifactVersion")) {
+            this.setArtifactVersion((String) additionalProperties.get("artifactVersion"));
+        } else {
+            //not set, use to be passed to template
+            additionalProperties.put("artifactVersion", artifactVersion);
+        }
+
+        if (additionalProperties.containsKey("sourceFolder")) {
+            this.setSourceFolder((String) additionalProperties.get("sourceFolder"));
+        }
+
+        final String invokerFolder = (sourceFolder + File.separator + invokerPackage).replace(".", File.separator);
+        supportingFiles.add(new SupportingFile("pom.mustache", "", "pom.xml"));
+        supportingFiles.add(new SupportingFile("ApiClient.mustache", invokerFolder, "ApiClient.java"));
+        supportingFiles.add(new SupportingFile("apiException.mustache", invokerFolder, "ApiException.java"));
+        supportingFiles.add(new SupportingFile("Configuration.mustache", invokerFolder, "Configuration.java"));
+        supportingFiles.add(new SupportingFile("JsonUtil.mustache", invokerFolder, "JsonUtil.java"));
+        supportingFiles.add(new SupportingFile("StringUtil.mustache", invokerFolder, "StringUtil.java"));
+
+        final String authFolder = (sourceFolder + File.separator + invokerPackage + ".auth").replace(".", File.separator);
+        supportingFiles.add(new SupportingFile("auth/Authentication.mustache", authFolder, "Authentication.java"));
+        supportingFiles.add(new SupportingFile("auth/HttpBasicAuth.mustache", authFolder, "HttpBasicAuth.java"));
+        supportingFiles.add(new SupportingFile("auth/ApiKeyAuth.mustache", authFolder, "ApiKeyAuth.java"));
+        supportingFiles.add(new SupportingFile("auth/OAuth.mustache", authFolder, "OAuth.java"));
+    }
+
+    public void setInvokerPackage(String invokerPackage) {
+        this.invokerPackage = invokerPackage;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public void setArtifactId(String artifactId) {
+        this.artifactId = artifactId;
+    }
+
+    public void setArtifactVersion(String artifactVersion) {
+        this.artifactVersion = artifactVersion;
+    }
+
+    public void setSourceFolder(String sourceFolder) {
+        this.sourceFolder = sourceFolder;
     }
 
     // override with any special post-processing
@@ -195,11 +269,11 @@ public class DefaultCodegen {
     }
 
     public String apiFileFolder() {
-        return outputFolder + "/" + apiPackage().replace('.', File.separatorChar);
+        return outputFolder + "/" + sourceFolder + "/" + apiPackage().replace('.', File.separatorChar);
     }
 
     public String modelFileFolder() {
-        return outputFolder + "/" + modelPackage().replace('.', File.separatorChar);
+        return outputFolder + "/" + sourceFolder + "/" + modelPackage().replace('.', File.separatorChar);
     }
 
     public Map<String, Object> additionalProperties() {
@@ -271,7 +345,7 @@ public class DefaultCodegen {
     }
 
     public String escapeReservedWord(String name) {
-        throw new RuntimeException("reserved word " + name + " not allowed");
+        return "_" + name;
     }
 
     public String toModelImport(String name) {
@@ -344,6 +418,94 @@ public class DefaultCodegen {
 
         cliOptions.add(new CliOption("modelPackage", "package for generated models"));
         cliOptions.add(new CliOption("apiPackage", "package for generated api classes"));
+
+        outputFolder = "generated-code/java";
+        modelTemplateFiles.put("model.mustache", ".java");
+        apiTemplateFiles.put("api.mustache", ".java");
+        templateDir = "ExplicitJava";
+        apiPackage = "io.swagger.client.api";
+        modelPackage = "io.swagger.client.model";
+
+        reservedWords = new HashSet<String>(
+                Arrays.asList(
+                        "abstract", "continue", "for", "new", "switch", "assert",
+                        "default", "if", "package", "synchronized", "boolean", "do", "goto", "private",
+                        "this", "break", "double", "implements", "protected", "throw", "byte", "else",
+                        "import", "public", "throws", "case", "enum", "instanceof", "return", "transient",
+                        "catch", "extends", "int", "short", "try", "char", "final", "interface", "static",
+                        "void", "class", "finally", "long", "strictfp", "volatile", "const", "float",
+                        "native", "super", "while")
+        );
+
+        languageSpecificPrimitives = new HashSet<String>(
+                Arrays.asList(
+                        "java.lang.String",
+                        "boolean",
+                        "java.lang.Boolean",
+                        "java.lang.Double",
+                        "java.lang.Integer",
+                        "java.lang.Long",
+                        "java.lang.Float",
+                        "java.lang.Object")
+        );
+        instantiationTypes.put("array", "java.util.ArrayList");
+        instantiationTypes.put("map", "java.util.HashMap");
+
+        cliOptions.add(new CliOption("invokerPackage", "root package for generated code"));
+        cliOptions.add(new CliOption("groupId", "groupId in generated pom.xml"));
+        cliOptions.add(new CliOption("artifactId", "artifactId in generated pom.xml"));
+        cliOptions.add(new CliOption("artifactVersion", "artifact version in generated pom.xml"));
+        cliOptions.add(new CliOption("sourceFolder", "source folder for generated code"));
+
+        typeMapping.put("array", "java.util.List");
+        typeMapping.put("map", "java.util.Map");
+        typeMapping.put("List", "java.util.List");
+        typeMapping.put("boolean", "java.lang.Boolean");
+        typeMapping.put("string", "java.lang.String");
+        typeMapping.put("int", "java.lang.Integer");
+        typeMapping.put("float", "java.lang.Float");
+        typeMapping.put("number", "java.math.BigDecimal");
+        typeMapping.put("DateTime", "java.util.Date");
+        typeMapping.put("long", "java.lang.Long");
+        typeMapping.put("short", "java.lang.Short");
+        typeMapping.put("char", "java.lang.String");
+        typeMapping.put("double", "java.lang.Double");
+        typeMapping.put("object", "java.lang.Object");
+        typeMapping.put("integer", "java.lang.Integer");
+
+        importMapping.clear();
+        /*
+        importMapping.put("UUID", "java.util.UUID");
+        importMapping.put("File", "java.io.File");
+        importMapping.put("Date", "java.util.Date");
+        importMapping.put("Timestamp", "java.sql.Timestamp");
+        importMapping.put("Map", "");
+        importMapping.put("HashMap", "java.util.HashMap");
+        importMapping.put("Array", "java.util.List");
+        importMapping.put("ArrayList", "java.util.ArrayList");
+        importMapping.put("List", "java.util.List");
+        importMapping.put("Set", "java.util.Set");
+        importMapping.put("DateTime", "org.joda.time.DateTime");
+        importMapping.put("LocalDateTime", "org.joda.time.LocalDateTime");
+        importMapping.put("LocalDate", "org.joda.time.LocalDate");
+        importMapping.put("LocalTime", "org.joda.time.LocalTime");
+        */
+
+        languageSpecificPrimitives.clear();
+        instantiationTypes.put("array", "java.util.ArrayList");
+        instantiationTypes.put("map", "java.util.HashMap");
+    }
+
+    public CodegenType getTag() {
+        return CodegenType.CLIENT;
+    }
+
+    public String getName() {
+        return "java";
+    }
+
+    public String getHelp() {
+        return "Generates a Java client library.";
     }
 
 
