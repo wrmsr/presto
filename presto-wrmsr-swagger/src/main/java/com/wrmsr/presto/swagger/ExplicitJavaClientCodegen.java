@@ -89,7 +89,12 @@ public class ExplicitJavaClientCodegen
 {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExplicitJavaClientCodegen.class);
-
+    private final String fileSuffix = ".java";
+    private final Map<String, String> apiTemplateFiles = new HashMap<>();
+    private final Map<String, String> modelTemplateFiles = new HashMap<>();
+    private final Map<String, Object> additionalProperties = new HashMap<>();
+    private final List<SupportingFile> supportingFiles = new ArrayList<>();
+    private final List<CliOption> cliOptions = new ArrayList<>();
     private String outputFolder = "";
     private Set<String> defaultIncludes = new HashSet<>();
     private Map<String, String> typeMapping = new HashMap<>();
@@ -99,19 +104,212 @@ public class ExplicitJavaClientCodegen
     private Map<String, String> importMapping = new HashMap<>();
     private String modelPackage = "";
     private String apiPackage = "";
-    private final String fileSuffix = ".java";
-    private final Map<String, String> apiTemplateFiles = new HashMap<>();
-    private final Map<String, String> modelTemplateFiles = new HashMap<>();
     private String templateDir;
-    private final Map<String, Object> additionalProperties = new HashMap<>();
-    private final List<SupportingFile> supportingFiles = new ArrayList<>();
-    private final List<CliOption> cliOptions = new ArrayList<>();
-
     private String invokerPackage = "io.swagger.client";
     private String groupId = "io.swagger";
     private String artifactId = "swagger-java-client";
     private String artifactVersion = "1.0.0";
     private String sourceFolder = "src/main/java";
+
+    public ExplicitJavaClientCodegen()
+    {
+        defaultIncludes = new HashSet<>(
+                Arrays.asList("double",
+                        "int",
+                        "long",
+                        "short",
+                        "char",
+                        "float",
+                        "String",
+                        "boolean",
+                        "Boolean",
+                        "Double",
+                        "Void",
+                        "Integer",
+                        "Long",
+                        "Float")
+        );
+
+        typeMapping = new HashMap<>();
+        typeMapping.put("array", "List");
+        typeMapping.put("map", "Map");
+        typeMapping.put("List", "List");
+        typeMapping.put("boolean", "Boolean");
+        typeMapping.put("string", "String");
+        typeMapping.put("int", "Integer");
+        typeMapping.put("float", "Float");
+        typeMapping.put("number", "BigDecimal");
+        typeMapping.put("DateTime", "Date");
+        typeMapping.put("long", "Long");
+        typeMapping.put("short", "Short");
+        typeMapping.put("char", "String");
+        typeMapping.put("double", "Double");
+        typeMapping.put("object", "Object");
+        typeMapping.put("integer", "Integer");
+
+        instantiationTypes = new HashMap<>();
+
+        reservedWords = new HashSet<>();
+
+        importMapping = new HashMap<>();
+        importMapping.put("BigDecimal", "java.math.BigDecimal");
+        importMapping.put("UUID", "java.util.UUID");
+        importMapping.put("File", "java.io.File");
+        importMapping.put("Date", "java.util.Date");
+        importMapping.put("Timestamp", "java.sql.Timestamp");
+        importMapping.put("Map", "java.util.Map");
+        importMapping.put("HashMap", "java.util.HashMap");
+        importMapping.put("Array", "java.util.List");
+        importMapping.put("ArrayList", "java.util.ArrayList");
+        importMapping.put("List", "java.util.*");
+        importMapping.put("Set", "java.util.*");
+        importMapping.put("DateTime", "org.joda.time.*");
+        importMapping.put("LocalDateTime", "org.joda.time.*");
+        importMapping.put("LocalDate", "org.joda.time.*");
+        importMapping.put("LocalTime", "org.joda.time.*");
+
+        cliOptions.add(new CliOption("modelPackage", "package for generated models"));
+        cliOptions.add(new CliOption("apiPackage", "package for generated api classes"));
+
+        outputFolder = "generated-code/java";
+        modelTemplateFiles.put("model.mustache", ".java");
+        apiTemplateFiles.put("api.mustache", ".java");
+        templateDir = "ExplicitJava";
+        apiPackage = "io.swagger.client.api";
+        modelPackage = "io.swagger.client.model";
+
+        reservedWords = new HashSet<>(
+                Arrays.asList(
+                        "abstract", "continue", "for", "new", "switch", "assert",
+                        "default", "if", "package", "synchronized", "boolean", "do", "goto", "private",
+                        "this", "break", "double", "implements", "protected", "throw", "byte", "else",
+                        "import", "public", "throws", "case", "enum", "instanceof", "return", "transient",
+                        "catch", "extends", "int", "short", "try", "char", "final", "interface", "static",
+                        "void", "class", "finally", "long", "strictfp", "volatile", "const", "float",
+                        "native", "super", "while")
+        );
+
+        languageSpecificPrimitives = new HashSet<>(
+                Arrays.asList(
+                        "java.lang.String",
+                        "boolean",
+                        "java.lang.Boolean",
+                        "java.lang.Double",
+                        "java.lang.Integer",
+                        "java.lang.Long",
+                        "java.lang.Float",
+                        "java.lang.Object")
+        );
+        instantiationTypes.put("array", "java.util.ArrayList");
+        instantiationTypes.put("map", "java.util.HashMap");
+
+        cliOptions.add(new CliOption("invokerPackage", "root package for generated code"));
+        cliOptions.add(new CliOption("groupId", "groupId in generated pom.xml"));
+        cliOptions.add(new CliOption("artifactId", "artifactId in generated pom.xml"));
+        cliOptions.add(new CliOption("artifactVersion", "artifact version in generated pom.xml"));
+        cliOptions.add(new CliOption("sourceFolder", "source folder for generated code"));
+
+        typeMapping.put("array", "java.util.List");
+        typeMapping.put("map", "java.util.Map");
+        typeMapping.put("List", "java.util.List");
+        typeMapping.put("boolean", "java.lang.Boolean");
+        typeMapping.put("string", "java.lang.String");
+        typeMapping.put("int", "java.lang.Integer");
+        typeMapping.put("float", "java.lang.Float");
+        typeMapping.put("number", "java.math.BigDecimal");
+        typeMapping.put("DateTime", "java.util.Date");
+        typeMapping.put("long", "java.lang.Long");
+        typeMapping.put("short", "java.lang.Short");
+        typeMapping.put("char", "java.lang.String");
+        typeMapping.put("double", "java.lang.Double");
+        typeMapping.put("object", "java.lang.Object");
+        typeMapping.put("integer", "java.lang.Integer");
+
+        importMapping.clear();
+        /*
+        importMapping.put("UUID", "java.util.UUID");
+        importMapping.put("File", "java.io.File");
+        importMapping.put("Date", "java.util.Date");
+        importMapping.put("Timestamp", "java.sql.Timestamp");
+        importMapping.put("Map", "");
+        importMapping.put("HashMap", "java.util.HashMap");
+        importMapping.put("Array", "java.util.List");
+        importMapping.put("ArrayList", "java.util.ArrayList");
+        importMapping.put("List", "java.util.List");
+        importMapping.put("Set", "java.util.Set");
+        importMapping.put("DateTime", "org.joda.time.DateTime");
+        importMapping.put("LocalDateTime", "org.joda.time.LocalDateTime");
+        importMapping.put("LocalDate", "org.joda.time.LocalDate");
+        importMapping.put("LocalTime", "org.joda.time.LocalTime");
+        */
+
+        languageSpecificPrimitives.clear();
+        instantiationTypes.put("array", "java.util.ArrayList");
+        instantiationTypes.put("map", "java.util.HashMap");
+    }
+
+    private static String camelize(String word)
+    {
+        return camelize(word, false);
+    }
+
+    private static String camelize(String word, boolean lowercaseFirstLetter)
+    {
+        // Replace all slashes with dots (package separator)
+        Pattern p = Pattern.compile("\\/(.?)");
+        Matcher m = p.matcher(word);
+        while (m.find()) {
+            word = m.replaceFirst("." + m.group(1)/*.toUpperCase()*/);
+            m = p.matcher(word);
+        }
+
+        // case out dots
+        String[] parts = word.split("\\.");
+        StringBuilder f = new StringBuilder();
+        for (String z : parts) {
+            if (z.length() > 0) {
+                f.append(Character.toUpperCase(z.charAt(0))).append(z.substring(1));
+            }
+        }
+        word = f.toString();
+
+        m = p.matcher(word);
+        while (m.find()) {
+            word = m.replaceFirst("" + Character.toUpperCase(m.group(1).charAt(0)) + m.group(1).substring(1)/*.toUpperCase()*/);
+            m = p.matcher(word);
+        }
+
+        // Uppercase the class name.
+        p = Pattern.compile("(\\.?)(\\w)([^\\.]*)$");
+        m = p.matcher(word);
+        if (m.find()) {
+            String rep = m.group(1) + m.group(2).toUpperCase() + m.group(3);
+            rep = rep.replaceAll("\\$", "\\\\\\$");
+            word = m.replaceAll(rep);
+        }
+
+        // Replace two underscores with $ to support inner classes.
+        p = Pattern.compile("(__)(.)");
+        m = p.matcher(word);
+        while (m.find()) {
+            word = m.replaceFirst("\\$" + m.group(2).toUpperCase());
+            m = p.matcher(word);
+        }
+
+        // Remove all underscores
+        p = Pattern.compile("(_)(.)");
+        m = p.matcher(word);
+        while (m.find()) {
+            word = m.replaceFirst(m.group(2).toUpperCase());
+            m = p.matcher(word);
+        }
+
+        if (lowercaseFirstLetter) {
+            word = word.substring(0, 1).toLowerCase() + word.substring(1);
+        }
+
+        return word;
+    }
 
     @Override
     public List<CliOption> cliOptions()
@@ -351,15 +549,15 @@ public class ExplicitJavaClientCodegen
     }
 
     @Override
-    public void setOutputDir(String dir)
-    {
-        this.outputFolder = dir;
-    }
-
-    @Override
     public String getOutputDir()
     {
         return outputFolder();
+    }
+
+    @Override
+    public void setOutputDir(String dir)
+    {
+        this.outputFolder = dir;
     }
 
     private void setTemplateDir(String templateDir)
@@ -460,143 +658,6 @@ public class ExplicitJavaClientCodegen
     public String toApiImport(String name)
     {
         return apiPackage() + "." + name;
-    }
-
-    public ExplicitJavaClientCodegen()
-    {
-        defaultIncludes = new HashSet<>(
-                Arrays.asList("double",
-                        "int",
-                        "long",
-                        "short",
-                        "char",
-                        "float",
-                        "String",
-                        "boolean",
-                        "Boolean",
-                        "Double",
-                        "Void",
-                        "Integer",
-                        "Long",
-                        "Float")
-        );
-
-        typeMapping = new HashMap<>();
-        typeMapping.put("array", "List");
-        typeMapping.put("map", "Map");
-        typeMapping.put("List", "List");
-        typeMapping.put("boolean", "Boolean");
-        typeMapping.put("string", "String");
-        typeMapping.put("int", "Integer");
-        typeMapping.put("float", "Float");
-        typeMapping.put("number", "BigDecimal");
-        typeMapping.put("DateTime", "Date");
-        typeMapping.put("long", "Long");
-        typeMapping.put("short", "Short");
-        typeMapping.put("char", "String");
-        typeMapping.put("double", "Double");
-        typeMapping.put("object", "Object");
-        typeMapping.put("integer", "Integer");
-
-        instantiationTypes = new HashMap<>();
-
-        reservedWords = new HashSet<>();
-
-        importMapping = new HashMap<>();
-        importMapping.put("BigDecimal", "java.math.BigDecimal");
-        importMapping.put("UUID", "java.util.UUID");
-        importMapping.put("File", "java.io.File");
-        importMapping.put("Date", "java.util.Date");
-        importMapping.put("Timestamp", "java.sql.Timestamp");
-        importMapping.put("Map", "java.util.Map");
-        importMapping.put("HashMap", "java.util.HashMap");
-        importMapping.put("Array", "java.util.List");
-        importMapping.put("ArrayList", "java.util.ArrayList");
-        importMapping.put("List", "java.util.*");
-        importMapping.put("Set", "java.util.*");
-        importMapping.put("DateTime", "org.joda.time.*");
-        importMapping.put("LocalDateTime", "org.joda.time.*");
-        importMapping.put("LocalDate", "org.joda.time.*");
-        importMapping.put("LocalTime", "org.joda.time.*");
-
-        cliOptions.add(new CliOption("modelPackage", "package for generated models"));
-        cliOptions.add(new CliOption("apiPackage", "package for generated api classes"));
-
-        outputFolder = "generated-code/java";
-        modelTemplateFiles.put("model.mustache", ".java");
-        apiTemplateFiles.put("api.mustache", ".java");
-        templateDir = "ExplicitJava";
-        apiPackage = "io.swagger.client.api";
-        modelPackage = "io.swagger.client.model";
-
-        reservedWords = new HashSet<>(
-                Arrays.asList(
-                        "abstract", "continue", "for", "new", "switch", "assert",
-                        "default", "if", "package", "synchronized", "boolean", "do", "goto", "private",
-                        "this", "break", "double", "implements", "protected", "throw", "byte", "else",
-                        "import", "public", "throws", "case", "enum", "instanceof", "return", "transient",
-                        "catch", "extends", "int", "short", "try", "char", "final", "interface", "static",
-                        "void", "class", "finally", "long", "strictfp", "volatile", "const", "float",
-                        "native", "super", "while")
-        );
-
-        languageSpecificPrimitives = new HashSet<>(
-                Arrays.asList(
-                        "java.lang.String",
-                        "boolean",
-                        "java.lang.Boolean",
-                        "java.lang.Double",
-                        "java.lang.Integer",
-                        "java.lang.Long",
-                        "java.lang.Float",
-                        "java.lang.Object")
-        );
-        instantiationTypes.put("array", "java.util.ArrayList");
-        instantiationTypes.put("map", "java.util.HashMap");
-
-        cliOptions.add(new CliOption("invokerPackage", "root package for generated code"));
-        cliOptions.add(new CliOption("groupId", "groupId in generated pom.xml"));
-        cliOptions.add(new CliOption("artifactId", "artifactId in generated pom.xml"));
-        cliOptions.add(new CliOption("artifactVersion", "artifact version in generated pom.xml"));
-        cliOptions.add(new CliOption("sourceFolder", "source folder for generated code"));
-
-        typeMapping.put("array", "java.util.List");
-        typeMapping.put("map", "java.util.Map");
-        typeMapping.put("List", "java.util.List");
-        typeMapping.put("boolean", "java.lang.Boolean");
-        typeMapping.put("string", "java.lang.String");
-        typeMapping.put("int", "java.lang.Integer");
-        typeMapping.put("float", "java.lang.Float");
-        typeMapping.put("number", "java.math.BigDecimal");
-        typeMapping.put("DateTime", "java.util.Date");
-        typeMapping.put("long", "java.lang.Long");
-        typeMapping.put("short", "java.lang.Short");
-        typeMapping.put("char", "java.lang.String");
-        typeMapping.put("double", "java.lang.Double");
-        typeMapping.put("object", "java.lang.Object");
-        typeMapping.put("integer", "java.lang.Integer");
-
-        importMapping.clear();
-        /*
-        importMapping.put("UUID", "java.util.UUID");
-        importMapping.put("File", "java.io.File");
-        importMapping.put("Date", "java.util.Date");
-        importMapping.put("Timestamp", "java.sql.Timestamp");
-        importMapping.put("Map", "");
-        importMapping.put("HashMap", "java.util.HashMap");
-        importMapping.put("Array", "java.util.List");
-        importMapping.put("ArrayList", "java.util.ArrayList");
-        importMapping.put("List", "java.util.List");
-        importMapping.put("Set", "java.util.Set");
-        importMapping.put("DateTime", "org.joda.time.DateTime");
-        importMapping.put("LocalDateTime", "org.joda.time.LocalDateTime");
-        importMapping.put("LocalDate", "org.joda.time.LocalDate");
-        importMapping.put("LocalTime", "org.joda.time.LocalTime");
-        */
-
-        languageSpecificPrimitives.clear();
-        instantiationTypes.put("array", "java.util.ArrayList");
-        instantiationTypes.put("map", "java.util.HashMap");
     }
 
     @Override
@@ -1524,6 +1585,10 @@ public class ExplicitJavaClientCodegen
         }
     }
 
+  /* underscore and camelize are copied from Twitter elephant bird
+   * https://github.com/twitter/elephant-bird/blob/master/core/src/main/java/com/twitter/elephantbird/util/Strings.java
+   */
+
     private List<CodegenParameter> addHasMore(List<CodegenParameter> objs)
     {
         if (objs != null) {
@@ -1550,10 +1615,6 @@ public class ExplicitJavaClientCodegen
         opList.add(co);
         co.baseName = tag;
     }
-
-  /* underscore and camelize are copied from Twitter elephant bird
-   * https://github.com/twitter/elephant-bird/blob/master/core/src/main/java/com/twitter/elephantbird/util/Strings.java
-   */
 
     private void addParentContainer(CodegenModel m, String name, Property property)
     {
@@ -1617,11 +1678,6 @@ public class ExplicitJavaClientCodegen
         }
     }
 
-    private static String camelize(String word)
-    {
-        return camelize(word, false);
-    }
-
     /**
      * Remove characters not suitable for variable or method name from the input and camelize it
      *
@@ -1644,64 +1700,6 @@ public class ExplicitJavaClientCodegen
             name = name.substring(0, 1).toLowerCase() + name.substring(1);
         }
         return name;
-    }
-
-    private static String camelize(String word, boolean lowercaseFirstLetter)
-    {
-        // Replace all slashes with dots (package separator)
-        Pattern p = Pattern.compile("\\/(.?)");
-        Matcher m = p.matcher(word);
-        while (m.find()) {
-            word = m.replaceFirst("." + m.group(1)/*.toUpperCase()*/);
-            m = p.matcher(word);
-        }
-
-        // case out dots
-        String[] parts = word.split("\\.");
-        StringBuilder f = new StringBuilder();
-        for (String z : parts) {
-            if (z.length() > 0) {
-                f.append(Character.toUpperCase(z.charAt(0))).append(z.substring(1));
-            }
-        }
-        word = f.toString();
-
-        m = p.matcher(word);
-        while (m.find()) {
-            word = m.replaceFirst("" + Character.toUpperCase(m.group(1).charAt(0)) + m.group(1).substring(1)/*.toUpperCase()*/);
-            m = p.matcher(word);
-        }
-
-        // Uppercase the class name.
-        p = Pattern.compile("(\\.?)(\\w)([^\\.]*)$");
-        m = p.matcher(word);
-        if (m.find()) {
-            String rep = m.group(1) + m.group(2).toUpperCase() + m.group(3);
-            rep = rep.replaceAll("\\$", "\\\\\\$");
-            word = m.replaceAll(rep);
-        }
-
-        // Replace two underscores with $ to support inner classes.
-        p = Pattern.compile("(__)(.)");
-        m = p.matcher(word);
-        while (m.find()) {
-            word = m.replaceFirst("\\$" + m.group(2).toUpperCase());
-            m = p.matcher(word);
-        }
-
-        // Remove all underscores
-        p = Pattern.compile("(_)(.)");
-        m = p.matcher(word);
-        while (m.find()) {
-            word = m.replaceFirst(m.group(2).toUpperCase());
-            m = p.matcher(word);
-        }
-
-        if (lowercaseFirstLetter) {
-            word = word.substring(0, 1).toLowerCase() + word.substring(1);
-        }
-
-        return word;
     }
 
     @Override
