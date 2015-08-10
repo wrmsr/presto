@@ -66,7 +66,7 @@ public class TestSwaggerPlugin
         // }
 
         CodegenConfig config = new ExplicitJavaClientCodegen();
-        config.setOutputDir(new File(System.getProperty("user.home") + "/thing.java").getAbsolutePath());
+        config.setOutputDir(new File(System.getProperty("user.home") + "/thing").getAbsolutePath());
 
         // if (null != templateDir) {
         //     config.additionalProperties().put(TEMPLATE_DIR_PARAM, new File(templateDir).getAbsolutePath());
