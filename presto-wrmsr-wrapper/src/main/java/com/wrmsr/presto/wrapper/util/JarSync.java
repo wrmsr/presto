@@ -279,8 +279,9 @@ public class JarSync
     public static void main(String[] args)
             throws Throwable
     {
-        ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
         File jarFile = new File("/Users/spinlock/presto/presto");
+        ZipFiles.getPreamble(jarFile);
+        ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
         try (ZipFile zipFile = new ZipFile(jarFile)) {
             Manifest manifest = new Manifest(zipFile);
             System.out.println(objectMapper.writeValueAsString(manifest));

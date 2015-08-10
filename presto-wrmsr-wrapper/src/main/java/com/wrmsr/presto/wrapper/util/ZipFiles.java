@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 
 public class ZipFiles
 {
@@ -79,12 +81,14 @@ public class ZipFiles
 
     ByteBuffer mLEByteBuffer = ByteBuffer.allocate(4);
 
-    static private int read4LE(RandomAccessFile f) throws IOException
+    static private int read4LE(RandomAccessFile f)
+            throws IOException
     {
         return swapEndian(f.readInt());
     }
 
-    public static void getPreamble(File file) throws Throwable
+    public static void getPreamble(File file)
+            throws Throwable
     {
         RandomAccessFile f = new RandomAccessFile(file, "r");
         long fileLength = f.length();
@@ -96,15 +100,6 @@ public class ZipFiles
         long readAmount = kMaxEOCDSearch;
         if (readAmount > fileLength)
             readAmount = fileLength;
-
-        f.seek(0);
-
-        int header = read4LE(f);
-        if (header == kEOCDSignature) {
-            throw new RuntimeException("Found Zip archive, but it looks empty");
-        } else if (header != kLFHSignature) {
-            throw new RuntimeException("Not a Zip archive");
-        }
 
         /*
          * Perform the traditional EOCD snipe hunt. We're searching for the End
@@ -133,17 +128,98 @@ public class ZipFiles
         // EOCD == 0x50, 0x4b, 0x05, 0x06
         int eocdIdx;
         for (eocdIdx = buffer.length - kEOCDLen; eocdIdx >= 0; eocdIdx--) {
-            if (buffer[eocdIdx] == 0x50 && bbuf.getInt(eocdIdx) == kEOCDSignature)
-            {
+            if (buffer[eocdIdx] == 0x50 && bbuf.getInt(eocdIdx) == kEOCDSignature) {
+                /*
                 if (LOGV) {
                     Log.v(LOG_TAG, "+++ Found EOCD at index: " + eocdIdx);
                 }
+                */
                 break;
             }
         }
 
         if (eocdIdx < 0) {
-            Log.d(LOG_TAG, "Zip: EOCD not found, " + zipFileName + " is not zip");
+            // Log.d(LOG_TAG, "Zip: EOCD not found, " + zipFileName + " is not zip");
+        }
+
+        /*
+        * Grab the CD offset and size, and the number of entries in the
+        * archive. After that, we can release our EOCD hunt buffer.
+        */
+
+        int numEntries = bbuf.getShort(eocdIdx + kEOCDNumEntries);
+        long dirSize = bbuf.getInt(eocdIdx + kEOCDSize) & 0xffffffffL;
+        long dirOffset = bbuf.getInt(eocdIdx + kEOCDFileOffset) & 0xffffffffL;
+
+        // Verify that they look reasonable.
+        if (dirOffset + dirSize > fileLength) {
+            throw new RuntimeException("bad offsets (dir " + dirOffset + ", size " + dirSize + ", eocd " + eocdIdx + ")");
+        }
+        if (numEntries == 0) {
+            throw new RuntimeException("empty archive?");
+        }
+
+        // if (LOGV) {
+        // "+++ numEntries=" + numEntries + " dirSize=" + dirSize + " dirOffset=" + dirOffset);
+        // }
+
+        MappedByteBuffer directoryMap = f.getChannel()
+                .map(FileChannel.MapMode.READ_ONLY, dirOffset, dirSize);
+        directoryMap.order(ByteOrder.LITTLE_ENDIAN);
+
+        byte[] tempBuf = new byte[0xffff];
+
+        /*
+         * Walk through the central directory, adding entries to the hash table.
+         */
+
+        int currentOffset = 0;
+
+        /*
+         * Allocate the local directory information
+         */
+        ByteBuffer buf = ByteBuffer.allocate(kLFHLen);
+        buf.order(ByteOrder.LITTLE_ENDIAN);
+
+        for (int i = 0; i < numEntries; i++) {
+            if (directoryMap.getInt(currentOffset) != kCDESignature) {
+                throw new IOException("Missed a central dir sig (at " + currentOffset + ")");
+            }
+
+            /* useful stuff from the directory entry */
+            int fileNameLen = directoryMap.getShort(currentOffset + kCDENameLen) & 0xffff;
+            int extraLen = directoryMap.getShort(currentOffset + kCDEExtraLen) & 0xffff;
+            int commentLen = directoryMap.getShort(currentOffset + kCDECommentLen) & 0xffff;
+
+            /* get the CDE filename */
+
+            directoryMap.position(currentOffset + kCDELen);
+            directoryMap.get(tempBuf, 0, fileNameLen);
+            directoryMap.position(0);
+
+            /* UTF-8 on Android */
+            String str = new String(tempBuf, 0, fileNameLen);
+            // if (LOGV) {
+            //     Log.v(LOG_TAG, "Filename: " + str);
+            // }
+
+            // ZipEntryRO ze = new ZipEntryRO(zipFileName, file, str);
+            int mMethod = directoryMap.getShort(currentOffset + kCDEMethod) & 0xffff;
+            long mWhenModified = directoryMap.getInt(currentOffset + kCDEModWhen) & 0xffffffffL;
+            long mCRC32 = directoryMap.getLong(currentOffset + kCDECRC) & 0xffffffffL;
+            long mCompressedLength = directoryMap.getLong(currentOffset + kCDECompLen) & 0xffffffffL;
+            long mUncompressedLength = directoryMap.getLong(currentOffset + kCDEUncompLen) & 0xffffffffL;
+            long mLocalHdrOffset = directoryMap.getInt(currentOffset + kCDELocalOffset) & 0xffffffffL;
+
+            // set the offsets
+            buf.clear();
+            // ze.setOffsetFromFile(f, buf);
+
+            // put file into hash
+            // mHashMap.put(str, ze);
+
+            // go to next directory entry
+            currentOffset += kCDELen + fileNameLen + extraLen + commentLen;
         }
     }
 }
