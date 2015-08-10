@@ -166,6 +166,7 @@ public class JarSync
         }
     }
 
+    // TODO preamble, chmod
     public static final class Manifest
     {
         private final String name;

@@ -137,6 +137,7 @@ public class TestCrud
         ConnectorOutputTableHandle oth = metadata.beginCreateTable(session, new ConnectorTableMetadata(
                 new SchemaTableName("example", "foo"),
                 ImmutableList.of(new ColumnMetadata("text", VARCHAR, false)),
+                ImmutableMap.of(),
                 "bob"));
         metadata.commitCreateTable(session, oth, ImmutableList.of());
 
