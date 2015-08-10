@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.util.Serialization;
 
 import java.io.BufferedInputStream;
@@ -28,6 +29,7 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -119,17 +121,15 @@ public class JarSync
 
         public static String generateDigest(ZipFile zipFile, ZipEntry zipEntry)
         {
+            MessageDigest md;
             try {
-                byte[] digest;
+                md = MessageDigest.getInstance(DIGEST_ALG);
+            }
+            catch (NoSuchAlgorithmException e) {
+                throw Throwables.propagate(e);
+            }
+            try {
                 try (BufferedInputStream bis = new BufferedInputStream(zipFile.getInputStream(zipEntry))) {
-                    MessageDigest md;
-                    try {
-                        md = MessageDigest.getInstance(DIGEST_ALG);
-                    }
-                    catch (NoSuchAlgorithmException e) {
-                        System.err.println(e.toString());
-                        throw new IllegalArgumentException(DIGEST_ALG);
-                    }
                     DigestInputStream dis = new DigestInputStream(bis, md);
                     byte[] buffer = new byte[65536];
                     while (dis.read(buffer, 0, buffer.length) > 0) {
@@ -166,21 +166,59 @@ public class JarSync
         }
     }
 
+    public static class Manifest
+    {
+        private final String name;
+        private final List<Entry> entries;
+
+        @JsonCreator
+        public Manifest(
+                @JsonProperty("name") String name,
+                @JsonProperty("entries") List<Entry> entries)
+        {
+            this.name = name;
+            this.entries = ImmutableList.copyOf(entries);
+        }
+
+        public Manifest(ZipFile zipFile)
+        {
+            name = zipFile.getName();
+            ImmutableList.Builder<Entry> builder = ImmutableList.builder();
+            Enumeration<? extends ZipEntry> zipEntries;
+            for (zipEntries = zipFile.entries(); zipEntries.hasMoreElements(); ) {
+                ZipEntry zipEntry = zipEntries.nextElement();
+                Entry entry = Entry.create(zipFile, zipEntry);
+                builder.add(entry);
+            }
+            entries = builder.build();
+        }
+
+        @JsonProperty
+        public String getName()
+        {
+            return name;
+        }
+
+        @JsonProperty
+        public List<Entry> getEntries()
+        {
+            return entries;
+        }
+    }
+
+    public static abstract class Operation
+    {
+
+    }
+
     public static void main(String[] args)
             throws Throwable
     {
         ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
         File jarFile = new File("/Users/spinlock/presto/presto");
         try (ZipFile zipFile = new ZipFile(jarFile)) {
-            Enumeration<? extends ZipEntry> entries;
-            for (entries = zipFile.entries(); entries.hasMoreElements(); ) {
-                ZipEntry zipEntry = entries.nextElement();
-                Entry entry = Entry.create(zipFile, zipEntry);
-                String entryJson = objectMapper.writeValueAsString(entry);
-                System.out.println(entryJson);
-                entry = objectMapper.readValue(entryJson, Entry.class);
-                System.out.println(entry);
-            }
+            Manifest manifest = new Manifest(zipFile);
+            System.out.println(objectMapper.writeValueAsString(manifest));
         }
     }
 }
