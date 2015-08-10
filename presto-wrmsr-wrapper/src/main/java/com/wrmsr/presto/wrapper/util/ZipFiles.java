@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// http://www.onicos.com/staff/iz/formats/zip.html
 package com.wrmsr.presto.wrapper.util;
 
 import java.io.File;
