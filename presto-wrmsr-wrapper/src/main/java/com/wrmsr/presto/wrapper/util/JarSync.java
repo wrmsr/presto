@@ -25,6 +25,9 @@ import com.wrmsr.presto.util.Serialization;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -170,20 +173,29 @@ public class JarSync
     public static final class Manifest
     {
         private final String name;
+        private final boolean isExecutable;
+        private final byte[] preamble;
         private final List<Entry> entries;
 
         @JsonCreator
         public Manifest(
                 @JsonProperty("name") String name,
+                @JsonProperty("isExecutable") boolean isExecutable,
+                @JsonProperty("preamble") byte[] preamble,
                 @JsonProperty("entries") List<Entry> entries)
         {
             this.name = name;
+            this.isExecutable = isExecutable;
+            this.preamble = preamble;
             this.entries = ImmutableList.copyOf(entries);
         }
 
         public Manifest(ZipFile zipFile)
         {
-            name = zipFile.getName();
+            File file = new File(zipFile.getName());
+            name = file.getName();
+            isExecutable = file.canExecute();
+            preamble = null;
             ImmutableList.Builder<Entry> builder = ImmutableList.builder();
             Enumeration<? extends ZipEntry> zipEntries;
             for (zipEntries = zipFile.entries(); zipEntries.hasMoreElements(); ) {
