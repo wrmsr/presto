@@ -14,6 +14,8 @@
 package com.wrmsr.presto.swagger;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.swagger.codegen.CliOption;
 import io.swagger.codegen.CodegenConfig;
@@ -87,7 +89,6 @@ import java.util.regex.Pattern;
 public class ExplicitJavaClientCodegen
         implements CodegenConfig
 {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(ExplicitJavaClientCodegen.class);
     private final String fileSuffix = ".java";
     private final Map<String, String> apiTemplateFiles = new HashMap<>();
@@ -96,12 +97,10 @@ public class ExplicitJavaClientCodegen
     private final List<SupportingFile> supportingFiles = new ArrayList<>();
     private final List<CliOption> cliOptions = new ArrayList<>();
     private String outputFolder = "";
-    private Set<String> defaultIncludes = new HashSet<>();
     private Map<String, String> typeMapping = new HashMap<>();
     private Map<String, String> instantiationTypes = new HashMap<>();
     private Set<String> reservedWords = new HashSet<>();
     private Set<String> languageSpecificPrimitives = new HashSet<>();
-    private Map<String, String> importMapping = new HashMap<>();
     private String modelPackage = "";
     private String apiPackage = "";
     private String templateDir;
@@ -113,44 +112,28 @@ public class ExplicitJavaClientCodegen
 
     public ExplicitJavaClientCodegen()
     {
-        defaultIncludes = new HashSet<>(
-                Arrays.asList("double",
-                        "int",
-                        "long",
-                        "short",
-                        "char",
-                        "float",
-                        "String",
-                        "boolean",
-                        "Boolean",
-                        "Double",
-                        "Void",
-                        "Integer",
-                        "Long",
-                        "Float")
-        );
-
         typeMapping = new HashMap<>();
-        typeMapping.put("array", "List");
-        typeMapping.put("map", "Map");
-        typeMapping.put("List", "List");
-        typeMapping.put("boolean", "Boolean");
-        typeMapping.put("string", "String");
-        typeMapping.put("int", "Integer");
-        typeMapping.put("float", "Float");
-        typeMapping.put("number", "BigDecimal");
-        typeMapping.put("DateTime", "Date");
-        typeMapping.put("long", "Long");
-        typeMapping.put("short", "Short");
-        typeMapping.put("char", "String");
-        typeMapping.put("double", "Double");
-        typeMapping.put("object", "Object");
-        typeMapping.put("integer", "Integer");
+        typeMapping.put("array", "java.util.List");
+        typeMapping.put("map", "java.util.Map");
+        typeMapping.put("List", "java.util.List");
+        typeMapping.put("boolean", "java.lang.Boolean");
+        typeMapping.put("string", "java.lang.String");
+        typeMapping.put("int", "java.lang.Integer");
+        typeMapping.put("float", "java.lang.Float");
+        typeMapping.put("number", "java.math.BigDecimal");
+        typeMapping.put("DateTime", "java.util.Date");
+        typeMapping.put("long", "java.lang.Long");
+        typeMapping.put("short", "java.lang.Short");
+        typeMapping.put("char", "java.lang.String");
+        typeMapping.put("double", "java.lang.Double");
+        typeMapping.put("object", "java.lang.Object");
+        typeMapping.put("integer", "java.lang.Integer");
 
         instantiationTypes = new HashMap<>();
 
         reservedWords = new HashSet<>();
 
+        /*
         importMapping = new HashMap<>();
         importMapping.put("BigDecimal", "java.math.BigDecimal");
         importMapping.put("UUID", "java.util.UUID");
@@ -167,6 +150,7 @@ public class ExplicitJavaClientCodegen
         importMapping.put("LocalDateTime", "org.joda.time.*");
         importMapping.put("LocalDate", "org.joda.time.*");
         importMapping.put("LocalTime", "org.joda.time.*");
+        */
 
         cliOptions.add(new CliOption("modelPackage", "package for generated models"));
         cliOptions.add(new CliOption("apiPackage", "package for generated api classes"));
@@ -208,40 +192,6 @@ public class ExplicitJavaClientCodegen
         cliOptions.add(new CliOption("artifactId", "artifactId in generated pom.xml"));
         cliOptions.add(new CliOption("artifactVersion", "artifact version in generated pom.xml"));
         cliOptions.add(new CliOption("sourceFolder", "source folder for generated code"));
-
-        typeMapping.put("array", "java.util.List");
-        typeMapping.put("map", "java.util.Map");
-        typeMapping.put("List", "java.util.List");
-        typeMapping.put("boolean", "java.lang.Boolean");
-        typeMapping.put("string", "java.lang.String");
-        typeMapping.put("int", "java.lang.Integer");
-        typeMapping.put("float", "java.lang.Float");
-        typeMapping.put("number", "java.math.BigDecimal");
-        typeMapping.put("DateTime", "java.util.Date");
-        typeMapping.put("long", "java.lang.Long");
-        typeMapping.put("short", "java.lang.Short");
-        typeMapping.put("char", "java.lang.String");
-        typeMapping.put("double", "java.lang.Double");
-        typeMapping.put("object", "java.lang.Object");
-        typeMapping.put("integer", "java.lang.Integer");
-
-        importMapping.clear();
-        /*
-        importMapping.put("UUID", "java.util.UUID");
-        importMapping.put("File", "java.io.File");
-        importMapping.put("Date", "java.util.Date");
-        importMapping.put("Timestamp", "java.sql.Timestamp");
-        importMapping.put("Map", "");
-        importMapping.put("HashMap", "java.util.HashMap");
-        importMapping.put("Array", "java.util.List");
-        importMapping.put("ArrayList", "java.util.ArrayList");
-        importMapping.put("List", "java.util.List");
-        importMapping.put("Set", "java.util.Set");
-        importMapping.put("DateTime", "org.joda.time.DateTime");
-        importMapping.put("LocalDateTime", "org.joda.time.LocalDateTime");
-        importMapping.put("LocalDate", "org.joda.time.LocalDate");
-        importMapping.put("LocalTime", "org.joda.time.LocalTime");
-        */
 
         languageSpecificPrimitives.clear();
         instantiationTypes.put("array", "java.util.ArrayList");
@@ -315,6 +265,17 @@ public class ExplicitJavaClientCodegen
     public List<CliOption> cliOptions()
     {
         return cliOptions;
+    }
+
+    @Override
+    public String toModelImport(String name)
+    {
+        if ("".equals(modelPackage())) {
+            return name;
+        }
+        else {
+            return modelPackage() + "." + name;
+        }
     }
 
     @Override
@@ -408,34 +369,29 @@ public class ExplicitJavaClientCodegen
         this.sourceFolder = sourceFolder;
     }
 
-    // override with any special post-processing
     @Override
     public Map<String, Object> postProcessModels(Map<String, Object> objs)
     {
         return objs;
     }
 
-    // override with any special post-processing
     @Override
     public Map<String, Object> postProcessOperations(Map<String, Object> objs)
     {
         return objs;
     }
 
-    // override with any special post-processing
     @Override
     public Map<String, Object> postProcessSupportingFileData(Map<String, Object> objs)
     {
         return objs;
     }
 
-    // override with any special handling of the entire swagger spec
     @Override
     public void processSwagger(Swagger swagger)
     {
     }
 
-    // override with any special text escaping logic
     @Override
     public String escapeText(String input)
     {
@@ -450,7 +406,8 @@ public class ExplicitJavaClientCodegen
     @Override
     public Set<String> defaultIncludes()
     {
-        return defaultIncludes;
+        // FIXME: includes everything?
+        return ImmutableSet.of();
     }
 
     @Override
@@ -479,7 +436,7 @@ public class ExplicitJavaClientCodegen
     @Override
     public Map<String, String> importMapping()
     {
-        return importMapping;
+        return ImmutableMap.of();
     }
 
     @Override
@@ -644,17 +601,6 @@ public class ExplicitJavaClientCodegen
     }
 
     @Override
-    public String toModelImport(String name)
-    {
-        if ("".equals(modelPackage())) {
-            return name;
-        }
-        else {
-            return modelPackage() + "." + name;
-        }
-    }
-
-    @Override
     public String toApiImport(String name)
     {
         return apiPackage() + "." + name;
@@ -797,12 +743,12 @@ public class ExplicitJavaClientCodegen
         else if (p instanceof MapProperty) {
             MapProperty ap = (MapProperty) p;
             String inner = getSwaggerType(ap.getAdditionalProperties());
-            return "new HashMap<String, " + inner + ">() ";
+            return "new java.util.HashMap<String, " + inner + ">() ";
         }
         else if (p instanceof ArrayProperty) {
             ArrayProperty ap = (ArrayProperty) p;
             String inner = getSwaggerType(ap.getItems());
-            return "new ArrayList<" + inner + ">() ";
+            return "new java.util.ArrayList<" + inner + ">() ";
         }
         else {
             return "null";
@@ -976,7 +922,6 @@ public class ExplicitJavaClientCodegen
             final RefModel parent = (RefModel) composed.getParent();
             final String parentModel = toModelName(parent.getSimpleRef());
             m.parent = parentModel;
-            addImport(m, parentModel);
             final ModelImpl child = (ModelImpl) composed.getChild();
             addVars(m, child.getProperties(), child.getRequired());
         }
@@ -1135,7 +1080,6 @@ public class ExplicitJavaClientCodegen
     public CodegenOperation fromOperation(String path, String httpMethod, Operation operation, Map<String, Model> definitions)
     {
         CodegenOperation op = CodegenModelFactory.newInstance(CodegenModelType.OPERATION);
-        Set<String> imports = new HashSet<>();
 
         String operationId = operation.getOperationId();
         if (operationId == null) {
@@ -1215,11 +1159,6 @@ public class ExplicitJavaClientCodegen
                 Response response = entry.getValue();
                 CodegenResponse r = fromResponse(entry.getKey(), response);
                 r.hasMore = true;
-                if (r.baseType != null &&
-                        !defaultIncludes.contains(r.baseType) &&
-                        !languageSpecificPrimitives.contains(r.baseType)) {
-                    imports.add(r.baseType);
-                }
                 r.isDefault = response == methodResponse;
                 op.responses.add(r);
             }
@@ -1282,7 +1221,7 @@ public class ExplicitJavaClientCodegen
 
         if (parameters != null) {
             for (Parameter param : parameters) {
-                CodegenParameter p = fromParameter(param, imports);
+                CodegenParameter p = fromParameter(param);
                 allParams.add(p);
                 if (param instanceof QueryParameter) {
                     p.isQueryParam = true;
@@ -1316,11 +1255,6 @@ public class ExplicitJavaClientCodegen
                     p.isFormParam = true;
                     formParams.add(p.copy());
                 }
-            }
-        }
-        for (String i : imports) {
-            if (!defaultIncludes.contains(i) && !languageSpecificPrimitives.contains(i)) {
-                op.imports.add(i);
             }
         }
         op.bodyParam = bodyParam;
@@ -1397,7 +1331,7 @@ public class ExplicitJavaClientCodegen
         return r;
     }
 
-    private CodegenParameter fromParameter(Parameter param, Set<String> imports)
+    private CodegenParameter fromParameter(Parameter param)
     {
         CodegenParameter p = CodegenModelFactory.newInstance(CodegenModelType.PARAMETER);
         p.baseName = param.getName();
@@ -1433,7 +1367,6 @@ public class ExplicitJavaClientCodegen
                 CodegenProperty pr = fromProperty("inner", inner);
                 p.baseType = pr.datatype;
                 p.isContainer = true;
-                imports.add(pr.baseType);
             }
             else if ("object".equals(qp.getType())) {
                 Property inner = qp.getItems();
@@ -1445,7 +1378,6 @@ public class ExplicitJavaClientCodegen
                 collectionFormat = qp.getCollectionFormat();
                 CodegenProperty pr = fromProperty("inner", inner);
                 p.baseType = pr.datatype;
-                imports.add(pr.baseType);
             }
             else {
                 property = PropertyBuilder.build(qp.getType(), qp.getFormat(), null);
@@ -1459,10 +1391,6 @@ public class ExplicitJavaClientCodegen
             p.collectionFormat = collectionFormat;
             p.dataType = model.datatype;
             p.paramName = toParamName(qp.getName());
-
-            if (model.complexType != null) {
-                imports.add(model.complexType);
-            }
         }
         else {
             BodyParameter bp = (BodyParameter) param;
@@ -1473,7 +1401,6 @@ public class ExplicitJavaClientCodegen
                 CodegenModel cm = fromModel(bp.getName(), impl);
                 if (cm.emptyVars != null && cm.emptyVars == false) {
                     p.dataType = getTypeDeclaration(cm.classname);
-                    imports.add(p.dataType);
                 }
                 else {
                     // TODO: missing format, so this will not always work
@@ -1494,10 +1421,6 @@ public class ExplicitJavaClientCodegen
                 ArrayProperty ap = new ArrayProperty().items(impl.getItems());
                 ap.setRequired(param.getRequired());
                 CodegenProperty cp = fromProperty("inner", ap);
-                if (cp.complexType != null) {
-                    imports.add(cp.complexType);
-                }
-                imports.add(cp.baseType);
                 p.dataType = cp.datatype;
                 p.isContainer = true;
             }
@@ -1510,10 +1433,6 @@ public class ExplicitJavaClientCodegen
                     }
                     else {
                         name = toModelName(name);
-                        if (defaultIncludes.contains(name)) {
-                            imports.add(name);
-                        }
-                        imports.add(name);
                         name = getTypeDeclaration(name);
                     }
                     p.dataType = name;
@@ -1619,24 +1538,10 @@ public class ExplicitJavaClientCodegen
     private void addParentContainer(CodegenModel m, String name, Property property)
     {
         final CodegenProperty tmp = fromProperty(name, property);
-        addImport(m, tmp.complexType);
         m.parent = toInstantiationType(property);
         final String containerType = tmp.containerType;
         final String instantiationType = instantiationTypes.get(containerType);
-        if (instantiationType != null) {
-            addImport(m, instantiationType);
-        }
         final String mappedType = typeMapping.get(containerType);
-        if (mappedType != null) {
-            addImport(m, mappedType);
-        }
-    }
-
-    private void addImport(CodegenModel m, String type)
-    {
-        if (type != null && !languageSpecificPrimitives.contains(type) && !defaultIncludes.contains(type)) {
-            m.imports.add(type);
-        }
     }
 
     private void addVars(CodegenModel m, Map<String, Property> properties, Collection<String> required)
@@ -1664,11 +1569,6 @@ public class ExplicitJavaClientCodegen
                     if (count != totalCount) {
                         cp.hasMore = true;
                     }
-                    if (cp.isContainer != null) {
-                        addImport(m, typeMapping.get("array"));
-                    }
-                    addImport(m, cp.baseType);
-                    addImport(m, cp.complexType);
                     m.vars.add(cp);
                 }
             }
