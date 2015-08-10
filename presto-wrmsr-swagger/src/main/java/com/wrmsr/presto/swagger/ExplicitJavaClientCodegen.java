@@ -56,17 +56,17 @@ public class ExplicitJavaClientCodegen extends DefaultCodegen implements Codegen
 
         languageSpecificPrimitives = new HashSet<String>(
                 Arrays.asList(
-                        "String",
+                        "java.lang.String",
                         "boolean",
-                        "Boolean",
-                        "Double",
-                        "Integer",
-                        "Long",
-                        "Float",
-                        "Object")
+                        "java.lang.Boolean",
+                        "java.lang.Double",
+                        "java.lang.Integer",
+                        "java.lang.Long",
+                        "java.lang.Float",
+                        "java.lang.Object")
         );
-        instantiationTypes.put("array", "ArrayList");
-        instantiationTypes.put("map", "HashMap");
+        instantiationTypes.put("array", "java.util.ArrayList");
+        instantiationTypes.put("map", "java.util.HashMap");
 
         cliOptions.add(new CliOption("invokerPackage", "root package for generated code"));
         cliOptions.add(new CliOption("groupId", "groupId in generated pom.xml"));
@@ -226,6 +226,11 @@ public class ExplicitJavaClientCodegen extends DefaultCodegen implements Codegen
             throw new RuntimeException(name + " (reserved word) cannot be used as a model name");
         }
 
+        // jfc rewrite this fucking pos
+        if (name.startsWith("java.")) {
+            return name;
+        }
+
         // camelize the model name
         // phone_number => PhoneNumber
         return camelize(name);
@@ -270,6 +275,14 @@ public class ExplicitJavaClientCodegen extends DefaultCodegen implements Codegen
 
     @Override
     public String getSwaggerType(Property p) {
+        if (p instanceof RefProperty) {
+            RefProperty r = (RefProperty) p;
+            String datatype = r.get$ref();
+            if (datatype.indexOf("#/definitions/") == 0) {
+                datatype = datatype.substring("#/definitions/".length());
+            }
+            return modelPackage + "." + datatype;
+        }
         String swaggerType = super.getSwaggerType(p);
         String type = null;
         if (typeMapping.containsKey(swaggerType)) {
