@@ -90,32 +90,36 @@ public class ExplicitJavaClientCodegen
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExplicitJavaClientCodegen.class);
 
-    protected String outputFolder = "";
-    protected Set<String> defaultIncludes = new HashSet<>();
-    protected Map<String, String> typeMapping = new HashMap<>();
-    protected Map<String, String> instantiationTypes = new HashMap<>();
-    protected Set<String> reservedWords = new HashSet<>();
-    protected Set<String> languageSpecificPrimitives = new HashSet<>();
-    protected Map<String, String> importMapping = new HashMap<>();
-    protected String modelPackage = "", apiPackage = "", fileSuffix;
-    protected Map<String, String> apiTemplateFiles = new HashMap<>();
-    protected Map<String, String> modelTemplateFiles = new HashMap<>();
-    protected String templateDir;
-    protected Map<String, Object> additionalProperties = new HashMap<>();
-    protected List<SupportingFile> supportingFiles = new ArrayList<>();
-    protected List<CliOption> cliOptions = new ArrayList<>();
+    private String outputFolder = "";
+    private Set<String> defaultIncludes = new HashSet<>();
+    private Map<String, String> typeMapping = new HashMap<>();
+    private Map<String, String> instantiationTypes = new HashMap<>();
+    private Set<String> reservedWords = new HashSet<>();
+    private Set<String> languageSpecificPrimitives = new HashSet<>();
+    private Map<String, String> importMapping = new HashMap<>();
+    private String modelPackage = "";
+    private String apiPackage = "";
+    private final String fileSuffix = ".java";
+    private final Map<String, String> apiTemplateFiles = new HashMap<>();
+    private final Map<String, String> modelTemplateFiles = new HashMap<>();
+    private String templateDir;
+    private final Map<String, Object> additionalProperties = new HashMap<>();
+    private final List<SupportingFile> supportingFiles = new ArrayList<>();
+    private final List<CliOption> cliOptions = new ArrayList<>();
 
-    protected String invokerPackage = "io.swagger.client";
-    protected String groupId = "io.swagger";
-    protected String artifactId = "swagger-java-client";
-    protected String artifactVersion = "1.0.0";
-    protected String sourceFolder = "src/main/java";
+    private String invokerPackage = "io.swagger.client";
+    private String groupId = "io.swagger";
+    private String artifactId = "swagger-java-client";
+    private String artifactVersion = "1.0.0";
+    private String sourceFolder = "src/main/java";
 
+    @Override
     public List<CliOption> cliOptions()
     {
         return cliOptions;
     }
 
+    @Override
     public void processOpts()
     {
         if (additionalProperties.containsKey("templateDir")) {
@@ -181,55 +185,60 @@ public class ExplicitJavaClientCodegen
         supportingFiles.add(new SupportingFile("auth/OAuth.mustache", authFolder, "OAuth.java"));
     }
 
-    public void setInvokerPackage(String invokerPackage)
+    private void setInvokerPackage(String invokerPackage)
     {
         this.invokerPackage = invokerPackage;
     }
 
-    public void setGroupId(String groupId)
+    private void setGroupId(String groupId)
     {
         this.groupId = groupId;
     }
 
-    public void setArtifactId(String artifactId)
+    private void setArtifactId(String artifactId)
     {
         this.artifactId = artifactId;
     }
 
-    public void setArtifactVersion(String artifactVersion)
+    private void setArtifactVersion(String artifactVersion)
     {
         this.artifactVersion = artifactVersion;
     }
 
-    public void setSourceFolder(String sourceFolder)
+    private void setSourceFolder(String sourceFolder)
     {
         this.sourceFolder = sourceFolder;
     }
 
     // override with any special post-processing
+    @Override
     public Map<String, Object> postProcessModels(Map<String, Object> objs)
     {
         return objs;
     }
 
     // override with any special post-processing
+    @Override
     public Map<String, Object> postProcessOperations(Map<String, Object> objs)
     {
         return objs;
     }
 
     // override with any special post-processing
+    @Override
     public Map<String, Object> postProcessSupportingFileData(Map<String, Object> objs)
     {
         return objs;
     }
 
     // override with any special handling of the entire swagger spec
+    @Override
     public void processSwagger(Swagger swagger)
     {
     }
 
     // override with any special text escaping logic
+    @Override
     public String escapeText(String input)
     {
         if (input != null) {
@@ -240,133 +249,154 @@ public class ExplicitJavaClientCodegen
         return input;
     }
 
+    @Override
     public Set<String> defaultIncludes()
     {
         return defaultIncludes;
     }
 
+    @Override
     public Map<String, String> typeMapping()
     {
         return typeMapping;
     }
 
+    @Override
     public Map<String, String> instantiationTypes()
     {
         return instantiationTypes;
     }
 
+    @Override
     public Set<String> reservedWords()
     {
         return reservedWords;
     }
 
-    public Set<String> languageSpecificPrimitives()
+    private Set<String> languageSpecificPrimitives()
     {
         return languageSpecificPrimitives;
     }
 
+    @Override
     public Map<String, String> importMapping()
     {
         return importMapping;
     }
 
+    @Override
     public String modelPackage()
     {
         return modelPackage;
     }
 
+    @Override
     public String apiPackage()
     {
         return apiPackage;
     }
 
+    @Override
     public String fileSuffix()
     {
         return fileSuffix;
     }
 
+    @Override
     public String templateDir()
     {
         return templateDir;
     }
 
+    @Override
     public Map<String, String> apiTemplateFiles()
     {
         return apiTemplateFiles;
     }
 
+    @Override
     public Map<String, String> modelTemplateFiles()
     {
         return modelTemplateFiles;
     }
 
+    @Override
     public String apiFileFolder()
     {
         return outputFolder + "/" + sourceFolder + "/" + apiPackage().replace('.', File.separatorChar);
     }
 
+    @Override
     public String modelFileFolder()
     {
         return outputFolder + "/" + sourceFolder + "/" + modelPackage().replace('.', File.separatorChar);
     }
 
+    @Override
     public Map<String, Object> additionalProperties()
     {
         return additionalProperties;
     }
 
+    @Override
     public List<SupportingFile> supportingFiles()
     {
         return supportingFiles;
     }
 
+    @Override
     public String outputFolder()
     {
         return outputFolder;
     }
 
+    @Override
     public void setOutputDir(String dir)
     {
         this.outputFolder = dir;
     }
 
+    @Override
     public String getOutputDir()
     {
         return outputFolder();
     }
 
-    public void setTemplateDir(String templateDir)
+    private void setTemplateDir(String templateDir)
     {
         this.templateDir = templateDir;
     }
 
-    public void setModelPackage(String modelPackage)
+    private void setModelPackage(String modelPackage)
     {
         this.modelPackage = modelPackage;
     }
 
-    public void setApiPackage(String apiPackage)
+    private void setApiPackage(String apiPackage)
     {
         this.apiPackage = apiPackage;
     }
 
+    @Override
     public String toApiFilename(String name)
     {
         return toApiName(name);
     }
 
+    @Override
     public String toApiVarName(String name)
     {
         return snakeCase(name);
     }
 
+    @Override
     public String toModelFilename(String name)
     {
         // should be the same as the model name
         return toModelName(name);
     }
 
-    public String toOperationId(String operationId)
+    private String toOperationId(String operationId)
     {
         if (reservedWords.contains(operationId)) {
             throw new RuntimeException(operationId + " (reserved word) cannot be used as method name");
@@ -375,7 +405,7 @@ public class ExplicitJavaClientCodegen
         return camelize(operationId, true);
     }
 
-    public String toVarName(String name)
+    private String toVarName(String name)
     {
         // replace - with _ e.g. created-at => created_at
         name = name.replaceAll("-", "_");
@@ -397,22 +427,25 @@ public class ExplicitJavaClientCodegen
         return name;
     }
 
+    @Override
     public String toParamName(String name)
     {
         // should be the same as variable name
         return toVarName(name);
     }
 
-    public String toEnumName(CodegenProperty property)
+    private String toEnumName(CodegenProperty property)
     {
         return StringUtils.capitalize(property.name) + "Enum";
     }
 
+    @Override
     public String escapeReservedWord(String name)
     {
         return "_" + name;
     }
 
+    @Override
     public String toModelImport(String name)
     {
         if ("".equals(modelPackage())) {
@@ -423,6 +456,7 @@ public class ExplicitJavaClientCodegen
         }
     }
 
+    @Override
     public String toApiImport(String name)
     {
         return apiPackage() + "." + name;
@@ -565,21 +599,25 @@ public class ExplicitJavaClientCodegen
         instantiationTypes.put("map", "java.util.HashMap");
     }
 
+    @Override
     public CodegenType getTag()
     {
         return CodegenType.CLIENT;
     }
 
+    @Override
     public String getName()
     {
         return "java";
     }
 
+    @Override
     public String getHelp()
     {
         return "Generates a Java client library.";
     }
 
+    @Override
     public String generateExamplePath(String path, Operation operation)
     {
         StringBuilder sb = new StringBuilder();
@@ -636,7 +674,7 @@ public class ExplicitJavaClientCodegen
         return sb.toString();
     }
 
-    public String toInstantiationType(Property p)
+    private String toInstantiationType(Property p)
     {
         if (p instanceof MapProperty) {
             MapProperty ap = (MapProperty) p;
@@ -653,7 +691,7 @@ public class ExplicitJavaClientCodegen
         }
     }
 
-    public String toDefaultValue(Property p)
+    private String toDefaultValue(Property p)
     {
         if (p instanceof StringProperty) {
             return "null";
@@ -710,7 +748,7 @@ public class ExplicitJavaClientCodegen
         }
     }
 
-    public String getSwaggerType(Property p)
+    private String getSwaggerType(Property p)
     {
         if (p instanceof RefProperty) {
             RefProperty r = (RefProperty) p;
@@ -737,7 +775,7 @@ public class ExplicitJavaClientCodegen
     /**
      * returns the swagger type for the property
      **/
-    public String _getSwaggerType(Property p)
+    private String _getSwaggerType(Property p)
     {
         String datatype = null;
         if (p instanceof StringProperty) {
@@ -785,21 +823,23 @@ public class ExplicitJavaClientCodegen
         return datatype;
     }
 
-    public String snakeCase(String name)
+    private String snakeCase(String name)
     {
         return (name.length() > 0) ? (Character.toLowerCase(name.charAt(0)) + name.substring(1)) : "";
     }
 
-    public String initialCaps(String name)
+    private String initialCaps(String name)
     {
         return StringUtils.capitalize(name);
     }
 
+    @Override
     public String getTypeDeclaration(String name)
     {
         return name;
     }
 
+    @Override
     public String getTypeDeclaration(Property p)
     {
         if (p instanceof ArrayProperty) {
@@ -820,6 +860,7 @@ public class ExplicitJavaClientCodegen
         return swaggerType;
     }
 
+    @Override
     public String toApiName(String name)
     {
         if (name.length() == 0) {
@@ -828,6 +869,7 @@ public class ExplicitJavaClientCodegen
         return initialCaps(name) + "Api";
     }
 
+    @Override
     public String toModelName(String name)
     {
         // model name cannot use reserved keyword, e.g. return
@@ -845,6 +887,7 @@ public class ExplicitJavaClientCodegen
         return camelize(name);
     }
 
+    @Override
     public CodegenModel fromModel(String name, Model model)
     {
         CodegenModel m = CodegenModelFactory.newInstance(CodegenModelType.MODEL);
@@ -887,7 +930,7 @@ public class ExplicitJavaClientCodegen
         return m;
     }
 
-    public String getterAndSetterCapitalize(String name)
+    private String getterAndSetterCapitalize(String name)
     {
         if (name == null || name.length() == 0) {
             return name;
@@ -896,7 +939,7 @@ public class ExplicitJavaClientCodegen
         return camelize(toVarName(name));
     }
 
-    public CodegenProperty fromProperty(String name, Property p)
+    private CodegenProperty fromProperty(String name, Property p)
     {
         if (p == null) {
             LOGGER.error("unexpected missing property for name " + null);
@@ -999,7 +1042,7 @@ public class ExplicitJavaClientCodegen
         return property;
     }
 
-    protected void setNonArrayMapProperty(CodegenProperty property, String type)
+    private void setNonArrayMapProperty(CodegenProperty property, String type)
     {
         property.isNotContainer = true;
         if (languageSpecificPrimitives().contains(type)) {
@@ -1027,6 +1070,7 @@ public class ExplicitJavaClientCodegen
         return responses.get(code);
     }
 
+    @Override
     public CodegenOperation fromOperation(String path, String httpMethod, Operation operation, Map<String, Model> definitions)
     {
         CodegenOperation op = CodegenModelFactory.newInstance(CodegenModelType.OPERATION);
@@ -1043,8 +1087,8 @@ public class ExplicitJavaClientCodegen
                 // must be root tmpPath
                 builder.append("root");
             }
-            for (int i = 0; i < parts.length; i++) {
-                String part = parts[i];
+            for (String part1 : parts) {
+                String part = part1;
                 if (part.length() > 0) {
                     if (builder.toString().length() == 0) {
                         part = Character.toLowerCase(part.charAt(0)) + part.substring(1);
@@ -1238,7 +1282,7 @@ public class ExplicitJavaClientCodegen
         return op;
     }
 
-    public CodegenResponse fromResponse(String responseCode, Response response)
+    private CodegenResponse fromResponse(String responseCode, Response response)
     {
         CodegenResponse r = CodegenModelFactory.newInstance(CodegenModelType.RESPONSE);
         if ("default".equals(responseCode)) {
@@ -1292,7 +1336,7 @@ public class ExplicitJavaClientCodegen
         return r;
     }
 
-    public CodegenParameter fromParameter(Parameter param, Set<String> imports)
+    private CodegenParameter fromParameter(Parameter param, Set<String> imports)
     {
         CodegenParameter p = CodegenModelFactory.newInstance(CodegenModelType.PARAMETER);
         p.baseName = param.getName();
@@ -1419,6 +1463,7 @@ public class ExplicitJavaClientCodegen
         return p;
     }
 
+    @Override
     public List<CodegenSecurity> fromSecurity(Map<String, SecuritySchemeDefinition> schemes)
     {
         if (schemes == null) {
@@ -1454,7 +1499,7 @@ public class ExplicitJavaClientCodegen
         return secs;
     }
 
-    protected List<Map<String, Object>> toExamples(Map<String, Object> examples)
+    private List<Map<String, Object>> toExamples(Map<String, Object> examples)
     {
         if (examples == null) {
             return null;
@@ -1494,21 +1539,7 @@ public class ExplicitJavaClientCodegen
         return objs;
     }
 
-    private Map<String, Object> addHasMore(Map<String, Object> objs)
-    {
-        if (objs != null) {
-            for (int i = 0; i < objs.size() - 1; i++) {
-                if (i > 0) {
-                    objs.put("secondaryParam", true);
-                }
-                if (i < objs.size() - 1) {
-                    objs.put("hasMore", true);
-                }
-            }
-        }
-        return objs;
-    }
-
+    @Override
     public void addOperationToGroup(String tag, String resourcePath, Operation operation, CodegenOperation co, Map<String, List<CodegenOperation>> operations)
     {
         List<CodegenOperation> opList = operations.get(tag);
@@ -1538,29 +1569,6 @@ public class ExplicitJavaClientCodegen
         if (mappedType != null) {
             addImport(m, mappedType);
         }
-    }
-
-    /**
-     * Underscore the given word.
-     *
-     * @param word The word
-     * @return The underscored version of the word
-     */
-    public static String underscore(String word)
-    {
-        String firstPattern = "([A-Z]+)([A-Z][a-z])";
-        String secondPattern = "([a-z\\d])([A-Z])";
-        String replacementPattern = "$1_$2";
-        // Replace package separator with slash.
-        word = word.replaceAll("\\.", "/");
-        // Replace $ with two underscores for inner classes.
-        word = word.replaceAll("\\$", "__");
-        // Replace capital letter with _ plus lowercase letter.
-        word = word.replaceAll(firstPattern, replacementPattern);
-        word = word.replaceAll(secondPattern, replacementPattern);
-        word = word.replace('-', '_');
-        word = word.toLowerCase();
-        return word;
     }
 
     private void addImport(CodegenModel m, String type)
@@ -1609,7 +1617,7 @@ public class ExplicitJavaClientCodegen
         }
     }
 
-    public static String camelize(String word)
+    private static String camelize(String word)
     {
         return camelize(word, false);
     }
@@ -1620,7 +1628,7 @@ public class ExplicitJavaClientCodegen
      * @param name
      * @return
      */
-    public String removeNonNameElementToCamelCase(String name)
+    private String removeNonNameElementToCamelCase(String name)
     {
         String nonNameElementPattern = "[-_:;#]";
         name = StringUtils.join(Lists.transform(Lists.newArrayList(name.split(nonNameElementPattern)), new Function<String, String>()
@@ -1638,7 +1646,7 @@ public class ExplicitJavaClientCodegen
         return name;
     }
 
-    public static String camelize(String word, boolean lowercaseFirstLetter)
+    private static String camelize(String word, boolean lowercaseFirstLetter)
     {
         // Replace all slashes with dots (package separator)
         Pattern p = Pattern.compile("\\/(.?)");
@@ -1696,12 +1704,14 @@ public class ExplicitJavaClientCodegen
         return word;
     }
 
+    @Override
     public String apiFilename(String templateName, String tag)
     {
         String suffix = apiTemplateFiles().get(templateName);
         return apiFileFolder() + File.separator + toApiFilename(tag) + suffix;
     }
 
+    @Override
     public boolean shouldOverwrite(String filename)
     {
         return true;
