@@ -91,19 +91,19 @@ public class ExplicitJavaClientCodegen
     private static final Logger LOGGER = LoggerFactory.getLogger(ExplicitJavaClientCodegen.class);
 
     protected String outputFolder = "";
-    protected Set<String> defaultIncludes = new HashSet<String>();
-    protected Map<String, String> typeMapping = new HashMap<String, String>();
-    protected Map<String, String> instantiationTypes = new HashMap<String, String>();
-    protected Set<String> reservedWords = new HashSet<String>();
-    protected Set<String> languageSpecificPrimitives = new HashSet<String>();
-    protected Map<String, String> importMapping = new HashMap<String, String>();
+    protected Set<String> defaultIncludes = new HashSet<>();
+    protected Map<String, String> typeMapping = new HashMap<>();
+    protected Map<String, String> instantiationTypes = new HashMap<>();
+    protected Set<String> reservedWords = new HashSet<>();
+    protected Set<String> languageSpecificPrimitives = new HashSet<>();
+    protected Map<String, String> importMapping = new HashMap<>();
     protected String modelPackage = "", apiPackage = "", fileSuffix;
-    protected Map<String, String> apiTemplateFiles = new HashMap<String, String>();
-    protected Map<String, String> modelTemplateFiles = new HashMap<String, String>();
+    protected Map<String, String> apiTemplateFiles = new HashMap<>();
+    protected Map<String, String> modelTemplateFiles = new HashMap<>();
     protected String templateDir;
-    protected Map<String, Object> additionalProperties = new HashMap<String, Object>();
-    protected List<SupportingFile> supportingFiles = new ArrayList<SupportingFile>();
-    protected List<CliOption> cliOptions = new ArrayList<CliOption>();
+    protected Map<String, Object> additionalProperties = new HashMap<>();
+    protected List<SupportingFile> supportingFiles = new ArrayList<>();
+    protected List<CliOption> cliOptions = new ArrayList<>();
 
     protected String invokerPackage = "io.swagger.client";
     protected String groupId = "io.swagger";
@@ -380,7 +380,7 @@ public class ExplicitJavaClientCodegen
         // replace - with _ e.g. created-at => created_at
         name = name.replaceAll("-", "_");
 
-        // if it's all uppper case, do nothing
+        // if it's all upper case, do nothing
         if (name.matches("^[A-Z_]*$")) {
             return name;
         }
@@ -430,7 +430,7 @@ public class ExplicitJavaClientCodegen
 
     public ExplicitJavaClientCodegen()
     {
-        defaultIncludes = new HashSet<String>(
+        defaultIncludes = new HashSet<>(
                 Arrays.asList("double",
                         "int",
                         "long",
@@ -447,7 +447,7 @@ public class ExplicitJavaClientCodegen
                         "Float")
         );
 
-        typeMapping = new HashMap<String, String>();
+        typeMapping = new HashMap<>();
         typeMapping.put("array", "List");
         typeMapping.put("map", "Map");
         typeMapping.put("List", "List");
@@ -464,11 +464,11 @@ public class ExplicitJavaClientCodegen
         typeMapping.put("object", "Object");
         typeMapping.put("integer", "Integer");
 
-        instantiationTypes = new HashMap<String, String>();
+        instantiationTypes = new HashMap<>();
 
-        reservedWords = new HashSet<String>();
+        reservedWords = new HashSet<>();
 
-        importMapping = new HashMap<String, String>();
+        importMapping = new HashMap<>();
         importMapping.put("BigDecimal", "java.math.BigDecimal");
         importMapping.put("UUID", "java.util.UUID");
         importMapping.put("File", "java.io.File");
@@ -495,7 +495,7 @@ public class ExplicitJavaClientCodegen
         apiPackage = "io.swagger.client.api";
         modelPackage = "io.swagger.client.model";
 
-        reservedWords = new HashSet<String>(
+        reservedWords = new HashSet<>(
                 Arrays.asList(
                         "abstract", "continue", "for", "new", "switch", "assert",
                         "default", "if", "package", "synchronized", "boolean", "do", "goto", "private",
@@ -506,7 +506,7 @@ public class ExplicitJavaClientCodegen
                         "native", "super", "while")
         );
 
-        languageSpecificPrimitives = new HashSet<String>(
+        languageSpecificPrimitives = new HashSet<>(
                 Arrays.asList(
                         "java.lang.String",
                         "boolean",
@@ -922,7 +922,7 @@ public class ExplicitJavaClientCodegen
             property.exclusiveMaximum = np.getExclusiveMaximum();
 
             // legacy support
-            Map<String, Object> allowableValues = new HashMap<String, Object>();
+            Map<String, Object> allowableValues = new HashMap<>();
             if (np.getMinimum() != null) {
                 allowableValues.put("min", np.getMinimum());
             }
@@ -943,7 +943,7 @@ public class ExplicitJavaClientCodegen
                 property.isEnum = true;
 
                 // legacy support
-                Map<String, Object> allowableValues = new HashMap<String, Object>();
+                Map<String, Object> allowableValues = new HashMap<>();
                 allowableValues.put("values", _enum);
                 property.allowableValues = allowableValues;
             }
@@ -1030,7 +1030,7 @@ public class ExplicitJavaClientCodegen
     public CodegenOperation fromOperation(String path, String httpMethod, Operation operation, Map<String, Model> definitions)
     {
         CodegenOperation op = CodegenModelFactory.newInstance(CodegenModelType.OPERATION);
-        Set<String> imports = new HashSet<String>();
+        Set<String> imports = new HashSet<>();
 
         String operationId = operation.getOperationId();
         if (operationId == null) {
@@ -1066,10 +1066,10 @@ public class ExplicitJavaClientCodegen
         op.tags = operation.getTags();
 
         if (operation.getConsumes() != null && operation.getConsumes().size() > 0) {
-            List<Map<String, String>> c = new ArrayList<Map<String, String>>();
+            List<Map<String, String>> c = new ArrayList<>();
             int count = 0;
             for (String key : operation.getConsumes()) {
-                Map<String, String> mediaType = new HashMap<String, String>();
+                Map<String, String> mediaType = new HashMap<>();
                 mediaType.put("mediaType", key);
                 count += 1;
                 if (count < operation.getConsumes().size()) {
@@ -1085,10 +1085,10 @@ public class ExplicitJavaClientCodegen
         }
 
         if (operation.getProduces() != null && operation.getProduces().size() > 0) {
-            List<Map<String, String>> c = new ArrayList<Map<String, String>>();
+            List<Map<String, String>> c = new ArrayList<>();
             int count = 0;
             for (String key : operation.getProduces()) {
-                Map<String, String> mediaType = new HashMap<String, String>();
+                Map<String, String> mediaType = new HashMap<>();
                 mediaType.put("mediaType", key);
                 count += 1;
                 if (count < operation.getProduces().size()) {
@@ -1167,37 +1167,37 @@ public class ExplicitJavaClientCodegen
 
         List<Parameter> parameters = operation.getParameters();
         CodegenParameter bodyParam = null;
-        List<CodegenParameter> allParams = new ArrayList<CodegenParameter>();
-        List<CodegenParameter> bodyParams = new ArrayList<CodegenParameter>();
-        List<CodegenParameter> pathParams = new ArrayList<CodegenParameter>();
-        List<CodegenParameter> queryParams = new ArrayList<CodegenParameter>();
-        List<CodegenParameter> headerParams = new ArrayList<CodegenParameter>();
-        List<CodegenParameter> cookieParams = new ArrayList<CodegenParameter>();
-        List<CodegenParameter> formParams = new ArrayList<CodegenParameter>();
+        List<CodegenParameter> allParams = new ArrayList<>();
+        List<CodegenParameter> bodyParams = new ArrayList<>();
+        List<CodegenParameter> pathParams = new ArrayList<>();
+        List<CodegenParameter> queryParams = new ArrayList<>();
+        List<CodegenParameter> headerParams = new ArrayList<>();
+        List<CodegenParameter> cookieParams = new ArrayList<>();
+        List<CodegenParameter> formParams = new ArrayList<>();
 
         if (parameters != null) {
             for (Parameter param : parameters) {
                 CodegenParameter p = fromParameter(param, imports);
                 allParams.add(p);
                 if (param instanceof QueryParameter) {
-                    p.isQueryParam = new Boolean(true);
+                    p.isQueryParam = true;
                     queryParams.add(p.copy());
                 }
                 else if (param instanceof PathParameter) {
                     p.required = true;
-                    p.isPathParam = new Boolean(true);
+                    p.isPathParam = true;
                     pathParams.add(p.copy());
                 }
                 else if (param instanceof HeaderParameter) {
-                    p.isHeaderParam = new Boolean(true);
+                    p.isHeaderParam = true;
                     headerParams.add(p.copy());
                 }
                 else if (param instanceof CookieParameter) {
-                    p.isCookieParam = new Boolean(true);
+                    p.isCookieParam = true;
                     cookieParams.add(p.copy());
                 }
                 else if (param instanceof BodyParameter) {
-                    p.isBodyParam = new Boolean(true);
+                    p.isBodyParam = true;
                     bodyParam = p;
                     bodyParams.add(p.copy());
                 }
@@ -1208,7 +1208,7 @@ public class ExplicitJavaClientCodegen
                     else {
                         p.notFile = true;
                     }
-                    p.isFormParam = new Boolean(true);
+                    p.isFormParam = true;
                     formParams.add(p.copy());
                 }
             }
@@ -1425,7 +1425,7 @@ public class ExplicitJavaClientCodegen
             return null;
         }
 
-        List<CodegenSecurity> secs = new ArrayList<CodegenSecurity>(schemes.size());
+        List<CodegenSecurity> secs = new ArrayList<>(schemes.size());
         for (Iterator<Map.Entry<String, SecuritySchemeDefinition>> it = schemes.entrySet().iterator(); it.hasNext(); ) {
             final Map.Entry<String, SecuritySchemeDefinition> entry = it.next();
             final SecuritySchemeDefinition schemeDefinition = entry.getValue();
@@ -1460,9 +1460,9 @@ public class ExplicitJavaClientCodegen
             return null;
         }
 
-        final List<Map<String, Object>> output = new ArrayList<Map<String, Object>>(examples.size());
+        final List<Map<String, Object>> output = new ArrayList<>(examples.size());
         for (Map.Entry<String, Object> entry : examples.entrySet()) {
-            final Map<String, Object> kv = new HashMap<String, Object>();
+            final Map<String, Object> kv = new HashMap<>();
             kv.put("contentType", entry.getKey());
             kv.put("example", entry.getValue());
             output.add(kv);
@@ -1484,10 +1484,10 @@ public class ExplicitJavaClientCodegen
         if (objs != null) {
             for (int i = 0; i < objs.size(); i++) {
                 if (i > 0) {
-                    objs.get(i).secondaryParam = new Boolean(true);
+                    objs.get(i).secondaryParam = true;
                 }
                 if (i < objs.size() - 1) {
-                    objs.get(i).hasMore = new Boolean(true);
+                    objs.get(i).hasMore = true;
                 }
             }
         }
@@ -1499,7 +1499,7 @@ public class ExplicitJavaClientCodegen
         if (objs != null) {
             for (int i = 0; i < objs.size() - 1; i++) {
                 if (i > 0) {
-                    objs.put("secondaryParam", new Boolean(true));
+                    objs.put("secondaryParam", true);
                 }
                 if (i < objs.size() - 1) {
                     objs.put("hasMore", true);
@@ -1513,7 +1513,7 @@ public class ExplicitJavaClientCodegen
     {
         List<CodegenOperation> opList = operations.get(tag);
         if (opList == null) {
-            opList = new ArrayList<CodegenOperation>();
+            opList = new ArrayList<>();
             operations.put(tag, opList);
         }
         opList.add(co);
@@ -1576,7 +1576,7 @@ public class ExplicitJavaClientCodegen
             m.hasVars = true;
             m.hasEnums = false;
             final int totalCount = properties.size();
-            final Set<String> mandatory = required == null ? Collections.<String>emptySet() : new HashSet<String>(required);
+            final Set<String> mandatory = required == null ? Collections.<String>emptySet() : new HashSet<>(required);
             int count = 0;
             for (Map.Entry<String, Property> entry : properties.entrySet()) {
                 final String key = entry.getKey();
