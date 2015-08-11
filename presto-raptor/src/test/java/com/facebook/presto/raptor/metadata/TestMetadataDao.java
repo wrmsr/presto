@@ -53,11 +53,11 @@ public class TestMetadataDao
     {
         Long columnId = 1L;
         long tableId = dao.insertTable("default", "table1");
-        dao.insertColumn(tableId, columnId, "col1", 1, "bigint");
+        dao.insertColumn(tableId, columnId, "col1", 1, "bigint", null);
         Long temporalColumnId = dao.getTemporalColumnId(tableId);
         assertNull(temporalColumnId);
 
-        dao.updateTemporalColumnId(columnId, tableId);
+        dao.updateTemporalColumnId(tableId, columnId);
         temporalColumnId = dao.getTemporalColumnId(tableId);
         assertNotNull(temporalColumnId);
         assertEquals(temporalColumnId, columnId);
