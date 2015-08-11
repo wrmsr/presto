@@ -494,6 +494,7 @@ on rows:
    - row_array? :p
 
 http://www.datastax.com/dev/blog/advanced-time-series-with-cassandra
+https://academy.datastax.com/demos/getting-started-time-series-data-modeling
 http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
 riak crdt's
 https://github.com/FasterXML/jackson-module-swagger
@@ -1250,3 +1251,4 @@ https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html#Main_Attribu
 http://www.bittorrent.org/beps/bep_0005.html
 
 
+https://zookeeper.apache.org/doc/trunk/zookeeperReconfig.html
