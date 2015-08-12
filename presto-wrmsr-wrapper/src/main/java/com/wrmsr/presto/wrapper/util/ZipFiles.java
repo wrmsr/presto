@@ -88,8 +88,7 @@ public class ZipFiles
         return swapEndian(f.readInt());
     }
 
-    public static long getPreambleLength(File file)
-            throws Throwable
+    public static long getPreambleLength(File file) throws IOException
     {
         RandomAccessFile f = new RandomAccessFile(file, "r");
         long fileLength = f.length();
@@ -154,13 +153,15 @@ public class ZipFiles
 
         // Verify that they look reasonable.
         if (dirOffset + dirSize > fileLength) {
-            throw new RuntimeException("bad offsets (dir " + dirOffset + ", size " + dirSize + ", eocd " + eocdIdx + ")");
+            throw new IOException("bad offsets (dir " + dirOffset + ", size " + dirSize + ", eocd " + eocdIdx + ")");
         }
         if (numEntries == 0) {
-            throw new RuntimeException("empty archive?");
+            throw new IOException("empty archive?");
         }
 
         long numExtraBytes = file.length() - (dirSize + dirOffset + 22);
+
+        // TODO check sig
         return numExtraBytes;
 
 //        // if (LOGV) {

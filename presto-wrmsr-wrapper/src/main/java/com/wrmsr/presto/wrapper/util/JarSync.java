@@ -24,7 +24,9 @@ import com.wrmsr.presto.util.Serialization;
 
 import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -195,7 +197,24 @@ public class JarSync
             File file = new File(zipFile.getName());
             name = file.getName();
             isExecutable = file.canExecute();
-            preamble = null;
+            try {
+                long preambleLength = ZipFiles.getPreambleLength(file);
+                if (preambleLength > 0) {
+                    byte[] preamble = new byte[(int) preambleLength];
+                    try (InputStream is = new FileInputStream(file)) {
+                        if (is.read(preamble) != preambleLength) {
+                            throw new IOException("Failed to read preamble");
+                        }
+                    }
+                    this.preamble = preamble;
+                }
+                else {
+                    this.preamble = null;
+                }
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
             ImmutableList.Builder<Entry> builder = ImmutableList.builder();
             Enumeration<? extends ZipEntry> zipEntries;
             for (zipEntries = zipFile.entries(); zipEntries.hasMoreElements(); ) {
@@ -210,6 +229,18 @@ public class JarSync
         public String getName()
         {
             return name;
+        }
+
+        @JsonProperty
+        public boolean isExecutable()
+        {
+            return isExecutable;
+        }
+
+        @JsonProperty
+        public byte[] getPreamble()
+        {
+            return preamble;
         }
 
         @JsonProperty
@@ -280,7 +311,6 @@ public class JarSync
             throws Throwable
     {
         File jarFile = new File("/Users/spinlock/presto/presto");
-        System.out.println(ZipFiles.getPreambleLength(jarFile));
         ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
         try (ZipFile zipFile = new ZipFile(jarFile)) {
             Manifest manifest = new Manifest(zipFile);
