@@ -21,6 +21,7 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.server.PluginManager;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Module;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
@@ -66,6 +67,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -148,6 +150,11 @@ public class MainPlugin
     {
         this.featuresConfig = featuresConfig;
     }
+
+    public static final Set<String> KNOWN_MODULE_NAMES = ImmutableSet.of(
+            "aws",
+            "hadoop"
+    );
 
     public static class FileConfig
     {
