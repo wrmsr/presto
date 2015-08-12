@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 set -e
-mvn clean package install -Denforcer.skip=true -Dmaven.test.skip=true -Dmdep.skip=true -Dmdep.analyze.skip=true -DignoreNonCompile=true -Dlicense.skip=true -Dair.check.skip-all=true -e -Dair.check.skip-checkstyle=true -Dair.check.skip-license=true
-mvn -pl presto-wrmsr-wrapper-builder exec:java
-
+unamestr=`uname`
+if [[ "$unamestr" == 'Linux' ]]; then
+    MVN=./mvnw
+else
+    MVN=mvn
+fi
+find ~/.m2/repository/com/facebook/presto -name '*.lastUpdated' -delete
+VERSION=$(egrep '<version>[0-9\.]+-SNAPSHOT</version>' pom.xml | head -n 1 | egrep -o '[0-9\.]+-SNAPSHOT')
+for PRJ in presto-parser presto-main presto-hive ; do
+    JAR_DIR="$HOME/.m2/repository/com/facebook/presto/$PRJ"
+    mkdir -p "$JAR_DIR"
+    JAR_PATH="$JAR_DIR/$PRJ-$VERSION-tests.jar"
+    touch "$JAR_PATH"
+done
+"$MVN" -X clean package install -Denforcer.skip=true -Dmaven.test.skip=true -Dmdep.skip=true -Dmdep.analyze.skip=true -DignoreNonCompile=true -Dlicense.skip=true -Dair.check.skip-all=true -e -Dair.check.skip-checkstyle=true -Dair.check.skip-license=true
+"$MVN" -pl presto-wrmsr-wrapper-builder exec:java
