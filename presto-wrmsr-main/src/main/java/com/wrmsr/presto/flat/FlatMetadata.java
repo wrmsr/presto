@@ -61,7 +61,7 @@ public class FlatMetadata
     public static final ConnectorTableMetadata TABLE_METADATA = new ConnectorTableMetadata(
             SCHEMA_TABLE_NAME,
             ImmutableList.of(COLUMN_METADATA),
-            null,
+            ImmutableMap.of(),
             null,
             false
     );

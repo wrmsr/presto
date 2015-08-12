@@ -156,7 +156,9 @@ public class MainPlugin
         public final Map<String, String> log = ImmutableMap.of();
         public final List<String> plugins = ImmutableList.of();
         public final Map<String, Object> connectors = ImmutableMap.of();
-        public final List<StructManager.StructDefinition> structs = ImmutableList.of();
+
+        // FIXME gp plugin section
+        // public final Map<String, Object> awsProfiles = ImmutableMap.of();
     }
 
     public void installConfig(FileConfig fileConfig, StructManager structManager)
@@ -188,11 +190,6 @@ public class MainPlugin
                     ((ExtendedJdbcClient) client).runInitScripts();
                 }
             }
-        }
-
-        for (StructManager.StructDefinition structDefinition : fileConfig.structs) {
-            RowType rowType = structManager.buildRowType(structDefinition);
-            structManager.registerStruct(rowType);
         }
     }
 

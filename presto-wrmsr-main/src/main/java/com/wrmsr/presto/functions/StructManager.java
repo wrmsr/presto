@@ -629,6 +629,7 @@ public class StructManager
         }
     }
 
+    // FIXME delete
     public static class StructDefinition
     {
         public static class Field
