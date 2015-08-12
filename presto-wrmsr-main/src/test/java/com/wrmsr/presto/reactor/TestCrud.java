@@ -132,6 +132,7 @@ public class TestCrud
         BaseJdbcClient jdbcClient = (BaseJdbcClient) jdbcMetadata.getJdbcClient();
         try (Connection connection = jdbcClient.getConnection()) {
             connection.createStatement().execute("CREATE SCHEMA example");
+            // connection.createStatement().execute("CREATE TABLE example.foo (id integer primary key)");
         }
 
         ConnectorOutputTableHandle oth = metadata.beginCreateTable(session, new ConnectorTableMetadata(
@@ -153,7 +154,7 @@ public class TestCrud
 
         oth = new JdbcOutputTableHandle(
                 "test",
-                "example",
+                null,
                 "example",
                 "foo",
                 cms.stream().map(ColumnMetadata::getName).collect(toImmutableList()),
