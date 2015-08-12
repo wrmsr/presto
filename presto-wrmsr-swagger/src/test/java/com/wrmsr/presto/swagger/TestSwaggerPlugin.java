@@ -13,9 +13,6 @@
  */
 package com.wrmsr.presto.swagger;
 
-import config.Config;
-import config.ConfigParser;
-import io.swagger.codegen.CliOption;
 import io.swagger.codegen.ClientOptInput;
 import io.swagger.codegen.ClientOpts;
 import io.swagger.codegen.CodegenConfig;
@@ -24,21 +21,24 @@ import io.swagger.models.Swagger;
 import io.swagger.parser.SwaggerParser;
 import org.testng.annotations.Test;
 
-import javax.script.Bindings;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
-import javax.script.SimpleBindings;
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
+
 import java.io.File;
-import java.util.ArrayList;
+import java.io.FilenameFilter;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.ServiceLoader;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static java.util.ServiceLoader.load;
 
 public class TestSwaggerPlugin
 {
-    private static CodegenConfig forName(String name) {
+    private static CodegenConfig forName(String name)
+    {
         ServiceLoader<CodegenConfig> loader = load(CodegenConfig.class);
         for (CodegenConfig config : loader) {
             if (config.getName().equals(name)) {
@@ -49,13 +49,15 @@ public class TestSwaggerPlugin
         // else try to load directly
         try {
             return (CodegenConfig) Class.forName(name).newInstance();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException("Can't load config class with name ".concat(name), e);
         }
     }
 
     @Test
-    public void testStuff() throws Throwable
+    public void testStuff()
+            throws Throwable
     {
         // javax.tools.JavaCompiler
 
@@ -64,9 +66,11 @@ public class TestSwaggerPlugin
         // if (isNotEmpty(auth)) {
         //     input.setAuth(auth);
         // }
+        File root = Files.createTempDirectory(null).toFile();
+        root.deleteOnExit(); // FIXME OSX EXECVE SEGFAULT
 
         CodegenConfig config = new ExplicitJavaClientCodegen();
-        config.setOutputDir(new File(System.getProperty("user.home") + "/thing").getAbsolutePath());
+        config.setOutputDir(root.getAbsolutePath());
 
         // if (null != templateDir) {
         //     config.additionalProperties().put(TEMPLATE_DIR_PARAM, new File(templateDir).getAbsolutePath());
@@ -94,5 +98,21 @@ public class TestSwaggerPlugin
 
         // compile with own classpath in child classloader
 
+        // Prepare source somehow.
+
+        // Save source in .java file.
+
+        // Compile source file.
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        List<File> sourceFiles = newArrayList(root.listFiles((dir, filename) -> filename.endsWith(".java")));
+        for (File sourceFile : sourceFiles) {
+            compiler.run(null, null, null, sourceFile.getPath());
+        }
+
+        // Load and instantiate compiled class.
+        URLClassLoader classLoader = URLClassLoader.newInstance(new URL[] {root.toURI().toURL()});
+        Class<?> cls = Class.forName("test.Test", true, classLoader); // Should print "hello".
+        Object instance = cls.newInstance(); // Should print "world".
+        System.out.println(instance); // Should print "test.Test@hashcode".
     }
 }
