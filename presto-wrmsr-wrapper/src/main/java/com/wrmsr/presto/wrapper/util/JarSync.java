@@ -310,6 +310,7 @@ public class JarSync
     public static void main(String[] args)
             throws Throwable
     {
+        // https://docs.oracle.com/javase/7/docs/api/java/io/PipedOutputStream.html
         File jarFile = new File("/Users/spinlock/presto/presto");
         ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
         try (ZipFile zipFile = new ZipFile(jarFile)) {
