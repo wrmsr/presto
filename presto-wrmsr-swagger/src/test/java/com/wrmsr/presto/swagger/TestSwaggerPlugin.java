@@ -113,9 +113,13 @@ public class TestSwaggerPlugin
                         .filter(f -> f.toAbsolutePath().toString().endsWith(".java"))
                         .map(f -> f.toFile())
                         .collect(Collectors.toList());
-        for (File sourceFile : sourceFiles) {
-            compiler.run(null, null, null, "-source", "1.5", sourceFile.getPath());
-        }
+
+        List<String> args = newArrayList(
+                "-Xlint:-options",
+                "-source", "1.5"
+        );
+        args.addAll(sourceFiles.stream().map(f -> f.getPath()).collect(Collectors.toList()));
+        compiler.run(null, null, null, args.toArray(new String[args.size()]));
 
         // Load and instantiate compiled class.
         URLClassLoader classLoader = URLClassLoader.newInstance(new URL[] {sourceRoot.toURI().toURL()});
