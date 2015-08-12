@@ -103,21 +103,22 @@ public class TestSwaggerPlugin
         // Prepare source somehow.
 
         // Save source in .java file.
+        File sourceRoot = new File(root, "src/main/java");
 
         // Compile source file.
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         List<File> sourceFiles =
-                Files.walk(root.toPath())
+                Files.walk(sourceRoot.toPath())
                         .filter(Files::isRegularFile)
                         .filter(f -> f.toAbsolutePath().toString().endsWith(".java"))
                         .map(f -> f.toFile())
                         .collect(Collectors.toList());
         for (File sourceFile : sourceFiles) {
-            compiler.run(null, null, null, sourceFile.getPath());
+            compiler.run(null, null, null, "-source", "1.5", sourceFile.getPath());
         }
 
         // Load and instantiate compiled class.
-        URLClassLoader classLoader = URLClassLoader.newInstance(new URL[] {root.toURI().toURL()});
+        URLClassLoader classLoader = URLClassLoader.newInstance(new URL[] {sourceRoot.toURI().toURL()});
         Class<?> cls = Class.forName("test.Test", true, classLoader); // Should print "hello".
         Object instance = cls.newInstance(); // Should print "world".
         System.out.println(instance); // Should print "test.Test@hashcode".
