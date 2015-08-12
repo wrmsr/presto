@@ -280,7 +280,7 @@ public class JarSync
             throws Throwable
     {
         File jarFile = new File("/Users/spinlock/presto/presto");
-        ZipFiles.getPreamble(jarFile);
+        System.out.println(ZipFiles.getPreambleLength(jarFile));
         ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
         try (ZipFile zipFile = new ZipFile(jarFile)) {
             Manifest manifest = new Manifest(zipFile);

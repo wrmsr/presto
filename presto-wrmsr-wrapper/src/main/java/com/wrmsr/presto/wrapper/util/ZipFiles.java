@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 // http://www.onicos.com/staff/iz/formats/zip.html
+// http://result42.com/projects/ZipFileLayout
 package com.wrmsr.presto.wrapper.util;
 
 import java.io.File;
@@ -87,7 +88,7 @@ public class ZipFiles
         return swapEndian(f.readInt());
     }
 
-    public static void getPreamble(File file)
+    public static long getPreambleLength(File file)
             throws Throwable
     {
         RandomAccessFile f = new RandomAccessFile(file, "r");
@@ -150,7 +151,6 @@ public class ZipFiles
         int numEntries = bbuf.getShort(eocdIdx + kEOCDNumEntries);
         long dirSize = bbuf.getInt(eocdIdx + kEOCDSize) & 0xffffffffL;
         long dirOffset = bbuf.getInt(eocdIdx + kEOCDFileOffset) & 0xffffffffL;
-        // ^^ need to offset by the len of the preamble... lols.
 
         // Verify that they look reasonable.
         if (dirOffset + dirSize > fileLength) {
@@ -160,67 +160,68 @@ public class ZipFiles
             throw new RuntimeException("empty archive?");
         }
 
-        // if (LOGV) {
-        // "+++ numEntries=" + numEntries + " dirSize=" + dirSize + " dirOffset=" + dirOffset);
-        // }
+        long numExtraBytes = file.length() - (dirSize + dirOffset + 22);
+        return numExtraBytes;
 
-        MappedByteBuffer directoryMap = f.getChannel()
-                .map(FileChannel.MapMode.READ_ONLY, dirOffset, dirSize);
-        directoryMap.order(ByteOrder.LITTLE_ENDIAN);
-
-        byte[] tempBuf = new byte[0xffff];
-
-        /*
-         * Walk through the central directory, adding entries to the hash table.
-         */
-
-        int currentOffset = 0;
-
-        /*
-         * Allocate the local directory information
-         */
-        ByteBuffer buf = ByteBuffer.allocate(kLFHLen);
-        buf.order(ByteOrder.LITTLE_ENDIAN);
-
-        for (int i = 0; i < numEntries; i++) {
-            if (directoryMap.getInt(currentOffset) != kCDESignature) {
-                throw new IOException("Missed a central dir sig (at " + currentOffset + ")");
-            }
-
-            /* useful stuff from the directory entry */
-            int fileNameLen = directoryMap.getShort(currentOffset + kCDENameLen) & 0xffff;
-            int extraLen = directoryMap.getShort(currentOffset + kCDEExtraLen) & 0xffff;
-            int commentLen = directoryMap.getShort(currentOffset + kCDECommentLen) & 0xffff;
-
-            /* get the CDE filename */
-
-            directoryMap.position(currentOffset + kCDELen);
-            directoryMap.get(tempBuf, 0, fileNameLen);
-            directoryMap.position(0);
-
-            /* UTF-8 on Android */
-            String str = new String(tempBuf, 0, fileNameLen);
-            // if (LOGV) {
-            //     Log.v(LOG_TAG, "Filename: " + str);
-            // }
-
-            // ZipEntryRO ze = new ZipEntryRO(zipFileName, file, str);
-            int mMethod = directoryMap.getShort(currentOffset + kCDEMethod) & 0xffff;
-            long mWhenModified = directoryMap.getInt(currentOffset + kCDEModWhen) & 0xffffffffL;
-            long mCRC32 = directoryMap.getLong(currentOffset + kCDECRC) & 0xffffffffL;
-            long mCompressedLength = directoryMap.getLong(currentOffset + kCDECompLen) & 0xffffffffL;
-            long mUncompressedLength = directoryMap.getLong(currentOffset + kCDEUncompLen) & 0xffffffffL;
-            long mLocalHdrOffset = directoryMap.getInt(currentOffset + kCDELocalOffset) & 0xffffffffL;
-
-            // set the offsets
-            buf.clear();
-            // ze.setOffsetFromFile(f, buf);
-
-            // put file into hash
-            // mHashMap.put(str, ze);
-
-            // go to next directory entry
-            currentOffset += kCDELen + fileNameLen + extraLen + commentLen;
-        }
+//        // if (LOGV) {
+//        // "+++ numEntries=" + numEntries + " dirSize=" + dirSize + " dirOffset=" + dirOffset);
+//        // }
+//
+//        MappedByteBuffer directoryMap = f.getChannel()
+//                .map(FileChannel.MapMode.READ_ONLY, dirOffset, dirSize);
+//        directoryMap.order(ByteOrder.LITTLE_ENDIAN);
+//
+//        byte[] tempBuf = new byte[0xffff];
+//
+//        /*
+//         * Walk through the central directory, adding entries to the hash table.
+//         */
+//
+//        int currentOffset = 0;
+//
+//        /*
+//         * Allocate the local directory information
+//         */
+//        ByteBuffer buf = ByteBuffer.allocate(kLFHLen);
+//        buf.order(ByteOrder.LITTLE_ENDIAN);
+//
+//
+//        for (int i = 0; i < numEntries; i++) {
+//            if (directoryMap.getInt(currentOffset) != kCDESignature) {
+//                throw new IOException("Missed a central dir sig (at " + currentOffset + ")");
+//            }
+//
+//            /* useful stuff from the directory entry */
+//            int fileNameLen = directoryMap.getShort(currentOffset + kCDENameLen) & 0xffff;
+//            int extraLen = directoryMap.getShort(currentOffset + kCDEExtraLen) & 0xffff;
+//            int commentLen = directoryMap.getShort(currentOffset + kCDECommentLen) & 0xffff;
+//
+//            directoryMap.position(currentOffset + kCDELen);
+//            directoryMap.get(tempBuf, 0, fileNameLen);
+//            directoryMap.position(0);
+//
+//            String str = new String(tempBuf, 0, fileNameLen);
+//            // if (LOGV) {
+//            //     Log.v(LOG_TAG, "Filename: " + str);
+//            // }
+//
+//            // ZipEntryRO ze = new ZipEntryRO(zipFileName, file, str);
+//            int mMethod = directoryMap.getShort(currentOffset + kCDEMethod) & 0xffff;
+//            long mWhenModified = directoryMap.getInt(currentOffset + kCDEModWhen) & 0xffffffffL;
+//            long mCRC32 = directoryMap.getLong(currentOffset + kCDECRC) & 0xffffffffL;
+//            long mCompressedLength = directoryMap.getLong(currentOffset + kCDECompLen) & 0xffffffffL;
+//            long mUncompressedLength = directoryMap.getLong(currentOffset + kCDEUncompLen) & 0xffffffffL;
+//            long mLocalHdrOffset = directoryMap.getInt(currentOffset + kCDELocalOffset) & 0xffffffffL;
+//
+//            // set the offsets
+//            buf.clear();
+//            // ze.setOffsetFromFile(f, buf);
+//
+//            // put file into hash
+//            // mHashMap.put(str, ze);
+//
+//            // go to next directory entry
+//            currentOffset += kCDELen + fileNameLen + extraLen + commentLen;
+//        }
     }
 }
