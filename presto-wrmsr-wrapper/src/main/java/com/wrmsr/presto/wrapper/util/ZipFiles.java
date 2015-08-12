@@ -150,6 +150,7 @@ public class ZipFiles
         int numEntries = bbuf.getShort(eocdIdx + kEOCDNumEntries);
         long dirSize = bbuf.getInt(eocdIdx + kEOCDSize) & 0xffffffffL;
         long dirOffset = bbuf.getInt(eocdIdx + kEOCDFileOffset) & 0xffffffffL;
+        // ^^ need to offset by the len of the preamble... lols.
 
         // Verify that they look reasonable.
         if (dirOffset + dirSize > fileLength) {
