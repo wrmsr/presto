@@ -29,8 +29,10 @@ import java.io.FilenameFilter;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.ServiceLoader.load;
@@ -104,7 +106,12 @@ public class TestSwaggerPlugin
 
         // Compile source file.
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        List<File> sourceFiles = newArrayList(root.listFiles((dir, filename) -> filename.endsWith(".java")));
+        List<File> sourceFiles =
+                Files.walk(root.toPath())
+                        .filter(Files::isRegularFile)
+                        .filter(f -> f.toAbsolutePath().toString().endsWith(".java"))
+                        .map(f -> f.toFile())
+                        .collect(Collectors.toList());
         for (File sourceFile : sourceFiles) {
             compiler.run(null, null, null, sourceFile.getPath());
         }
