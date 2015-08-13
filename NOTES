@@ -1297,3 +1297,5 @@ cmds: hdfs ec2 s3
 sigbus is probs repo deleteOnExit firing before finalizers or some shit run or something, death pact cleaner bash child proc would probs do it
  - will need to open each file individually, just listen on stdin and open shit
  bash -c 'while IFS= read -r FILE; do exec {FD}<"$FILE" 2>/dev/null; done'
+
+uh graphql? wat

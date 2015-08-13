@@ -304,6 +304,16 @@ public class JarSync
         }
     }
 
+    public static class SourceDriver
+    {
+
+    }
+
+    public static class SinkDriver
+    {
+
+    }
+
     public static void main(String[] args)
             throws Throwable
     {
