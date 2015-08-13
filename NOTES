@@ -1292,3 +1292,5 @@ ssh subprocess fallback
 default to presto.yaml | presto.json if not given a -c
 :%s/wrapper/launcher/g
 
+cmds: hdfs ec2 s3
+? yarn emr

@@ -107,8 +107,8 @@
         <module>presto-wrmsr-mesos</module>
         <module>presto-wrmsr-swagger</module>
         <module>presto-wrmsr-utils</module>
-        <module>presto-wrmsr-wrapper</module>
-        <module>presto-wrmsr-wrapper-builder</module>
+        <module>presto-wrmsr-launcher</module>
+        <module>presto-wrmsr-launcher-builder</module>
     </modules>
 
     <dependencyManagement>

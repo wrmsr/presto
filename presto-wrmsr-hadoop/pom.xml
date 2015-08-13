@@ -15,7 +15,6 @@
 
     <properties>
         <air.main.basedir>${project.parent.basedir}</air.main.basedir>
-        <main-class>com.wrmsr.presto.wrapper.PrestoWrapperBootstrap</main-class>
         <hadoop.version>2.7.1</hadoop.version>
         <protobuf.version>2.5.0</protobuf.version>
     </properties>
@@ -24,7 +23,7 @@
 
         <dependency>
             <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-wrapper</artifactId>
+            <artifactId>presto-wrmsr-launcher</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>

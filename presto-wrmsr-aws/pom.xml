@@ -21,7 +21,7 @@
 
         <dependency>
             <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-wrapper</artifactId>
+            <artifactId>presto-wrmsr-launcher</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
