@@ -1287,3 +1287,8 @@ config file merging - order of ops for autoexec? maybe hocon has something relev
 assess shared machine vs dedicated / virtualized machine, adj heap accordingly, overridable ofc
 spun up cluster keygen on master ala spark
 
+ssh subprocess fallback
+
+default to presto.yaml | presto.json if not given a -c
+:%s/wrapper/launcher/g
+

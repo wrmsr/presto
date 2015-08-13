@@ -249,9 +249,9 @@ public class PrestoWrapperBuilder
         List<String> names = ImmutableList.of(
                 wrapperProject, // BOOTSTRAP SELF
                 "presto-main",
+                "presto-blackhole",
                 "presto-cli",
                 "presto-cassandra",
-                "presto-blackhole",
                 "presto-example-http",
                 "presto-hive-hadoop2",
                 "presto-jmx",
@@ -262,6 +262,7 @@ public class PrestoWrapperBuilder
                 "presto-raptor",
                 "presto-teradata-functions",
                 "presto-tpch",
+                "presto-wrmsr-aws",
                 "presto-wrmsr-main",
                 "presto-wrmsr-hadoop",
                 "presto-wrmsr-mesos",

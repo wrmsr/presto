@@ -23,6 +23,19 @@
     <dependencies>
 
         <dependency>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-wrapper</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-utils</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
             <version>${protobuf.version}</version>
