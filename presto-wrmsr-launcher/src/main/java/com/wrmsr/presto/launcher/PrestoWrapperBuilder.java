@@ -417,7 +417,7 @@ public class PrestoWrapperBuilder
         bo.close();
 
         byte[] launcherBytes;
-        try (InputStream launcherStream = PrestoWrapperBuilder.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/wrapper/launcher")) {
+        try (InputStream launcherStream = PrestoWrapperBuilder.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/launcher")) {
             launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, Charsets.UTF_8)).getBytes();
         }
 
