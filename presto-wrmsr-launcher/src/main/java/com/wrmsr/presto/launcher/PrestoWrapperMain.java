@@ -481,6 +481,22 @@ public class PrestoWrapperMain
         }
     }
 
+    @Command(name = "hdfs", description = "Executs HDFS command")
+    public static class Hdfs extends PassthroughCommand
+    {
+        @Override
+        public String getModuleName()
+        {
+            return "presto-cli";
+        }
+
+        @Override
+        public String getClassName()
+        {
+            return "com.facebook.presto.cli.Presto";
+        }
+    }
+
     /*
     @Command(name = "mesos", description = "Performs mesos operations")
     public static class Mesos extends DaemonCommand
