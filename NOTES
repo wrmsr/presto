@@ -1274,3 +1274,16 @@ aws: profiles: {}
 hadoop: ...
 mesos: ...
 wrapper: clusters: ... [ip's, master, ...]
+
+
+new cluster cmd w ssh, scp, etc
+Cluster cfg, host cfg, some kind of default + override sys
+Host, ssh port, node ports, is master, username, PW or ident,
+ec2 + emr + uh mrj compute pool clusters?
+hehhh hdfs cluster setup + admin
+raptor diag
+could actually leave hdfs subprocesses running between updates, would need its own pidfile doe
+config file merging - order of ops for autoexec? maybe hocon has something relevant? multiple --- yaml docs?
+assess shared machine vs dedicated / virtualized machine, adj heap accordingly, overridable ofc
+spun up cluster keygen on master ala spark
+
