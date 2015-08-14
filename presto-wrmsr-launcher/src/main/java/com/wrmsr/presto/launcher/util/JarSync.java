@@ -402,7 +402,7 @@ public class JarSync
         }
     }
 
-    private static final class SetExecutableOperation
+    public static final class SetExecutableOperation
             extends Operation
     {
         @JsonCreator
