@@ -23,8 +23,10 @@ import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.util.Serialization;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -40,9 +42,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
 
@@ -772,11 +776,13 @@ public class JarSync
         {
             public final InputChannel input;
             public final OutputChannel output;
+            public final JarOutputStream jarOutputStream;
 
-            public Context(InputChannel input, OutputChannel output)
+            public Context(InputChannel input, OutputChannel output, JarOutputStream jarOutputStream)
             {
                 this.input = input;
                 this.output = output;
+                this.jarOutputStream = jarOutputStream;
             }
         }
 
@@ -799,8 +805,14 @@ public class JarSync
             output.writeString(manifestJson);
             String planJson = input.readString();
             Plan plan = mapper.readValue(planJson, Plan.class);
-            Context context = new Context(input, output);
-            execute(plan, context);
+            JarOutputStream jarOutputStream = new JarOutputStream(
+                    new BufferedOutputStream(
+                            new FileOutputStream(outputFile)));
+            Context context = new Context(input, output, jarOutputStream);
+            context = execute(plan, context);
+            if (context.jarOutputStream != null) {
+                context.jarOutputStream.close();
+            }
         }
 
         @Override
