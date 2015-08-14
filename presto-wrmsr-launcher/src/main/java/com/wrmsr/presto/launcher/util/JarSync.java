@@ -255,13 +255,8 @@ public class JarSync
         @Override
         public Iterable<Operation> plan(Entry other)
         {
-            if (equals(other)) {
+            if (other instanceof FileEntry && equalsExceptTime((FileEntry) other)) {
                 return ImmutableList.of(new CopyFileOperation(this));
-            }
-            else if (other instanceof FileEntry && equalsExceptTime((FileEntry) other)) {
-                return ImmutableList.of(
-                        new CopyFileOperation(this),
-                        new SetTimeOperation(getName(), getTime()));
             }
             else {
                 return ImmutableList.of(new TransferFileOperation(this));
@@ -382,7 +377,6 @@ public class JarSync
             @JsonSubTypes.Type(value = SetExecutableOperation.class, name = "setExecutable"),
             @JsonSubTypes.Type(value = CreateDirectoryOperation.class, name = "createDirectory"),
             @JsonSubTypes.Type(value = CopyFileOperation.class, name = "copyFile"),
-            @JsonSubTypes.Type(value = SetTimeOperation.class, name = "setTime"),
             @JsonSubTypes.Type(value = TransferFileOperation.class, name = "transferFile"),
     })
     public static abstract class Operation
@@ -471,34 +465,6 @@ public class JarSync
         public FileEntry getEntry()
         {
             return entry;
-        }
-    }
-
-    public static final class SetTimeOperation
-            extends Operation
-    {
-        private final String name;
-        private final long time;
-
-        @JsonCreator
-        public SetTimeOperation(
-                @JsonProperty("name") String name,
-                @JsonProperty("time") long time)
-        {
-            this.name = name;
-            this.time = time;
-        }
-
-        @JsonProperty
-        public String getName()
-        {
-            return name;
-        }
-
-        @JsonProperty
-        public long getTime()
-        {
-            return time;
         }
     }
 
@@ -667,9 +633,6 @@ public class JarSync
             else if (operation instanceof CopyFileOperation) {
                 return execute((CopyFileOperation) operation, context);
             }
-            else if (operation instanceof SetTimeOperation) {
-                return execute((SetTimeOperation) operation, context);
-            }
             else if (operation instanceof TransferFileOperation) {
                 return execute((TransferFileOperation) operation, context);
             }
@@ -697,12 +660,6 @@ public class JarSync
         }
 
         protected Context execute(CopyFileOperation operation, Context context)
-                throws IOException
-        {
-            return context;
-        }
-
-        protected Context execute(SetTimeOperation operation, Context context)
                 throws IOException
         {
             return context;
@@ -847,13 +804,13 @@ public class JarSync
             tempDir.deleteOnExit();
             File tempFile = new File(tempDir, outputFile.getName());
             outputFile.renameTo(tempFile);
-            try (InputStream fi = new BufferedInputStream(new FileInputStream(tempFile));
-                    OutputStream fo = new BufferedOutputStream(new FileOutputStream(outputFile))) {
-                fo.write(operation.getPreamble());
+            try (InputStream input = new BufferedInputStream(new FileInputStream(tempFile));
+                    OutputStream output = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+                output.write(operation.getPreamble());
                 byte[] buf = new byte[65536];
                 int anz;
-                while ((anz = fi.read(buf)) != -1) {
-                    fo.write(buf, 0, anz);
+                while ((anz = input.read(buf)) != -1) {
+                    output.write(buf, 0, anz);
                 }
             }
             return new Context(
