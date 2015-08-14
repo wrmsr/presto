@@ -27,6 +27,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -278,12 +280,12 @@ public class JarSync
             this.entries = ImmutableList.copyOf(entries);
         }
 
-        public Manifest(ZipFile zipFile)
+        public Manifest(File file)
+                throws IOException
         {
-            File file = new File(zipFile.getName());
             name = file.getName();
             isExecutable = file.canExecute();
-            try {
+            try (ZipFile zipFile = new ZipFile(file)) {
                 long preambleLength = ZipFiles.getPreambleLength(file);
                 if (preambleLength > 0) {
                     byte[] preamble = new byte[(int) preambleLength];
@@ -297,18 +299,15 @@ public class JarSync
                 else {
                     this.preamble = null;
                 }
+                ImmutableList.Builder<Entry> builder = ImmutableList.builder();
+                Enumeration<? extends ZipEntry> zipEntries;
+                for (zipEntries = zipFile.entries(); zipEntries.hasMoreElements(); ) {
+                    ZipEntry zipEntry = zipEntries.nextElement();
+                    Entry entry = Entry.create(zipFile, zipEntry);
+                    builder.add(entry);
+                }
+                entries = builder.build();
             }
-            catch (IOException e) {
-                throw Throwables.propagate(e);
-            }
-            ImmutableList.Builder<Entry> builder = ImmutableList.builder();
-            Enumeration<? extends ZipEntry> zipEntries;
-            for (zipEntries = zipFile.entries(); zipEntries.hasMoreElements(); ) {
-                ZipEntry zipEntry = zipEntries.nextElement();
-                Entry entry = Entry.create(zipFile, zipEntry);
-                builder.add(entry);
-            }
-            entries = builder.build();
         }
 
         @Override
@@ -450,7 +449,7 @@ public class JarSync
     }
 
     public static final class SetTimeOperation
-        extends Operation<String>
+            extends Operation<String>
     {
         private final long time;
 
@@ -495,14 +494,132 @@ public class JarSync
         }
     }
 
-    public static class SourceDriver
+    public static abstract class Driver
     {
+        protected final InputStream input;
+        protected final OutputStream output;
 
+        public Driver(InputStream input, OutputStream output)
+        {
+            this.input = input;
+            this.output = output;
+        }
+
+        public abstract void run()
+                throws IOException;
+
+        protected byte[] readBytes(int len)
+                throws IOException
+        {
+            byte[] buf = new byte[len];
+            int pos = 0;
+            while (pos < len) {
+                int s = input.read(buf, pos, len - pos);
+                if (s < 0) {
+                    break;
+                }
+                pos += s;
+            }
+            if (pos != len) {
+                throw new IOException();
+            }
+            return buf;
+        }
+
+        protected int readInt()
+                throws IOException
+        {
+            return ByteBuffer.wrap(readBytes(4)).getInt();
+        }
+
+        protected byte[] readBytes()
+                throws IOException
+        {
+            int len = readInt();
+            return readBytes(len);
+        }
+
+        protected String readString()
+                throws IOException
+        {
+            return new String(readBytes());
+        }
+
+        protected void writeInt(int i)
+                throws IOException
+        {
+            byte[] buf = new byte[4];
+            ByteBuffer.wrap(buf).putInt(i);
+            output.write(buf);
+        }
+
+        protected void writeBytes(byte[] buf)
+                throws IOException
+        {
+            writeInt(buf.length);
+            output.write(buf);
+        }
+
+        protected void writeString(String s)
+                throws IOException
+        {
+            writeBytes(s.getBytes());
+        }
+    }
+
+    public static class SourceDriver
+            extends Driver
+    {
+        protected final File sourceFile;
+
+        public SourceDriver(InputStream input, OutputStream output, File sourceFile)
+        {
+            super(input, output);
+            this.sourceFile = sourceFile;
+        }
+
+        public File getSourceFile()
+        {
+            return sourceFile;
+        }
+
+        @Override
+        public void run()
+                throws IOException
+        {
+
+        }
     }
 
     public static class SinkDriver
+            extends Driver
     {
+        private final File sinkFile;
+        private final File outputFile;
 
+        public SinkDriver(InputStream input, OutputStream output, File sinkFile, File outputFile)
+        {
+            super(input, output);
+            this.sinkFile = sinkFile;
+            this.outputFile = outputFile;
+        }
+
+        public File getSinkFile()
+        {
+            return sinkFile;
+        }
+
+        public File getOutputFile()
+        {
+            return outputFile;
+        }
+
+        @Override
+        public void run()
+                throws IOException
+        {
+
+        }
     }
 
     public static void main(String[] args)
@@ -511,16 +628,8 @@ public class JarSync
         // https://docs.oracle.com/javase/7/docs/api/java/io/PipedOutputStream.html
         ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
 
-        Manifest sourceManifest;
-        try (ZipFile zipFile = new ZipFile(new File(System.getProperty("user.home") + "/presto/presto"))) {
-            sourceManifest = new Manifest(zipFile);
-        }
-
-        Manifest sinkManifest;
-        try (ZipFile zipFile = new ZipFile(new File(System.getProperty("user.home") + "/presto/foo.jar"))) {
-            sinkManifest = new Manifest(zipFile);
-        }
-
+        Manifest sourceManifest = new Manifest(new File(System.getProperty("user.home") + "/presto/presto"));
+        Manifest sinkManifest = new Manifest(new File(System.getProperty("user.home") + "/presto/foo.jar"));
         Plan plan = sourceManifest.plan(sinkManifest);
 
         System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(plan));
