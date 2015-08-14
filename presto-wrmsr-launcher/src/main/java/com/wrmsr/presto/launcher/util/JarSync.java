@@ -639,44 +639,45 @@ public class JarSync
             }
         }
 
-        protected void execute(Plan plan, Context context) throws IOException
+        protected Context execute(Plan plan, Context context) throws IOException
         {
             for (Operation operation : plan) {
-                execute(operation, context);
+                context = execute(operation, context);
             }
+            return context;
         }
 
-        protected void execute(Operation operation, Context context) throws IOException
+        protected Context execute(Operation operation, Context context) throws IOException
         {
             if (operation instanceof WritePreambleOperation) {
-                execute((WritePreambleOperation) operation, context);
+                return execute((WritePreambleOperation) operation, context);
             }
             else if (operation instanceof SetExecutableOperation) {
-                execute((SetExecutableOperation) operation, context);
+                return execute((SetExecutableOperation) operation, context);
             }
             else if (operation instanceof CreateDirectoryOperation) {
-                execute((CreateDirectoryOperation) operation, context);
+                return execute((CreateDirectoryOperation) operation, context);
             }
             else if (operation instanceof CopyFileOperation) {
-                execute((CopyFileOperation) operation, context);
+                return execute((CopyFileOperation) operation, context);
             }
             else if (operation instanceof SetTimeOperation) {
-                execute((SetTimeOperation) operation, context);
+                return execute((SetTimeOperation) operation, context);
             }
             else if (operation instanceof TransferFileOperation) {
-                execute((TransferFileOperation) operation, context);
+                return execute((TransferFileOperation) operation, context);
             }
             else {
                 throw new IllegalStateException();
             }
         }
 
-        protected abstract void execute(WritePreambleOperation operation, Context context) throws IOException;
-        protected abstract void execute(SetExecutableOperation operation, Context context) throws IOException;
-        protected abstract void execute(CreateDirectoryOperation operation, Context context) throws IOException;
-        protected abstract void execute(CopyFileOperation operation, Context context) throws IOException;
-        protected abstract void execute(SetTimeOperation operation, Context context) throws IOException;
-        protected abstract void execute(TransferFileOperation operation, Context context) throws IOException;
+        protected abstract Context execute(WritePreambleOperation operation, Context context) throws IOException;
+        protected abstract Context execute(SetExecutableOperation operation, Context context) throws IOException;
+        protected abstract Context execute(CreateDirectoryOperation operation, Context context) throws IOException;
+        protected abstract Context execute(CopyFileOperation operation, Context context) throws IOException;
+        protected abstract Context execute(SetTimeOperation operation, Context context) throws IOException;
+        protected abstract Context execute(TransferFileOperation operation, Context context) throws IOException;
     }
 
     public static class SourceDriver
@@ -722,45 +723,45 @@ public class JarSync
         }
 
         @Override
-        protected void execute(WritePreambleOperation operation, Context context)
+        protected Context execute(WritePreambleOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
 
         @Override
-        protected void execute(SetExecutableOperation operation, Context context)
+        protected Context execute(SetExecutableOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
 
         @Override
-        protected void execute(CreateDirectoryOperation operation, Context context)
+        protected Context execute(CreateDirectoryOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
 
         @Override
-        protected void execute(CopyFileOperation operation, Context context)
+        protected Context execute(CopyFileOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
 
         @Override
-        protected void execute(SetTimeOperation operation, Context context)
+        protected Context execute(SetTimeOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
 
         @Override
-        protected void execute(TransferFileOperation operation, Context context)
+        protected Context execute(TransferFileOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
     }
 
@@ -803,45 +804,45 @@ public class JarSync
         }
 
         @Override
-        protected void execute(WritePreambleOperation operation, Context context)
+        protected Context execute(WritePreambleOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
 
         @Override
-        protected void execute(SetExecutableOperation operation, Context context)
+        protected Context execute(SetExecutableOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
 
         @Override
-        protected void execute(CreateDirectoryOperation operation, Context context)
+        protected Context execute(CreateDirectoryOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
 
         @Override
-        protected void execute(CopyFileOperation operation, Context context)
+        protected Context execute(CopyFileOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
 
         @Override
-        protected void execute(SetTimeOperation operation, Context context)
+        protected Context execute(SetTimeOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
 
         @Override
-        protected void execute(TransferFileOperation operation, Context context)
+        protected Context execute(TransferFileOperation operation, Context context)
                 throws IOException
         {
-
+            return context;
         }
     }
 
