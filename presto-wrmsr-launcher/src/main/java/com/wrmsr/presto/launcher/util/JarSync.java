@@ -495,7 +495,7 @@ public class JarSync
 
     public static class InputChannel
     {
-        private final InputStream stream;
+        public final InputStream stream;
 
         public InputChannel(InputStream stream)
         {
@@ -548,7 +548,7 @@ public class JarSync
 
     public static class OutputChannel
     {
-        private final OutputStream stream;
+        public final OutputStream stream;
 
         public OutputChannel(OutputStream stream)
         {
@@ -679,11 +679,13 @@ public class JarSync
         {
             public final InputChannel input;
             public final OutputChannel output;
+            public final ZipFile sourceZipFile;
 
-            public Context(InputChannel input, OutputChannel output)
+            public Context(InputChannel input, OutputChannel output, ZipFile sourceZipFile)
             {
                 this.input = input;
                 this.output = output;
+                this.sourceZipFile = sourceZipFile;
             }
         }
 
@@ -710,8 +712,26 @@ public class JarSync
             Plan plan = manifest.plan(sinkManifest);
             String planJson = mapper.writeValueAsString(plan);
             output.writeString(planJson);
-            Context context = new Context(input, output);
-            execute(plan, context);
+            try (ZipFile sourceZipFile = new ZipFile(sourceFile)) {
+                Context context = new Context(input, output, sourceZipFile);
+                execute(plan, context);
+            }
+            handshake(input, output);
+        }
+
+        @Override
+        protected Context execute(TransferFileOperation operation, Context context)
+                throws IOException
+        {
+            ZipEntry zipEntry = context.sourceZipFile.getEntry(operation.getEntry().getName());
+            try (InputStream input = context.sourceZipFile.getInputStream(zipEntry)) {
+                byte[] buf = new byte[65536];
+                int bc;
+                while ((bc = input.read(buf)) != -1) {
+                    context.output.stream.write(buf, 0, bc);
+                }
+            }
+            return context;
         }
     }
 
@@ -763,6 +783,7 @@ public class JarSync
                     context.jarOutputStream.close();
                 }
             }
+            handshake(input, output);
         }
 
         @Override
@@ -791,7 +812,22 @@ public class JarSync
                     context.jarOutputStream.write(buf, 0, bc);
                 }
             }
-            return super.execute(operation, context);
+            return context;
+        }
+
+        @Override
+        protected Context execute(TransferFileOperation operation, Context context)
+                throws IOException
+        {
+            JarEntry jarEntry = new JarEntry(operation.getEntry().getName());
+            jarEntry.setTime(operation.getEntry().getTime());
+            long rem = operation.getEntry().getSize();
+            byte[] buf = new byte[65536];
+            int bc;
+            while ((bc = context.input.stream.read(buf)) != -1) {
+                context.jarOutputStream.write(buf, 0, bc);
+            }
+            return context;
         }
 
         @Override
@@ -857,6 +893,8 @@ public class JarSync
 
         sourceThread.join();
         sinkThread.join();
+
+        // TODO watchdog deathpact
 
         // Plan plan = sourceManifest.plan(sinkManifest);
         // System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(plan));
