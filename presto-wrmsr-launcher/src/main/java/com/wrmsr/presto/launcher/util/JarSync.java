@@ -766,13 +766,15 @@ public class JarSync
             public final InputChannel input;
             public final OutputChannel output;
             public final ZipFile sinkZipFile;
+            public final OutputStream outputStream;
             public final JarOutputStream jarOutputStream;
 
-            public Context(InputChannel input, OutputChannel output, ZipFile sinkZipFile, JarOutputStream jarOutputStream)
+            public Context(InputChannel input, OutputChannel output, ZipFile sinkZipFile, OutputStream outputStream, JarOutputStream jarOutputStream)
             {
                 this.input = input;
                 this.output = output;
                 this.sinkZipFile = sinkZipFile;
+                this.outputStream = outputStream;
                 this.jarOutputStream = jarOutputStream;
             }
         }
@@ -797,10 +799,9 @@ public class JarSync
             String planJson = input.readString();
             Plan plan = mapper.readValue(planJson, Plan.class);
             try (ZipFile sinkZipFile = new ZipFile(sinkFile)) {
-                JarOutputStream jarOutputStream = new JarOutputStream(
-                        new BufferedOutputStream(
-                                new FileOutputStream(outputFile)));
-                Context context = new Context(input, output, sinkZipFile, jarOutputStream);
+                OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(outputFile));
+                JarOutputStream jarOutputStream = new JarOutputStream(outputStream);
+                Context context = new Context(input, output, sinkZipFile, outputStream, jarOutputStream);
                 context = execute(plan, context);
                 if (context.jarOutputStream != null) {
                     context.jarOutputStream.close();
@@ -841,7 +842,9 @@ public class JarSync
         protected Context execute(WritePreambleOperation operation, Context context)
                 throws IOException
         {
-            checkNotNull(context.jarOutputStream).close();
+            checkNotNull(context.jarOutputStream).finish();
+            context.outputStream.flush();
+            context.outputStream.close();
             File tempDir = Files.createTempDirectory(null).toFile();
             tempDir.deleteOnExit();
             File tempFile = new File(tempDir, outputFile.getName());
@@ -859,6 +862,7 @@ public class JarSync
                     context.input,
                     context.output,
                     context.sinkZipFile,
+                    null,
                     null
             );
         }
