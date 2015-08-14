@@ -613,7 +613,7 @@ public class JarSync
         }
     }
 
-    public static abstract class Driver
+    public static abstract class Driver<Context>
     {
         public static final UUID HANDSHAKE_UUID = UUID.fromString("2aaee760-9887-4bb7-9525-5b160820e6bf");
 
@@ -639,47 +639,54 @@ public class JarSync
             }
         }
 
-        protected void execute(Plan plan) throws IOException
+        protected void execute(Plan plan, Context context) throws IOException
         {
-
+            for (Operation operation : plan) {
+                execute(operation, context);
+            }
         }
 
-        protected void execute(Operation operation) throws IOException
+        protected void execute(Operation operation, Context context) throws IOException
         {
             if (operation instanceof WritePreambleOperation) {
-                execute((WritePreambleOperation) operation);
+                execute((WritePreambleOperation) operation, context);
             }
             else if (operation instanceof SetExecutableOperation) {
-                execute((SetExecutableOperation) operation);
+                execute((SetExecutableOperation) operation, context);
             }
             else if (operation instanceof CreateDirectoryOperation) {
-                execute((CreateDirectoryOperation) operation);
+                execute((CreateDirectoryOperation) operation, context);
             }
             else if (operation instanceof CopyFileOperation) {
-                execute((CopyFileOperation) operation);
+                execute((CopyFileOperation) operation, context);
             }
             else if (operation instanceof SetTimeOperation) {
-                execute((SetTimeOperation) operation);
+                execute((SetTimeOperation) operation, context);
             }
             else if (operation instanceof TransferFileOperation) {
-                execute((TransferFileOperation) operation);
+                execute((TransferFileOperation) operation, context);
             }
             else {
                 throw new IllegalStateException();
             }
         }
 
-        protected abstract void execute(WritePreambleOperation operation) throws IOException;
-        protected abstract void execute(SetExecutableOperation operation) throws IOException;
-        protected abstract void execute(CreateDirectoryOperation operation) throws IOException;
-        protected abstract void execute(CopyFileOperation operation) throws IOException;
-        protected abstract void execute(SetTimeOperation operation) throws IOException;
-        protected abstract void execute(TransferFileOperation operation) throws IOException;
+        protected abstract void execute(WritePreambleOperation operation, Context context) throws IOException;
+        protected abstract void execute(SetExecutableOperation operation, Context context) throws IOException;
+        protected abstract void execute(CreateDirectoryOperation operation, Context context) throws IOException;
+        protected abstract void execute(CopyFileOperation operation, Context context) throws IOException;
+        protected abstract void execute(SetTimeOperation operation, Context context) throws IOException;
+        protected abstract void execute(TransferFileOperation operation, Context context) throws IOException;
     }
 
     public static class SourceDriver
-            extends Driver
+            extends Driver<SourceDriver.Context>
     {
+        protected class Context
+        {
+
+        }
+
         protected final File sourceFile;
 
         public SourceDriver(File sourceFile)
@@ -703,12 +710,60 @@ public class JarSync
             Plan plan = manifest.plan(sinkManifest);
             String planJson = mapper.writeValueAsString(plan);
             output.writeString(planJson);
+            execute(plan, null);
+        }
+
+        @Override
+        protected void execute(WritePreambleOperation operation, Context context)
+                throws IOException
+        {
+
+        }
+
+        @Override
+        protected void execute(SetExecutableOperation operation, Context context)
+                throws IOException
+        {
+
+        }
+
+        @Override
+        protected void execute(CreateDirectoryOperation operation, Context context)
+                throws IOException
+        {
+
+        }
+
+        @Override
+        protected void execute(CopyFileOperation operation, Context context)
+                throws IOException
+        {
+
+        }
+
+        @Override
+        protected void execute(SetTimeOperation operation, Context context)
+                throws IOException
+        {
+
+        }
+
+        @Override
+        protected void execute(TransferFileOperation operation, Context context)
+                throws IOException
+        {
+
         }
     }
 
     public static class SinkDriver
-            extends Driver
+            extends Driver<SinkDriver.Context>
     {
+        protected class Context
+        {
+
+        }
+
         private final File sinkFile;
         private final File outputFile;
 
@@ -728,6 +783,49 @@ public class JarSync
             output.writeString(manifestJson);
             String planJson = input.readString();
             Plan plan = mapper.readValue(planJson, Plan.class);
+            execute(plan, null);
+        }
+
+        @Override
+        protected void execute(WritePreambleOperation operation, Context context)
+                throws IOException
+        {
+            
+        }
+
+        @Override
+        protected void execute(SetExecutableOperation operation, Context context)
+                throws IOException
+        {
+
+        }
+
+        @Override
+        protected void execute(CreateDirectoryOperation operation, Context context)
+                throws IOException
+        {
+
+        }
+
+        @Override
+        protected void execute(CopyFileOperation operation, Context context)
+                throws IOException
+        {
+
+        }
+
+        @Override
+        protected void execute(SetTimeOperation operation, Context context)
+                throws IOException
+        {
+
+        }
+
+        @Override
+        protected void execute(TransferFileOperation operation, Context context)
+                throws IOException
+        {
+
         }
     }
 
