@@ -577,13 +577,13 @@ public class JarSync
 
     public static abstract class Driver
     {
-        public abstract void run(InputChannel input, OutputChannel output)
+        public abstract void run(ObjectMapper mapper, InputChannel input, OutputChannel output)
                 throws IOException;
 
-        public void run(InputStream input, OutputStream output)
+        public void run(ObjectMapper mapper, InputStream input, OutputStream output)
                 throws IOException
         {
-            run(new InputChannel(input), new OutputChannel(output));
+            run(mapper, new InputChannel(input), new OutputChannel(output));
         }
     }
 
@@ -603,11 +603,17 @@ public class JarSync
         }
 
         @Override
-        public void run(InputChannel inputChannel, OutputChannel output)
+        public void run(ObjectMapper mapper, InputChannel input, OutputChannel output)
                 throws IOException
         {
-            Manifest manifest = new Manifest(sourceFile);
+            // FIXME handshake uuid
 
+            Manifest manifest = new Manifest(sourceFile);
+            String sinkManifestJson = input.readString();
+            Manifest sinkManifest = mapper.readValue(sinkManifestJson, Manifest.class);
+            Plan plan = manifest.plan(sinkManifest);
+            String planJson = mapper.writeValueAsString(plan);
+            output.writeString(planJson);
         }
     }
 
@@ -624,11 +630,14 @@ public class JarSync
         }
 
         @Override
-        public void run(InputChannel inputChannel, OutputChannel output)
+        public void run(ObjectMapper mapper, InputChannel input, OutputChannel output)
                 throws IOException
         {
             Manifest manifest = new Manifest(sinkFile);
-
+            String manifestJson = mapper.writeValueAsString(manifest);
+            output.writeString(manifestJson);
+            String planJson = input.readString();
+            Plan plan = mapper.readValue(planJson, Plan.class);
         }
     }
 
@@ -636,24 +645,31 @@ public class JarSync
             throws Throwable
     {
         // https://docs.oracle.com/javase/7/docs/api/java/io/PipedOutputStream.html
-        // ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
 
         File sourceFile = new File(System.getProperty("user.home") + "/presto/presto");
-        SourceDriver sourceDriver = new SourceDriver(sourceFile);
 
         File sinkFile = new File(System.getProperty("user.home") + "/presto/foo.jar");
         File outputFile = new File(System.getProperty("user.home") + "/presto/bar.jar");
+
+        ObjectMapper mapper = Serialization.JSON_OBJECT_MAPPER.get();
+
+        SourceDriver sourceDriver = new SourceDriver(sourceFile);
         SinkDriver sinkDriver = new SinkDriver(sinkFile, outputFile);
 
         PipedInputStream sourceInput = new PipedInputStream();
         PipedOutputStream sourceOutput = new PipedOutputStream(sourceInput);
-        Thread sourceThread = new Thread(runtimeThrowing(() -> sourceDriver.run(sourceInput, sourceOutput)));
-        sourceThread.start();
 
         PipedInputStream sinkInput = new PipedInputStream();
         PipedOutputStream sinkOutput = new PipedOutputStream(sinkInput);
-        Thread sinkThread = new Thread(runtimeThrowing(() -> sinkDriver.run(sinkInput, sinkOutput)));
+
+        Thread sourceThread = new Thread(runtimeThrowing(() -> sourceDriver.run(mapper, sinkInput, sourceOutput)));
+        sourceThread.start();
+
+        Thread sinkThread = new Thread(runtimeThrowing(() -> sinkDriver.run(mapper, sourceInput, sinkOutput)));
         sinkThread.start();
+
+        sourceThread.join();
+        sinkThread.join();
 
         // Plan plan = sourceManifest.plan(sinkManifest);
         // System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(plan));
