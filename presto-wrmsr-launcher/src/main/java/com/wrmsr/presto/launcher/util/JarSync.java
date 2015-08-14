@@ -592,7 +592,7 @@ public class JarSync
 
     public static abstract class Driver
     {
-        public static final UUID HANDSHAKE_UUID = new UUID("2aaee760-9887-4bb7-9525-5b160820e6bf");
+        public static final UUID HANDSHAKE_UUID = UUID.fromString("2aaee760-9887-4bb7-9525-5b160820e6bf");
 
         public abstract void run(ObjectMapper mapper, InputChannel input, OutputChannel output)
                 throws IOException;
