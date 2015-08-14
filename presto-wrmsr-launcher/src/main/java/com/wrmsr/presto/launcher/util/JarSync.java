@@ -168,7 +168,6 @@ public class JarSync
         }
     }
 
-    // TODO preamble, chmod
     public static final class Manifest
     {
         private final String name;
@@ -318,11 +317,19 @@ public class JarSync
             throws Throwable
     {
         // https://docs.oracle.com/javase/7/docs/api/java/io/PipedOutputStream.html
-        File jarFile = new File("/Users/spinlock/presto/presto");
         ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
-        try (ZipFile zipFile = new ZipFile(jarFile)) {
-            Manifest manifest = new Manifest(zipFile);
-            System.out.println(objectMapper.writeValueAsString(manifest));
+
+        Manifest sourceManifest;
+        try (ZipFile zipFile = new ZipFile(new File(System.getProperty("user.home") + "/presto/presto"))) {
+            sourceManifest = new Manifest(zipFile);
         }
+
+        Manifest sinkManifest;
+        try (ZipFile zipFile = new ZipFile(new File(System.getProperty("user.home") + "/presto/presto"))) {
+            sinkManifest = new Manifest(zipFile);
+        }
+
+        System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(sourceManifest));
+        System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(sinkManifest));
     }
 }
