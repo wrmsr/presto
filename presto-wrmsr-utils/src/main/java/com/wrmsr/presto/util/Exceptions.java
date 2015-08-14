@@ -66,4 +66,22 @@ public class Exceptions
             }
         };
     }
+
+    @FunctionalInterface
+    public interface ThrowingRunnable {
+
+        void run() throws Exception;
+    }
+
+    public static Runnable runtimeThrowing(ThrowingRunnable fn)
+    {
+        return () -> {
+            try {
+                fn.run();
+            }
+            catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+    }
 }

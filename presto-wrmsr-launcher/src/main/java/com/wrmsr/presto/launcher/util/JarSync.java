@@ -28,6 +28,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -40,6 +42,7 @@ import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
 
 public class JarSync
@@ -538,7 +541,7 @@ public class JarSync
                 throws IOException
         {
             return new String(readBytes());
-
+        }
     }
 
     public static class OutputChannel
@@ -576,6 +579,12 @@ public class JarSync
     {
         public abstract void run(InputChannel input, OutputChannel output)
                 throws IOException;
+
+        public void run(InputStream input, OutputStream output)
+                throws IOException
+        {
+            run(new InputChannel(input), new OutputChannel(output));
+        }
     }
 
     public static class SourceDriver
@@ -583,9 +592,8 @@ public class JarSync
     {
         protected final File sourceFile;
 
-        public SourceDriver(InputStream input, OutputStream output, File sourceFile)
+        public SourceDriver(File sourceFile)
         {
-            super(input, output);
             this.sourceFile = sourceFile;
         }
 
@@ -595,9 +603,10 @@ public class JarSync
         }
 
         @Override
-        public void run()
+        public void run(InputChannel inputChannel, OutputChannel output)
                 throws IOException
         {
+            Manifest manifest = new Manifest(sourceFile);
 
         }
     }
@@ -608,27 +617,17 @@ public class JarSync
         private final File sinkFile;
         private final File outputFile;
 
-        public SinkDriver(InputStream input, OutputStream output, File sinkFile, File outputFile)
+        public SinkDriver(File sinkFile, File outputFile)
         {
-            super(input, output);
             this.sinkFile = sinkFile;
             this.outputFile = outputFile;
         }
 
-        public File getSinkFile()
-        {
-            return sinkFile;
-        }
-
-        public File getOutputFile()
-        {
-            return outputFile;
-        }
-
         @Override
-        public void run()
+        public void run(InputChannel inputChannel, OutputChannel output)
                 throws IOException
         {
+            Manifest manifest = new Manifest(sinkFile);
 
         }
     }
@@ -637,12 +636,26 @@ public class JarSync
             throws Throwable
     {
         // https://docs.oracle.com/javase/7/docs/api/java/io/PipedOutputStream.html
-        ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
+        // ObjectMapper objectMapper = Serialization.JSON_OBJECT_MAPPER.get();
 
-        Manifest sourceManifest = new Manifest(new File(System.getProperty("user.home") + "/presto/presto"));
-        Manifest sinkManifest = new Manifest(new File(System.getProperty("user.home") + "/presto/foo.jar"));
-        Plan plan = sourceManifest.plan(sinkManifest);
+        File sourceFile = new File(System.getProperty("user.home") + "/presto/presto");
+        SourceDriver sourceDriver = new SourceDriver(sourceFile);
 
-        System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(plan));
+        File sinkFile = new File(System.getProperty("user.home") + "/presto/foo.jar");
+        File outputFile = new File(System.getProperty("user.home") + "/presto/bar.jar");
+        SinkDriver sinkDriver = new SinkDriver(sinkFile, outputFile);
+
+        PipedInputStream sourceInput = new PipedInputStream();
+        PipedOutputStream sourceOutput = new PipedOutputStream(sourceInput);
+        Thread sourceThread = new Thread(runtimeThrowing(() -> sourceDriver.run(sourceInput, sourceOutput)));
+        sourceThread.start();
+
+        PipedInputStream sinkInput = new PipedInputStream();
+        PipedOutputStream sinkOutput = new PipedOutputStream(sinkInput);
+        Thread sinkThread = new Thread(runtimeThrowing(() -> sinkDriver.run(sinkInput, sinkOutput)));
+        sinkThread.start();
+
+        // Plan plan = sourceManifest.plan(sinkManifest);
+        // System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(plan));
     }
 }
