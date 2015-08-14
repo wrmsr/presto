@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -764,12 +765,14 @@ public class JarSync
         {
             public final InputChannel input;
             public final OutputChannel output;
+            public final ZipFile sinkZipFile;
             public final JarOutputStream jarOutputStream;
 
-            public Context(InputChannel input, OutputChannel output, JarOutputStream jarOutputStream)
+            public Context(InputChannel input, OutputChannel output, ZipFile sinkZipFile, JarOutputStream jarOutputStream)
             {
                 this.input = input;
                 this.output = output;
+                this.sinkZipFile = sinkZipFile;
                 this.jarOutputStream = jarOutputStream;
             }
         }
@@ -793,14 +796,45 @@ public class JarSync
             output.writeString(manifestJson);
             String planJson = input.readString();
             Plan plan = mapper.readValue(planJson, Plan.class);
-            JarOutputStream jarOutputStream = new JarOutputStream(
-                    new BufferedOutputStream(
-                            new FileOutputStream(outputFile)));
-            Context context = new Context(input, output, jarOutputStream);
-            context = execute(plan, context);
-            if (context.jarOutputStream != null) {
-                context.jarOutputStream.close();
+            try (ZipFile sinkZipFile = new ZipFile(sinkFile)) {
+                JarOutputStream jarOutputStream = new JarOutputStream(
+                        new BufferedOutputStream(
+                                new FileOutputStream(outputFile)));
+                Context context = new Context(input, output, sinkZipFile, jarOutputStream);
+                context = execute(plan, context);
+                if (context.jarOutputStream != null) {
+                    context.jarOutputStream.close();
+                }
             }
+        }
+
+        @Override
+        protected Context execute(CreateDirectoryOperation operation, Context context)
+                throws IOException
+        {
+            JarEntry jarEntry = new JarEntry(operation.getEntry().getName());
+            jarEntry.setTime(operation.getEntry().getTime());
+            checkNotNull(context.jarOutputStream).putNextEntry(jarEntry);
+            context.jarOutputStream.write(new byte[]{}, 0, 0);
+            return context;
+        }
+
+        @Override
+        protected Context execute(CopyFileOperation operation, Context context)
+                throws IOException
+        {
+            JarEntry jarEntry = new JarEntry(operation.getEntry().getName());
+            jarEntry.setTime(operation.getEntry().getTime());
+            checkNotNull(context.jarOutputStream).putNextEntry(jarEntry);
+            ZipEntry zipEntry = context.sinkZipFile.getEntry(operation.getEntry().getName());
+            try (InputStream input = context.sinkZipFile.getInputStream(zipEntry)) {
+                byte[] buf = new byte[65536];
+                int bc;
+                while ((bc = input.read(buf)) != -1) {
+                    context.jarOutputStream.write(buf, 0, bc);
+                }
+            }
+            return super.execute(operation, context);
         }
 
         @Override
@@ -824,6 +858,7 @@ public class JarSync
             return new Context(
                     context.input,
                     context.output,
+                    context.sinkZipFile,
                     null
             );
         }
