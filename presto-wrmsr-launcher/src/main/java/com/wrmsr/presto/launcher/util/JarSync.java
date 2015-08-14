@@ -824,8 +824,9 @@ public class JarSync
             long rem = operation.getEntry().getSize();
             byte[] buf = new byte[65536];
             int bc;
-            while ((bc = context.input.stream.read(buf)) != -1) {
+            while (rem > 0 && (bc = context.input.stream.read(buf, 0, (int) (rem > buf.length ? buf.length : rem))) != -1) {
                 context.jarOutputStream.write(buf, 0, bc);
+                rem -= bc;
             }
             return context;
         }
