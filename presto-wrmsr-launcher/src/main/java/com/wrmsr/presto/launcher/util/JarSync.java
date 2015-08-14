@@ -361,7 +361,7 @@ public class JarSync
                 builder.add(new WritePreambleOperation(preamble));
             }
             if (isExecutable) {
-                builder.add(new SetExecutableOperation(true));
+                builder.add(new SetExecutableOperation());
             }
             return new Plan(builder.build());
         }
@@ -379,91 +379,114 @@ public class JarSync
             @JsonSubTypes.Type(value = SetTimeOperation.class, name = "setTime"),
             @JsonSubTypes.Type(value = TransferFileOperation.class, name = "transferFile"),
     })
-    public static abstract class Operation<T>
+    public static abstract class Operation
     {
-        private final T subject;
-
-        @JsonCreator
-        public Operation(
-                @JsonProperty("subject") T subject)
-        {
-            this.subject = subject;
-        }
-
-        @JsonProperty
-        public T getSubject()
-        {
-            return subject;
-        }
     }
 
     public static final class WritePreambleOperation
-            extends Operation<byte[]>
+            extends Operation
     {
+        private final byte[] preamble;
+
         @JsonCreator
         public WritePreambleOperation(
-                @JsonProperty("subject") byte[] subject)
+                @JsonProperty("preamble") byte[] preamble)
         {
-            super(subject);
+            this.preamble = preamble;
+        }
+
+        @JsonProperty
+        public byte[] getPreamble()
+        {
+            return preamble;
         }
     }
 
     private static final class SetExecutableOperation
-            extends Operation<Boolean>
+            extends Operation
     {
         @JsonCreator
-        public SetExecutableOperation(
-                @JsonProperty("subject") Boolean subject)
+        public SetExecutableOperation()
         {
-            super(subject);
         }
     }
 
     public static final class CreateDirectoryOperation
-            extends Operation<DirectoryEntry>
+            extends Operation
     {
+        private final DirectoryEntry entry;
+
         @JsonCreator
         public CreateDirectoryOperation(
-                @JsonProperty("subject") DirectoryEntry subject)
+                @JsonProperty("entry") DirectoryEntry entry)
         {
-            super(subject);
+            this.entry = entry;
+        }
+
+        @JsonProperty
+        public DirectoryEntry getEntry()
+        {
+            return entry;
         }
     }
 
     public static final class CopyFileOperation
-            extends Operation<FileEntry>
+            extends Operation
     {
+        private final FileEntry entry;
+
         @JsonCreator
         public CopyFileOperation(
-                @JsonProperty("subject") FileEntry subject)
+                @JsonProperty("entry") FileEntry entry)
         {
-            super(subject);
+            this.entry = entry;
+        }
+
+        @JsonProperty
+        public FileEntry getEntry()
+        {
+            return entry;
         }
     }
 
     public static final class TransferFileOperation
-            extends Operation<FileEntry>
+            extends Operation
     {
+        private final FileEntry entry;
+
         @JsonCreator
         public TransferFileOperation(
-                @JsonProperty("subject") FileEntry subject)
+                @JsonProperty("entry") FileEntry entry)
         {
-            super(subject);
+            this.entry = entry;
+        }
+
+        @JsonProperty
+        public FileEntry getEntry()
+        {
+            return entry;
         }
     }
 
     public static final class SetTimeOperation
-            extends Operation<String>
+            extends Operation
     {
+        private final String name;
         private final long time;
 
         @JsonCreator
         public SetTimeOperation(
-                @JsonProperty("subject") String subject,
+                @JsonProperty("name") String name,
                 @JsonProperty("time") long time)
         {
-            super(subject);
+            this.name = name;
             this.time = time;
+        }
+
+        @JsonProperty
+        public String getName()
+        {
+            return name;
         }
 
         @JsonProperty
