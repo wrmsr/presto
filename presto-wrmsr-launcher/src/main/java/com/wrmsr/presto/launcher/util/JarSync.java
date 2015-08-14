@@ -494,19 +494,14 @@ public class JarSync
         }
     }
 
-    public static abstract class Driver
+    public static class InputChannel
     {
-        protected final InputStream input;
-        protected final OutputStream output;
+        private final InputStream stream;
 
-        public Driver(InputStream input, OutputStream output)
+        public InputChannel(InputStream stream)
         {
-            this.input = input;
-            this.output = output;
+            this.stream = stream;
         }
-
-        public abstract void run()
-                throws IOException;
 
         protected byte[] readBytes(int len)
                 throws IOException
@@ -514,7 +509,7 @@ public class JarSync
             byte[] buf = new byte[len];
             int pos = 0;
             while (pos < len) {
-                int s = input.read(buf, pos, len - pos);
+                int s = stream.read(buf, pos, len - pos);
                 if (s < 0) {
                     break;
                 }
@@ -543,6 +538,16 @@ public class JarSync
                 throws IOException
         {
             return new String(readBytes());
+
+    }
+
+    public static class OutputChannel
+    {
+        private final OutputStream stream;
+
+        public OutputChannel(OutputStream stream)
+        {
+            this.stream = stream;
         }
 
         protected void writeInt(int i)
@@ -550,14 +555,14 @@ public class JarSync
         {
             byte[] buf = new byte[4];
             ByteBuffer.wrap(buf).putInt(i);
-            output.write(buf);
+            stream.write(buf);
         }
 
         protected void writeBytes(byte[] buf)
                 throws IOException
         {
             writeInt(buf.length);
-            output.write(buf);
+            stream.write(buf);
         }
 
         protected void writeString(String s)
@@ -565,6 +570,12 @@ public class JarSync
         {
             writeBytes(s.getBytes());
         }
+    }
+
+    public static abstract class Driver
+    {
+        public abstract void run(InputChannel input, OutputChannel output)
+                throws IOException;
     }
 
     public static class SourceDriver
