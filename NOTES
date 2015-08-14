@@ -1299,3 +1299,6 @@ sigbus is probs repo deleteOnExit firing before finalizers or some shit run or s
  bash -c 'while IFS= read -r FILE; do exec {FD}<"$FILE" 2>/dev/null; done'
 
 uh graphql? wat
+
+
+git rev-parse HEAD
