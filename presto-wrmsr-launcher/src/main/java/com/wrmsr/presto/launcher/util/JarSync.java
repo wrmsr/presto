@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -506,7 +507,7 @@ public class JarSync
             this.stream = stream;
         }
 
-        protected byte[] readBytes(int len)
+        public byte[] readBytes(int len)
                 throws IOException
         {
             byte[] buf = new byte[len];
@@ -524,20 +525,26 @@ public class JarSync
             return buf;
         }
 
-        protected int readInt()
+        public int readInt()
                 throws IOException
         {
             return ByteBuffer.wrap(readBytes(4)).getInt();
         }
 
-        protected byte[] readBytes()
+        public long readLong()
+                throws IOException
+        {
+            return ByteBuffer.wrap(readBytes(8)).getLong();
+        }
+
+        public byte[] readBytes()
                 throws IOException
         {
             int len = readInt();
             return readBytes(len);
         }
 
-        protected String readString()
+        public String readString()
                 throws IOException
         {
             return new String(readBytes());
@@ -553,7 +560,7 @@ public class JarSync
             this.stream = stream;
         }
 
-        protected void writeInt(int i)
+        public void writeInt(int i)
                 throws IOException
         {
             byte[] buf = new byte[4];
@@ -561,14 +568,22 @@ public class JarSync
             stream.write(buf);
         }
 
-        protected void writeBytes(byte[] buf)
+        public void writeLong(long i)
+                throws IOException
+        {
+            byte[] buf = new byte[48;
+            ByteBuffer.wrap(buf).putLong(i);
+            stream.write(buf);
+        }
+
+        public void writeBytes(byte[] buf)
                 throws IOException
         {
             writeInt(buf.length);
             stream.write(buf);
         }
 
-        protected void writeString(String s)
+        public void writeString(String s)
                 throws IOException
         {
             writeBytes(s.getBytes());
@@ -577,6 +592,8 @@ public class JarSync
 
     public static abstract class Driver
     {
+        public static final UUID HANDSHAKE_UUID = new UUID("2aaee760-9887-4bb7-9525-5b160820e6bf");
+
         public abstract void run(ObjectMapper mapper, InputChannel input, OutputChannel output)
                 throws IOException;
 
@@ -584,6 +601,19 @@ public class JarSync
                 throws IOException
         {
             run(mapper, new InputChannel(input), new OutputChannel(output));
+        }
+
+        protected void handshake(InputChannel input, OutputChannel output)
+            throws IOException
+        {
+            output.writeLong(HANDSHAKE_UUID.getLeastSignificantBits());
+            output.writeLong(HANDSHAKE_UUID.getMostSignificantBits());
+            long leastSigBits = input.readLong();
+            long mostSigBits = input.readLong();
+            UUID uuid = new UUID(mostSigBits, leastSigBits);
+            if (!HANDSHAKE_UUID.equals(uuid)) {
+                throw new IOException("handshake failure"));
+            }
         }
     }
 
@@ -606,8 +636,7 @@ public class JarSync
         public void run(ObjectMapper mapper, InputChannel input, OutputChannel output)
                 throws IOException
         {
-            // FIXME handshake uuid
-
+            handshake(input, output);
             Manifest manifest = new Manifest(sourceFile);
             String sinkManifestJson = input.readString();
             Manifest sinkManifest = mapper.readValue(sinkManifestJson, Manifest.class);
@@ -633,6 +662,7 @@ public class JarSync
         public void run(ObjectMapper mapper, InputChannel input, OutputChannel output)
                 throws IOException
         {
+            handshake(input, output);
             Manifest manifest = new Manifest(sinkFile);
             String manifestJson = mapper.writeValueAsString(manifest);
             output.writeString(manifestJson);
@@ -644,8 +674,6 @@ public class JarSync
     public static void main(String[] args)
             throws Throwable
     {
-        // https://docs.oracle.com/javase/7/docs/api/java/io/PipedOutputStream.html
-
         File sourceFile = new File(System.getProperty("user.home") + "/presto/presto");
 
         File sinkFile = new File(System.getProperty("user.home") + "/presto/foo.jar");
