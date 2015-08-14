@@ -684,7 +684,14 @@ public class JarSync
     {
         protected class Context
         {
+            public final InputChannel input;
+            public final OutputChannel output;
 
+            public Context(InputChannel input, OutputChannel output)
+            {
+                this.input = input;
+                this.output = output;
+            }
         }
 
         protected final File sourceFile;
@@ -710,7 +717,8 @@ public class JarSync
             Plan plan = manifest.plan(sinkManifest);
             String planJson = mapper.writeValueAsString(plan);
             output.writeString(planJson);
-            execute(plan, null);
+            Context context = new Context(input, output);
+            execute(plan, context);
         }
 
         @Override
@@ -761,7 +769,14 @@ public class JarSync
     {
         protected class Context
         {
+            public final InputChannel input;
+            public final OutputChannel output;
 
+            public Context(InputChannel input, OutputChannel output)
+            {
+                this.input = input;
+                this.output = output;
+            }
         }
 
         private final File sinkFile;
@@ -783,14 +798,15 @@ public class JarSync
             output.writeString(manifestJson);
             String planJson = input.readString();
             Plan plan = mapper.readValue(planJson, Plan.class);
-            execute(plan, null);
+            Context context = new Context(input, output);
+            execute(plan, context);
         }
 
         @Override
         protected void execute(WritePreambleOperation operation, Context context)
                 throws IOException
         {
-            
+
         }
 
         @Override
