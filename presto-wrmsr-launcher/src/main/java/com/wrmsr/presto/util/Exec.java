@@ -30,7 +30,6 @@ import com.jcraft.jsch.Session;
 import com.jcraft.jsch.UIKeyboardInteractive;
 import com.jcraft.jsch.UserInfo;
 
-import javax.annotation.Nullable;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
@@ -43,7 +42,7 @@ import java.util.Map;
 
 public interface Exec
 {
-    void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException;
+    void exec(String path, String[] params, Map<String, String> env) throws IOException;
 
     default void exec(String path, String[] params) throws IOException
     {
@@ -52,8 +51,7 @@ public interface Exec
 
     abstract class AbstractExec implements Exec
     {
-
-        public static String[] convertEnv(@Nullable Map<String, String> env)
+        public static String[] convertEnv(Map<String, String> env)
         {
             if (env == null) {
                 return null;
@@ -81,7 +79,7 @@ public interface Exec
         }
 
         @Override
-        public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException
+        public void exec(String path, String[] params, Map<String, String> env) throws IOException
         {
             ProcessBuilder pb = new ProcessBuilder();
             String[] envArr = convertEnv(env);

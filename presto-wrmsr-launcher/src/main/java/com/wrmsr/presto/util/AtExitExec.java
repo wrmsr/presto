@@ -24,7 +24,6 @@ import jnr.x86asm.Assembler;
 import jnr.x86asm.CPU;
 import org.apache.commons.lang.ArrayUtils;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -124,7 +123,7 @@ public class AtExitExec
         }
 
         @Override
-        public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException
+        public void exec(String path, String[] params, Map<String, String> env) throws IOException
         {
             Pointer filenamePtr = allocAndWriteString(path);
             Pointer paramsPtr = allocAndWriteStringTable(params);
@@ -153,7 +152,7 @@ public class AtExitExec
         }
 
         @Override
-        public void exec(String path, String[] params, @Nullable Map<String, String> env) throws IOException
+        public void exec(String path, String[] params, Map<String, String> env) throws IOException
         {
             Pointer filenamePtr = allocAndWriteString(path);
             Pointer paramsPtr = allocAndWriteStringTable(params);
