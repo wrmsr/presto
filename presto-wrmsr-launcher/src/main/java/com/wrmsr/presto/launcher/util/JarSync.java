@@ -571,7 +571,7 @@ public class JarSync
         public void writeLong(long i)
                 throws IOException
         {
-            byte[] buf = new byte[48;
+            byte[] buf = new byte[8];
             ByteBuffer.wrap(buf).putLong(i);
             stream.write(buf);
         }
@@ -612,7 +612,7 @@ public class JarSync
             long mostSigBits = input.readLong();
             UUID uuid = new UUID(mostSigBits, leastSigBits);
             if (!HANDSHAKE_UUID.equals(uuid)) {
-                throw new IOException("handshake failure"));
+                throw new IOException("handshake failure");
             }
         }
     }
