@@ -33,6 +33,7 @@ import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -676,12 +677,41 @@ public class JarSync
             }
         }
 
-        protected abstract Context execute(WritePreambleOperation operation, Context context) throws IOException;
-        protected abstract Context execute(SetExecutableOperation operation, Context context) throws IOException;
-        protected abstract Context execute(CreateDirectoryOperation operation, Context context) throws IOException;
-        protected abstract Context execute(CopyFileOperation operation, Context context) throws IOException;
-        protected abstract Context execute(SetTimeOperation operation, Context context) throws IOException;
-        protected abstract Context execute(TransferFileOperation operation, Context context) throws IOException;
+        protected Context execute(WritePreambleOperation operation, Context context)
+                throws IOException
+        {
+            return context;
+        }
+
+        protected Context execute(SetExecutableOperation operation, Context context)
+                throws IOException
+        {
+            return context;
+        }
+
+        protected Context execute(CreateDirectoryOperation operation, Context context)
+                throws IOException
+        {
+            return context;
+        }
+
+        protected Context execute(CopyFileOperation operation, Context context)
+                throws IOException
+        {
+            return context;
+        }
+
+        protected Context execute(SetTimeOperation operation, Context context)
+                throws IOException
+        {
+            return context;
+        }
+
+        protected Context execute(TransferFileOperation operation, Context context)
+                throws IOException
+        {
+            return context;
+        }
     }
 
     public static class SourceDriver
@@ -724,48 +754,6 @@ public class JarSync
             output.writeString(planJson);
             Context context = new Context(input, output);
             execute(plan, context);
-        }
-
-        @Override
-        protected Context execute(WritePreambleOperation operation, Context context)
-                throws IOException
-        {
-            return context;
-        }
-
-        @Override
-        protected Context execute(SetExecutableOperation operation, Context context)
-                throws IOException
-        {
-            return context;
-        }
-
-        @Override
-        protected Context execute(CreateDirectoryOperation operation, Context context)
-                throws IOException
-        {
-            return context;
-        }
-
-        @Override
-        protected Context execute(CopyFileOperation operation, Context context)
-                throws IOException
-        {
-            return context;
-        }
-
-        @Override
-        protected Context execute(SetTimeOperation operation, Context context)
-                throws IOException
-        {
-            return context;
-        }
-
-        @Override
-        protected Context execute(TransferFileOperation operation, Context context)
-                throws IOException
-        {
-            return context;
         }
     }
 
@@ -819,41 +807,32 @@ public class JarSync
         protected Context execute(WritePreambleOperation operation, Context context)
                 throws IOException
         {
-            return context;
+            checkNotNull(context.jarOutputStream).close();
+            File tempDir = Files.createTempDirectory(null).toFile();
+            tempDir.deleteOnExit();
+            File tempFile = new File(tempDir, outputFile.getName());
+            outputFile.renameTo(tempFile);
+            try (InputStream fi = new BufferedInputStream(new FileInputStream(outputFile));
+                    OutputStream fo = new BufferedOutputStream(new FileOutputStream(tempFile))) {
+                fo.write(operation.getPreamble());
+                byte[] buf = new byte[65536];
+                int anz;
+                while ((anz = fi.read(buf)) != -1) {
+                    fo.write(buf, 0, anz);
+                }
+            }
+            return new Context(
+                    context.input,
+                    context.output,
+                    null
+            );
         }
 
         @Override
         protected Context execute(SetExecutableOperation operation, Context context)
                 throws IOException
         {
-            return context;
-        }
-
-        @Override
-        protected Context execute(CreateDirectoryOperation operation, Context context)
-                throws IOException
-        {
-            return context;
-        }
-
-        @Override
-        protected Context execute(CopyFileOperation operation, Context context)
-                throws IOException
-        {
-            return context;
-        }
-
-        @Override
-        protected Context execute(SetTimeOperation operation, Context context)
-                throws IOException
-        {
-            return context;
-        }
-
-        @Override
-        protected Context execute(TransferFileOperation operation, Context context)
-                throws IOException
-        {
+            outputFile.setExecutable(true, false);
             return context;
         }
     }
