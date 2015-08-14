@@ -716,7 +716,7 @@ public class JarSync
                 Context context = new Context(input, output, sourceZipFile);
                 execute(plan, context);
             }
-            handshake(input, output);
+            // handshake(input, output);
         }
 
         @Override
@@ -783,7 +783,7 @@ public class JarSync
                     context.jarOutputStream.close();
                 }
             }
-            handshake(input, output);
+            // handshake(input, output);
         }
 
         @Override
