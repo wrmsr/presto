@@ -31,9 +31,14 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
 
 public class JarSync
 {
@@ -62,6 +67,20 @@ public class JarSync
             time = zipEntry.getTime();
         }
 
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            Entry entry = (Entry) o;
+            return Objects.equals(time, entry.time) &&
+                    Objects.equals(name, entry.name);
+        }
+
         @JsonProperty
         public String getName()
         {
@@ -83,6 +102,8 @@ public class JarSync
                 return new FileEntry(zipFile, zipEntry);
             }
         }
+
+        public abstract Iterable<Operation> plan(Entry other);
     }
 
     public static final class DirectoryEntry
@@ -99,6 +120,25 @@ public class JarSync
         public DirectoryEntry(ZipFile zipFile, ZipEntry zipEntry)
         {
             super(zipFile, zipEntry);
+        }
+
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            DirectoryEntry directoryEntry = (DirectoryEntry) o;
+            return super.equals(o);
+        }
+
+        @Override
+        public Iterable<Operation> plan(Entry other)
+        {
+            return ImmutableList.of(new CreateDirectoryOperation(this));
         }
     }
 
@@ -119,20 +159,24 @@ public class JarSync
             extends Entry
     {
         private final String digest;
+        private final long size;
 
         @JsonCreator
         public FileEntry(
                 @JsonProperty("name") String name,
                 @JsonProperty("time") long time,
+                @JsonProperty("size") long size,
                 @JsonProperty("digest") String digest)
         {
             super(name, time);
+            this.size = size;
             this.digest = digest;
         }
 
         public FileEntry(ZipFile zipFile, ZipEntry zipEntry)
         {
             super(zipFile, zipEntry);
+            this.size = zipEntry.getCompressedSize();
             digest = generateDigest(zipFile, zipEntry);
         }
 
@@ -161,14 +205,60 @@ public class JarSync
             }
         }
 
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            FileEntry fileEntry = (FileEntry) o;
+            return super.equals(o) &&
+                    Objects.equals(size, fileEntry.size) &&
+                    Objects.equals(digest, fileEntry.digest);
+        }
+
+        public boolean equalsExceptTime(FileEntry other)
+        {
+            return getClass() == other.getClass() &&
+                    Objects.equals(getName(), other.getName()) &&
+                    Objects.equals(size, other.size) &&
+                    Objects.equals(digest, other.digest);
+        }
+
+        @JsonProperty
+        public long getSize()
+        {
+            return size;
+        }
+
         @JsonProperty
         public String getDigest()
         {
             return digest;
         }
+
+        @Override
+        public Iterable<Operation> plan(Entry other)
+        {
+            if (equals(other)) {
+                return ImmutableList.of(new CopyFileOperation(this));
+            }
+            else if (other instanceof FileEntry && equalsExceptTime((FileEntry) other)) {
+                return ImmutableList.of(
+                        new CopyFileOperation(this),
+                        new SetTimeOperation(getName(), getTime()));
+            }
+            else {
+                return ImmutableList.of(new TransferFileOperation(this));
+            }
+        }
     }
 
     public static final class Manifest
+            implements Iterable<Entry>
     {
         private final String name;
         private final boolean isExecutable;
@@ -221,6 +311,12 @@ public class JarSync
             entries = builder.build();
         }
 
+        @Override
+        public Iterator<Entry> iterator()
+        {
+            return entries.iterator();
+        }
+
         @JsonProperty
         public String getName()
         {
@@ -244,6 +340,28 @@ public class JarSync
         {
             return entries;
         }
+
+        public Map<String, Entry> getEntryMap()
+        {
+            return entries.stream().collect(toImmutableMap(Entry::getName, e -> e));
+        }
+
+        public Plan plan(Manifest other)
+        {
+            Map<String, Entry> otherEntries = other.getEntryMap();
+            ImmutableList.Builder<Operation> builder = ImmutableList.builder();
+            for (Entry entry : this) {
+                Entry otherEntry = otherEntries.get(entry.getName());
+                builder.addAll(entry.plan(otherEntry));
+            }
+            if (preamble != null && preamble.length > 0) {
+                builder.add(new WritePreambleOperation(preamble));
+            }
+            if (isExecutable) {
+                builder.add(new SetExecutableOperation(true));
+            }
+            return new Plan(builder.build());
+        }
     }
 
     @JsonTypeInfo(
@@ -251,55 +369,129 @@ public class JarSync
             include = JsonTypeInfo.As.PROPERTY,
             property = "type")
     @JsonSubTypes({
+            @JsonSubTypes.Type(value = WritePreambleOperation.class, name = "writePreamble"),
+            @JsonSubTypes.Type(value = SetExecutableOperation.class, name = "setExecutable"),
             @JsonSubTypes.Type(value = CreateDirectoryOperation.class, name = "createDirectory"),
             @JsonSubTypes.Type(value = CopyFileOperation.class, name = "copyFile"),
+            @JsonSubTypes.Type(value = SetTimeOperation.class, name = "setTime"),
             @JsonSubTypes.Type(value = TransferFileOperation.class, name = "transferFile"),
     })
-    public static abstract class Operation<E extends Entry>
+    public static abstract class Operation<T>
     {
-        private final E entry;
+        private final T subject;
 
         @JsonCreator
         public Operation(
-                @JsonProperty("entry") E entry)
+                @JsonProperty("subject") T subject)
         {
-            this.entry = entry;
+            this.subject = subject;
         }
 
         @JsonProperty
-        public E getEntry()
+        public T getSubject()
         {
-            return entry;
+            return subject;
         }
     }
 
-    public static final class CreateDirectoryOperation extends Operation<DirectoryEntry>
+    public static final class WritePreambleOperation
+            extends Operation<byte[]>
+    {
+        @JsonCreator
+        public WritePreambleOperation(
+                @JsonProperty("subject") byte[] subject)
+        {
+            super(subject);
+        }
+    }
+
+    private static final class SetExecutableOperation
+            extends Operation<Boolean>
+    {
+        @JsonCreator
+        public SetExecutableOperation(
+                @JsonProperty("subject") Boolean subject)
+        {
+            super(subject);
+        }
+    }
+
+    public static final class CreateDirectoryOperation
+            extends Operation<DirectoryEntry>
     {
         @JsonCreator
         public CreateDirectoryOperation(
-                @JsonProperty("entry") DirectoryEntry entry)
+                @JsonProperty("subject") DirectoryEntry subject)
         {
-            super(entry);
+            super(subject);
         }
     }
 
-    public static final class CopyFileOperation extends Operation<FileEntry>
+    public static final class CopyFileOperation
+            extends Operation<FileEntry>
     {
         @JsonCreator
         public CopyFileOperation(
-                @JsonProperty("entry") FileEntry entry)
+                @JsonProperty("subject") FileEntry subject)
         {
-            super(entry);
+            super(subject);
         }
     }
 
-    public static final class TransferFileOperation extends Operation<FileEntry>
+    public static final class TransferFileOperation
+            extends Operation<FileEntry>
     {
         @JsonCreator
         public TransferFileOperation(
-                @JsonProperty("entry") FileEntry entry)
+                @JsonProperty("subject") FileEntry subject)
         {
-            super(entry);
+            super(subject);
+        }
+    }
+
+    public static final class SetTimeOperation
+        extends Operation<String>
+    {
+        private final long time;
+
+        @JsonCreator
+        public SetTimeOperation(
+                @JsonProperty("subject") String subject,
+                @JsonProperty("time") long time)
+        {
+            super(subject);
+            this.time = time;
+        }
+
+        @JsonProperty
+        public long getTime()
+        {
+            return time;
+        }
+    }
+
+    public static class Plan
+            implements Iterable<Operation>
+    {
+        private final List<Operation> operations;
+
+        @JsonCreator
+        public Plan(
+                @JsonProperty("operations") List<Operation> operations)
+        {
+            this.operations = operations;
+        }
+
+        @JsonProperty
+        public List<Operation> getOperations()
+        {
+            return operations;
+        }
+
+        @Override
+        public Iterator<Operation> iterator()
+        {
+            return operations.iterator();
         }
     }
 
@@ -325,11 +517,12 @@ public class JarSync
         }
 
         Manifest sinkManifest;
-        try (ZipFile zipFile = new ZipFile(new File(System.getProperty("user.home") + "/presto/presto"))) {
+        try (ZipFile zipFile = new ZipFile(new File(System.getProperty("user.home") + "/presto/foo.jar"))) {
             sinkManifest = new Manifest(zipFile);
         }
 
-        System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(sourceManifest));
-        System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(sinkManifest));
+        Plan plan = sourceManifest.plan(sinkManifest);
+
+        System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(plan));
     }
 }
