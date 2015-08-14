@@ -638,6 +638,43 @@ public class JarSync
                 throw new IOException("handshake failure");
             }
         }
+
+        protected void execute(Plan plan) throws IOException
+        {
+
+        }
+
+        protected void execute(Operation operation) throws IOException
+        {
+            if (operation instanceof WritePreambleOperation) {
+                execute((WritePreambleOperation) operation);
+            }
+            else if (operation instanceof SetExecutableOperation) {
+                execute((SetExecutableOperation) operation);
+            }
+            else if (operation instanceof CreateDirectoryOperation) {
+                execute((CreateDirectoryOperation) operation);
+            }
+            else if (operation instanceof CopyFileOperation) {
+                execute((CopyFileOperation) operation);
+            }
+            else if (operation instanceof SetTimeOperation) {
+                execute((SetTimeOperation) operation);
+            }
+            else if (operation instanceof TransferFileOperation) {
+                execute((TransferFileOperation) operation);
+            }
+            else {
+                throw new IllegalStateException();
+            }
+        }
+
+        protected abstract void execute(WritePreambleOperation operation) throws IOException;
+        protected abstract void execute(SetExecutableOperation operation) throws IOException;
+        protected abstract void execute(CreateDirectoryOperation operation) throws IOException;
+        protected abstract void execute(CopyFileOperation operation) throws IOException;
+        protected abstract void execute(SetTimeOperation operation) throws IOException;
+        protected abstract void execute(TransferFileOperation operation) throws IOException;
     }
 
     public static class SourceDriver
