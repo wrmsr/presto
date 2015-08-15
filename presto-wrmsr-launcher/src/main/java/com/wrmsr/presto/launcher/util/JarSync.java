@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.util.Serialization;
+import io.airlift.log.Logger;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -49,11 +50,14 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
 
 public class JarSync
 {
+    private static final Logger log = Logger.get(JarSync.class);
+
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
             include = JsonTypeInfo.As.PROPERTY,
@@ -599,7 +603,7 @@ public class JarSync
         }
 
         protected void handshake(InputChannel input, OutputChannel output)
-            throws IOException
+                throws IOException
         {
             output.writeLong(HANDSHAKE_UUID.getLeastSignificantBits());
             output.writeLong(HANDSHAKE_UUID.getMostSignificantBits());
@@ -611,7 +615,8 @@ public class JarSync
             }
         }
 
-        protected Context execute(Plan plan, Context context) throws IOException
+        protected Context execute(Plan plan, Context context)
+                throws IOException
         {
             for (Operation operation : plan) {
                 context = execute(operation, context);
@@ -619,7 +624,8 @@ public class JarSync
             return context;
         }
 
-        protected Context execute(Operation operation, Context context) throws IOException
+        protected Context execute(Operation operation, Context context)
+                throws IOException
         {
             if (operation instanceof WritePreambleOperation) {
                 return execute((WritePreambleOperation) operation, context);
@@ -714,15 +720,21 @@ public class JarSync
             output.writeString(planJson);
             try (ZipFile sourceZipFile = new ZipFile(sourceFile)) {
                 Context context = new Context(input, output, sourceZipFile);
-                execute(plan, context);
+                context = execute(plan, context);
             }
-            // handshake(input, output);
+            try {
+                handshake(input, output);
+            }
+            catch (Exception e) {
+                throw Throwables.propagate(e);
+            }
         }
 
         @Override
         protected Context execute(TransferFileOperation operation, Context context)
                 throws IOException
         {
+            log.info("Source sending: " + operation.getEntry().getName());
             ZipEntry zipEntry = context.sourceZipFile.getEntry(operation.getEntry().getName());
             try (InputStream input = context.sourceZipFile.getInputStream(zipEntry)) {
                 byte[] buf = new byte[65536];
@@ -783,7 +795,12 @@ public class JarSync
                     context.jarOutputStream.close();
                 }
             }
-            // handshake(input, output);
+            try {
+                handshake(input, output);
+            }
+            catch (Exception e) {
+                throw Throwables.propagate(e);
+            }
         }
 
         @Override
@@ -793,7 +810,7 @@ public class JarSync
             JarEntry jarEntry = new JarEntry(operation.getEntry().getName());
             jarEntry.setTime(operation.getEntry().getTime());
             checkNotNull(context.jarOutputStream).putNextEntry(jarEntry);
-            context.jarOutputStream.write(new byte[]{}, 0, 0);
+            context.jarOutputStream.write(new byte[] {}, 0, 0);
             return context;
         }
 
@@ -819,6 +836,7 @@ public class JarSync
         protected Context execute(TransferFileOperation operation, Context context)
                 throws IOException
         {
+            log.info("Sink receiving: " + operation.getEntry().getName());
             JarEntry jarEntry = new JarEntry(operation.getEntry().getName());
             jarEntry.setTime(operation.getEntry().getTime());
             long rem = operation.getEntry().getSize();
@@ -840,7 +858,7 @@ public class JarSync
             File tempDir = Files.createTempDirectory(null).toFile();
             tempDir.deleteOnExit();
             File tempFile = new File(tempDir, outputFile.getName());
-            outputFile.renameTo(tempFile);
+            checkState(outputFile.renameTo(tempFile));
             try (InputStream input = new BufferedInputStream(new FileInputStream(tempFile));
                     OutputStream output = new BufferedOutputStream(new FileOutputStream(outputFile))) {
                 output.write(operation.getPreamble());
