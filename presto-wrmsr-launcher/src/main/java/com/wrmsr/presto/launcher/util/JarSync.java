@@ -843,6 +843,7 @@ public class JarSync
             log.info(String.format("Sink receiving %d bytes for file %s", operation.getEntry().getSize(), operation.getEntry().getName()));
             JarEntry jarEntry = new JarEntry(operation.getEntry().getName());
             jarEntry.setTime(operation.getEntry().getTime());
+            checkNotNull(context.jarOutputStream).putNextEntry(jarEntry);
             long rem = operation.getEntry().getSize();
             byte[] buf = new byte[65536];
             int bc;
