@@ -31,6 +31,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.logging.Level;
@@ -225,6 +226,14 @@ public class PrestoWrapperBuilder
     {
         Logging.initialize();
 
+        Runtime rt = Runtime.getRuntime();
+        Process proc = rt.exec(new String[]{"git", "rev-parse", "--verify", "HEAD"});
+        BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+        BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+        String rev = stdInput.readLine();
+        proc.waitFor(10, TimeUnit.SECONDS);
+        checkState(proc.exitValue() == 0);
+
         for (String logName : new String[]{"com.ning.http.client.providers.netty.NettyAsyncHttpProvider"}) {
             java.util.logging.Logger.getLogger(logName).setLevel(Level.WARNING);
         }
@@ -413,6 +422,11 @@ public class PrestoWrapperBuilder
             }
             contents.add(key);
         }
+
+        JarEntry jeHEAD = new JarEntry("HEAD");
+        jo.putNextEntry(jeHEAD);
+        jo.write(rev.getBytes());
+
         jo.close();
         bo.close();
 
