@@ -890,8 +890,8 @@ public class JarSync
     {
         File sourceFile = new File(System.getProperty("user.home") + "/presto/presto");
 
-        File sinkFile = new File(System.getProperty("user.home") + "/presto/foo.jar");
-        File outputFile = new File(System.getProperty("user.home") + "/presto/bar.jar");
+        File sinkFile = new File(System.getProperty("user.home") + "/presto/presto-old");
+        File outputFile = new File(System.getProperty("user.home") + "/presto/presto-out");
 
         ObjectMapper mapper = Serialization.JSON_OBJECT_MAPPER.get();
 
