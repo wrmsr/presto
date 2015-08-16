@@ -22,6 +22,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.util.Serialization;
 import io.airlift.log.Logger;
+import io.airlift.log.Logging;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -194,7 +195,7 @@ public class JarSync
         public FileEntry(ZipFile zipFile, ZipEntry zipEntry)
         {
             super(zipFile, zipEntry);
-            this.size = zipEntry.getCompressedSize();
+            this.size = zipEntry.getSize();
             digest = generateDigest(zipFile, zipEntry);
         }
 
@@ -734,15 +735,18 @@ public class JarSync
         protected Context execute(TransferFileOperation operation, Context context)
                 throws IOException
         {
-            log.info("Source sending: " + operation.getEntry().getName());
+            log.info(String.format("Source sending %d bytes for file %s", operation.getEntry().getSize(), operation.getEntry().getName()));
             ZipEntry zipEntry = context.sourceZipFile.getEntry(operation.getEntry().getName());
+            long total = 0;
             try (InputStream input = context.sourceZipFile.getInputStream(zipEntry)) {
                 byte[] buf = new byte[65536];
                 int bc;
                 while ((bc = input.read(buf)) != -1) {
                     context.output.stream.write(buf, 0, bc);
+                    total += bc;
                 }
             }
+            log.info(String.format("Source sent %d bytes", total));
             return context;
         }
     }
@@ -836,7 +840,7 @@ public class JarSync
         protected Context execute(TransferFileOperation operation, Context context)
                 throws IOException
         {
-            log.info("Sink receiving: " + operation.getEntry().getName());
+            log.info(String.format("Sink receiving %d bytes for file %s", operation.getEntry().getSize(), operation.getEntry().getName()));
             JarEntry jarEntry = new JarEntry(operation.getEntry().getName());
             jarEntry.setTime(operation.getEntry().getTime());
             long rem = operation.getEntry().getSize();
@@ -849,11 +853,14 @@ public class JarSync
             catch (NoSuchAlgorithmException e) {
                 throw Throwables.propagate(e);
             }
+            long total = 0;
             while (rem > 0 && (bc = context.input.stream.read(buf, 0, (int) (rem > buf.length ? buf.length : rem))) != -1) {
                 context.jarOutputStream.write(buf, 0, bc);
                 md.update(buf, 0, bc);
                 rem -= bc;
+                total += bc;
             }
+            log.info(String.format("Sink received %d bytes", total));
             String digest = hexForBytes(md.digest());
             if (!digest.equals(operation.getEntry().getDigest())) {
                 throw new IOException("digest mismatch");
@@ -900,6 +907,8 @@ public class JarSync
     public static void main(String[] args)
             throws Throwable
     {
+        Logging.initialize();
+
         File sourceFile = new File(System.getProperty("user.home") + "/presto/presto");
 
         File sinkFile = new File(System.getProperty("user.home") + "/presto/presto-old");
