@@ -171,6 +171,8 @@ public class JarSync
         return sb.toString();
     }
 
+    public static final String DIGEST_ALG = "MD5";
+
     public static final class FileEntry
             extends Entry
     {
@@ -195,8 +197,6 @@ public class JarSync
             this.size = zipEntry.getCompressedSize();
             digest = generateDigest(zipFile, zipEntry);
         }
-
-        public static final String DIGEST_ALG = "MD5";
 
         public static String generateDigest(ZipFile zipFile, ZipEntry zipEntry)
         {
@@ -842,9 +842,21 @@ public class JarSync
             long rem = operation.getEntry().getSize();
             byte[] buf = new byte[65536];
             int bc;
+            MessageDigest md;
+            try {
+                md = MessageDigest.getInstance(DIGEST_ALG);
+            }
+            catch (NoSuchAlgorithmException e) {
+                throw Throwables.propagate(e);
+            }
             while (rem > 0 && (bc = context.input.stream.read(buf, 0, (int) (rem > buf.length ? buf.length : rem))) != -1) {
                 context.jarOutputStream.write(buf, 0, bc);
+                md.update(buf, 0, bc);
                 rem -= bc;
+            }
+            String digest = hexForBytes(md.digest());
+            if (!digest.equals(operation.getEntry().getDigest())) {
+                throw new IOException("digest mismatch");
             }
             return context;
         }
