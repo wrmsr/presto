@@ -36,8 +36,11 @@ public abstract class SshClient
     public interface Session extends AutoCloseable
     {
         OutputStream getOutputStream();
+
         InputStream getInputStream();
+
         InputStream getErrorStream();
+
         int waitFor(long timeoutMilliseconds) throws InterruptedException;
     }
 
