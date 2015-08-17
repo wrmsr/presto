@@ -124,7 +124,7 @@ public interface Exec
             }
             String user = host.substring(0, host.indexOf('@'));
             host = host.substring(host.indexOf('@') + 1);
-            jsch.addIdentity(System.getProperty("user.home") + "/wtimoney_dev.pem");
+            jsch.addIdentity(System.getProperty("user.home") + "/Dropbox/yelp_wtimoney_dev.pem");
 
             Session session = jsch.getSession(user, host, 22);
 

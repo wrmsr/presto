@@ -26,7 +26,7 @@ public class TestSshSubprocess
     public void testShit()
             throws Throwable
     {
-        FinalizedProcessBuilder pb = new FinalizedProcessBuilder("ssh", "dev8-devc", "ls", "-l");
+        FinalizedProcessBuilder pb = new FinalizedProcessBuilder("ssh", "-i", "~/.ssh/yelp_id_rsa", "wtimoney@10.56.5.48", "ls", "-l");
         try (FinalizedProcess process = pb.start()) {
             BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line = null;

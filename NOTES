@@ -1301,4 +1301,13 @@ sigbus is probs repo deleteOnExit firing before finalizers or some shit run or s
 uh graphql? wat
 
 
-git rev-parse HEAD
+
+
+<dependency>
+    <groupId>org.nd4j</groupId>
+    <artifactId>nd4j-jblas</artifactId>
+    <version>0.0.3.5.5.4-SNAPSHOT</version>
+</dependency>
+
+https://jclouds.apache.org/
+ yeah prob renamed aws to jclouds
