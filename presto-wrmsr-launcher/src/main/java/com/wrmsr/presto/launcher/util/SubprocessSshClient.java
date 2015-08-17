@@ -75,12 +75,12 @@ public class SubprocessSshClient extends SshClient
         if (identity.isPresent()) {
             argsBuilder.add("-i", identity.get().getAbsolutePath());
         }
+        if (forwardAgent) {
+            argsBuilder.add("-A");
+        }
         String usernameAndHost = "";
         if (username.isPresent()) {
             usernameAndHost += username.get() + "@";
-        }
-        if (forwardAgent) {
-            argsBuilder.add("-A");
         }
         usernameAndHost += host;
         argsBuilder.add(usernameAndHost);
