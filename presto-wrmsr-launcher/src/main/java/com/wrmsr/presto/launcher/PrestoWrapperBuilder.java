@@ -269,10 +269,10 @@ public class PrestoWrapperBuilder
                 "presto-wrmsr-aws",
                 "presto-wrmsr-main",
                 "presto-wrmsr-hadoop",
-                "presto-wrmsr-mesos",
+                // "presto-wrmsr-mesos",
                 "presto-wrmsr-jython",
-                "presto-wrmsr-jruby",
-                "presto-wrmsr-lucene",
+                // "presto-wrmsr-jruby",
+                // "presto-wrmsr-lucene",
                 "presto-wrmsr-swagger"
         );
         Set<String> localGroups = ImmutableSet.of(

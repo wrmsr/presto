@@ -101,10 +101,10 @@
         <module>presto-wrmsr-main</module>
         <module>presto-wrmsr-hadoop</module>
         <module>presto-wrmsr-jython</module>
-        <module>presto-wrmsr-jruby</module>
-        <module>presto-wrmsr-lucene</module>
+        <!-- <module>presto-wrmsr-jruby</module> -->
+        <!-- <module>presto-wrmsr-lucene</module> -->
         <!-- <module>presto-wrmsr-memcache</module> -->
-        <module>presto-wrmsr-mesos</module>
+        <!-- <module>presto-wrmsr-mesos</module> -->
         <module>presto-wrmsr-swagger</module>
         <module>presto-wrmsr-utils</module>
         <module>presto-wrmsr-launcher</module>
