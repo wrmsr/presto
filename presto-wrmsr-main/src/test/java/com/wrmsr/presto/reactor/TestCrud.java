@@ -39,6 +39,8 @@ import com.google.common.collect.ImmutableMap;
 import org.testng.annotations.Test;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -131,7 +133,9 @@ public class TestCrud
         JdbcMetadata jdbcMetadata = (JdbcMetadata) metadata;
         BaseJdbcClient jdbcClient = (BaseJdbcClient) jdbcMetadata.getJdbcClient();
         try (Connection connection = jdbcClient.getConnection()) {
-            connection.createStatement().execute("CREATE SCHEMA example");
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("CREATE SCHEMA example");
+            }
             // connection.createStatement().execute("CREATE TABLE example.foo (id integer primary key)");
         }
 
@@ -142,6 +146,19 @@ public class TestCrud
                 "bob"));
         metadata.commitCreateTable(session, oth, ImmutableList.of());
 
+        try (Connection connection = jdbcClient.getConnection()) {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("insert into example.foo (text) values ('hi');");
+            }
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("select * from example.foo;");
+                ResultSet rs = stmt.getResultSet();
+                while (rs.next()) {
+                    System.out.println(rs.getString(1));
+                }
+            }
+            // connection.createStatement().execute("CREATE TABLE example.foo (id integer primary key)");
+        }
         /*
         ConnectorTableHandle th = metadata.getTableHandle(session, new SchemaTableName("example", "foo"));
         ConnectorInsertTableHandle ith = metadata.beginInsert(session, th);
