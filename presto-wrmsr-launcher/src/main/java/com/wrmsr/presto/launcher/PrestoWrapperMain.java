@@ -465,13 +465,13 @@ public class PrestoWrapperMain
         }
     }
 
-    @Command(name = "hive-metastore", description = "Starts hive metastore")
+    @Command(name = "hive", description = "Execute Hive command")
     public static class HiveMetastoreCommand extends PassthroughCommand
     {
         @Override
         public String getModuleName()
         {
-            return "presto-hive-hadoop2";
+            return "presto-wrmsr-hadoop";
         }
 
         @Override

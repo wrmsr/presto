@@ -1316,3 +1316,5 @@ https://jclouds.apache.org/
 
 
 un fixme dont fucking provided dep launcher from hadoop and mesos and aws holy fuck look at dem deps
+
+todo its still fucking pathetic to bundle all of hive just for metastore maint... jackson -> thrift pls :[
