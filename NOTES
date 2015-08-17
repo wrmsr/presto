@@ -1291,7 +1291,7 @@ ssh subprocess fallback
 
 default to presto.yaml | presto.json if not given a -c
 
-cmds: hdfs ec2 s3
+cmds: hive hdfs ec2 s3
 ? yarn emr
 
 sigbus is probs repo deleteOnExit firing before finalizers or some shit run or something, death pact cleaner bash child proc would probs do it
