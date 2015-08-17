@@ -1,5 +1,6 @@
 package com.wrmsr.presto.hadoop;
 
+import io.airlift.log.Logging;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
@@ -22,6 +23,8 @@ public class TestNameNode
     @Test
     public void test() throws Throwable
     {
+        Logging.initialize();
+
         ExitUtil.disableSystemExit();
         ExitUtil.resetFirstExitException();
         HdfsConfiguration config = new HdfsConfiguration();
