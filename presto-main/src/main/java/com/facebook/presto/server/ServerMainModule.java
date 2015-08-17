@@ -60,6 +60,7 @@ import com.facebook.presto.spi.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.ConnectorPageSourceProvider;
 import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.PageSorter;
+import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.block.BlockEncodingFactory;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.type.Type;
@@ -297,6 +298,7 @@ public class ServerMainModule
         newSetBinder(binder, new TypeLiteral<ServerEvent.Listener>() {});
 
         // plugin manager
+        newSetBinder(binder, Plugin.class);
         binder.bind(PluginManager.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(PluginManagerConfig.class);
         newSetBinder(binder, new TypeLiteral<ServerEvent.Listener>() {}).addBinding().to(PluginManager.class);

@@ -43,24 +43,17 @@ public class DaemonProcess
             openFlags =
                     jnr.constants.platform.darwin.OpenFlags.O_RDWR.intValue() |
                     jnr.constants.platform.darwin.OpenFlags.O_CREAT.intValue();
-            EWOULDBLOCK =
-                    -1;
-                    // jnr.constants.platform.darwin.Errno.EWOULDBLOCK.intValue();
-            SIGTERM =
-                    jnr.constants.platform.darwin.Signal.SIGTERM.intValue();
-            SIGKILL =
-                    jnr.constants.platform.darwin.Signal.SIGKILL.intValue();
+            EWOULDBLOCK = -1; // jnr.constants.platform.darwin.Errno.EWOULDBLOCK.intValue();
+            SIGTERM = jnr.constants.platform.darwin.Signal.SIGTERM.intValue();
+            SIGKILL = jnr.constants.platform.darwin.Signal.SIGKILL.intValue();
         }
         else if (Platform.IS_LINUX) {
             openFlags =
                     jnr.constants.platform.linux.OpenFlags.O_RDWR.intValue() |
                     jnr.constants.platform.linux.OpenFlags.O_CREAT.intValue();
-            EWOULDBLOCK =
-                    jnr.constants.platform.linux.Errno.EWOULDBLOCK.intValue();
-            SIGTERM =
-                    jnr.constants.platform.linux.Signal.SIGTERM.intValue();
-            SIGKILL =
-                    jnr.constants.platform.linux.Signal.SIGKILL.intValue();
+            EWOULDBLOCK = jnr.constants.platform.linux.Errno.EWOULDBLOCK.intValue();
+            SIGTERM = jnr.constants.platform.linux.Signal.SIGTERM.intValue();
+            SIGKILL = jnr.constants.platform.linux.Signal.SIGKILL.intValue();
         }
         else {
             throw new IllegalStateException("Unsupported platform");
