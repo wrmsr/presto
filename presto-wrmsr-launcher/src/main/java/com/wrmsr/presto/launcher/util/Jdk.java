@@ -11,7 +11,15 @@ public class Jdk
 {
     private static final int BUFFER_SIZE = 4096;
 
-    // wget -c --no-cookies --no-check-certificate --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" "https://download.oracle.com/otn-pub/java/jdk/8u51-b16/jdk-8u51-linux-x64.tar.gz" --output-document="jdk-8u51-linux-x64.tar.gz"
+    /*
+    wget \
+      -c \
+      --no-cookies \
+      --no-check-certificate \
+      --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" \
+      "https://download.oracle.com/otn-pub/java/jdk/8u51-b16/jdk-8u51-linux-x64.tar.gz" \
+      --output-document="jdk-8u51-linux-x64.tar.gz"
+    */
 
     /**
      * Downloads a file from a URL
@@ -72,5 +80,10 @@ public class Jdk
             System.out.println("No file to download. Server replied HTTP code: " + responseCode);
         }
         httpConn.disconnect();
+    }
+
+    public static void main(String[] args) throws Throwable
+    {
+
     }
 }
