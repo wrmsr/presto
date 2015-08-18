@@ -73,6 +73,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
@@ -215,6 +216,12 @@ public class HttpRemoteTask
     }
 
     @Override
+    public TaskId getTaskId()
+    {
+        return taskId;
+    }
+
+    @Override
     public String getNodeId()
     {
         return nodeId;
@@ -307,6 +314,12 @@ public class HttpRemoteTask
         try (SetThreadName ignored = new SetThreadName("HttpRemoteTask-%s", taskId)) {
             taskInfo.addStateChangeListener(stateChangeListener);
         }
+    }
+
+    @Override
+    public CompletableFuture<TaskInfo> getStateChange(TaskInfo taskInfo)
+    {
+        return this.taskInfo.getStateChange(taskInfo);
     }
 
     private synchronized void updateTaskInfo(TaskInfo newValue)
