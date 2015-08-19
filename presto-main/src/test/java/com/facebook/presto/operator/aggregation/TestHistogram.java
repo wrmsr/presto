@@ -45,8 +45,9 @@ import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
 import static com.facebook.presto.spi.type.TimeZoneKey.getTimeZoneKey;
 import static com.facebook.presto.spi.type.TimestampWithTimeZoneType.TIMESTAMP_WITH_TIME_ZONE;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
-import static com.facebook.presto.type.ArrayType.toStackRepresentation;
 import static com.facebook.presto.util.DateTimeZoneIndex.getDateTimeZone;
+import static com.facebook.presto.util.StructuralTestUtil.arrayBlockOf;
+import static com.facebook.presto.util.StructuralTestUtil.mapBlockOf;
 
 public class TestHistogram
 {
@@ -125,13 +126,13 @@ public class TestHistogram
         PageBuilder builder = new PageBuilder(ImmutableList.of(arrayType));
 
         builder.declarePosition();
-        arrayType.writeObject(builder.getBlockBuilder(0), toStackRepresentation(ImmutableList.of("a", "b", "c"), VARCHAR));
+        arrayType.writeObject(builder.getBlockBuilder(0), arrayBlockOf(VARCHAR, "a", "b", "c"));
 
         builder.declarePosition();
-        arrayType.writeObject(builder.getBlockBuilder(0), toStackRepresentation(ImmutableList.of("d", "e", "f"), VARCHAR));
+        arrayType.writeObject(builder.getBlockBuilder(0), arrayBlockOf(VARCHAR, "d", "e", "f"));
 
         builder.declarePosition();
-        arrayType.writeObject(builder.getBlockBuilder(0), toStackRepresentation(ImmutableList.of("c", "b", "a"), VARCHAR));
+        arrayType.writeObject(builder.getBlockBuilder(0), arrayBlockOf(VARCHAR, "c", "b", "a"));
 
         assertAggregation(
                 aggregationFunction,
@@ -151,13 +152,13 @@ public class TestHistogram
         PageBuilder builder = new PageBuilder(ImmutableList.of(innerMapType));
 
         builder.declarePosition();
-        innerMapType.writeObject(builder.getBlockBuilder(0), MapType.toStackRepresentation(ImmutableMap.of("a", "b"), VARCHAR, VARCHAR));
+        innerMapType.writeObject(builder.getBlockBuilder(0), mapBlockOf(VARCHAR, VARCHAR, ImmutableMap.of("a", "b")));
 
         builder.declarePosition();
-        innerMapType.writeObject(builder.getBlockBuilder(0), MapType.toStackRepresentation(ImmutableMap.of("c", "d"), VARCHAR, VARCHAR));
+        innerMapType.writeObject(builder.getBlockBuilder(0), mapBlockOf(VARCHAR, VARCHAR, ImmutableMap.of("c", "d")));
 
         builder.declarePosition();
-        innerMapType.writeObject(builder.getBlockBuilder(0), MapType.toStackRepresentation(ImmutableMap.of("e", "f"), VARCHAR, VARCHAR));
+        innerMapType.writeObject(builder.getBlockBuilder(0), mapBlockOf(VARCHAR, VARCHAR, ImmutableMap.of("e", "f")));
 
         assertAggregation(
                 aggregationFunction,

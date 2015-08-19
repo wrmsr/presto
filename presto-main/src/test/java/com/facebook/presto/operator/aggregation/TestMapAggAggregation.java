@@ -40,7 +40,8 @@ import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
-import static com.facebook.presto.type.ArrayType.toStackRepresentation;
+import static com.facebook.presto.util.StructuralTestUtil.arrayBlockOf;
+import static com.facebook.presto.util.StructuralTestUtil.mapBlockOf;
 
 public class TestMapAggAggregation
 {
@@ -139,15 +140,15 @@ public class TestMapAggAggregation
 
         builder.declarePosition();
         DOUBLE.writeDouble(builder.getBlockBuilder(0), 1.0);
-        arrayType.writeObject(builder.getBlockBuilder(1), toStackRepresentation(ImmutableList.of("a", "b"), VARCHAR));
+        arrayType.writeObject(builder.getBlockBuilder(1), arrayBlockOf(VARCHAR, "a", "b"));
 
         builder.declarePosition();
         DOUBLE.writeDouble(builder.getBlockBuilder(0), 2.0);
-        arrayType.writeObject(builder.getBlockBuilder(1), toStackRepresentation(ImmutableList.of("c", "d"), VARCHAR));
+        arrayType.writeObject(builder.getBlockBuilder(1), arrayBlockOf(VARCHAR, "c", "d"));
 
         builder.declarePosition();
         DOUBLE.writeDouble(builder.getBlockBuilder(0), 3.0);
-        arrayType.writeObject(builder.getBlockBuilder(1), toStackRepresentation(ImmutableList.of("e", "f"), VARCHAR));
+        arrayType.writeObject(builder.getBlockBuilder(1), arrayBlockOf(VARCHAR, "e", "f"));
 
         assertAggregation(
                 aggFunc,
@@ -173,15 +174,15 @@ public class TestMapAggAggregation
 
         builder.declarePosition();
         DOUBLE.writeDouble(builder.getBlockBuilder(0), 1.0);
-        innerMapType.writeObject(builder.getBlockBuilder(1), MapType.toStackRepresentation(ImmutableMap.of("a", "b"), VARCHAR, VARCHAR));
+        innerMapType.writeObject(builder.getBlockBuilder(1), mapBlockOf(VARCHAR, VARCHAR, ImmutableMap.of("a", "b")));
 
         builder.declarePosition();
         DOUBLE.writeDouble(builder.getBlockBuilder(0), 2.0);
-        innerMapType.writeObject(builder.getBlockBuilder(1), MapType.toStackRepresentation(ImmutableMap.of("c", "d"), VARCHAR, VARCHAR));
+        innerMapType.writeObject(builder.getBlockBuilder(1), mapBlockOf(VARCHAR, VARCHAR, ImmutableMap.of("c", "d")));
 
         builder.declarePosition();
         DOUBLE.writeDouble(builder.getBlockBuilder(0), 3.0);
-        innerMapType.writeObject(builder.getBlockBuilder(1), MapType.toStackRepresentation(ImmutableMap.of("e", "f"), VARCHAR, VARCHAR));
+        innerMapType.writeObject(builder.getBlockBuilder(1), mapBlockOf(VARCHAR, VARCHAR, ImmutableMap.of("e", "f")));
 
         assertAggregation(
                 aggFunc,
@@ -242,15 +243,15 @@ public class TestMapAggAggregation
         PageBuilder builder = new PageBuilder(ImmutableList.of(arrayType, DOUBLE));
 
         builder.declarePosition();
-        arrayType.writeObject(builder.getBlockBuilder(0), toStackRepresentation(ImmutableList.of("a", "b"), VARCHAR));
+        arrayType.writeObject(builder.getBlockBuilder(0), arrayBlockOf(VARCHAR, "a", "b"));
         DOUBLE.writeDouble(builder.getBlockBuilder(1), 1.0);
 
         builder.declarePosition();
-        arrayType.writeObject(builder.getBlockBuilder(0), toStackRepresentation(ImmutableList.of("c", "d"), VARCHAR));
+        arrayType.writeObject(builder.getBlockBuilder(0), arrayBlockOf(VARCHAR, "c", "d"));
         DOUBLE.writeDouble(builder.getBlockBuilder(1), 2.0);
 
         builder.declarePosition();
-        arrayType.writeObject(builder.getBlockBuilder(0), toStackRepresentation(ImmutableList.of("e", "f"), VARCHAR));
+        arrayType.writeObject(builder.getBlockBuilder(0), arrayBlockOf(VARCHAR, "e", "f"));
         DOUBLE.writeDouble(builder.getBlockBuilder(1), 3.0);
 
         assertAggregation(
