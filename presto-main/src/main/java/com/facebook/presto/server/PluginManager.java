@@ -19,6 +19,7 @@ import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.Plugin;
+import com.wrmsr.presto.server.PreloadedPluginSet;
 import com.wrmsr.presto.server.ServerEvent;
 import com.wrmsr.presto.spi.ScriptEngineProvider;
 import com.facebook.presto.spi.block.BlockEncodingFactory;
@@ -55,6 +56,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.TreeMap;
@@ -88,7 +90,7 @@ public class PluginManager
     private final Metadata metadata;
     private final BlockEncodingManager blockEncodingManager;
     private final TypeRegistry typeRegistry;
-    private final Set<Plugin> preloadedPlugins;
+    private final Optional<PreloadedPluginSet> preloadedPlugins;
     private final ArtifactResolver resolver;
     private final File installedPluginsDir;
     private final List<String> plugins;
@@ -108,7 +110,7 @@ public class PluginManager
             Metadata metadata,
             BlockEncodingManager blockEncodingManager,
             TypeRegistry typeRegistry,
-            Set<Plugin> preloadedPlugins)
+            Optional<PreloadedPluginSet> preloadedPlugins)
     {
         checkNotNull(injector, "injector is null");
         checkNotNull(nodeInfo, "nodeInfo is null");
@@ -164,8 +166,10 @@ public class PluginManager
             return;
         }
 
-        for (Plugin plugin : preloadedPlugins) {
-            installPlugin(plugin);
+        if (preloadedPlugins.isPresent()) {
+            for (Plugin plugin : preloadedPlugins.get()) {
+                installPlugin(plugin);
+            }
         }
 
         for (File file : listFiles(installedPluginsDir)) {

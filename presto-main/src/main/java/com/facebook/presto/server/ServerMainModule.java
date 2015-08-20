@@ -89,6 +89,7 @@ import com.google.inject.Provides;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.MapBinder;
+import com.wrmsr.presto.server.PreloadedPluginSet;
 import com.wrmsr.presto.server.ServerEvent;
 import io.airlift.configuration.AbstractConfigurationAwareModule;
 import io.airlift.discovery.client.ServiceDescriptor;
@@ -98,6 +99,7 @@ import io.airlift.units.Duration;
 import javax.inject.Singleton;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
@@ -298,7 +300,7 @@ public class ServerMainModule
         newSetBinder(binder, new TypeLiteral<ServerEvent.Listener>() {});
 
         // plugin manager
-        newSetBinder(binder, Plugin.class);
+        binder.bind(new TypeLiteral<Optional<PreloadedPluginSet>>() {}).toInstance(Optional.empty());
         binder.bind(PluginManager.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(PluginManagerConfig.class);
         newSetBinder(binder, new TypeLiteral<ServerEvent.Listener>() {}).addBinding().to(PluginManager.class);
