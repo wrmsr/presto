@@ -44,8 +44,8 @@ import static com.facebook.presto.metadata.MetadataUtil.TableMetadataBuilder.tab
 import static com.facebook.presto.raptor.RaptorTableProperties.ORDERING_PROPERTY;
 import static com.facebook.presto.raptor.RaptorTableProperties.TEMPORAL_COLUMN_PROPERTY;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
+import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
-import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.testing.TestingConnectorSession.SESSION;
 import static io.airlift.json.JsonCodec.jsonCodec;
 import static io.airlift.testing.Assertions.assertEqualsIgnoreOrder;
@@ -168,7 +168,7 @@ public class TestRaptorMetadata
         List<TableColumn> sortColumns = metadataDao.listSortColumns(tableId);
         assertEquals(sortColumns.size(), 2);
         assertEquals(sortColumns, ImmutableList.of(
-                new TableColumn(DEFAULT_TEST_ORDERS, "orderdate", VARCHAR, 4),
+                new TableColumn(DEFAULT_TEST_ORDERS, "orderdate", DATE, 4),
                 new TableColumn(DEFAULT_TEST_ORDERS, "custkey", BIGINT, 2)));
 
         // verify temporal column
@@ -198,6 +198,14 @@ public class TestRaptorMetadata
         fail("Expected createTable to fail");
     }
 
+    @Test(expectedExceptions = PrestoException.class, expectedExceptionsMessageRegExp = "Temporal column must be of type timestamp or date: orderkey")
+    public void testInvalidTemporalColumnType()
+            throws Exception
+    {
+        assertNull(metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS));
+        metadata.createTable(SESSION, getOrdersTable(ImmutableMap.of(TEMPORAL_COLUMN_PROPERTY, "orderkey")));
+    }
+
     @Test
     public void testSortOrderProperty()
             throws Exception
@@ -219,7 +227,7 @@ public class TestRaptorMetadata
         List<TableColumn> sortColumns = metadataDao.listSortColumns(tableId);
         assertEquals(sortColumns.size(), 2);
         assertEquals(sortColumns, ImmutableList.of(
-                new TableColumn(DEFAULT_TEST_ORDERS, "orderdate", VARCHAR, 4),
+                new TableColumn(DEFAULT_TEST_ORDERS, "orderdate", DATE, 4),
                 new TableColumn(DEFAULT_TEST_ORDERS, "custkey", BIGINT, 2)));
 
         // verify temporal column is not set
@@ -354,7 +362,7 @@ public class TestRaptorMetadata
                 .column("orderkey", BIGINT)
                 .column("custkey", BIGINT)
                 .column("totalprice", DOUBLE)
-                .column("orderdate", VARCHAR);
+                .column("orderdate", DATE);
 
         if (!properties.isEmpty()) {
             for (Map.Entry<String, Object> entry : properties.entrySet()) {
