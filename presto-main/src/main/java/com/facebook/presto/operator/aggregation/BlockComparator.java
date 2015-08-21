@@ -13,19 +13,9 @@
  */
 package com.facebook.presto.operator.aggregation;
 
-public class MaxBy
-        extends AbstractMinMaxBy
+import com.facebook.presto.spi.block.Block;
+
+public interface BlockComparator
 {
-    public static final MaxBy MAX_BY = new MaxBy();
-
-    public MaxBy()
-    {
-        super(false);
-    }
-
-    @Override
-    public String getDescription()
-    {
-        return "Returns the value of the first argument, associated with the maximum value of the second argument";
-    }
+    int compareTo(Block leftBlock, int leftIndex, Block rightBlock, int rightIndex);
 }

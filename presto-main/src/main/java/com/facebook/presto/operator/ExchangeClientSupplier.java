@@ -11,21 +11,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.operator.aggregation;
+package com.facebook.presto.operator;
 
-public class MaxBy
-        extends AbstractMinMaxBy
+import com.facebook.presto.execution.SystemMemoryUsageListener;
+
+public interface ExchangeClientSupplier
 {
-    public static final MaxBy MAX_BY = new MaxBy();
-
-    public MaxBy()
-    {
-        super(false);
-    }
-
-    @Override
-    public String getDescription()
-    {
-        return "Returns the value of the first argument, associated with the maximum value of the second argument";
-    }
+    ExchangeClient get(SystemMemoryUsageListener systemMemoryUsageListener);
 }

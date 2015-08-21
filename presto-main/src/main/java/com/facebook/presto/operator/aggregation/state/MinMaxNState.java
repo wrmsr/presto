@@ -11,21 +11,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.operator.aggregation;
+package com.facebook.presto.operator.aggregation.state;
 
-public class MaxBy
-        extends AbstractMinMaxBy
+import com.facebook.presto.operator.aggregation.TypedHeap;
+
+public interface MinMaxNState
+    extends AccumulatorState
 {
-    public static final MaxBy MAX_BY = new MaxBy();
+    TypedHeap getTypedHeap();
 
-    public MaxBy()
-    {
-        super(false);
-    }
+    void setTypedHeap(TypedHeap value);
 
-    @Override
-    public String getDescription()
-    {
-        return "Returns the value of the first argument, associated with the maximum value of the second argument";
-    }
+    void addMemoryUsage(long memory);
 }
