@@ -140,7 +140,7 @@
     </artifactSet>
     -->
 
-    <--
+    <!--
     <artifactSet to="plugin/wrmsr-lucene">
         <artifact id="com.wrmsr.presto:presto-wrmsr-lucene:zip:${project.version}">
             <unpack />
