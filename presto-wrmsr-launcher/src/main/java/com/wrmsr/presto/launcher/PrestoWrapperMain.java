@@ -478,7 +478,7 @@ public class PrestoWrapperMain
         @Override
         public String getClassName()
         {
-            return "com.wrmsr.presto.hadoop.HiveCli";
+            return "com.wrmsr.presto.hadoop.HiveMain";
         }
     }
 
