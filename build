@@ -6,7 +6,9 @@ if [[ "$unamestr" == 'Linux' ]]; then
 else
     MVN=mvn
 fi
-find ~/.m2/repository/com/facebook/presto -name '*.lastUpdated' -delete
+if [ -d ~/.m2/repository/com/facebook/presto ] ; then
+    find ~/.m2/repository/com/facebook/presto -name '*.lastUpdated' -delete
+fi
 VERSION=$(egrep '<version>[0-9\.]+-SNAPSHOT</version>' pom.xml | head -n 1 | egrep -o '[0-9\.]+-SNAPSHOT')
 for PRJ in presto-parser presto-main presto-hive ; do
     JAR_DIR="$HOME/.m2/repository/com/facebook/presto/$PRJ/$VERSION"
