@@ -723,12 +723,7 @@ public class JarSync
                 Context context = new Context(input, output, sourceZipFile);
                 context = execute(plan, context);
             }
-            try {
-                handshake(input, output);
-            }
-            catch (Exception e) {
-                throw Throwables.propagate(e);
-            }
+            handshake(input, output);
         }
 
         @Override
@@ -799,12 +794,7 @@ public class JarSync
                     context.jarOutputStream.close();
                 }
             }
-            try {
-                handshake(input, output);
-            }
-            catch (Exception e) {
-                throw Throwables.propagate(e);
-            }
+            handshake(input, output);
         }
 
         @Override
