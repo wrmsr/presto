@@ -23,11 +23,6 @@
     <dependencies>
 
         <dependency>
-            <groupId>io.airlift</groupId>
-            <artifactId>airline</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
             <version>${hive.version}</version>
@@ -44,6 +39,7 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-serde</artifactId>
             <version>${hive.version}</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -71,6 +67,7 @@
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
             <version>${protobuf.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -82,6 +79,7 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
             <version>${hadoop.version}</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -102,6 +100,7 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-annotations</artifactId>
             <version>${hadoop.version}</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
