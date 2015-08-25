@@ -50,9 +50,9 @@ public class HiveMain
         public void run()
         {
             try {
-
+                runNothrow();
             }
-            catch (Exception e) {
+            catch (Throwable e) {
                 throw Throwables.propagate(e);
             }
         }
