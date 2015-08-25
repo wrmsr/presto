@@ -93,6 +93,7 @@ public class PrestoWrapperMain
     }
 
     public static void main(String[] args)
+            throws Throwable
     {
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
@@ -106,7 +107,7 @@ public class PrestoWrapperMain
                         Status.class,
                         Kill.class,
                         CliCommand.class,
-                        HiveMetastoreCommand.class
+                        Hive.class
                 );
 
         Cli<Runnable> gitParser = builder.build();
@@ -466,7 +467,7 @@ public class PrestoWrapperMain
     }
 
     @Command(name = "hive", description = "Execute Hive command")
-    public static class HiveMetastoreCommand extends PassthroughCommand
+    public static class Hive extends PassthroughCommand
     {
         @Override
         public String getModuleName()
@@ -477,7 +478,7 @@ public class PrestoWrapperMain
         @Override
         public String getClassName()
         {
-            return "org.apache.hadoop.hive.metastore.HiveMetaStore";
+            return "com.wrmsr.presto.hadoop.HiveCli";
         }
     }
 

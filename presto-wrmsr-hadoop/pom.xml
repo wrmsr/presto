@@ -22,6 +22,11 @@
     <dependencies>
 
         <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>airline</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
             <version>1.2.1</version>

@@ -13,19 +13,11 @@
  */
 package com.wrmsr.presto.hadoop;
 
-import io.airlift.log.Logging;
-import org.apache.hadoop.hive.cli.CliDriver;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-public class HiveCli
+public class HiveMetastore
 {
-    public static void main(String[] args) throws Throwable
+    public static void main(String[] args)
+            throws Throwable
     {
-        // Logging.initialize();
-        // Logger.getLogger("").setLevel(Level.WARNING);
-
-        CliDriver.main(args);
+        org.apache.hadoop.hive.metastore.HiveMetaStore.main(args);
     }
 }
