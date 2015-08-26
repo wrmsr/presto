@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -101,6 +102,8 @@ public class PrestoWrapperMain
     public static void main(String[] args)
             throws Throwable
     {
+        System.out.println(InetAddress.getAllByName("www.google.com"));
+
         PrestoWrapperMain.args = args;
 
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
