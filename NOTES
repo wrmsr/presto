@@ -1387,9 +1387,20 @@ var reg = /^(\w+ \d+ \S+) (\S+) (\S+)\[(\d+)\]: (\S+):(\d+) \[(\S+)\] (\S+) (\S+
 
 muh https://github.com/thekrakken/java-grok
 
+https://www.elastic.co/guide/en/logstash/current/plugins-filters-grok.html
 
 http://danlinstedt.com/allposts/datavaultcat/bigdata-nosql-and-datavault-2-0/ meh
 https://engineering.pinterest.com/blog/sharding-pinterest-how-we-scaled-our-mysql-fleet/
 
 
-just fuckin embed https://github.com/elastic/logstash ? ololol.
+https://github.com/logstash-plugins/logstash-patterns-core/tree/master/patterns
+https://github.com/logstash-plugins/logstash-filter-useragent/blob/master/lib/logstash/filters/useragent.rb
+https://github.com/logstash-plugins/logstash-filter-urldecode/blob/master/lib/logstash/filters/urldecode.rb
+https://github.com/logstash-plugins/logstash-filter-tld/blob/master/lib/logstash/filters/tld.rb lols nice docstring
+https://github.com/logstash-plugins/logstash-filter-syslog_pri/blob/master/lib/logstash/filters/syslog_pri.rb
+https://github.com/zipizap/ouilookup/blob/master/ouilookup.rb
+https://github.com/logstash-plugins/logstash-filter-geoip/blob/master/lib/logstash/filters/geoip.rb
+date/time/span parsing
+https://github.com/logstash-plugins/logstash-filter-dns/blob/master/lib/logstash/filters/dns.rb
+https://github.com/logstash-plugins/logstash-filter-cidr/blob/master/lib/logstash/filters/cidr.rb
+
