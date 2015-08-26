@@ -18,6 +18,7 @@ import io.airlift.command.Arguments;
 import io.airlift.command.Cli;
 import io.airlift.command.Command;
 import io.airlift.command.Help;
+import org.apache.hadoop.hive.cli.CliDriver;
 
 import java.util.List;
 
@@ -73,7 +74,7 @@ public class HiveMain
         public void runNothrow()
                 throws Throwable
         {
-            HiveCli.main(getArgs());
+            CliDriver.main(getArgs());
         }
     }
 
@@ -84,8 +85,7 @@ public class HiveMain
         public void runNothrow()
                 throws Throwable
         {
-            HiveMetastore.main(getArgs());
+            org.apache.hadoop.hive.metastore.HiveMetaStore.main(getArgs());
         }
     }
-
 }
