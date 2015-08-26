@@ -21,7 +21,9 @@ import com.google.common.io.CharStreams;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 import io.airlift.resolver.ArtifactResolver;
+import io.airlift.resolver.DefaultArtifact;
 import org.sonatype.aether.artifact.Artifact;
+import org.sonatype.aether.artifact.ArtifactType;
 
 import java.io.*;
 import java.net.URL;
@@ -43,6 +45,8 @@ import java.util.zip.ZipFile;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
+import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
+import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toMap;
 
 public class PrestoWrapperBuilder
@@ -251,13 +255,14 @@ public class PrestoWrapperBuilder
 
         String wrapperProject = "presto-wrmsr-launcher";
         List<String> names = ImmutableList.of(
+                "presto-hive-hadoop2",
+
                 wrapperProject, // BOOTSTRAP SELF
                 "presto-main",
                 "presto-blackhole",
                 "presto-cli",
                 "presto-cassandra",
                 "presto-example-http",
-                "presto-hive-hadoop2",
                 "presto-jmx",
                 "presto-kafka",
                 "presto-ml",
@@ -289,6 +294,16 @@ public class PrestoWrapperBuilder
             List<String> repoPaths = newArrayList();
             File pomFile = new File(cwd, pom);
             List<Artifact> artifacts = resolver.resolvePom(pomFile);
+            Map<Boolean, List<Artifact>> p = artifacts.stream().collect(Collectors.partitioningBy(a -> "org.slf4j".equals(a.getGroupId())));
+            artifacts = newArrayList(p.getOrDefault(false, ImmutableList.of()));
+            if (p.containsKey(true)) {
+                List<Artifact> as = p.get(true);
+                if (!as.isEmpty()) {
+                    String v = as.stream().collect(Collectors.maxBy(comparing(Artifact::getVersion))).get().getVersion();
+                    artifacts.addAll(resolver.resolveArtifacts(as.stream().map(
+                            a -> new DefaultArtifact(a.getGroupId(), a.getArtifactId(), a.getClassifier(), a.getExtension(), v, a.getProperties(), (ArtifactType) null)).collect(toImmutableList())));
+                }
+            }
 
             List<File> files = newArrayList();
             for (Artifact a : artifacts) {
