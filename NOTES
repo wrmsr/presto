@@ -1404,3 +1404,6 @@ date/time/span parsing
 https://github.com/logstash-plugins/logstash-filter-dns/blob/master/lib/logstash/filters/dns.rb
 https://github.com/logstash-plugins/logstash-filter-cidr/blob/master/lib/logstash/filters/cidr.rb
 
+
+http://www.jayway.com/2014/05/28/using-rxjava-to-monitor-hystrix-streams/
+https://dtai.cs.kuleuven.be/CP4IM/miningzinc
