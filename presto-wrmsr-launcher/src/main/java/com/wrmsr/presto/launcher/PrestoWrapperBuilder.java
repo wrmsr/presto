@@ -292,9 +292,9 @@ public class PrestoWrapperBuilder
 
             List<File> files = newArrayList();
             for (Artifact a : artifacts) {
-                if (a.getGroupId().equals("org.slf4j") && a.getArtifactId().equals(("slf4j-log4j12"))) {
-                    continue; // FIXME FUCK YOU
-                }
+                // if (a.getGroupId().equals("org.slf4j") && a.getArtifactId().equals(("slf4j-log4j12"))) {
+                //     continue; // FIXME FUCK YOU
+                // }
                 if (localGroups.contains(a.getGroupId()) && new File(cwd, a.getArtifactId()).exists()) {
                     File localPath = new File(cwd, a.getArtifactId());
                     File file;

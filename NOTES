@@ -1326,3 +1326,13 @@ https://github.com/facebook/presto/issues/2960
 
 
 https://bitbucket.org/atlassian/jgit-flow/wiki/Home sup
+
+
+https://github.com/zendesk/open-replicator
+https://github.com/zendesk/maxwell lolol
+
+    <dependency>
+    	<groupId>net.snaq</groupId>
+    	<artifactId>dbpool</artifactId>
+    	<version>7.0-jdk7</version>
+    </dependency>
