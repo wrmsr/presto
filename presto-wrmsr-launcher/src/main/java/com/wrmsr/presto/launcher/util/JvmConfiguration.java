@@ -388,7 +388,7 @@ public class JvmConfiguration
         @Override
         public Optional<DataSize> getValue()
         {
-            String prefix = getPrefix() + getName() + getSeparator() + "=";
+            String prefix = getPrefix() + getName() + getSeparator();
             for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
                 if (arg.startsWith(prefix)) {
                     //return Optional.of(DataSize.succinctBytes(Long.valueOf(arg.substring(prefix.length())));
@@ -441,13 +441,13 @@ public class JvmConfiguration
         @Override
         public Optional<Boolean> getValue()
         {
-            String truePrefix = getPrefix() + "+" + getName();
-            String falsePrefix = getPrefix() + "-" + getName();
+            String trueStr = getPrefix() + "+" + getName();
+            String falseStr = getPrefix() + "-" + getName();
             for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
-                if (truePrefix.equals(arg)) {
+                if (trueStr.equals(arg)) {
                     return Optional.of(true);
                 }
-                else if (falsePrefix.equals(arg)) {
+                else if (falseStr.equals(arg)) {
                     return Optional.of(false);
                 }
             }

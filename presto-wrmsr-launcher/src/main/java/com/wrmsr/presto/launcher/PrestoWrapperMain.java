@@ -162,7 +162,7 @@ public class PrestoWrapperMain
         public void run()
         {
             if (debugPort > 0) {
-                if (!JvmConfiguration.DEBUG.getValue().isPresent()) {
+                if (!JvmConfiguration.REMOTE_DEBUG.getValue().isPresent()) {
                     RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
                     List<String> newArgs = newArrayList(runtimeMxBean.getInputArguments());
                     newArgs.add(0, JvmConfiguration.DEBUG.valueOf().toString());
