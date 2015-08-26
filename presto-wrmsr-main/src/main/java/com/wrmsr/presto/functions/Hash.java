@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.facebook.presto.byteCode.Block;
+import com.facebook.presto.byteCode.ByteCodeBlock;
 import com.facebook.presto.byteCode.Variable;
 import com.facebook.presto.byteCode.ClassDefinition;
 import com.facebook.presto.byteCode.DynamicClassLoader;
@@ -153,7 +153,7 @@ public final class Hash
         Variable typeVariable = scope.declareVariable(Type.class, "typeVariable");
         Variable rangeTypeVariable = scope.declareVariable(Type.class, "rangeTypeVariable");
         CallSiteBinder binder = new CallSiteBinder();
-        Block body = methodDefinition.getBody();
+        ByteCodeBlock body = methodDefinition.getBody();
 
         body.comment("rangeTypeVariable = rangeType")
                 .append(constantType(binder, rangeType))
@@ -167,7 +167,7 @@ public final class Hash
             Class<?> nativeContainerType = nativeContainerTypes.get(i);
             Variable currentBlock = scope.declareVariable(com.facebook.presto.spi.block.Block.class, "block" + i);
             Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder" + i);
-            Block buildBlock = new Block()
+            ByteCodeBlock buildBlock = new ByteCodeBlock()
                     .comment("blockBuilder%d = typeVariable.createBlockBuilder(new BlockBuilderStatus());", i)
                     .getVariable(i == 0 ? rangeTypeVariable : typeVariable)
                     .newObject(BlockBuilderStatus.class)
@@ -199,7 +199,7 @@ public final class Hash
                         .invokeStatic(Hash.class, "checkNotNaN", void.class, double.class);
             }
 
-            Block writeBlock = new Block()
+            ByteCodeBlock writeBlock = new ByteCodeBlock()
                     .comment("typeVariable.%s(blockBuilder%d, arg%d);", writeMethodName, i, i)
                     .getVariable(i == 0 ? rangeTypeVariable : typeVariable)
                     .getVariable(blockBuilder)
@@ -208,7 +208,7 @@ public final class Hash
 
             buildBlock.append(writeBlock);
 
-            Block storeBlock = new Block()
+            ByteCodeBlock storeBlock = new ByteCodeBlock()
                     .comment("block%d = blockBuilder%d.build();", i, i)
                     .getVariable(blockBuilder)
                     .invokeInterface(BlockBuilder.class, "build", com.facebook.presto.spi.block.Block.class)
@@ -235,13 +235,13 @@ public final class Hash
         Variable currenHashValueVariable = scope.declareVariable(nativeContainerTypes.get(0), "currentHashValue");
         Variable currentBlockLengthVariable = scope.declareVariable(int.class, "currentLength");
         for (int i = 1; i < nativeContainerTypes.size(); i++) {
-            Block currentBlockLength = new Block()
+            ByteCodeBlock currentBlockLength = new ByteCodeBlock()
                     .getVariable(scope.getVariable("block" + i))
                     .push(0)
                     .invokeInterface(com.facebook.presto.spi.block.Block.class, "getLength", int.class, int.class)
                     .putVariable(currentBlockLengthVariable);
 
-            Block currentHashValueBlock = new Block()
+            ByteCodeBlock currentHashValueBlock = new ByteCodeBlock()
                     .getVariable(scope.getVariable("block" + i))
                     .push(0)
                     .push(0)
@@ -252,7 +252,7 @@ public final class Hash
                     .invokeStatic(BigintOperators.class, "modulus", long.class, long.class, nativeContainerTypes.get(0))
                     .putVariable(currenHashValueVariable);
 
-            Block updateHashValueBlock = new Block()
+            ByteCodeBlock updateHashValueBlock = new ByteCodeBlock()
                     .getVariable(currenHashValueVariable)
                     .getVariable(hashValueVariable)
                     .invokeStatic(BigintOperators.class, "add", long.class, long.class, long.class)

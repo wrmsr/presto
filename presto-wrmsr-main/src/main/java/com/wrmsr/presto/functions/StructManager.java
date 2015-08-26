@@ -130,7 +130,7 @@ public class StructManager
             }
         }
 
-        protected void writeBoolean(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
+        protected void writeBoolean(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isFalse = new LabelNode("isFalse" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -151,7 +151,7 @@ public class StructManager
                     .pop();
         }
 
-        protected void writeLong(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
+        protected void writeLong(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             body
                     .getVariable(blockBuilder)
@@ -164,7 +164,7 @@ public class StructManager
                     .pop();
         }
 
-        protected void writeDouble(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
+        protected void writeDouble(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             body
                     .getVariable(blockBuilder)
@@ -177,7 +177,7 @@ public class StructManager
                     .pop();
         }
 
-        protected void writeSlice(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
+        protected void writeSlice(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -205,7 +205,7 @@ public class StructManager
                     .visitLabel(done);
         }
 
-        protected void writeObject(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
+        protected void writeObject(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -259,7 +259,7 @@ public class StructManager
 
             Scope scope = methodDefinition.getScope();
             CallSiteBinder binder = new CallSiteBinder();
-            com.facebook.presto.byteCode.Block body = methodDefinition.getBody();
+            com.facebook.presto.byteCode.ByteCodeBlock body = methodDefinition.getBody();
 
             Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
 
@@ -369,7 +369,7 @@ public class StructManager
         }
 
         @Override
-        protected void writeBoolean(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
+        protected void writeBoolean(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode isFalse = new LabelNode("isFalse" + i);
@@ -404,7 +404,7 @@ public class StructManager
         }
 
         @Override
-        protected void writeLong(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
+        protected void writeLong(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -431,7 +431,7 @@ public class StructManager
         }
 
         @Override
-        protected void writeDouble(com.facebook.presto.byteCode.Block body, Variable blockBuilder, Variable arg, int i)
+        protected void writeDouble(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode done = new LabelNode("done" + i);
