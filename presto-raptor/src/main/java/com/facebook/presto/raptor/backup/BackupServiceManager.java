@@ -11,20 +11,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.spi;
+package com.facebook.presto.raptor.backup;
 
-import com.facebook.presto.spi.block.Block;
-import io.airlift.slice.Slice;
+import com.google.inject.Inject;
 
-import java.util.Collection;
-import java.util.concurrent.CompletableFuture;
+import java.util.Optional;
 
-public interface UpdatablePageSource
-        extends ConnectorPageSource
+import static java.util.Objects.requireNonNull;
+
+public class BackupServiceManager
+        implements BackupService
 {
-    void deleteRows(Block rowIds);
+    private final Optional<BackupStore> backupStore;
 
-    CompletableFuture<Collection<Slice>> commit();
+    @Inject
+    public BackupServiceManager(Optional<BackupStore> backupStore)
+    {
+        this.backupStore = requireNonNull(backupStore, "backupStore is null");
+    }
 
-    default void rollback() {}
+    @Override
+    public boolean isBackupAvailable()
+    {
+        return backupStore.isPresent();
+    }
 }
