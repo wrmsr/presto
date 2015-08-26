@@ -103,9 +103,9 @@ public class PrestoWrapperMain
     public static void main(String[] args)
             throws Throwable
     {
-        NameStore.getInstance().put("www.google.com", "www.microsoft.com");
-        InetAddress i = InetAddress.getAllByName("www.google.com")[0];
-        System.out.println(i);
+        // NameStore.getInstance().put("www.google.com", "www.microsoft.com");
+        // InetAddress i = InetAddress.getAllByName("www.google.com")[0];
+        // System.out.println(i);
 
         PrestoWrapperMain.args = args;
 

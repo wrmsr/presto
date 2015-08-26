@@ -1413,3 +1413,8 @@ https://commons.apache.org/proper/commons-math/apidocs/org/apache/commons/math3/
 
 https://stackoverflow.com/questions/13734646/how-to-connect-to-java-instances-running-on-ec2-using-jmx ughhh
 http://rkuzmik.blogspot.com/2006/08/local-managed-dns-java_11.html fml
+
+
+https://docs.oracle.com/javase/7/docs/technotes/guides/net/properties.html
+-Dsun.net.spi.nameservice.provider.1=dns,local
+
