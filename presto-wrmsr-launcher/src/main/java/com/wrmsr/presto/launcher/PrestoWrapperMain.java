@@ -26,6 +26,7 @@ import com.wrmsr.presto.launcher.util.ParentLastURLClassLoader;
 import io.airlift.command.*;
 import io.airlift.resolver.ArtifactResolver;
 import jnr.posix.POSIX;
+import org.ots.dns.NameStore;
 import org.sonatype.aether.artifact.Artifact;
 
 import java.io.File;
@@ -102,7 +103,9 @@ public class PrestoWrapperMain
     public static void main(String[] args)
             throws Throwable
     {
-        System.out.println(InetAddress.getAllByName("www.google.com"));
+        NameStore.getInstance().put("www.google.com", "www.microsoft.com");
+        InetAddress i = InetAddress.getAllByName("www.google.com")[0];
+        System.out.println(i);
 
         PrestoWrapperMain.args = args;
 
