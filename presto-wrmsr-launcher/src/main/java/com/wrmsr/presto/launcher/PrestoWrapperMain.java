@@ -162,6 +162,7 @@ public class PrestoWrapperMain
         public void run()
         {
             if (debugPort > 0) {
+                // FIXME recycle repo tmpdir - after this can just brute force exec-exec-exec-exec to desired cfg
                 if (!JvmConfiguration.REMOTE_DEBUG.getValue().isPresent()) {
                     RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
                     List<String> newArgs = newArrayList(runtimeMxBean.getInputArguments());
