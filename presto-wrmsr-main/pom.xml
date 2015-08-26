@@ -26,6 +26,12 @@
         -->
 
         <dependency>
+            <groupId>io.thekraken</groupId>
+            <artifactId>grok</artifactId>
+            <version>0.1.1</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.wrmsr.presto</groupId>
             <artifactId>presto-wrmsr-utils</artifactId>
             <version>${project.version}</version>
