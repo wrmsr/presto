@@ -1336,3 +1336,6 @@ https://github.com/zendesk/maxwell lolol
     	<artifactId>dbpool</artifactId>
     	<version>7.0-jdk7</version>
     </dependency>
+
+
+http://javaskeleton.blogspot.com/2010/07/avoiding-peer-not-authenticated-with.html bluhhh
