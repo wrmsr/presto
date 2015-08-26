@@ -198,9 +198,20 @@ public class JvmConfiguration
         public abstract Value valueOf(T value);
     }
 
-    public static class ValuelessItem extends Item<Void>
+    public static final class Presence
     {
-        public ValuelessItem(Prefix prefix, String name, Supplier<Optional<Void>> supplier)
+        public static final Presence INSTANCE = new Presence();
+
+        private Presence()
+        {
+        }
+    }
+
+    public static final Presence PRESENT = Presence.INSTANCE;
+
+    public static class ValuelessItem extends Item<Presence>
+    {
+        public ValuelessItem(Prefix prefix, String name, Supplier<Optional<Presence>> supplier)
         {
             super(prefix, name, Separator.NONE, supplier);
         }
@@ -219,7 +230,7 @@ public class JvmConfiguration
             }
 
             @Override
-            public Void get()
+            public Presence get()
             {
                 return null;
             }
@@ -231,9 +242,25 @@ public class JvmConfiguration
         }
 
         @Override
-        public Value valueOf(Void value)
+        public Value valueOf(Presence value)
         {
             return new Value();
+        }
+
+        @Override
+        public Optional<Presence> getValue()
+        {
+            Supplier<Optional<Presence>> supplier = getSupplier();
+            if (supplier != null) {
+                return supplier.get();
+            }
+            String str = getPrefix() + getName() + getSeparator();
+            for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
+                if (arg.equals(str)) {
+                    return Optional.of(PRESENT);
+                }
+            }
+            return Optional.empty();
         }
     }
 
@@ -280,7 +307,11 @@ public class JvmConfiguration
         @Override
         public Optional<String> getValue()
         {
-            String prefix = getPrefix() + getName() + getSeparator() + "=";
+            Supplier<Optional<String>> supplier = getSupplier();
+            if (supplier != null) {
+                return supplier.get();
+            }
+            String prefix = getPrefix() + getName() + getSeparator();
             for (String arg : ManagementFactory.getRuntimeMXBean().getInputArguments()) {
                 if (arg.startsWith(prefix)) {
                     return Optional.of(arg.substring(prefix.length()));
@@ -432,7 +463,7 @@ public class JvmConfiguration
         }
 
         @Override
-        public Optional<Void> getValue()
+        public Optional<Presence> getValue()
         {
             return System.getProperty(getName()) != null ? Optional.of(null) : Optional.empty();
         }

@@ -18,6 +18,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import com.wrmsr.presto.launcher.util.JvmConfiguration;
 import com.wrmsr.presto.util.Repositories;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
@@ -29,7 +30,10 @@ import org.sonatype.aether.artifact.Artifact;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Method;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
@@ -92,9 +96,13 @@ public class PrestoWrapperMain
     {
     }
 
+    protected static String[] args; // meh.
+
     public static void main(String[] args)
             throws Throwable
     {
+        PrestoWrapperMain.args = args;
+
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
                 .withCommands(
@@ -143,6 +151,45 @@ public class PrestoWrapperMain
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
         public String configFile;
         public static final String CONFIG_FILE_PROPERTY_KEY = "wrmsr.launcher.config-file";
+
+        @Option(type = OptionType.GLOBAL, name = {"-d", "--debug-port"}, description = "Specify jvm debug port")
+        public int debugPort;
+
+        @Option(type = OptionType.GLOBAL, name = {"-s", "--debug-suspend"}, description = "Specify jvm debugging starts suspended")
+        public boolean debugSuspend;
+
+        @Override
+        public void run()
+        {
+            if (debugPort > 0) {
+                if (!JvmConfiguration.DEBUG.getValue().isPresent()) {
+                    RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+                    List<String> newArgs = newArrayList(runtimeMxBean.getInputArguments());
+                    newArgs.add(0, JvmConfiguration.DEBUG.valueOf().toString());
+                    newArgs.add(1, JvmConfiguration.REMOTE_DEBUG.valueOf(debugPort, debugSuspend).toString());
+                    String jvmLocation = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" +
+                        (System.getProperty("os.name").startsWith("Win") ? ".exe" : "");
+                    try {
+                        newArgs.add("-jar");
+                        newArgs.add(new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath());
+                    }
+                    catch (URISyntaxException e) {
+                        throw Throwables.propagate(e);
+                    }
+                    newArgs.addAll(Arrays.asList(PrestoWrapperMain.args));
+                    POSIX posix = POSIXUtils.getPOSIX();
+                    posix.libc().execv(jvmLocation, newArgs.toArray(new String[newArgs.size()]));
+                }
+            }
+            try {
+                innerRun();
+            }
+            catch (Throwable e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
+        public abstract void innerRun() throws Throwable;
 
         public synchronized void deleteRepositoryOnExit()
         {
@@ -243,7 +290,7 @@ public class PrestoWrapperMain
                 System.setProperty("node.id", UUID.randomUUID().toString());
             }
             if (Strings.isNullOrEmpty(System.getProperty("presto.version"))) {
-                System.setProperty("presto.version", "0.113-SNAPSHOT");
+                System.setProperty("presto.version", "0.116-SNAPSHOT");
             }
             if (Strings.isNullOrEmpty(System.getProperty("node.coordinator"))) {
                 System.setProperty("node.coordinator", "true");
@@ -277,7 +324,7 @@ public class PrestoWrapperMain
     public static class Run extends ServerCommand
     {
         @Override
-        public void run()
+        public void innerRun() throws Throwable
         {
             if (hasPidFile()) {
                 getDaemonProcess().writePid();
@@ -301,7 +348,7 @@ public class PrestoWrapperMain
     public static class Start extends StartCommand
     {
         @Override
-        public void run()
+        public void innerRun() throws Throwable
         {
             run(false);
         }
@@ -311,7 +358,7 @@ public class PrestoWrapperMain
     public static class Stop extends DaemonCommand
     {
         @Override
-        public void run()
+        public void innerRun() throws Throwable
         {
             getDaemonProcess().stop();
         }
@@ -321,7 +368,7 @@ public class PrestoWrapperMain
     public static class Restart extends StartCommand
     {
         @Override
-        public void run()
+        public void innerRun() throws Throwable
         {
             getDaemonProcess().stop();
             run(true);
@@ -332,9 +379,8 @@ public class PrestoWrapperMain
     public static class Status extends DaemonCommand
     {
         @Override
-        public void run()
+        public void innerRun() throws Throwable
         {
-            deleteRepositoryOnExit();
             if (!getDaemonProcess().alive()) {
                 System.exit(DaemonProcess.LSB_NOT_RUNNING);
             }
@@ -349,7 +395,7 @@ public class PrestoWrapperMain
         private List<String> args = newArrayList();
 
         @Override
-        public void run()
+        public void innerRun() throws Throwable
         {
             deleteRepositoryOnExit();
             if (args.isEmpty()) {
@@ -443,7 +489,7 @@ public class PrestoWrapperMain
         private List<String> args = newArrayList();
 
         @Override
-        public void run()
+        public void innerRun() throws Throwable
         {
             deleteRepositoryOnExit();
             runStaticMethod(resolveModuleClassloaderUrls(getModuleName()), getClassName(), "main", new Class<?>[]{String[].class}, new Object[]{args.toArray(new String[args.size()])});
