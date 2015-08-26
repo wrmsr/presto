@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.deser.DefaultDeserializationContext;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
 import com.fasterxml.jackson.dataformat.xml.XmlFactory;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -67,7 +68,15 @@ public class Serialization
         return ImmutableList.copyOf(YAML.get().loadAll(new ByteArrayInputStream(src.getBytes())));
     }
 
-    public static final Supplier<ObjectMapper> XML_OBJECT_MAPPER = Suppliers.memoize(() -> forkObjectMapper(OBJECT_MAPPER.get(), new XmlFactory()));
+    public static final Supplier<ObjectMapper> XML_OBJECT_MAPPER = Suppliers.memoize(() -> {
+        // ObjectMapper mapper = OBJECT_MAPPER.get();
+        // return new XmlMapper(
+        //     new XmlFactory(),
+        //     (DefaultSerializerProvider) mapper.getSerializerProvider(),
+        //     (DefaultDeserializationContext) mapper.getDeserializationContext());
+        // FIXME guava stuff
+        return new XmlMapper();
+    });
 
     public static final ImmutableMap<String, Supplier<ObjectMapper>> OBJECT_MAPPERS_BY_EXTENSION = ImmutableMap.<String, Supplier<ObjectMapper>>builder()
             .put("json", JSON_OBJECT_MAPPER)
