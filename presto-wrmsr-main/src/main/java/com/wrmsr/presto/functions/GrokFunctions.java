@@ -54,15 +54,19 @@ public class GrokFunctions
             Match gm = grok.match(value.toStringUtf8());
             gm.captures();
 
-            System.out.println(gm.toJson());
-
             Map<String, Object> map = gm.toMap();
-
             BlockBuilder blockBuilder = new InterleavedBlockBuilder(ImmutableList.of(VarcharType.VARCHAR, VarcharType.VARCHAR), new BlockBuilderStatus(), map.size() * 2);
 
             for (Map.Entry<String, Object> e : map.entrySet()) {
                 VarcharType.VARCHAR.writeSlice(blockBuilder, Slices.utf8Slice(e.getKey()));
-                VarcharType.VARCHAR.writeSlice(blockBuilder, Slices.utf8Slice(e.getValue().toString()));
+                Object valueObj = e.getValue();
+                if (valueObj == null) {
+                    blockBuilder.appendNull();
+                }
+                else {
+                    String valueStr = valueObj instanceof String ? (String) valueObj : valueObj.toString();
+                    VarcharType.VARCHAR.writeSlice(blockBuilder, Slices.utf8Slice(valueStr));
+                }
             }
 
             return blockBuilder.build();
