@@ -1435,4 +1435,6 @@ m4's + c4's ebs-only, future = i2's + d2's only non-ebs - options:
  - run all i's
  - just go straight ramdisk
   - maybe tachyon > hdfs here? puniverse galaxy?
+  - uh, would it be better to just make raptor do this natively to Unsafe malloc'd mem?
+   - yes.
 
