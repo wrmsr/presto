@@ -1460,3 +1460,9 @@ i2.8xl = 100 MB/s
 r3.8xl = 100 MB/s
 
 d2.8xl = 70 MB/s (cross region)
+
+
+
+https://github.com/logstash-plugins/logstash-patterns-core
+
+
