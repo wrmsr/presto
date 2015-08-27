@@ -38,7 +38,7 @@ public class GrokFunctions
 {
     @ScalarFunction("grok")
     @SqlType("map<varchar,varchar>")
-    public static Block varcharClassify(@SqlType(StandardTypes.VARCHAR) Slice pat, @SqlType(StandardTypes.VARCHAR) Slice value)
+    public static Block grok(@SqlType(StandardTypes.VARCHAR) Slice pat, @SqlType(StandardTypes.VARCHAR) Slice value)
     {
         try {
             String patternsResource = "grok-patterns/grok-patterns";
