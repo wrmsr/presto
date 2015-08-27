@@ -1444,8 +1444,11 @@ pip install --user ipython
 ~/jdk1.8.0_60/bin/java -Xmx32G -XX:+UseConcMarkSweepGC -server -jar ./presto/presto run
 
 c4.8xl = 100 MB/s
+
 m4.10xl = 100 MB/s
+m4.4xl = 100 MB/s
+m4.2xl = 60 MB/s
 m4.xl = 28 MB/s ?
+
 m3.2xl = 46 MB/s
-m4.2xl = 58 MB/s
 m3.m = shit
