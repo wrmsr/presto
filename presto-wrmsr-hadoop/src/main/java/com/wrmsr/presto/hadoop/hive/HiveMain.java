@@ -121,6 +121,7 @@ public class HiveMain
 
         public void writeConfigs() throws Throwable
         {
+            File cfgDir = Files.createTempDir();
             File dataDir = Files.createTempDir();
             dataDir.deleteOnExit();
 
@@ -130,13 +131,13 @@ public class HiveMain
 
             String xml = renderConfig(properties.entrySet());
             for (String f : ImmutableList.of("hive-site.xml")) {
-                try (FileOutputStream fos = new FileOutputStream(new File(dataDir, f));
+                try (FileOutputStream fos = new FileOutputStream(new File(cfgDir, f));
                         BufferedOutputStream bos = new BufferedOutputStream(fos)) {
                     bos.write(xml.getBytes());
                 }
             }
 
-            Jvm.addClasspathUrl(Thread.currentThread().getContextClassLoader(), dataDir.getAbsoluteFile().toURL());
+            Jvm.addClasspathUrl(Thread.currentThread().getContextClassLoader(), cfgDir.getAbsoluteFile().toURL());
 
             /*
             hiveDefaultURL = arr$.getResource("hive-default.xml");

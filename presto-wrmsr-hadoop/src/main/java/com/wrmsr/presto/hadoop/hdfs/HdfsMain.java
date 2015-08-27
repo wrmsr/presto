@@ -13,6 +13,37 @@
  */
 package com.wrmsr.presto.hadoop.hdfs;
 
+/*
+
+balancer org.apache.hadoop.hdfs.server.balancer.Balancer
+cacheadmin org.apache.hadoop.hdfs.tools.CacheAdmin
+crypto org.apache.hadoop.hdfs.tools.CryptoAdmin
+datanode 'org.apache.hadoop.hdfs.server.datanode.DataNode'
+dfs org.apache.hadoop.fs.FsShell
+dfsadmin org.apache.hadoop.hdfs.tools.DFSAdmin
+fetchdt org.apache.hadoop.hdfs.tools.DelegationTokenFetcher
+fsck org.apache.hadoop.hdfs.tools.DFSck
+getconf org.apache.hadoop.hdfs.tools.GetConf
+groups org.apache.hadoop.hdfs.tools.GetGroups
+haadmin org.apache.hadoop.hdfs.tools.DFSHAAdmin
+jmxget org.apache.hadoop.hdfs.tools.JMXGet
+journalnode 'org.apache.hadoop.hdfs.qjournal.server.JournalNode'
+lsSnapshottableDir org.apache.hadoop.hdfs.tools.snapshot.LsSnapshottableDir
+mover org.apache.hadoop.hdfs.server.mover.Mover
+namenode 'org.apache.hadoop.hdfs.server.namenode.NameNode'
+nfs3 org.apache.hadoop.hdfs.nfs.nfs3.Nfs3
+oev org.apache.hadoop.hdfs.tools.offlineEditsViewer.OfflineEditsViewer
+oiv org.apache.hadoop.hdfs.tools.offlineImageViewer.OfflineImageViewerPB
+oiv_legacy org.apache.hadoop.hdfs.tools.offlineImageViewer.OfflineImageViewer
+portmap org.apache.hadoop.portmap.Portmap
+secondarynamenode 'org.apache.hadoop.hdfs.server.namenode.SecondaryNameNode'
+snapshotDiff org.apache.hadoop.hdfs.tools.snapshot.SnapshotDiff
+storagepolicies org.apache.hadoop.hdfs.tools.GetStoragePolicies
+version org.apache.hadoop.util.VersionInfo
+zkfc 'org.apache.hadoop.hdfs.tools.DFSZKFailoverController'
+
+*/
+
 import com.google.common.base.Throwables;
 import io.airlift.command.Arguments;
 import io.airlift.command.Cli;
@@ -81,7 +112,7 @@ public class HdfsMain
 
         public HdfsConfiguration getConfig() throws Throwable
         {
-            HdfsConfiguration config = new HdfsConfiguration(); File hdfsDir = new File("/Users/spinlock/hdfs");
+            HdfsConfiguration config = new HdfsConfiguration(); File hdfsDir = new File(System.getProperty("user.home") + "/hdfs");
 
             config.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, fileAsURI(new File(hdfsDir, "name")).toString());
             config.set(DFSConfigKeys.DFS_DATANODE_DATA_DIR_KEY, new File(hdfsDir, "data").getPath());
@@ -94,6 +125,31 @@ public class HdfsMain
             return config;
         }
     }
+
+    /*
+    public static abstract class SimpleHdfsCommand extends HdfsCommand
+    {
+        private final String fqcn;
+
+        protected SimpleHdfsCommand(String fqcn)
+        {
+            this.fqcn = fqcn;
+        }
+
+        @Override
+        public void runNothrow()
+                throws Throwable
+        {
+            Logging.initialize();
+
+            // ExitUtil.disableSystemExit();
+            // ExitUtil.resetFirstExitException();
+
+            Class<?> cls = Class.forName(fqcn);
+            cls.getDeclaredMethod("main", String[].class).invoke(null, new Object[]{getArgs()});
+        }
+    }
+    */
 
     @Command(name = "namenode", description = "Starts HDFS NameNode")
     public static class NameNodeCommand extends HdfsCommand
