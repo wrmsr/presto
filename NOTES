@@ -1418,3 +1418,11 @@ http://rkuzmik.blogspot.com/2006/08/local-managed-dns-java_11.html fml
 https://docs.oracle.com/javase/7/docs/technotes/guides/net/properties.html
 -Dsun.net.spi.nameservice.provider.1=dns,local
 
+
+FIXME -server lols
+
+
+    public static final String IPv4_SETTING = "java.net.preferIPv4Stack";
+    public static final String IPv6_SETTING = "java.net.preferIPv6Addresses";
+
+https://github.com/elastic/elasticsearch/blob/master/core/src/main/java/org/elasticsearch/common/network/NetworkUtils.java

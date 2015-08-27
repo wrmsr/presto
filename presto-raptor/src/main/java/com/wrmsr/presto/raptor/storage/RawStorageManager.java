@@ -149,16 +149,9 @@ public class RawStorageManager
         return new RawStoragePageSink(columnIds.get(0), columnTypes.get(0));
     }
 
-    @Override
     public boolean isBackupAvailable()
     {
         return backupStore.isPresent();
-    }
-
-    @Override
-    public PageBuffer createPageBuffer()
-    {
-        return new PageBuffer(maxBufferSize.toBytes(), Integer.MAX_VALUE);
     }
 
     private void writeShard(UUID shardUuid)

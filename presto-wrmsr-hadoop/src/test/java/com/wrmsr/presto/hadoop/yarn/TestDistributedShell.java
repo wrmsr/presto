@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.wrmsr.presto.yarn;
+package com.wrmsr.presto.hadoop.yarn;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;

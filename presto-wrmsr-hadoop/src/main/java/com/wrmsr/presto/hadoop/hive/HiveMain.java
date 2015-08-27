@@ -11,9 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.hadoop;
+package com.wrmsr.presto.hadoop.hive;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlFactory;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.google.common.base.Throwables;
@@ -21,7 +20,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import com.wrmsr.presto.util.Jvm;
-import com.wrmsr.presto.util.Serialization;
 import io.airlift.command.Arguments;
 import io.airlift.command.Cli;
 import io.airlift.command.Command;

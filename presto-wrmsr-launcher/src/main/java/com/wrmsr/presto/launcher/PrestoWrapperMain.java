@@ -121,7 +121,8 @@ public class PrestoWrapperMain
                         Status.class,
                         Kill.class,
                         CliCommand.class,
-                        Hive.class
+                        Hive.class,
+                        Hdfs.class
                 );
 
         Cli<Runnable> gitParser = builder.build();
@@ -531,7 +532,7 @@ public class PrestoWrapperMain
         @Override
         public String getClassName()
         {
-            return "com.wrmsr.presto.hadoop.HiveMain";
+            return "com.wrmsr.presto.hadoop.hive.HiveMain";
         }
     }
 
@@ -541,13 +542,13 @@ public class PrestoWrapperMain
         @Override
         public String getModuleName()
         {
-            return "presto-cli";
+            return "presto-wrmsr-hadoop";
         }
 
         @Override
         public String getClassName()
         {
-            return "com.facebook.presto.cli.Presto";
+            return "com.wrmsr.presto.hadoop.hdfs.HdfsMain";
         }
     }
 

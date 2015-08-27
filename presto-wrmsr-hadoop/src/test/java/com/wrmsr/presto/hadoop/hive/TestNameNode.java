@@ -1,17 +1,14 @@
-package com.wrmsr.presto.hadoop;
+package com.wrmsr.presto.hadoop.hive;
 
 import io.airlift.log.Logging;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
-import org.apache.hadoop.hdfs.server.datanode.DataNode;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
 import org.apache.hadoop.util.ExitUtil;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.io.IOException;
 
 import static org.apache.hadoop.hdfs.server.common.Util.fileAsURI;
 

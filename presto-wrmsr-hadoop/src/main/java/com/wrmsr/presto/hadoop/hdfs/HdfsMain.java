@@ -11,11 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.hdfs;
+package com.wrmsr.presto.hadoop.hdfs;
 
 import com.google.common.base.Throwables;
 import io.airlift.command.Arguments;
 import io.airlift.command.Cli;
+import io.airlift.command.Command;
 import io.airlift.command.Help;
 import io.airlift.log.Logging;
 import org.apache.hadoop.fs.FileSystem;
@@ -23,7 +24,6 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.hdfs.server.datanode.DataNode;
 import org.apache.hadoop.hdfs.server.namenode.NameNode;
-import org.apache.hadoop.util.ExitUtil;
 
 import java.io.File;
 import java.util.List;
@@ -39,7 +39,9 @@ public class HdfsMain
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
                 .withCommands(
-                        Help.class
+                        Help.class,
+                        NameNodeCommand.class,
+                        DataNodeCommand.class
                 );
 
         Cli<Runnable> gitParser = builder.build();
@@ -56,9 +58,9 @@ public class HdfsMain
         public void run()
         {
             try {
-
+                runNothrow();
             }
-            catch (Exception e) {
+            catch (Throwable e) {
                 throw Throwables.propagate(e);
             }
         }
@@ -93,7 +95,8 @@ public class HdfsMain
         }
     }
 
-    public static abstract class NameNodeCommand extends HdfsCommand
+    @Command(name = "namenode", description = "Starts hdfs namenode")
+    public static class NameNodeCommand extends HdfsCommand
     {
         @Override
         public void runNothrow()
@@ -110,7 +113,8 @@ public class HdfsMain
         }
     }
 
-    public static abstract class DataNodeCommand extends HdfsCommand
+    @Command(name = "namenode", description = "Starts hdfs datanode")
+    public static class DataNodeCommand extends HdfsCommand
     {
         @Override
         public void runNothrow()
