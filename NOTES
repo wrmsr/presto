@@ -1437,4 +1437,11 @@ m4's + c4's ebs-only, future = i2's + d2's only non-ebs - options:
   - maybe tachyon > hdfs here? puniverse galaxy?
   - uh, would it be better to just make raptor do this natively to Unsafe malloc'd mem?
    - yes.
+   - does raptor do replication for datasets significantly smaller than cluster ram?
+
+omg https://docs.oracle.com/javase/7/docs/technotes/guides/io/fsp/filesystemprovider.html
+https://github.com/google/jimfs https://github.com/google/jimfs https://github.com/google/jimfs https://github.com/google/jimfs
+https://s-media-cache-ak0.pinimg.com/originals/b2/8a/3a/b28a3a52ee99399a5389e758f7de87b6.gif
+https://commons.apache.org/proper/commons-vfs/
+
 
