@@ -95,7 +95,7 @@ public class HdfsMain
         }
     }
 
-    @Command(name = "namenode", description = "Starts hdfs namenode")
+    @Command(name = "namenode", description = "Starts HDFS NameNode")
     public static class NameNodeCommand extends HdfsCommand
     {
         @Override
@@ -113,7 +113,7 @@ public class HdfsMain
         }
     }
 
-    @Command(name = "namenode", description = "Starts hdfs datanode")
+    @Command(name = "datanode", description = "Starts HDFS DataNode")
     public static class DataNodeCommand extends HdfsCommand
     {
         @Override
