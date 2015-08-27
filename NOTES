@@ -1443,12 +1443,20 @@ pip install --user ipython
 
 ~/jdk1.8.0_60/bin/java -Xmx32G -XX:+UseConcMarkSweepGC -server -jar ./presto/presto run
 
+http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-ec2-config.html
+
 c4.8xl = 100 MB/s
 
 m4.10xl = 100 MB/s
-m4.4xl = 100 MB/s
+m4.4xl = 105 MB/s
 m4.2xl = 60 MB/s
 m4.xl = 28 MB/s ?
 
 m3.2xl = 46 MB/s
 m3.m = shit
+
+i2.8xl = 100 MB/s
+
+r3.8xl = 100 MB/s
+
+d2.8xl = 70 MB/s (cross region)
