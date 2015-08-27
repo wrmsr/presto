@@ -17,6 +17,8 @@ package org.ots.dns;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.common.base.Throwables;
 import org.apache.commons.lang.StringUtils;
@@ -35,6 +37,7 @@ public class LocalManagedDns implements NameService {
     private static final Log log = LogFactory.getLog(LocalManagedDns.class);
 
     private final NameService defaultDnsImpl;
+    private static final Pattern ipPattern = Pattern.compile("ip(-[0-9]{1,3}){4}");
 
     public LocalManagedDns()
     {
@@ -46,9 +49,6 @@ public class LocalManagedDns implements NameService {
         }
     }
 
-    /**
-     * @see sun.net.spi.nameservice.NameService#getHostByAddr(byte[])
-     */
     @Override
     public String getHostByAddr(byte[] ip) throws UnknownHostException {
         log.debug("");
@@ -56,29 +56,14 @@ public class LocalManagedDns implements NameService {
         return defaultDnsImpl.getHostByAddr(ip);
     }
 
-    /**
-     * @see sun.net.spi.nameservice.NameService#lookupAllHostAddr(java.lang.String)
-     */
-    /*
-    public byte[][] lookupAllHostAddr(String name) throws UnknownHostException {
-        log.debug("");
-
-        String ipAddress = NameStore.getInstance().get(name);
-        if (!StringUtils.isEmpty(ipAddress)){
-            log.debug("\tmatch");
-            byte[] ip = Util.textToNumericFormat(ipAddress);
-            return new byte[][]{ip};
-        } else {
-            log.debug("\tmiss");
-            return defaultDnsImpl.lookupAllHostAddr(name);
-        }
-    }
-    */
-
     @Override
     public InetAddress[] lookupAllHostAddr(String s)
             throws UnknownHostException
     {
+        if (ipPattern.matcher(s).matches()) {
+            String ip = s.substring(3).replace('-', '.');
+            return InetAddress.getAllByName(ip);
+        }
         String ipAddress = NameStore.getInstance().get(s);
         if (!StringUtils.isEmpty(ipAddress)){
             log.debug("\tmatch");
