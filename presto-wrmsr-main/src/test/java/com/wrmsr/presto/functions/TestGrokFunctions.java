@@ -15,14 +15,33 @@ package com.wrmsr.presto.functions;
 
 import oi.thekraken.grok.api.Grok;
 import oi.thekraken.grok.api.Match;
+import org.apache.commons.lang3.StringUtils;
 import org.testng.annotations.Test;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
 
 public class TestGrokFunctions
 {
     @Test
     public void testStuff() throws Throwable
     {
-        Grok grok = Grok.create("grok-patterns/grok-patterns");
+        String patternsResource = "grok-patterns/grok-patterns";
+        String grokExpression = "USERNAME";
+
+        Grok grok = new Grok();
+        try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(patternsResource);
+                InputStreamReader isr = new InputStreamReader(is);
+                BufferedReader br = new BufferedReader(isr)) {
+            grok.addPatternFromReader(br);
+        }
+
+        if (StringUtils.isNotBlank(grokExpression)) {
+            grok.compile(grokExpression);
+        }
+
         grok.compile("%{COMBINEDAPACHELOG}");
         String log = "112.169.19.192 - - [06/Mar/2013:01:36:30 +0900] \"GET / HTTP/1.1\" 200 44346 \"-\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.152 Safari/537.22\"";
         Match gm = grok.match(log);
