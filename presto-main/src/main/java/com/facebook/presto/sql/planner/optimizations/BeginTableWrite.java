@@ -21,15 +21,22 @@ import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
 import com.facebook.presto.sql.planner.plan.DeleteNode;
+import com.facebook.presto.sql.planner.plan.ExchangeNode;
+import com.facebook.presto.sql.planner.plan.FilterNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanRewriter;
+import com.facebook.presto.sql.planner.plan.ProjectNode;
+import com.facebook.presto.sql.planner.plan.SemiJoinNode;
 import com.facebook.presto.sql.planner.plan.TableCommitNode;
+import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.planner.plan.TableWriterNode;
 import com.facebook.presto.sql.planner.plan.TableWriterNode.DeleteHandle;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 import java.util.Map;
 
-/**
+/*
  * Major HACK alert!!!
  *
  * This logic should be invoked on query start, not during planning. At that point, the token
@@ -81,11 +88,11 @@ public class BeginTableWrite
         @Override
         public PlanNode visitDelete(DeleteNode node, RewriteContext<Void> context)
         {
-            // TODO: replace handle in scan nodes with this new handle
+            // TODO: begin delete in pre-execution step, not here
             TableHandle handle = metadata.beginDelete(session, node.getTarget().getHandle());
             return new DeleteNode(
                     node.getId(),
-                    node.getSource().accept(this, context),
+                    rewriteDeleteTableScan(node.getSource(), handle, context),
                     new DeleteHandle(handle),
                     node.getRowId(),
                     node.getOutputSymbols());
@@ -96,18 +103,24 @@ public class BeginTableWrite
         {
             PlanNode child = node.getSource().accept(this, context);
 
-            TableWriterNode.WriterTarget target;
-            if (child instanceof TableWriterNode) {
-                target = ((TableWriterNode) child).getTarget();
-            }
-            else if (child instanceof DeleteNode) {
-                target = ((DeleteNode) child).getTarget();
-            }
-            else {
-                throw new IllegalArgumentException("Invalid child for TableCommitNode: " + child.getClass().getSimpleName());
-            }
+            TableWriterNode.WriterTarget target = getTarget(child);
 
             return new TableCommitNode(node.getId(), child, target, node.getOutputSymbols());
+        }
+
+        public TableWriterNode.WriterTarget getTarget(PlanNode node)
+        {
+            if (node instanceof TableWriterNode) {
+                return ((TableWriterNode) node).getTarget();
+            }
+            if (node instanceof DeleteNode) {
+                return ((DeleteNode) node).getTarget();
+            }
+            if (node instanceof ExchangeNode) {
+                PlanNode source = Iterables.getOnlyElement(node.getSources());
+                return getTarget(source);
+            }
+            throw new IllegalArgumentException("Invalid child for TableCommitNode: " + node.getClass().getSimpleName());
         }
 
         private TableWriterNode.WriterTarget createWriterTarget(TableWriterNode.WriterTarget target)
@@ -120,7 +133,35 @@ public class BeginTableWrite
                 TableWriterNode.InsertReference insert = (TableWriterNode.InsertReference) target;
                 return new TableWriterNode.InsertHandle(metadata.beginInsert(session, insert.getHandle()));
             }
-            throw new AssertionError("Unhandled target type: " + target.getClass().getName());
+            throw new IllegalArgumentException("Unhandled target type: " + target.getClass().getSimpleName());
+        }
+
+        private PlanNode rewriteDeleteTableScan(PlanNode node, TableHandle handle, RewriteContext<Void> context)
+        {
+            if (node instanceof TableScanNode) {
+                TableScanNode scan = (TableScanNode) node;
+                return new TableScanNode(
+                        scan.getId(),
+                        handle,
+                        scan.getOutputSymbols(),
+                        scan.getAssignments(),
+                        scan.getLayout(),
+                        scan.getCurrentConstraint(),
+                        scan.getOriginalConstraint());
+            }
+            if (node instanceof FilterNode) {
+                PlanNode source = rewriteDeleteTableScan(((FilterNode) node).getSource(), handle, context);
+                return context.replaceChildren(node, ImmutableList.of(source));
+            }
+            if (node instanceof ProjectNode) {
+                PlanNode source = rewriteDeleteTableScan(((ProjectNode) node).getSource(), handle, context);
+                return context.replaceChildren(node, ImmutableList.of(source));
+            }
+            if (node instanceof SemiJoinNode) {
+                PlanNode source = rewriteDeleteTableScan(((SemiJoinNode) node).getSource(), handle, context);
+                return context.replaceChildren(node, ImmutableList.of(source, ((SemiJoinNode) node).getFilteringSource()));
+            }
+            throw new IllegalArgumentException("Invalid descendant for DeleteNode: " + node.getClass().getName());
         }
     }
 }
