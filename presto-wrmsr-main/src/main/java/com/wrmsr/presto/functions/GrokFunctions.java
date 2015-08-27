@@ -36,8 +36,8 @@ import java.util.Map;
 
 public class GrokFunctions
 {
-    @ScalarFunction("classify")
-    @SqlType("map<varchar, varchar>")
+    @ScalarFunction("grok")
+    @SqlType("map<varchar,varchar>")
     public static Block varcharClassify(@SqlType(StandardTypes.VARCHAR) Slice pat, @SqlType(StandardTypes.VARCHAR) Slice value)
     {
         try {
