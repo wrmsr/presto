@@ -44,7 +44,7 @@ public class GrokFunctions
             String patternsResource = "grok-patterns/grok-patterns";
 
             Grok grok = new Grok();
-            try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(patternsResource);
+            try (InputStream is = GrokFunctions.class.getClassLoader().getResourceAsStream(patternsResource);
                     InputStreamReader isr = new InputStreamReader(is);
                     BufferedReader br = new BufferedReader(isr)) {
                 grok.addPatternFromReader(br);
