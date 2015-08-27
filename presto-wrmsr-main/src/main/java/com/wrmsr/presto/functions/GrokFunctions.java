@@ -22,12 +22,19 @@ import com.facebook.presto.spi.block.InterleavedBlockBuilder;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.VarcharType;
 import com.facebook.presto.type.SqlType;
+import com.facebook.presto.util.ThreadLocalCache;
+import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.MapMaker;
+import com.wrmsr.presto.util.Exceptions;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import oi.thekraken.grok.api.Grok;
 import oi.thekraken.grok.api.Match;
+import org.joda.time.format.DateTimeFormatter;
+
+import javax.annotation.Nonnull;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -36,21 +43,36 @@ import java.util.Map;
 
 public class GrokFunctions
 {
+    public static final String PATTERNS_RESOURCE = "grok-patterns/grok-patterns";
+
+    private static final ThreadLocalCache<String, Grok> GROK_CACHE = new ThreadLocalCache<String, Grok>(100)
+    {
+        @Nonnull
+        @Override
+        protected Grok load(String key)
+        {
+            try {
+                Grok grok = new Grok();
+                try (InputStream is = GrokFunctions.class.getClassLoader().getResourceAsStream(PATTERNS_RESOURCE);
+                        InputStreamReader isr = new InputStreamReader(is);
+                        BufferedReader br = new BufferedReader(isr)) {
+                    grok.addPatternFromReader(br);
+                }
+
+                grok.compile(key);
+                return grok;
+            } catch (Exception e) {
+                throw Throwables.propagate(e);
+            }
+        }
+    };
+
     @ScalarFunction("grok")
     @SqlType("map<varchar,varchar>")
     public static Block grok(@SqlType(StandardTypes.VARCHAR) Slice pat, @SqlType(StandardTypes.VARCHAR) Slice value)
     {
         try {
-            String patternsResource = "grok-patterns/grok-patterns";
-
-            Grok grok = new Grok();
-            try (InputStream is = GrokFunctions.class.getClassLoader().getResourceAsStream(patternsResource);
-                    InputStreamReader isr = new InputStreamReader(is);
-                    BufferedReader br = new BufferedReader(isr)) {
-                grok.addPatternFromReader(br);
-            }
-
-            grok.compile(pat.toStringUtf8());
+            Grok grok = GROK_CACHE.get(pat.toStringUtf8());
             Match gm = grok.match(value.toStringUtf8());
             gm.captures();
 
