@@ -13,6 +13,62 @@
  */
 package com.wrmsr.presto.functions;
 
+import com.facebook.presto.operator.scalar.ScalarFunction;
+import com.facebook.presto.spi.PrestoException;
+import com.facebook.presto.spi.block.Block;
+import com.facebook.presto.spi.block.BlockBuilder;
+import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.block.InterleavedBlockBuilder;
+import com.facebook.presto.spi.type.StandardTypes;
+import com.facebook.presto.spi.type.VarcharType;
+import com.facebook.presto.type.SqlType;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import io.airlift.slice.Slice;
+import io.airlift.slice.Slices;
+import oi.thekraken.grok.api.Grok;
+import oi.thekraken.grok.api.Match;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Map;
+
 public class GrokFunctions
 {
+    @ScalarFunction("classify")
+    @SqlType("map<varchar, varchar>")
+    public static Block varcharClassify(@SqlType(StandardTypes.VARCHAR) Slice pat, @SqlType(StandardTypes.VARCHAR) Slice value)
+    {
+        try {
+            String patternsResource = "grok-patterns/grok-patterns";
+
+            Grok grok = new Grok();
+            try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(patternsResource);
+                    InputStreamReader isr = new InputStreamReader(is);
+                    BufferedReader br = new BufferedReader(isr)) {
+                grok.addPatternFromReader(br);
+            }
+
+            grok.compile(pat.toStringUtf8());
+            Match gm = grok.match(value.toStringUtf8());
+            gm.captures();
+
+            System.out.println(gm.toJson());
+
+            Map<String, Object> map = gm.toMap();
+
+            BlockBuilder blockBuilder = new InterleavedBlockBuilder(ImmutableList.of(VarcharType.VARCHAR, VarcharType.VARCHAR), new BlockBuilderStatus(), map.size() * 2);
+
+            for (Map.Entry<String, Object> e : map.entrySet()) {
+                VarcharType.VARCHAR.writeSlice(blockBuilder, Slices.utf8Slice(e.getKey()));
+                VarcharType.VARCHAR.writeSlice(blockBuilder, Slices.utf8Slice(e.getValue().toString()));
+            }
+
+            return blockBuilder.build();
+        }
+        catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+    }
 }

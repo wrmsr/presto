@@ -244,6 +244,7 @@ public class MainPlugin
             metadata.addFunctions(
                 new FunctionListBuilder(typeRegistry)
                     .scalar(CompressionFunctions.class)
+                    .scalar(GrokFunctions.class)
                     .function(new SerializeFunction(metadata.getFunctionRegistry(), structManager))
                     .function(new DefineStructFunction(structManager))
                     .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata))
