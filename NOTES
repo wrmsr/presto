@@ -1486,3 +1486,6 @@ http://www.brendangregg.com/blog/2014-09-15/the-msrs-of-ec2.html
 
 
 http://yusufonlinux.blogspot.com/2010/11/data-link-access-and-zero-copy.html
+
+include/linux/dma-mapping.h
+Documentation/DMA-API.txt
