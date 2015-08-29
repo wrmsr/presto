@@ -54,50 +54,20 @@ import static com.google.common.collect.Maps.fromProperties;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
 import static java.util.Locale.ENGLISH;
 
-public class TestCrud
+public class TestKv
 {
     public interface ConnectorEventSource
     {
 
     }
 
-    public interface ConnectorAccessorAdapter
+    public interface Kv<K, V>
     {
-        List get();
+        V get(K key);
 
-        void put();
+        void put(K key, V value);
 
-        void delete();
-    }
-
-    /*
-    ConnectorAccessorAdapter
-
-    Put
-    Get
-    Delete
-     */
-
-    public class CrudConnectorAdapterImpl
-            implements ConnectorAccessorAdapter
-    {
-        @Override
-        public List get()
-        {
-            return null;
-        }
-
-        @Override
-        public void put()
-        {
-
-        }
-
-        @Override
-        public void delete()
-        {
-
-        }
+        void delete(K key);
     }
 
     @Test
