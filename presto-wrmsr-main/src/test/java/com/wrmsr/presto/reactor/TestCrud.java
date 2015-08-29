@@ -36,8 +36,10 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.testing.TestingConnectorSession;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.Files;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -76,7 +78,8 @@ public class TestCrud
     Delete
      */
 
-    public class CrudConnectorAdapterImpl implements ConnectorAccessorAdapter
+    public class CrudConnectorAdapterImpl
+            implements ConnectorAccessorAdapter
     {
         @Override
         public List get()
@@ -98,7 +101,8 @@ public class TestCrud
     }
 
     @Test
-    public void test() throws Throwable
+    public void test()
+            throws Throwable
     {
         /*
         final Session session = Session.builder(new SessionPropertyManager())
@@ -125,7 +129,10 @@ public class TestCrud
                 ImmutableMap.<String, String>of(),
                 getClass().getClassLoader());
 
-        Connector connector = connectorFactory.create("test", TestingH2JdbcModule.createProperties());
+        File tmp = Files.createTempDir();
+        tmp.deleteOnExit();
+        File db = new File(tmp, "db");
+        Connector connector = connectorFactory.create("test", TestingH2JdbcModule.createProperties(db));
         // connector.getMetadata().createTable(session,
         ConnectorMetadata metadata = connector.getMetadata();
         //new JdbcMetadata(new JdbcConnectorId(CONNECTOR_ID), database.getJdbcClient(), new JdbcMetadataConfig());
@@ -148,15 +155,32 @@ public class TestCrud
 
         try (Connection connection = jdbcClient.getConnection()) {
             try (Statement stmt = connection.createStatement()) {
-                stmt.execute("insert into example.foo (text) values ('hi');");
+                stmt.execute("insert into db.example.foo (text) values ('hi');");
             }
             try (Statement stmt = connection.createStatement()) {
-                stmt.execute("select * from example.foo;");
+                stmt.execute("insert into \"DB\".\"EXAMPLE\".\"FOO\" (text) values ('hi');");
+            }
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("select * from db.example.foo;");
                 ResultSet rs = stmt.getResultSet();
                 while (rs.next()) {
                     System.out.println(rs.getString(1));
                 }
+                System.out.println();
             }
+            /*
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("select * from information_schema.tables;");
+                ResultSet rs = stmt.getResultSet();
+                while (rs.next()) {
+                    System.out.println(rs.getString(1));
+                    System.out.println(rs.getString(2));
+                    System.out.println(rs.getString(3));
+                    System.out.println();
+                }
+            }
+            */
+            connection.commit();
             // connection.createStatement().execute("CREATE TABLE example.foo (id integer primary key)");
         }
         /*
@@ -165,19 +189,19 @@ public class TestCrud
         metadata.commitInsert(session, ith, );
         */
 
-        ConnectorTableHandle th = metadata.getTableHandle(session, new SchemaTableName("example", "foo"));
+        ConnectorTableHandle th = metadata.getTableHandle(session, new SchemaTableName("EXAMPLE", "FOO"));
         Map<String, ColumnHandle> m = metadata.getColumnHandles(session, th);
         List<ColumnMetadata> cms = m.values().stream().map(h -> metadata.getColumnMetadata(session, th, h)).collect(toImmutableList());
 
         oth = new JdbcOutputTableHandle(
                 "test",
-                null,
-                "example",
-                "foo",
+                "DB",
+                "EXAMPLE",
+                "FOO",
                 cms.stream().map(ColumnMetadata::getName).collect(toImmutableList()),
                 cms.stream().map(ColumnMetadata::getType).collect(toImmutableList()),
-                "bob",
-                "foo",
+                "BOB",
+                "FOO",
                 jdbcClient.getConnectionUrl(),
                 fromProperties(jdbcClient.getConnectionProperties()));
 
@@ -189,5 +213,15 @@ public class TestCrud
 
         rs.commit();
 
+        try (Connection connection = jdbcClient.getConnection()) {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("select * from db.example.foo;");
+                ResultSet rs2 = stmt.getResultSet();
+                while (rs2.next()) {
+                    System.out.println(rs2.getString(1));
+                }
+                System.out.println();
+            }
+        }
     }
 }

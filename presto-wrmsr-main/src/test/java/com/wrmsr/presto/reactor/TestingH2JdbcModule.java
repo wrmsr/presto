@@ -23,6 +23,7 @@ import com.google.inject.Module;
 import com.google.inject.Provides;
 import org.h2.Driver;
 
+import java.io.File;
 import java.util.Map;
 
 import static io.airlift.configuration.ConfigBinder.configBinder;
@@ -47,6 +48,13 @@ class TestingH2JdbcModule
     {
         return ImmutableMap.<String, String>builder()
                 .put("connection-url", format("jdbc:h2:mem:test%s;DB_CLOSE_DELAY=-1", System.nanoTime()))
+                .build();
+    }
+
+    public static Map<String, String> createProperties(File file)
+    {
+        return ImmutableMap.<String, String>builder()
+                .put("connection-url", format("jdbc:h2:%s;DB_CLOSE_DELAY=-1", file.getPath()))
                 .build();
     }
 }
