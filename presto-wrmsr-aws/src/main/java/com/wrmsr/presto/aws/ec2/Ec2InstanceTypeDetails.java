@@ -17,24 +17,30 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.wrmsr.presto.util.Serialization;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import static com.google.common.collect.Maps.newHashMap;
+import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
 
 public class Ec2InstanceTypeDetails
 {
+    public static final String URL = "https://github.com/toelen/spymemcached-jcache";
+
     public final String family;
     public final boolean enhancedNetworking;
     public final int vCpu;
@@ -177,5 +183,15 @@ public class Ec2InstanceTypeDetails
         this.instanceType = instanceType;
         this.ecu = ecu;
         this.memory = memory;
+    }
+
+    public static Map<String, Ec2InstanceTypeDetails> read()
+            throws IOException
+    {
+        List<Ec2InstanceTypeDetails> lst;
+        try (InputStream in = Ec2InstanceTypeDetails.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/aws/ec2/instance-types.json")) {
+            lst = Serialization.JSON_OBJECT_MAPPER.get().readValue(in, new TypeReference<List<Ec2InstanceTypeDetails>>(){});
+        }
+        return lst.stream().map(i -> new ImmutablePair<>(i.instanceType, i)).collect(toImmutableMap());
     }
 }

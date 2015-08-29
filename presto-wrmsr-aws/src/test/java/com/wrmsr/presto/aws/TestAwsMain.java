@@ -55,10 +55,7 @@ public class TestAwsMain
     @Test
     public void testFoo() throws Throwable
     {
-        List<Ec2InstanceTypeDetails> l;
-        try (InputStream in = TestAwsMain.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/aws/ec2/instance-types.json")) {
-            l = Serialization.JSON_OBJECT_MAPPER.get().readValue(in, new TypeReference<List<Ec2InstanceTypeDetails>>(){});
-        }
-        System.out.println(l);
+        Map<String, Ec2InstanceTypeDetails> m = Ec2InstanceTypeDetails.read();
+        System.out.println(m);
     }
 }

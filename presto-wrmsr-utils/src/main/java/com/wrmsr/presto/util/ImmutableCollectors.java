@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collector;
 
@@ -71,5 +72,10 @@ public final class ImmutableCollectors
                 (builder, in) -> builder.put(keyMapper.apply(in), valueMapper.apply(in)),
                 (ImmutableMap.Builder<K, V> left, ImmutableMap.Builder<K, V> right) -> left.putAll(right.build()),
                 ImmutableMap.Builder<K, V>::build);
+    }
+
+    public static <K, V> Collector<Map.Entry<K, V>, ImmutableMap.Builder<K, V>, ImmutableMap<K, V>> toImmutableMap()
+    {
+        return toImmutableMap(Map.Entry::getKey, Map.Entry::getValue);
     }
 }
