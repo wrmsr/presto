@@ -1451,7 +1451,16 @@ http://mechanical-sympathy.blogspot.com/2012/10/compact-off-heap-structurestuple
 https://terracotta.org/generated/4.3.0/html/bmg-all/index.html#page/BigMemory_Go_Documentation_Set/co-tiers_configuring_offheap_store.html
 https://en.wikipedia.org/wiki/Ehcache eh (lol)
 
+https://github.com/damiencarol/jsr203-hadoop
+
 http://insights.wired.com/profiles/blogs/hadoop-100x-faster-how-we-did-it-2#axzz3k3aNMeca meh?
+
+
+**** setting a file to read-only will compact it, after which ByteBuffers are untranslated
+ - use slices obv
+ - make RegularFile take a blockSize override
+ - since dealing with variable size blocks just use malloc, huge page alignment is irrelevant given no disk
+ - mlock ofc
 
 
 
@@ -1459,7 +1468,9 @@ http://www.infoq.com/news/2007/11/oniguruma-joni-jruby
 https://github.com/google/re2j
 
 
-
+https://en.wikipedia.org/wiki/CUDA_Pinned_memory
+https://lightsighter.github.io/CudaDMA/
+https://developer.nvidia.com/gpudirect
 
 
 
