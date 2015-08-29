@@ -40,26 +40,76 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Map;
+import java.util.Objects;
 
 public class GrokFunctions
 {
-    public static final String PATTERNS_RESOURCE = "grok-patterns/grok-patterns";
+    public static final class Key
+    {
+        private final String file;
+        private final String pat;
 
-    private static final ThreadLocalCache<String, Grok> GROK_CACHE = new ThreadLocalCache<String, Grok>(100)
+        public Key(String file, String pat)
+        {
+            this.file = file;
+            this.pat = pat;
+        }
+
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            Key key = (Key) o;
+            return Objects.equals(file, key.file) &&
+                    Objects.equals(pat, key.pat);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(file, pat);
+        }
+
+        public String getFile()
+        {
+            return file;
+        }
+
+        public String getPat()
+        {
+            return pat;
+        }
+
+        @Override
+        public String toString()
+        {
+            return "Key{" +
+                    "file='" + file + '\'' +
+                    ", pat='" + pat + '\'' +
+                    '}';
+        }
+    }
+
+    private static final ThreadLocalCache<Key, Grok> GROK_CACHE = new ThreadLocalCache<Key, Grok>(100)
     {
         @Nonnull
         @Override
-        protected Grok load(String key)
+        protected Grok load(Key key)
         {
             try {
                 Grok grok = new Grok();
-                try (InputStream is = GrokFunctions.class.getClassLoader().getResourceAsStream(PATTERNS_RESOURCE);
+                try (InputStream is = GrokFunctions.class.getClassLoader().getResourceAsStream(key.getFile());
                         InputStreamReader isr = new InputStreamReader(is);
                         BufferedReader br = new BufferedReader(isr)) {
                     grok.addPatternFromReader(br);
                 }
 
-                grok.compile(key);
+                grok.compile(key.getPat());
                 return grok;
             } catch (Exception e) {
                 throw Throwables.propagate(e);
@@ -69,10 +119,11 @@ public class GrokFunctions
 
     @ScalarFunction("grok")
     @SqlType("map<varchar,varchar>")
-    public static Block grok(@SqlType(StandardTypes.VARCHAR) Slice pat, @SqlType(StandardTypes.VARCHAR) Slice value)
+    public static Block grok(@SqlType(StandardTypes.VARCHAR) Slice file, @SqlType(StandardTypes.VARCHAR) Slice pat, @SqlType(StandardTypes.VARCHAR) Slice value)
     {
         try {
-            Grok grok = GROK_CACHE.get(pat.toStringUtf8());
+            Key key = new Key(file.toStringUtf8(), pat.toStringUtf8());
+            Grok grok = GROK_CACHE.get(key);
             Match gm = grok.match(value.toStringUtf8());
             gm.captures();
 

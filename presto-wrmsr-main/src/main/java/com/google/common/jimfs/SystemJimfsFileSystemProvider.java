@@ -20,7 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.jimfs.Jimfs.URI_SCHEME;
 
-import com.google.auto.service.AutoService;
+// import com.google.auto.service.AutoService;
 import com.google.common.collect.MapMaker;
 
 import java.io.IOException;
@@ -59,7 +59,7 @@ import java.util.concurrent.ConcurrentMap;
  *
  * @author Colin Decker
  */
-@AutoService(FileSystemProvider.class)
+// @AutoService(FileSystemProvider.class)
 public class SystemJimfsFileSystemProvider extends FileSystemProvider {
 
   /**
