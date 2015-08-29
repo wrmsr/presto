@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+mkdir -p src/main/resources/com/wrmsr/presto/aws/ec2
+curl http://www.ec2instances.info/instances.json > src/main/resources/com/wrmsr/presto/aws/ec2/instance-types.json

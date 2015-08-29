@@ -1516,3 +1516,13 @@ https://github.com/dell-oss/Doradus
 http://strataconf.com/big-data-conference-ca-2015/public/schedule/detail/38276
 http://blog.aquameta.com/2015/08/28/introducing-aquameta/
 
+.... jcache
+https://jcp.org/en/jsr/detail?id=107
+https://github.com/ehcache/ehcache3
+https://github.com/ehcache/ehcache-jcache
+https://github.com/ehcache/sizeof
+https://github.com/Terracotta-OSS/offheap-store
+https://github.com/Terracotta-OSS/statistics
+https://github.com/Terracotta-OSS/cache-load-tester
+https://github.com/Terracotta-OSS/geocache
+
