@@ -20,7 +20,8 @@ import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConfig;
 import org.h2.Driver;
 
-public class H2Client extends ExtendedJdbcClient
+public class H2Client
+        extends ExtendedJdbcClient
 {
     @Inject
     public H2Client(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedJdbcConfig extendedConfig)

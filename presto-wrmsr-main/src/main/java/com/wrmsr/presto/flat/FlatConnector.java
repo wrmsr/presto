@@ -13,13 +13,18 @@
  */
 package com.wrmsr.presto.flat;
 
-import com.facebook.presto.spi.*;
+import com.facebook.presto.spi.Connector;
+import com.facebook.presto.spi.ConnectorHandleResolver;
+import com.facebook.presto.spi.ConnectorMetadata;
+import com.facebook.presto.spi.ConnectorRecordSetProvider;
+import com.facebook.presto.spi.ConnectorRecordSinkProvider;
+import com.facebook.presto.spi.ConnectorSplitManager;
 import com.google.inject.Inject;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class FlatConnector
-    implements Connector
+        implements Connector
 {
     private final ConnectorHandleResolver connectorHandleResolver;
     private final ConnectorMetadata connectorMetadata;

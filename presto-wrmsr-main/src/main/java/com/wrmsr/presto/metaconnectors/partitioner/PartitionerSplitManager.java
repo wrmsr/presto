@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.metaconnectors.partitioner;
 
-import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
@@ -29,13 +28,10 @@ import com.facebook.presto.spi.ConnectorTableLayoutHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.Domain;
 import com.facebook.presto.spi.FixedSplitSource;
-import com.facebook.presto.spi.Range;
-import com.facebook.presto.spi.SortedRangeSet;
 import com.facebook.presto.spi.TupleDomain;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.wrmsr.presto.util.ImmutableCollectors;
 
 import java.util.Collections;
@@ -44,7 +40,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
 
 public class PartitionerSplitManager
@@ -65,7 +60,7 @@ public class PartitionerSplitManager
 
     @Override
     @Deprecated
-    public ConnectorPartitionResult getPartitions(ConnectorSession session,ConnectorTableHandle table, TupleDomain<ColumnHandle> tupleDomain)
+    public ConnectorPartitionResult getPartitions(ConnectorSession session, ConnectorTableHandle table, TupleDomain<ColumnHandle> tupleDomain)
     {
         ConnectorMetadata metadata = targetConnector.getMetadata();
         ConnectorTableMetadata tableMetadata = metadata.getTableMetadata(session, table);
@@ -84,7 +79,7 @@ public class PartitionerSplitManager
             TupleDomain intersectedDomain = tupleDomain.intersect(
                     TupleDomain.withColumnDomains(
                             partition.getTupleDomain().getDomains().entrySet().stream().collect(ImmutableCollectors.toImmutableMap(
-                                            e -> metadata.getColumnHandles(session, table).get(e.getKey()), e -> e.getValue()))));
+                                    e -> metadata.getColumnHandles(session, table).get(e.getKey()), e -> e.getValue()))));
 
             if (intersectedDomain.isNone()) {
                 continue;
@@ -97,7 +92,6 @@ public class PartitionerSplitManager
             undeterminedTupleDomain = TupleDomain.columnWiseUnion(
                     undeterminedTupleDomain,
                     r.getUndeterminedTupleDomain().intersect(intersectedDomain));
-
         }
 
         return new ConnectorPartitionResult(Collections.unmodifiableList(ret), undeterminedTupleDomain);
@@ -105,13 +99,12 @@ public class PartitionerSplitManager
 
     @Override
     @Deprecated
-    public ConnectorSplitSource getPartitionSplits(ConnectorSession session,ConnectorTableHandle table, List<ConnectorPartition> partitions)
+    public ConnectorSplitSource getPartitionSplits(ConnectorSession session, ConnectorTableHandle table, List<ConnectorPartition> partitions)
     {
         List<ConnectorSplit> splits = partitions.stream()
                 .map(p -> target.getPartitionSplits(session, table, ImmutableList.of(p)))
                 .flatMap(s -> {
-                    try
-                    {
+                    try {
                         return s.getNextBatch(Integer.MAX_VALUE).get().stream();
                     }
                     catch (InterruptedException e) {
@@ -127,7 +120,7 @@ public class PartitionerSplitManager
     }
 
     @Override
-    public ConnectorSplitSource getSplits(ConnectorSession session,ConnectorTableLayoutHandle layout)
+    public ConnectorSplitSource getSplits(ConnectorSession session, ConnectorTableLayoutHandle layout)
     {
         return target.getSplits(session, layout);
     }

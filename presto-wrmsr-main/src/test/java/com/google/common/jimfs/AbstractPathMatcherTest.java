@@ -16,9 +16,7 @@
 
 package com.google.common.jimfs;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import javax.annotation.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,231 +32,273 @@ import java.nio.file.WatchService;
 import java.util.Iterator;
 import java.util.regex.PatternSyntaxException;
 
-import javax.annotation.Nullable;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Abstract base class for tests of {@link PathMatcher} implementations.
  *
  * @author Colin Decker
  */
-public abstract class AbstractPathMatcherTest {
+public abstract class AbstractPathMatcherTest
+{
 
-  /**
-   * Creates a new {@code PathMatcher} using the given pattern in the syntax this test is testing.
-   */
-  protected abstract PathMatcher matcher(String pattern);
+    /**
+     * Creates a new {@code PathMatcher} using the given pattern in the syntax this test is testing.
+     */
+    protected abstract PathMatcher matcher(String pattern);
 
-  /**
-   * Override to return a real matcher for the given pattern.
-   */
-  @Nullable
-  protected PathMatcher realMatcher(String pattern) {
-    return null;
-  }
-
-  protected void assertSyntaxError(String pattern) {
-    try {
-      matcher(pattern);
-      fail();
-    } catch (PatternSyntaxException expected) {
+    /**
+     * Override to return a real matcher for the given pattern.
+     */
+    @Nullable
+    protected PathMatcher realMatcher(String pattern)
+    {
+        return null;
     }
 
-    try {
-      PathMatcher real = realMatcher(pattern);
-      if (real != null) {
-        fail();
-      }
-    } catch (PatternSyntaxException expected) {
-    }
-  }
-
-  protected final PatternAsserter assertThat(String pattern) {
-    return new PatternAsserter(pattern);
-  }
-
-  protected final class PatternAsserter {
-
-    private final PathMatcher matcher;
-
-    @Nullable private final PathMatcher realMatcher;
-
-    PatternAsserter(String pattern) {
-      this.matcher = matcher(pattern);
-      this.realMatcher = realMatcher(pattern);
-    }
-
-    PatternAsserter matches(String... paths) {
-      for (String path : paths) {
-        assertTrue(
-            "matcher '" + matcher + "' did not match '" + path + "'", matcher.matches(fake(path)));
-        if (realMatcher != null) {
-          Path realPath = Paths.get(path);
-          assertTrue(
-              "real matcher '" + realMatcher + "' did not match '" + realPath + "'",
-              realMatcher.matches(realPath));
+    protected void assertSyntaxError(String pattern)
+    {
+        try {
+            matcher(pattern);
+            fail();
         }
-      }
-      return this;
-    }
-
-    PatternAsserter doesNotMatch(String... paths) {
-      for (String path : paths) {
-        assertFalse(
-            "glob '" + matcher + "' should not have matched '" + path + "'",
-            matcher.matches(fake(path)));
-        if (realMatcher != null) {
-          Path realPath = Paths.get(path);
-          assertFalse(
-              "real matcher '" + realMatcher + "' matched '" + realPath + "'",
-              realMatcher.matches(realPath));
+        catch (PatternSyntaxException expected) {
         }
-      }
-      return this;
+
+        try {
+            PathMatcher real = realMatcher(pattern);
+            if (real != null) {
+                fail();
+            }
+        }
+        catch (PatternSyntaxException expected) {
+        }
     }
-  }
 
-  /**
-   * Path that only provides toString().
-   */
-  private static Path fake(final String path) {
-    return new Path() {
-      @Override
-      public FileSystem getFileSystem() {
-        return null;
-      }
+    protected final PatternAsserter assertThat(String pattern)
+    {
+        return new PatternAsserter(pattern);
+    }
 
-      @Override
-      public boolean isAbsolute() {
-        return false;
-      }
+    protected final class PatternAsserter
+    {
 
-      @Override
-      public Path getRoot() {
-        return null;
-      }
+        private final PathMatcher matcher;
 
-      @Override
-      public Path getFileName() {
-        return null;
-      }
+        @Nullable private final PathMatcher realMatcher;
 
-      @Override
-      public Path getParent() {
-        return null;
-      }
+        PatternAsserter(String pattern)
+        {
+            this.matcher = matcher(pattern);
+            this.realMatcher = realMatcher(pattern);
+        }
 
-      @Override
-      public int getNameCount() {
-        return 0;
-      }
+        PatternAsserter matches(String... paths)
+        {
+            for (String path : paths) {
+                assertTrue(
+                        "matcher '" + matcher + "' did not match '" + path + "'", matcher.matches(fake(path)));
+                if (realMatcher != null) {
+                    Path realPath = Paths.get(path);
+                    assertTrue(
+                            "real matcher '" + realMatcher + "' did not match '" + realPath + "'",
+                            realMatcher.matches(realPath));
+                }
+            }
+            return this;
+        }
 
-      @Override
-      public Path getName(int index) {
-        return null;
-      }
+        PatternAsserter doesNotMatch(String... paths)
+        {
+            for (String path : paths) {
+                assertFalse(
+                        "glob '" + matcher + "' should not have matched '" + path + "'",
+                        matcher.matches(fake(path)));
+                if (realMatcher != null) {
+                    Path realPath = Paths.get(path);
+                    assertFalse(
+                            "real matcher '" + realMatcher + "' matched '" + realPath + "'",
+                            realMatcher.matches(realPath));
+                }
+            }
+            return this;
+        }
+    }
 
-      @Override
-      public Path subpath(int beginIndex, int endIndex) {
-        return null;
-      }
+    /**
+     * Path that only provides toString().
+     */
+    private static Path fake(final String path)
+    {
+        return new Path()
+        {
+            @Override
+            public FileSystem getFileSystem()
+            {
+                return null;
+            }
 
-      @Override
-      public boolean startsWith(Path other) {
-        return false;
-      }
+            @Override
+            public boolean isAbsolute()
+            {
+                return false;
+            }
 
-      @Override
-      public boolean startsWith(String other) {
-        return false;
-      }
+            @Override
+            public Path getRoot()
+            {
+                return null;
+            }
 
-      @Override
-      public boolean endsWith(Path other) {
-        return false;
-      }
+            @Override
+            public Path getFileName()
+            {
+                return null;
+            }
 
-      @Override
-      public boolean endsWith(String other) {
-        return false;
-      }
+            @Override
+            public Path getParent()
+            {
+                return null;
+            }
 
-      @Override
-      public Path normalize() {
-        return null;
-      }
+            @Override
+            public int getNameCount()
+            {
+                return 0;
+            }
 
-      @Override
-      public Path resolve(Path other) {
-        return null;
-      }
+            @Override
+            public Path getName(int index)
+            {
+                return null;
+            }
 
-      @Override
-      public Path resolve(String other) {
-        return null;
-      }
+            @Override
+            public Path subpath(int beginIndex, int endIndex)
+            {
+                return null;
+            }
 
-      @Override
-      public Path resolveSibling(Path other) {
-        return null;
-      }
+            @Override
+            public boolean startsWith(Path other)
+            {
+                return false;
+            }
 
-      @Override
-      public Path resolveSibling(String other) {
-        return null;
-      }
+            @Override
+            public boolean startsWith(String other)
+            {
+                return false;
+            }
 
-      @Override
-      public Path relativize(Path other) {
-        return null;
-      }
+            @Override
+            public boolean endsWith(Path other)
+            {
+                return false;
+            }
 
-      @Override
-      public URI toUri() {
-        return null;
-      }
+            @Override
+            public boolean endsWith(String other)
+            {
+                return false;
+            }
 
-      @Override
-      public Path toAbsolutePath() {
-        return null;
-      }
+            @Override
+            public Path normalize()
+            {
+                return null;
+            }
 
-      @Override
-      public Path toRealPath(LinkOption... options) throws IOException {
-        return null;
-      }
+            @Override
+            public Path resolve(Path other)
+            {
+                return null;
+            }
 
-      @Override
-      public File toFile() {
-        return null;
-      }
+            @Override
+            public Path resolve(String other)
+            {
+                return null;
+            }
 
-      @Override
-      public WatchKey register(
-          WatchService watcher, WatchEvent.Kind<?>[] events, WatchEvent.Modifier... modifiers)
-          throws IOException {
-        return null;
-      }
+            @Override
+            public Path resolveSibling(Path other)
+            {
+                return null;
+            }
 
-      @Override
-      public WatchKey register(WatchService watcher, WatchEvent.Kind<?>... events)
-          throws IOException {
-        return null;
-      }
+            @Override
+            public Path resolveSibling(String other)
+            {
+                return null;
+            }
 
-      @Override
-      public Iterator<Path> iterator() {
-        return null;
-      }
+            @Override
+            public Path relativize(Path other)
+            {
+                return null;
+            }
 
-      @Override
-      public int compareTo(Path other) {
-        return 0;
-      }
+            @Override
+            public URI toUri()
+            {
+                return null;
+            }
 
-      @Override
-      public String toString() {
-        return path;
-      }
-    };
-  }
+            @Override
+            public Path toAbsolutePath()
+            {
+                return null;
+            }
+
+            @Override
+            public Path toRealPath(LinkOption... options)
+                    throws IOException
+            {
+                return null;
+            }
+
+            @Override
+            public File toFile()
+            {
+                return null;
+            }
+
+            @Override
+            public WatchKey register(
+                    WatchService watcher, WatchEvent.Kind<?>[] events, WatchEvent.Modifier... modifiers)
+                    throws IOException
+            {
+                return null;
+            }
+
+            @Override
+            public WatchKey register(WatchService watcher, WatchEvent.Kind<?>... events)
+                    throws IOException
+            {
+                return null;
+            }
+
+            @Override
+            public Iterator<Path> iterator()
+            {
+                return null;
+            }
+
+            @Override
+            public int compareTo(Path other)
+            {
+                return 0;
+            }
+
+            @Override
+            public String toString()
+            {
+                return path;
+            }
+        };
+    }
 }

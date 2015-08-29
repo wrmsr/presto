@@ -28,7 +28,7 @@ import java.util.Map;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class FlatConnectorFactory
-    implements ConnectorFactory
+        implements ConnectorFactory
 {
     private final Map<String, String> optionalConfig;
     private final Module module;

@@ -19,7 +19,6 @@
  * use the {@link com.google.common.jimfs.Jimfs Jimfs} and
  * {@link com.google.common.jimfs.Configuration Configuration} classes.
  */
-@ParametersAreNonnullByDefault
-package com.google.common.jimfs;
+@ParametersAreNonnullByDefault package com.google.common.jimfs;
 
 import javax.annotation.ParametersAreNonnullByDefault;

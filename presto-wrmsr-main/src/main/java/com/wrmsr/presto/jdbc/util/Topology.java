@@ -30,13 +30,15 @@ public class Topology
 {
     static Logger logger = Logger.getLogger(Topology.class);
 
-    public static interface Root extends Iterable<Group>
+    public static interface Root
+            extends Iterable<Group>
     {
         Cluster cluster(String name);
     }
 
     @JsonIgnoreProperties(value = {"groupsByCluster"}, ignoreUnknown = true)
-    public static class RootImpl implements Root
+    public static class RootImpl
+            implements Root
     {
         @JsonProperty("topology")
         public final ImmutableList<Group> groups = null;
@@ -80,7 +82,8 @@ public class Topology
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Cluster implements Iterable<Group>
+    public static class Cluster
+            implements Iterable<Group>
     {
         public final String name;
         public final ImmutableList<Group> groups;
@@ -138,7 +141,8 @@ public class Topology
     }
 
     @JsonIgnoreProperties(value = {"entriesByName"}, ignoreUnknown = true)
-    public static class Group implements Iterable<Entry>
+    public static class Group
+            implements Iterable<Entry>
     {
         public final String cluster = null;
         public final String replica = null;

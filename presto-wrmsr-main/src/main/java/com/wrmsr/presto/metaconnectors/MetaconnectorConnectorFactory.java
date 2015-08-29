@@ -20,13 +20,9 @@ import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.inject.Binder;
 import com.google.inject.Injector;
 import com.google.inject.Module;
-import com.wrmsr.presto.metaconnectors.partitioner.Partitioner;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerConnector;
-import com.wrmsr.presto.metaconnectors.partitioner.PartitionerConnectorId;
-import com.wrmsr.presto.metaconnectors.partitioner.PartitionerTarget;
 import com.wrmsr.presto.util.Configs;
 import io.airlift.bootstrap.Bootstrap;
 
@@ -36,7 +32,8 @@ import java.util.Map;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 
-public abstract class MetaconnectorConnectorFactory implements ConnectorFactory
+public abstract class MetaconnectorConnectorFactory
+        implements ConnectorFactory
 {
     private final Map<String, String> optionalConfig;
     private final Module module;
@@ -84,8 +81,8 @@ public abstract class MetaconnectorConnectorFactory implements ConnectorFactory
         if (targetConnectorName == null) {
             target = checkNotNull(connectorManager.getConnectors().get(targetName), "target-connector-name not specified and target not found");
             requiredConfiguration = ImmutableMap.of();
-
-        } else {
+        }
+        else {
             requiredConfiguration = newHashMap(properties);
             Map<String, String> targetProperties = Configs.stripSubconfig(requiredConfiguration, "target");
 

@@ -6,18 +6,18 @@ import javax.tools.ToolProvider;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 public class JavaFunctions
 {
-    public static void main(String[] args) throws Throwable
+    public static void main(String[] args)
+            throws Throwable
     {
         // Prepare source somehow.
         String source = "package test; public class Test { static { System.out.println(\"hello\"); } public Test() { System.out.println(\"world\"); } }";
 
         // Save source in .java file.
-        File root  = Files.createTempDirectory(null).toFile();
+        File root = Files.createTempDirectory(null).toFile();
         root.deleteOnExit(); // FIXME OSX EXECVE SEGFAULT
         File sourceFile = new File(root, "test/Test.java");
         sourceFile.getParentFile().mkdirs();

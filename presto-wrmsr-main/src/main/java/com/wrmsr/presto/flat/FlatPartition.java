@@ -21,7 +21,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class FlatPartition
-    implements ConnectorPartition
+        implements ConnectorPartition
 {
     private final FlatTableHandle flatTableHandle;
     private final TupleDomain<ColumnHandle> domain;

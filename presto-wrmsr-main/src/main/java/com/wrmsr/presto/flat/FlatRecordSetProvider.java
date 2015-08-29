@@ -23,7 +23,7 @@ import com.google.inject.Inject;
 import java.util.List;
 
 public class FlatRecordSetProvider
-    implements ConnectorRecordSetProvider
+        implements ConnectorRecordSetProvider
 {
     @Inject
     public FlatRecordSetProvider()
@@ -31,7 +31,7 @@ public class FlatRecordSetProvider
     }
 
     @Override
-    public RecordSet getRecordSet(ConnectorSession session,ConnectorSplit split, List<? extends ColumnHandle> columns)
+    public RecordSet getRecordSet(ConnectorSession session, ConnectorSplit split, List<? extends ColumnHandle> columns)
     {
         return new FlatRecordSet();
     }

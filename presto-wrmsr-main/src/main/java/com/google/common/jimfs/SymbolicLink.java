@@ -23,31 +23,37 @@ import static com.google.common.base.Preconditions.checkNotNull;
  *
  * @author Colin Decker
  */
-final class SymbolicLink extends File {
+final class SymbolicLink
+        extends File
+{
 
-  private final JimfsPath target;
+    private final JimfsPath target;
 
-  /**
-   * Creates a new symbolic link with the given ID and target.
-   */
-  public static SymbolicLink create(int id, JimfsPath target) {
-    return new SymbolicLink(id, target);
-  }
+    /**
+     * Creates a new symbolic link with the given ID and target.
+     */
+    public static SymbolicLink create(int id, JimfsPath target)
+    {
+        return new SymbolicLink(id, target);
+    }
 
-  private SymbolicLink(int id, JimfsPath target) {
-    super(id);
-    this.target = checkNotNull(target);
-  }
+    private SymbolicLink(int id, JimfsPath target)
+    {
+        super(id);
+        this.target = checkNotNull(target);
+    }
 
-  /**
-   * Returns the target path of this symbolic link.
-   */
-  JimfsPath target() {
-    return target;
-  }
+    /**
+     * Returns the target path of this symbolic link.
+     */
+    JimfsPath target()
+    {
+        return target;
+    }
 
-  @Override
-  File copyWithoutContent(int id) {
-    return SymbolicLink.create(id, target);
-  }
+    @Override
+    File copyWithoutContent(int id)
+    {
+        return SymbolicLink.create(id, target);
+    }
 }

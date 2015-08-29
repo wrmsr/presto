@@ -27,6 +27,7 @@ public class Decoders
     public interface CodecField
     {
         String getName();
+
         Type getType();
     }
 

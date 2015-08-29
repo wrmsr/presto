@@ -18,12 +18,16 @@ import com.facebook.presto.spi.type.Type;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.Collection;
 import java.util.List;
 
 public class FlatRecordSink
-    implements RecordSink
+        implements RecordSink
 {
     private final FileOutputStream f;
     private final BufferedWriter bw;

@@ -17,20 +17,17 @@ import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.InterleavedBlockBuilder;
-import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.VarcharType;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 
 import java.lang.invoke.MethodHandle;
-import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Lists.newArrayList;
 
 public class PropertiesFunction
-    extends StringVarargsFunction
+        extends StringVarargsFunction
 {
     private final TypeManager typeManager;
 
@@ -60,7 +57,7 @@ public class PropertiesFunction
         BlockBuilder blockBuilder = new InterleavedBlockBuilder(ImmutableList.of(VarcharType.VARCHAR, VarcharType.VARCHAR), new BlockBuilderStatus(), strs.length / 2);
         for (int i = 0; i < strs.length; i += 2) {
             Slice key = ((Slice) strs[i]);
-            Slice value = ((Slice) strs[i+1]);
+            Slice value = ((Slice) strs[i + 1]);
 
             checkArgument(key != null);
             blockBuilder.writeBytes(key, 0, key.length());

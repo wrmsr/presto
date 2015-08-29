@@ -23,20 +23,24 @@ import java.util.Arrays;
  *
  * @author Colin Decker
  */
-final class InternalCharMatcher {
+final class InternalCharMatcher
+{
 
-  public static InternalCharMatcher anyOf(String chars) {
-    return new InternalCharMatcher(chars);
-  }
+    public static InternalCharMatcher anyOf(String chars)
+    {
+        return new InternalCharMatcher(chars);
+    }
 
-  private final char[] chars;
+    private final char[] chars;
 
-  private InternalCharMatcher(String chars) {
-    this.chars = chars.toCharArray();
-    Arrays.sort(this.chars);
-  }
+    private InternalCharMatcher(String chars)
+    {
+        this.chars = chars.toCharArray();
+        Arrays.sort(this.chars);
+    }
 
-  public boolean matches(char c) {
-    return Arrays.binarySearch(chars, c) >= 0;
-  }
+    public boolean matches(char c)
+    {
+        return Arrays.binarySearch(chars, c) >= 0;
+    }
 }

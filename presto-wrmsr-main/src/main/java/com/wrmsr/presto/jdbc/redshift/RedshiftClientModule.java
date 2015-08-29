@@ -19,7 +19,7 @@ import com.wrmsr.presto.jdbc.postgresql.ExtendedPostgreSqlClientModule;
 import java.util.Map;
 
 public class RedshiftClientModule
-    extends ExtendedPostgreSqlClientModule
+        extends ExtendedPostgreSqlClientModule
 {
     public static final String DEFAULT_DRIVER_URL = "https://s3.amazonaws.com/redshift-downloads/drivers/RedshiftJDBC41-1.1.1.0001.jar";
     public static final String DEFAULT_DRIVER_CLASS = "com.amazon.redshift.jdbc4.Driver";

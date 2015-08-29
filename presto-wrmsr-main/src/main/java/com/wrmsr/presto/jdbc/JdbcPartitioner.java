@@ -32,7 +32,8 @@ import java.util.function.Supplier;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Sets.newHashSet;
 
-public class JdbcPartitioner implements Partitioner
+public class JdbcPartitioner
+        implements Partitioner
 {
     public static final int NUM_PARTITIONS = 10; // FIXME
 

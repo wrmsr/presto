@@ -13,27 +13,24 @@
  */
 package com.wrmsr.presto.functions;
 
-import com.facebook.presto.metadata.*;
+import com.facebook.presto.metadata.FunctionInfo;
+import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.metadata.ParametricScalar;
+import com.facebook.presto.metadata.Signature;
+import com.facebook.presto.metadata.TypeParameter;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
-import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.util.Reflection;
-import com.google.common.collect.ImmutableList;
-import io.airlift.slice.Slice;
 
 import java.lang.invoke.MethodHandle;
 import java.util.List;
 import java.util.Map;
 
 import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
-import static com.facebook.presto.metadata.Signature.typeParameter;
-import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.wrmsr.presto.util.Lists.listOf;
 
 public abstract class SimpleFunction
-    extends ParametricScalar
+        extends ParametricScalar
 {
     private final String functionName;
     private final String description;

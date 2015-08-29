@@ -27,7 +27,8 @@ import java.util.Map;
 
 import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
 
-public class PartitionerConnectorFactory extends MetaconnectorConnectorFactory
+public class PartitionerConnectorFactory
+        extends MetaconnectorConnectorFactory
 {
     public PartitionerConnectorFactory(Map<String, String> optionalConfig, Module module, ClassLoader classLoader, ConnectorManager connectorManager)
     {

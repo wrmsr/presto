@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.hardcoded;
 
-import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
@@ -36,12 +35,11 @@ import java.util.Map;
 
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 
 public class HardcodedMetadata
-    implements ConnectorMetadata
+        implements ConnectorMetadata
 {
     private static <K, V> Map<K, V> makeMap()
     {
@@ -93,7 +91,7 @@ public class HardcodedMetadata
     }
 
     @Override
-    public ConnectorTableMetadata getTableMetadata(ConnectorSession session,ConnectorTableHandle table)
+    public ConnectorTableMetadata getTableMetadata(ConnectorSession session, ConnectorTableHandle table)
     {
         return null;
     }
@@ -105,19 +103,19 @@ public class HardcodedMetadata
     }
 
     @Override
-    public ColumnHandle getSampleWeightColumnHandle(ConnectorSession session,ConnectorTableHandle tableHandle)
+    public ColumnHandle getSampleWeightColumnHandle(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         return null;
     }
 
     @Override
-    public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session,ConnectorTableHandle tableHandle)
+    public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         return null;
     }
 
     @Override
-    public ColumnMetadata getColumnMetadata(ConnectorSession session,ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
+    public ColumnMetadata getColumnMetadata(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
     {
         return null;
     }
@@ -135,19 +133,19 @@ public class HardcodedMetadata
     }
 
     @Override
-    public final void renameTable(ConnectorSession session,ConnectorTableHandle tableHandle, SchemaTableName newTableName)
+    public final void renameTable(ConnectorSession session, ConnectorTableHandle tableHandle, SchemaTableName newTableName)
     {
         throw new PrestoException(NOT_SUPPORTED, "This connector does not support renaming tables");
     }
 
     @Override
-    public void renameColumn(ConnectorSession session,ConnectorTableHandle tableHandle, ColumnHandle source, String target)
+    public void renameColumn(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle source, String target)
     {
         throw new PrestoException(NOT_SUPPORTED, "This connector does not support renaming columns");
     }
 
     @Override
-    public final void dropTable(ConnectorSession session,ConnectorTableHandle tableHandle)
+    public final void dropTable(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         throw new PrestoException(NOT_SUPPORTED, "This connector does not support dropping tables");
     }
@@ -165,7 +163,7 @@ public class HardcodedMetadata
     }
 
     @Override
-    public final void commitCreateTable(ConnectorSession session,ConnectorOutputTableHandle tableHandle, Collection<Slice> fragments)
+    public final void commitCreateTable(ConnectorSession session, ConnectorOutputTableHandle tableHandle, Collection<Slice> fragments)
     {
         throw new UnsupportedOperationException();
     }
@@ -177,7 +175,7 @@ public class HardcodedMetadata
     }
 
     @Override
-    public final void commitInsert(ConnectorSession session,ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
+    public final void commitInsert(ConnectorSession session, ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
     {
         throw new UnsupportedOperationException();
     }

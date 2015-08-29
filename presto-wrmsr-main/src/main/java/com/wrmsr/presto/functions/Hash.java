@@ -14,20 +14,13 @@
 // https://github.com/shubham166/presto/tree/Hash_Function
 package com.wrmsr.presto.functions;
 
+import com.facebook.presto.byteCode.ByteCodeBlock;
+import com.facebook.presto.byteCode.ClassDefinition;
+import com.facebook.presto.byteCode.DynamicClassLoader;
 import com.facebook.presto.byteCode.MethodDefinition;
 import com.facebook.presto.byteCode.Parameter;
 import com.facebook.presto.byteCode.Scope;
-import io.airlift.slice.Slice;
-
-import java.lang.invoke.MethodHandle;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import com.facebook.presto.byteCode.ByteCodeBlock;
 import com.facebook.presto.byteCode.Variable;
-import com.facebook.presto.byteCode.ClassDefinition;
-import com.facebook.presto.byteCode.DynamicClassLoader;
 import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.ParametricScalar;
@@ -35,17 +28,22 @@ import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
-import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.spi.type.TypeSignature;
-import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.StandardTypes;
-import com.facebook.presto.util.ImmutableCollectors;
-import com.facebook.presto.sql.gen.Bootstrap;
+import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.sql.gen.CallSiteBinder;
-import com.google.common.base.Joiner;
 import com.facebook.presto.sql.gen.CompilerUtils;
 import com.facebook.presto.type.BigintOperators;
+import com.facebook.presto.util.ImmutableCollectors;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import io.airlift.slice.Slice;
+
+import java.lang.invoke.MethodHandle;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static com.facebook.presto.byteCode.Access.FINAL;
 import static com.facebook.presto.byteCode.Access.PRIVATE;
@@ -54,15 +52,15 @@ import static com.facebook.presto.byteCode.Access.STATIC;
 import static com.facebook.presto.byteCode.Access.a;
 import static com.facebook.presto.byteCode.Parameter.arg;
 import static com.facebook.presto.byteCode.ParameterizedType.type;
-import static com.facebook.presto.metadata.Signature.typeParameter;
 import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
-import static com.facebook.presto.util.Reflection.methodHandle;
+import static com.facebook.presto.metadata.Signature.internalFunction;
+import static com.facebook.presto.metadata.Signature.typeParameter;
 import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.facebook.presto.spi.StandardErrorCode.INVALID_FUNCTION_ARGUMENT;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
 import static com.facebook.presto.sql.gen.SqlTypeByteCodeExpression.constantType;
-import static com.facebook.presto.metadata.Signature.internalFunction;
+import static com.facebook.presto.util.Reflection.methodHandle;
 import static java.lang.String.format;
 
 public final class Hash

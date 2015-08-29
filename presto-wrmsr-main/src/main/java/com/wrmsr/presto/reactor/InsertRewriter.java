@@ -4,7 +4,7 @@ import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.tree.DefaultTraversalVisitor;
 
 public class InsertRewriter
-    extends DefaultTraversalVisitor<Void, Void>
+        extends DefaultTraversalVisitor<Void, Void>
 {
     private final Analysis analysis;
 

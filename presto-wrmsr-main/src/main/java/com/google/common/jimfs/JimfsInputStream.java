@@ -16,146 +16,170 @@
 
 package com.google.common.jimfs;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkPositionIndexes;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
+
+import javax.annotation.concurrent.GuardedBy;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.concurrent.GuardedBy;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkPositionIndexes;
 
 /**
  * {@link InputStream} for reading from a file's {@link RegularFile}.
  *
  * @author Colin Decker
  */
-final class JimfsInputStream extends InputStream {
+final class JimfsInputStream
+        extends InputStream
+{
 
-  @GuardedBy("this")
-  @VisibleForTesting
-  RegularFile file;
+    @GuardedBy("this")
+    @VisibleForTesting
+    RegularFile file;
 
-  @GuardedBy("this")
-  private long pos;
+    @GuardedBy("this")
+    private long pos;
 
-  @GuardedBy("this")
-  private boolean finished;
+    @GuardedBy("this")
+    private boolean finished;
 
-  private final FileSystemState fileSystemState;
+    private final FileSystemState fileSystemState;
 
-  public JimfsInputStream(RegularFile file, FileSystemState fileSystemState) {
-    this.file = checkNotNull(file);
-    this.fileSystemState = fileSystemState;
-    fileSystemState.register(this);
-  }
-
-  @Override
-  public synchronized int read() throws IOException {
-    checkNotClosed();
-    if (finished) {
-      return -1;
+    public JimfsInputStream(RegularFile file, FileSystemState fileSystemState)
+    {
+        this.file = checkNotNull(file);
+        this.fileSystemState = fileSystemState;
+        fileSystemState.register(this);
     }
 
-    file.readLock().lock();
-    try {
+    @Override
+    public synchronized int read()
+            throws IOException
+    {
+        checkNotClosed();
+        if (finished) {
+            return -1;
+        }
 
-      int b = file.read(pos++); // it's ok for pos to go beyond size()
-      if (b == -1) {
-        finished = true;
-      } else {
-        file.updateAccessTime();
-      }
-      return b;
-    } finally {
-      file.readLock().unlock();
-    }
-  }
+        file.readLock().lock();
+        try {
 
-  @Override
-  public int read(byte[] b) throws IOException {
-    return readInternal(b, 0, b.length);
-  }
-
-  @Override
-  public int read(byte[] b, int off, int len) throws IOException {
-    checkPositionIndexes(off, off + len, b.length);
-    return readInternal(b, off, len);
-  }
-
-  private synchronized int readInternal(byte[] b, int off, int len) throws IOException {
-    checkNotClosed();
-    if (finished) {
-      return -1;
+            int b = file.read(pos++); // it's ok for pos to go beyond size()
+            if (b == -1) {
+                finished = true;
+            }
+            else {
+                file.updateAccessTime();
+            }
+            return b;
+        }
+        finally {
+            file.readLock().unlock();
+        }
     }
 
-    file.readLock().lock();
-    try {
-      int read = file.read(pos, b, off, len);
-      if (read == -1) {
-        finished = true;
-      } else {
-        pos += read;
-      }
-
-      file.updateAccessTime();
-      return read;
-    } finally {
-      file.readLock().unlock();
-    }
-  }
-
-  @Override
-  public long skip(long n) throws IOException {
-    if (n <= 0) {
-      return 0;
+    @Override
+    public int read(byte[] b)
+            throws IOException
+    {
+        return readInternal(b, 0, b.length);
     }
 
-    synchronized (this) {
-      checkNotClosed();
-      if (finished) {
-        return 0;
-      }
-
-      // available() must be an int, so the min must be also
-      int skip = (int) Math.min(Math.max(file.size() - pos, 0), n);
-      pos += skip;
-      return skip;
+    @Override
+    public int read(byte[] b, int off, int len)
+            throws IOException
+    {
+        checkPositionIndexes(off, off + len, b.length);
+        return readInternal(b, off, len);
     }
-  }
 
-  @Override
-  public synchronized int available() throws IOException {
-    checkNotClosed();
-    if (finished) {
-      return 0;
+    private synchronized int readInternal(byte[] b, int off, int len)
+            throws IOException
+    {
+        checkNotClosed();
+        if (finished) {
+            return -1;
+        }
+
+        file.readLock().lock();
+        try {
+            int read = file.read(pos, b, off, len);
+            if (read == -1) {
+                finished = true;
+            }
+            else {
+                pos += read;
+            }
+
+            file.updateAccessTime();
+            return read;
+        }
+        finally {
+            file.readLock().unlock();
+        }
     }
-    long available = Math.max(file.size() - pos, 0);
-    return Ints.saturatedCast(available);
-  }
 
-  @GuardedBy("this")
-  private void checkNotClosed() throws IOException {
-    if (file == null) {
-      throw new IOException("stream is closed");
+    @Override
+    public long skip(long n)
+            throws IOException
+    {
+        if (n <= 0) {
+            return 0;
+        }
+
+        synchronized (this) {
+            checkNotClosed();
+            if (finished) {
+                return 0;
+            }
+
+            // available() must be an int, so the min must be also
+            int skip = (int) Math.min(Math.max(file.size() - pos, 0), n);
+            pos += skip;
+            return skip;
+        }
     }
-  }
 
-  @Override
-  public synchronized void close() throws IOException {
-    if (isOpen()) {
-      fileSystemState.unregister(this);
-      file.closed();
-
-      // file is set to null here and only here
-      file = null;
+    @Override
+    public synchronized int available()
+            throws IOException
+    {
+        checkNotClosed();
+        if (finished) {
+            return 0;
+        }
+        long available = Math.max(file.size() - pos, 0);
+        return Ints.saturatedCast(available);
     }
-  }
 
-  @GuardedBy("this")
-  private boolean isOpen() {
-    return file != null;
-  }
+    @GuardedBy("this")
+    private void checkNotClosed()
+            throws IOException
+    {
+        if (file == null) {
+            throw new IOException("stream is closed");
+        }
+    }
+
+    @Override
+    public synchronized void close()
+            throws IOException
+    {
+        if (isOpen()) {
+            fileSystemState.unregister(this);
+            file.closed();
+
+            // file is set to null here and only here
+            file = null;
+        }
+    }
+
+    @GuardedBy("this")
+    private boolean isOpen()
+    {
+        return file != null;
+    }
 }

@@ -20,7 +20,6 @@ import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.inject.Binder;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -31,13 +30,12 @@ import io.airlift.bootstrap.Bootstrap;
 import java.util.List;
 import java.util.Map;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 
 public class HardcodedConnectorFactory
-    implements ConnectorFactory
+        implements ConnectorFactory
 {
     private final Map<String, String> optionalConfig;
     private final Module module;
@@ -62,6 +60,7 @@ public class HardcodedConnectorFactory
         checkArgument(parts.size() == 2);
         return new SchemaTableName(parts.get(0), parts.get(1));
     }
+
     @Override
     public Connector create(String connectorId, Map<String, String> requiredConfiguration)
     {
@@ -70,7 +69,7 @@ public class HardcodedConnectorFactory
 
         Map<SchemaTableName, String> views = Configs.stripSubconfig(requiredConfiguration, "views").entrySet().stream()
                 .collect(ImmutableCollectors.toImmutableMap(e -> toName(e.getKey()), e -> e.getValue()));
-        HardcodedContents contents =  new HardcodedContents(ImmutableMap.copyOf(views));
+        HardcodedContents contents = new HardcodedContents(ImmutableMap.copyOf(views));
 
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
             Bootstrap app = new Bootstrap(module, new Module()

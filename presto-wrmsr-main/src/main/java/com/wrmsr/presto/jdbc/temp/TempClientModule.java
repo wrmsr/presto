@@ -21,7 +21,7 @@ import java.util.Map;
 import static java.lang.String.format;
 
 public class TempClientModule
-    extends H2ClientModule
+        extends H2ClientModule
 {
     public static Map<String, String> createProperties()
     {

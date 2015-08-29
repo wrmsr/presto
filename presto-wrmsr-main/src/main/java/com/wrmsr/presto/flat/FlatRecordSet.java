@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 public class FlatRecordSet
-    implements RecordSet
+        implements RecordSet
 {
     public List<Type> getColumnTypes()
     {

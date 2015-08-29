@@ -31,7 +31,7 @@ import static io.airlift.slice.Slices.utf8Slice;
 
 /**
  * Milliseconds since the epoch date format decoder.
- * <p/>
+ * <p>
  * Uses hardcoded UTC timezone and english locale.
  */
 public class MillisecondsSinceEpochJsonFieldCodec

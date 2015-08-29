@@ -13,7 +13,10 @@
  */
 package com.wrmsr.presto.jdbc;
 
-import com.facebook.presto.plugin.jdbc.*;
+import com.facebook.presto.plugin.jdbc.JdbcConnector;
+import com.facebook.presto.plugin.jdbc.JdbcHandleResolver;
+import com.facebook.presto.plugin.jdbc.JdbcModule;
+import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
@@ -28,7 +31,6 @@ import com.google.inject.Module;
 import com.google.inject.Scopes;
 import com.google.inject.util.Modules;
 import com.wrmsr.presto.util.Configs;
-import com.wrmsr.presto.util.Serialization;
 import io.airlift.bootstrap.Bootstrap;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 

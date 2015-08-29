@@ -19,7 +19,7 @@ import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.ConnectorTableHandle;
 
 public class HardcodedHandleResolver
-    implements ConnectorHandleResolver
+        implements ConnectorHandleResolver
 {
     @Override
     public boolean canHandle(ConnectorTableHandle tableHandle)

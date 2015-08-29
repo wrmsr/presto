@@ -16,9 +16,6 @@
 
 package com.google.common.jimfs;
 
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -29,41 +26,50 @@ import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.attribute.UserPrincipalNotFoundException;
 
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
+
 /**
  * Tests for {@link UserLookupService}.
  *
  * @author Colin Decker
  */
 @RunWith(JUnit4.class)
-public class UserLookupServiceTest {
+public class UserLookupServiceTest
+{
 
-  @Test
-  public void testUserLookupService() throws IOException {
-    UserPrincipalLookupService service = new UserLookupService(true);
-    UserPrincipal bob1 = service.lookupPrincipalByName("bob");
-    UserPrincipal bob2 = service.lookupPrincipalByName("bob");
-    UserPrincipal alice = service.lookupPrincipalByName("alice");
+    @Test
+    public void testUserLookupService()
+            throws IOException
+    {
+        UserPrincipalLookupService service = new UserLookupService(true);
+        UserPrincipal bob1 = service.lookupPrincipalByName("bob");
+        UserPrincipal bob2 = service.lookupPrincipalByName("bob");
+        UserPrincipal alice = service.lookupPrincipalByName("alice");
 
-    assertThat(bob1).isEqualTo(bob2);
-    assertThat(bob1).isNotEqualTo(alice);
+        assertThat(bob1).isEqualTo(bob2);
+        assertThat(bob1).isNotEqualTo(alice);
 
-    GroupPrincipal group1 = service.lookupPrincipalByGroupName("group");
-    GroupPrincipal group2 = service.lookupPrincipalByGroupName("group");
-    GroupPrincipal foo = service.lookupPrincipalByGroupName("foo");
+        GroupPrincipal group1 = service.lookupPrincipalByGroupName("group");
+        GroupPrincipal group2 = service.lookupPrincipalByGroupName("group");
+        GroupPrincipal foo = service.lookupPrincipalByGroupName("foo");
 
-    assertThat(group1).isEqualTo(group2);
-    assertThat(group1).isNotEqualTo(foo);
-  }
-
-  @Test
-  public void testServiceNotSupportingGroups() throws IOException {
-    UserPrincipalLookupService service = new UserLookupService(false);
-
-    try {
-      service.lookupPrincipalByGroupName("group");
-      fail();
-    } catch (UserPrincipalNotFoundException expected) {
-      assertThat(expected.getName()).isEqualTo("group");
+        assertThat(group1).isEqualTo(group2);
+        assertThat(group1).isNotEqualTo(foo);
     }
-  }
+
+    @Test
+    public void testServiceNotSupportingGroups()
+            throws IOException
+    {
+        UserPrincipalLookupService service = new UserLookupService(false);
+
+        try {
+            service.lookupPrincipalByGroupName("group");
+            fail();
+        }
+        catch (UserPrincipalNotFoundException expected) {
+            assertThat(expected.getName()).isEqualTo("group");
+        }
+    }
 }

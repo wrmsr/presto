@@ -17,6 +17,7 @@ import io.airlift.configuration.Config;
 import io.airlift.units.Duration;
 
 import javax.validation.constraints.Min;
+
 import java.util.concurrent.TimeUnit;
 
 public class ExtendedMySqlConfig

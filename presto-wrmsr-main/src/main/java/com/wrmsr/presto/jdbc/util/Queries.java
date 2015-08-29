@@ -20,7 +20,13 @@ import com.wrmsr.presto.util.CaseInsensitiveMap;
 import com.wrmsr.presto.util.ColumnDomain;
 
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,46 +45,60 @@ public class Queries
     {
     }
 
-    public static Map<String, Object> readRow(ResultSet rs, ResultSetMetaData md) throws SQLException
+    public static Map<String, Object> readRow(ResultSet rs, ResultSetMetaData md)
+            throws SQLException
     {
         Map<String, Object> row = new CaseInsensitiveMap<>();
         int columns = md.getColumnCount();
-        for (int i = 1; i <= columns; ++i)
+        for (int i = 1; i <= columns; ++i) {
             row.put(md.getColumnName(i), rs.getObject(i));
+        }
         return row;
     }
 
-    public static Map<String, Object> readRow(ResultSet rs) throws SQLException {
+    public static Map<String, Object> readRow(ResultSet rs)
+            throws SQLException
+    {
         return readRow(rs, rs.getMetaData());
     }
 
-    public static List<Map<String, Object>> readResultSet(ResultSet rs) throws SQLException {
+    public static List<Map<String, Object>> readResultSet(ResultSet rs)
+            throws SQLException
+    {
         ResultSetMetaData md = rs.getMetaData();
         int columns = md.getColumnCount();
         List<Map<String, Object>> list = new ArrayList<>(64);
-        while (rs.next())
+        while (rs.next()) {
             list.add(readRow(rs, md));
+        }
         return list;
     }
 
     public static List<Map<String, Object>> select(Connection conn, String query,
-                                                   Object... params) throws SQLException {
+            Object... params)
+            throws SQLException
+    {
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
-            for (int i = 0; i < params.length; ++i)
+            for (int i = 0; i < params.length; ++i) {
                 stmt.setObject(i + 1, params[i]);
+            }
             try (ResultSet result = stmt.executeQuery()) {
                 return readResultSet(result);
             }
         }
     }
 
-    public static Map<String, Object> one(Connection conn, String query, Object... params) throws SQLException {
+    public static Map<String, Object> one(Connection conn, String query, Object... params)
+            throws SQLException
+    {
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
-            for (int i = 0; i < params.length; ++i)
+            for (int i = 0; i < params.length; ++i) {
                 stmt.setObject(i + 1, params[i]);
+            }
             try (ResultSet result = stmt.executeQuery()) {
-                if (!result.next())
+                if (!result.next()) {
                     return null;
+                }
                 Map<String, Object> row = readRow(result);
                 // if (result.next())
                 //    throw
@@ -87,13 +107,17 @@ public class Queries
         }
     }
 
-    public static Object scalar(Connection conn, String query, Object... params) throws SQLException {
+    public static Object scalar(Connection conn, String query, Object... params)
+            throws SQLException
+    {
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
-            for (int i = 0; i < params.length; ++i)
+            for (int i = 0; i < params.length; ++i) {
                 stmt.setObject(i + 1, params[i]);
+            }
             try (ResultSet result = stmt.executeQuery()) {
-                if (!result.next())
+                if (!result.next()) {
                     return null;
+                }
                 return result.getObject(1);
             }
         }
@@ -101,7 +125,8 @@ public class Queries
 
     private static final List<String> MIN_AND_MAX = ImmutableList.of("MIN", "MAX");
 
-    public static List<String> getClusteredColumns(Connection connection, String schemaName, String tableName) throws SQLException, IOException
+    public static List<String> getClusteredColumns(Connection connection, String schemaName, String tableName)
+            throws SQLException, IOException
     {
         String clusteredIndexName = null;
         Map<Integer, String> clusteredColumnsByOrdinal = newHashMap();
@@ -157,7 +182,8 @@ public class Queries
             String tableName,
             List<String> columnNames,
             Function<String, String> quote
-    ) throws SQLException, IOException
+    )
+            throws SQLException, IOException
     {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ");
@@ -173,7 +199,7 @@ public class Queries
         sql.append(quote.apply(tableName));
 
         try (Statement statement = connection.createStatement();
-            ResultSet result = statement.executeQuery(sql.toString())) {
+                ResultSet result = statement.executeQuery(sql.toString())) {
             checkState(result.next());
             checkState(result.getMetaData().getColumnCount() == columnNames.size() * 2);
             Map<String, ColumnDomain> ret = newHashMap();

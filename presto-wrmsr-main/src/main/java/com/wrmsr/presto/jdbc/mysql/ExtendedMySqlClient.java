@@ -24,6 +24,7 @@ import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConfig;
 
 import javax.inject.Inject;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -87,7 +88,6 @@ public class ExtendedMySqlClient
         return new SchemaTableName(
                 resultSet.getString("TABLE_CAT").toLowerCase(ENGLISH),
                 resultSet.getString("TABLE_NAME").toLowerCase(ENGLISH));
-
     }
 
     @Override

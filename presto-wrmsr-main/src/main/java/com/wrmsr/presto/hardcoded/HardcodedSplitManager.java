@@ -21,7 +21,7 @@ import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.TupleDomain;
 
 public class HardcodedSplitManager
-    implements ConnectorSplitManager
+        implements ConnectorSplitManager
 {
     @Override
     public ConnectorPartitionResult getPartitions(ConnectorSession session, ConnectorTableHandle table, TupleDomain<ColumnHandle> tupleDomain)

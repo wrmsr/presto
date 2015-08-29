@@ -17,8 +17,9 @@ import com.facebook.presto.spi.ConnectorTableHandle;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class FlatTableHandle extends ConnectorIdOnlyHandle
-    implements ConnectorTableHandle
+public class FlatTableHandle
+        extends ConnectorIdOnlyHandle
+        implements ConnectorTableHandle
 {
     @JsonCreator
     public FlatTableHandle(

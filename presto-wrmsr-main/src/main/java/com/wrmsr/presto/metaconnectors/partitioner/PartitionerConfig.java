@@ -120,7 +120,6 @@ public class PartitionerConfig
                 return false;
             }
             return !(columnName != null ? !columnName.equals(partition.columnName) : partition.columnName != null);
-
         }
 
         @Override

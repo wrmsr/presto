@@ -13,14 +13,16 @@
  */
 package com.wrmsr.presto.jdbc;
 
-import com.facebook.presto.plugin.jdbc.*;
+import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
+import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
+import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
+import com.facebook.presto.plugin.jdbc.JdbcPartition;
+import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
 import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.FixedSplitSource;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import com.wrmsr.presto.jdbc.util.ScriptRunner;
-import com.wrmsr.presto.util.Configs;
 import io.airlift.log.Logger;
 
 import java.io.File;
@@ -31,17 +33,13 @@ import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.function.Supplier;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Maps.fromProperties;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Sets.newHashSet;
 import static com.wrmsr.presto.util.Files.downloadFile;
 import static com.wrmsr.presto.util.Jvm.addClasspathUrl;
 
@@ -59,7 +57,8 @@ public class ExtendedJdbcClient
     }
 
     @Override
-    public Connection getConnection(String url, Properties info) throws SQLException
+    public Connection getConnection(String url, Properties info)
+            throws SQLException
     {
         if (driver != null) {
             return driver.connect(url, info);
@@ -69,7 +68,8 @@ public class ExtendedJdbcClient
         }
     }
 
-    public Connection getConnection() throws SQLException
+    public Connection getConnection()
+            throws SQLException
     {
         return getConnection(connectionUrl, connectionProperties);
     }
@@ -159,7 +159,7 @@ public class ExtendedJdbcClient
         return super.quoted(name);
     }
 
-    public  String quoted(String catalog, String schema, String table)
+    public String quoted(String catalog, String schema, String table)
     {
         return super.quoted(catalog, schema, table);
     }

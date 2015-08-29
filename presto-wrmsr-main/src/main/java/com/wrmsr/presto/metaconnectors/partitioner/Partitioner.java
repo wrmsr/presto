@@ -13,9 +13,6 @@
  */
 package com.wrmsr.presto.metaconnectors.partitioner;
 
-import com.facebook.presto.metadata.TableHandle;
-import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.ConnectorPartition;
 import com.facebook.presto.spi.Domain;
 import com.facebook.presto.spi.Range;
 import com.facebook.presto.spi.SchemaTableName;
@@ -28,7 +25,6 @@ import com.wrmsr.presto.util.ImmutableCollectors;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 import static com.google.common.base.Preconditions.checkArgument;

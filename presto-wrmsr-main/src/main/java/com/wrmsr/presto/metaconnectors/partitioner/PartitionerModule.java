@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.metaconnectors.partitioner;
 
-import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.NodeManager;
 import com.google.inject.Binder;
 import com.google.inject.Module;
@@ -21,7 +20,6 @@ import com.google.inject.Scopes;
 
 import javax.annotation.Nullable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static io.airlift.configuration.ConfigBinder.configBinder;
 
 public class PartitionerModule

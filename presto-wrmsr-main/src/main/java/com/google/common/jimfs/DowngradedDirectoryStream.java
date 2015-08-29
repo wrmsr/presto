@@ -16,13 +16,13 @@
 
 package com.google.common.jimfs;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
 import java.nio.file.SecureDirectoryStream;
 import java.util.Iterator;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * A thin wrapper around a {@link SecureDirectoryStream} that exists only to implement
@@ -30,21 +30,27 @@ import java.util.Iterator;
  *
  * @author Colin Decker
  */
-final class DowngradedDirectoryStream implements DirectoryStream<Path> {
+final class DowngradedDirectoryStream
+        implements DirectoryStream<Path>
+{
 
-  private final SecureDirectoryStream<Path> secureDirectoryStream;
+    private final SecureDirectoryStream<Path> secureDirectoryStream;
 
-  DowngradedDirectoryStream(SecureDirectoryStream<Path> secureDirectoryStream) {
-    this.secureDirectoryStream = checkNotNull(secureDirectoryStream);
-  }
+    DowngradedDirectoryStream(SecureDirectoryStream<Path> secureDirectoryStream)
+    {
+        this.secureDirectoryStream = checkNotNull(secureDirectoryStream);
+    }
 
-  @Override
-  public Iterator<Path> iterator() {
-    return secureDirectoryStream.iterator();
-  }
+    @Override
+    public Iterator<Path> iterator()
+    {
+        return secureDirectoryStream.iterator();
+    }
 
-  @Override
-  public void close() throws IOException {
-    secureDirectoryStream.close();
-  }
+    @Override
+    public void close()
+            throws IOException
+    {
+        secureDirectoryStream.close();
+    }
 }

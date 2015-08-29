@@ -21,10 +21,6 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.server.PluginManager;
-import com.google.common.collect.ImmutableSet;
-import com.google.inject.Module;
-import com.wrmsr.presto.server.ModuleProcessor;
-import com.wrmsr.presto.server.ServerEvent;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
@@ -33,15 +29,24 @@ import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
-import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.functions.*;
+import com.google.common.collect.ImmutableSet;
+import com.google.inject.Module;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
+import com.wrmsr.presto.functions.CompressionFunctions;
+import com.wrmsr.presto.functions.DefineStructForQueryFunction;
+import com.wrmsr.presto.functions.DefineStructFunction;
+import com.wrmsr.presto.functions.GrokFunctions;
+import com.wrmsr.presto.functions.Hash;
+import com.wrmsr.presto.functions.PropertiesFunction;
+import com.wrmsr.presto.functions.PropertiesType;
+import com.wrmsr.presto.functions.SerializeFunction;
+import com.wrmsr.presto.functions.StructManager;
 import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
 import com.wrmsr.presto.hardcoded.HardcodedMetadataPopulator;
 import com.wrmsr.presto.hardcoded.HardcodedModule;
@@ -49,19 +54,22 @@ import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
 import com.wrmsr.presto.jdbc.h2.H2ClientModule;
+import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
+import com.wrmsr.presto.jdbc.postgresql.ExtendedPostgreSqlClientModule;
 import com.wrmsr.presto.jdbc.redshift.RedshiftClientModule;
 import com.wrmsr.presto.jdbc.sqlite.SqliteClientModule;
 import com.wrmsr.presto.jdbc.temp.TempClientModule;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.metaconnectors.partitioner.PartitionerModule;
-import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
-import com.wrmsr.presto.jdbc.postgresql.ExtendedPostgreSqlClientModule;
+import com.wrmsr.presto.server.ModuleProcessor;
+import com.wrmsr.presto.server.ServerEvent;
 import com.wrmsr.presto.util.Configs;
 import com.wrmsr.presto.util.Serialization;
 import io.airlift.json.JsonCodec;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 
 import javax.inject.Inject;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -73,7 +81,6 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.YAML_OBJECT_MAPPER;
-import static io.airlift.jaxrs.JaxrsBinder.jaxrsBinder;
 
 // import com.facebook.presto.type.ParametricType;
 
@@ -242,16 +249,16 @@ public class MainPlugin
             ).run();
 
             metadata.addFunctions(
-                new FunctionListBuilder(typeRegistry)
-                    .scalar(CompressionFunctions.class)
-                    .scalar(GrokFunctions.class)
-                    .function(new SerializeFunction(metadata.getFunctionRegistry(), structManager))
-                    .function(new DefineStructFunction(structManager))
-                    .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata))
-                    .function(new PropertiesFunction(typeRegistry))
-                    //.function(new ConnectFunction())
-                    .function(Hash.HASH)
-                    .getFunctions());
+                    new FunctionListBuilder(typeRegistry)
+                            .scalar(CompressionFunctions.class)
+                            .scalar(GrokFunctions.class)
+                            .function(new SerializeFunction(metadata.getFunctionRegistry(), structManager))
+                            .function(new DefineStructFunction(structManager))
+                            .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata))
+                            .function(new PropertiesFunction(typeRegistry))
+                                    //.function(new ConnectFunction())
+                            .function(Hash.HASH)
+                            .getFunctions());
         }
     }
 
@@ -259,7 +266,8 @@ public class MainPlugin
     public <T> List<T> getServices(Class<T> type)
     {
         if (type == ModuleProcessor.class) {
-            return ImmutableList.of(type.cast(new ModuleProcessor() {
+            return ImmutableList.of(type.cast(new ModuleProcessor()
+            {
                 @Override
                 public Module apply(Module module)
                 {

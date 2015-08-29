@@ -21,8 +21,9 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-public class FlatSplit extends ConnectorIdOnlyHandle
-    implements ConnectorSplit
+public class FlatSplit
+        extends ConnectorIdOnlyHandle
+        implements ConnectorSplit
 {
     @JsonCreator
     public FlatSplit(

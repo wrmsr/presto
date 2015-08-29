@@ -29,7 +29,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * ISO 8601 date format decoder.
- * <p/>
+ * <p>
  * Uses hardcoded UTC timezone and english locale.
  */
 public class ISO8601JsonFieldCodec

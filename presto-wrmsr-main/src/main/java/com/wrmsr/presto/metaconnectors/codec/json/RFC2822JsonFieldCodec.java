@@ -29,7 +29,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * RFC 2822 date format decoder.
- * <p/>
+ * <p>
  * Uses hardcoded UTC timezone and english locale.
  */
 public class RFC2822JsonFieldCodec

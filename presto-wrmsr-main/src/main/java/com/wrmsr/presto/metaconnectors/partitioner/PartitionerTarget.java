@@ -52,7 +52,6 @@ public class PartitionerTarget
         PartitionerTarget that = (PartitionerTarget) o;
 
         return !(target != null ? !target.equals(that.target) : that.target != null);
-
     }
 
     @Override

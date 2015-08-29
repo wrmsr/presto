@@ -23,12 +23,14 @@ import java.io.IOException;
  *
  * @author Colin Decker
  */
-public interface FileLookup {
+public interface FileLookup
+{
 
-  /**
-   * Looks up the file.
-   *
-   * @throws IOException if the lookup fails for any reason, such as the file not existing
-   */
-  File lookup() throws IOException;
+    /**
+     * Looks up the file.
+     *
+     * @throws IOException if the lookup fails for any reason, such as the file not existing
+     */
+    File lookup()
+            throws IOException;
 }

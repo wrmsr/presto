@@ -15,12 +15,7 @@ package com.wrmsr.presto.util;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
-import io.airlift.slice.Slices;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.compressors.CompressorException;
-import org.apache.commons.compress.compressors.CompressorInputStream;
-import org.apache.commons.compress.compressors.CompressorOutputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 
 import java.io.ByteArrayOutputStream;
@@ -36,15 +31,18 @@ public class Compression
     {
     }
 
-    public interface CompressionCodec extends Codecs.Codec<byte[], byte[]>
+    public interface CompressionCodec
+            extends Codecs.Codec<byte[], byte[]>
     {
     }
 
-    public interface CompressionStreamCodec extends Codecs.StreamCodec
+    public interface CompressionStreamCodec
+            extends Codecs.StreamCodec
     {
     }
 
-    public static class ZlibCodec implements CompressionCodec
+    public static class ZlibCodec
+            implements CompressionCodec
     {
         private static final int BUFFER_SIZE = 1024;
 
@@ -91,7 +89,8 @@ public class Compression
         }
     }
 
-    public static class CommonsCompressionCodec implements CompressionStreamCodec
+    public static class CommonsCompressionCodec
+            implements CompressionStreamCodec
     {
         private final String name;
 
@@ -130,7 +129,7 @@ public class Compression
         {
             try {
                 return new CompressorStreamFactory()
-                    .createCompressorOutputStream(CompressorStreamFactory.GZIP, data);
+                        .createCompressorOutputStream(CompressorStreamFactory.GZIP, data);
             }
             catch (CompressorException e) {
                 throw Throwables.propagate(e);
@@ -143,7 +142,7 @@ public class Compression
     static {
         ImmutableMap.Builder<String, CompressionStreamCodec> builder = ImmutableMap.builder();
         // builder.put("zlib", new ZlibCodec());
-        for (String name : new String[]{
+        for (String name : new String[] {
                 CompressorStreamFactory.BZIP2,
                 CompressorStreamFactory.GZIP,
                 CompressorStreamFactory.PACK200,
@@ -153,7 +152,7 @@ public class Compression
                 CompressorStreamFactory.SNAPPY_RAW,
                 CompressorStreamFactory.Z,
                 CompressorStreamFactory.DEFLATE
-        }){
+        }) {
             builder.put(name, new CommonsCompressionCodec(name));
         }
         COMPRESSION_STREAM_CODECS_BY_NAME = builder.build();

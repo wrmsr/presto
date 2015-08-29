@@ -16,11 +16,8 @@
 
 package com.google.common.jimfs;
 
-import static com.google.common.truth.Truth.assertThat;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -31,6 +28,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.Set;
 
+import static com.google.common.truth.Truth.assertThat;
+
 /**
  * Tests for {@link BasicAttributeProvider}.
  *
@@ -38,116 +37,126 @@ import java.util.Set;
  */
 @RunWith(JUnit4.class)
 public class BasicAttributeProviderTest
-    extends AbstractAttributeProviderTest<BasicAttributeProvider> {
+        extends AbstractAttributeProviderTest<BasicAttributeProvider>
+{
 
-  @Override
-  protected BasicAttributeProvider createProvider() {
-    return new BasicAttributeProvider();
-  }
+    @Override
+    protected BasicAttributeProvider createProvider()
+    {
+        return new BasicAttributeProvider();
+    }
 
-  @Override
-  protected Set<? extends AttributeProvider> createInheritedProviders() {
-    return ImmutableSet.of();
-  }
+    @Override
+    protected Set<? extends AttributeProvider> createInheritedProviders()
+    {
+        return ImmutableSet.of();
+    }
 
-  @Test
-  public void testSupportedAttributes() {
-    assertSupportsAll(
-        "fileKey",
-        "size",
-        "isDirectory",
-        "isRegularFile",
-        "isSymbolicLink",
-        "isOther",
-        "creationTime",
-        "lastModifiedTime",
-        "lastAccessTime");
-  }
+    @Test
+    public void testSupportedAttributes()
+    {
+        assertSupportsAll(
+                "fileKey",
+                "size",
+                "isDirectory",
+                "isRegularFile",
+                "isSymbolicLink",
+                "isOther",
+                "creationTime",
+                "lastModifiedTime",
+                "lastAccessTime");
+    }
 
-  @Test
-  public void testInitialAttributes() {
-    long time = file.getCreationTime();
-    assertThat(time).isNotEqualTo(0L);
-    assertThat(time).isEqualTo(file.getLastAccessTime());
-    assertThat(time).isEqualTo(file.getLastModifiedTime());
+    @Test
+    public void testInitialAttributes()
+    {
+        long time = file.getCreationTime();
+        assertThat(time).isNotEqualTo(0L);
+        assertThat(time).isEqualTo(file.getLastAccessTime());
+        assertThat(time).isEqualTo(file.getLastModifiedTime());
 
-    assertContainsAll(
-        file,
-        ImmutableMap.<String, Object>builder()
-            .put("fileKey", 0)
-            .put("size", 0L)
-            .put("isDirectory", true)
-            .put("isRegularFile", false)
-            .put("isSymbolicLink", false)
-            .put("isOther", false)
-            .build());
-  }
+        assertContainsAll(
+                file,
+                ImmutableMap.<String, Object>builder()
+                        .put("fileKey", 0)
+                        .put("size", 0L)
+                        .put("isDirectory", true)
+                        .put("isRegularFile", false)
+                        .put("isSymbolicLink", false)
+                        .put("isOther", false)
+                        .build());
+    }
 
-  @Test
-  public void testSet() {
-    FileTime time = FileTime.fromMillis(0L);
+    @Test
+    public void testSet()
+    {
+        FileTime time = FileTime.fromMillis(0L);
 
-    // settable
-    assertSetAndGetSucceeds("creationTime", time);
-    assertSetAndGetSucceeds("lastModifiedTime", time);
-    assertSetAndGetSucceeds("lastAccessTime", time);
+        // settable
+        assertSetAndGetSucceeds("creationTime", time);
+        assertSetAndGetSucceeds("lastModifiedTime", time);
+        assertSetAndGetSucceeds("lastAccessTime", time);
 
-    // unsettable
-    assertSetFails("fileKey", 3L);
-    assertSetFails("size", 1L);
-    assertSetFails("isRegularFile", true);
-    assertSetFails("isDirectory", true);
-    assertSetFails("isSymbolicLink", true);
-    assertSetFails("isOther", true);
+        // unsettable
+        assertSetFails("fileKey", 3L);
+        assertSetFails("size", 1L);
+        assertSetFails("isRegularFile", true);
+        assertSetFails("isDirectory", true);
+        assertSetFails("isSymbolicLink", true);
+        assertSetFails("isOther", true);
 
-    // invalid type
-    assertSetFails("creationTime", "foo");
-  }
+        // invalid type
+        assertSetFails("creationTime", "foo");
+    }
 
-  @Test
-  public void testSetOnCreate() {
-    FileTime time = FileTime.fromMillis(0L);
+    @Test
+    public void testSetOnCreate()
+    {
+        FileTime time = FileTime.fromMillis(0L);
 
-    assertSetFailsOnCreate("creationTime", time);
-    assertSetFailsOnCreate("lastModifiedTime", time);
-    assertSetFailsOnCreate("lastAccessTime", time);
-  }
+        assertSetFailsOnCreate("creationTime", time);
+        assertSetFailsOnCreate("lastModifiedTime", time);
+        assertSetFailsOnCreate("lastAccessTime", time);
+    }
 
-  @Test
-  public void testView() throws IOException {
-    BasicFileAttributeView view = provider.view(fileLookup(), NO_INHERITED_VIEWS);
+    @Test
+    public void testView()
+            throws IOException
+    {
+        BasicFileAttributeView view = provider.view(fileLookup(), NO_INHERITED_VIEWS);
 
-    assertThat(view).isNotNull();
-    assertThat(view.name()).isEqualTo("basic");
+        assertThat(view).isNotNull();
+        assertThat(view.name()).isEqualTo("basic");
 
-    BasicFileAttributes attrs = view.readAttributes();
-    assertThat(attrs.fileKey()).isEqualTo(0);
+        BasicFileAttributes attrs = view.readAttributes();
+        assertThat(attrs.fileKey()).isEqualTo(0);
 
-    FileTime time = attrs.creationTime();
-    assertThat(attrs.lastAccessTime()).isEqualTo(time);
-    assertThat(attrs.lastModifiedTime()).isEqualTo(time);
+        FileTime time = attrs.creationTime();
+        assertThat(attrs.lastAccessTime()).isEqualTo(time);
+        assertThat(attrs.lastModifiedTime()).isEqualTo(time);
 
-    view.setTimes(null, null, null);
+        view.setTimes(null, null, null);
 
-    attrs = view.readAttributes();
-    assertThat(attrs.creationTime()).isEqualTo(time);
-    assertThat(attrs.lastAccessTime()).isEqualTo(time);
-    assertThat(attrs.lastModifiedTime()).isEqualTo(time);
+        attrs = view.readAttributes();
+        assertThat(attrs.creationTime()).isEqualTo(time);
+        assertThat(attrs.lastAccessTime()).isEqualTo(time);
+        assertThat(attrs.lastModifiedTime()).isEqualTo(time);
 
-    view.setTimes(FileTime.fromMillis(0L), null, null);
+        view.setTimes(FileTime.fromMillis(0L), null, null);
 
-    attrs = view.readAttributes();
-    assertThat(attrs.creationTime()).isEqualTo(time);
-    assertThat(attrs.lastAccessTime()).isEqualTo(time);
-    assertThat(attrs.lastModifiedTime()).isEqualTo(FileTime.fromMillis(0L));
-  }
+        attrs = view.readAttributes();
+        assertThat(attrs.creationTime()).isEqualTo(time);
+        assertThat(attrs.lastAccessTime()).isEqualTo(time);
+        assertThat(attrs.lastModifiedTime()).isEqualTo(FileTime.fromMillis(0L));
+    }
 
-  @Test
-  public void testAttributes() {
-    BasicFileAttributes attrs = provider.readAttributes(file);
-    assertThat(attrs.fileKey()).isEqualTo(0);
-    assertThat(attrs.isDirectory()).isTrue();
-    assertThat(attrs.isRegularFile()).isFalse();
-    assertThat(attrs.creationTime()).isNotNull();
-  }
+    @Test
+    public void testAttributes()
+    {
+        BasicFileAttributes attrs = provider.readAttributes(file);
+        assertThat(attrs.fileKey()).isEqualTo(0);
+        assertThat(attrs.isDirectory()).isTrue();
+        assertThat(attrs.isRegularFile()).isFalse();
+        assertThat(attrs.creationTime()).isNotNull();
+    }
 }

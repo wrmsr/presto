@@ -16,73 +16,81 @@
 
 package com.google.common.jimfs;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import javax.annotation.Nullable;
 
 import java.nio.file.InvalidPathException;
 
-import javax.annotation.Nullable;
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Unix-style path type.
  *
  * @author Colin Decker
  */
-final class UnixPathType extends PathType {
+final class UnixPathType
+        extends PathType
+{
 
-  /**
-   * Unix path type.
-   */
-  static final PathType INSTANCE = new UnixPathType();
+    /**
+     * Unix path type.
+     */
+    static final PathType INSTANCE = new UnixPathType();
 
-  private UnixPathType() {
-    super(false, '/');
-  }
-
-  @Override
-  public ParseResult parsePath(String path) {
-    if (path.isEmpty()) {
-      return emptyPath();
+    private UnixPathType()
+    {
+        super(false, '/');
     }
 
-    checkValid(path);
+    @Override
+    public ParseResult parsePath(String path)
+    {
+        if (path.isEmpty()) {
+            return emptyPath();
+        }
 
-    String root = path.startsWith("/") ? "/" : null;
-    return new ParseResult(root, splitter().split(path));
-  }
+        checkValid(path);
 
-  private static void checkValid(String path) {
-    int nulIndex = path.indexOf('\0');
-    if (nulIndex != -1) {
-      throw new InvalidPathException(path, "nul character not allowed", nulIndex);
-    }
-  }
-
-  @Override
-  public String toString(@Nullable String root, Iterable<String> names) {
-    StringBuilder builder = new StringBuilder();
-    if (root != null) {
-      builder.append(root);
-    }
-    joiner().appendTo(builder, names);
-    return builder.toString();
-  }
-
-  @Override
-  public String toUriPath(String root, Iterable<String> names, boolean directory) {
-    StringBuilder builder = new StringBuilder();
-    for (String name : names) {
-      builder.append('/').append(name);
+        String root = path.startsWith("/") ? "/" : null;
+        return new ParseResult(root, splitter().split(path));
     }
 
-    if (directory || builder.length() == 0) {
-      builder.append('/');
+    private static void checkValid(String path)
+    {
+        int nulIndex = path.indexOf('\0');
+        if (nulIndex != -1) {
+            throw new InvalidPathException(path, "nul character not allowed", nulIndex);
+        }
     }
-    return builder.toString();
-  }
 
-  @Override
-  public ParseResult parseUriPath(String uriPath) {
-    checkArgument(uriPath.startsWith("/"), "uriPath (%s) must start with /", uriPath);
-    return parsePath(uriPath);
-  }
+    @Override
+    public String toString(@Nullable String root, Iterable<String> names)
+    {
+        StringBuilder builder = new StringBuilder();
+        if (root != null) {
+            builder.append(root);
+        }
+        joiner().appendTo(builder, names);
+        return builder.toString();
+    }
+
+    @Override
+    public String toUriPath(String root, Iterable<String> names, boolean directory)
+    {
+        StringBuilder builder = new StringBuilder();
+        for (String name : names) {
+            builder.append('/').append(name);
+        }
+
+        if (directory || builder.length() == 0) {
+            builder.append('/');
+        }
+        return builder.toString();
+    }
+
+    @Override
+    public ParseResult parseUriPath(String uriPath)
+    {
+        checkArgument(uriPath.startsWith("/"), "uriPath (%s) must start with /", uriPath);
+        return parsePath(uriPath);
+    }
 }

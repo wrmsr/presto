@@ -20,7 +20,7 @@ import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConfig;
 
 public class SqliteClient
-    extends ExtendedJdbcClient
+        extends ExtendedJdbcClient
 {
     @Inject
     public SqliteClient(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedJdbcConfig extendedConfig)

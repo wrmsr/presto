@@ -34,72 +34,73 @@ import java.util.concurrent.ExecutorService;
  *
  * @author Colin Decker
  */
-public enum Feature {
+public enum Feature
+{
 
-  /**
-   * Feature controlling support for hard links to regular files.
-   *
-   * <p>Affected method:
-   *
-   * <ul>
-   *   <li>{@link Files#createLink(Path, Path)}</li>
-   * </ul>
-   *
-   * <p>If this feature is not enabled, this method will throw
-   * {@link UnsupportedOperationException}.
-   */
-  LINKS,
+    /**
+     * Feature controlling support for hard links to regular files.
+     * <p>
+     * <p>Affected method:
+     * <p>
+     * <ul>
+     * <li>{@link Files#createLink(Path, Path)}</li>
+     * </ul>
+     * <p>
+     * <p>If this feature is not enabled, this method will throw
+     * {@link UnsupportedOperationException}.
+     */
+    LINKS,
 
-  /**
-   * Feature controlling support for symbolic links.
-   *
-   * <p>Affected methods:
-   *
-   * <ul>
-   *   <li>{@link Files#createSymbolicLink(Path, Path, FileAttribute...)}</li>
-   *   <li>{@link Files#readSymbolicLink(Path)}</li>
-   * </ul>
-   *
-   * <p>If this feature is not enabled, these methods will throw
-   * {@link UnsupportedOperationException}.
-   */
-  SYMBOLIC_LINKS,
+    /**
+     * Feature controlling support for symbolic links.
+     * <p>
+     * <p>Affected methods:
+     * <p>
+     * <ul>
+     * <li>{@link Files#createSymbolicLink(Path, Path, FileAttribute...)}</li>
+     * <li>{@link Files#readSymbolicLink(Path)}</li>
+     * </ul>
+     * <p>
+     * <p>If this feature is not enabled, these methods will throw
+     * {@link UnsupportedOperationException}.
+     */
+    SYMBOLIC_LINKS,
 
-  /**
-   * Feature controlling support for {@link SecureDirectoryStream}.
-   *
-   * <p>Affected methods:
-   *
-   * <ul>
-   *   <li>{@link Files#newDirectoryStream(Path)}</li>
-   *   <li>{@link Files#newDirectoryStream(Path, DirectoryStream.Filter)}</li>
-   *   <li>{@link Files#newDirectoryStream(Path, String)}</li>
-   * </ul>
-   *
-   * <p>If this feature is enabled, the {@link DirectoryStream} instances returned by these methods
-   * will also implement {@link SecureDirectoryStream}.
-   */
-  SECURE_DIRECTORY_STREAM,
+    /**
+     * Feature controlling support for {@link SecureDirectoryStream}.
+     * <p>
+     * <p>Affected methods:
+     * <p>
+     * <ul>
+     * <li>{@link Files#newDirectoryStream(Path)}</li>
+     * <li>{@link Files#newDirectoryStream(Path, DirectoryStream.Filter)}</li>
+     * <li>{@link Files#newDirectoryStream(Path, String)}</li>
+     * </ul>
+     * <p>
+     * <p>If this feature is enabled, the {@link DirectoryStream} instances returned by these methods
+     * will also implement {@link SecureDirectoryStream}.
+     */
+    SECURE_DIRECTORY_STREAM,
 
-  /**
-   * Feature controlling support for {@link FileChannel}.
-   *
-   * <p>Affected methods:
-   *
-   * <ul>
-   *   <li>{@link Files#newByteChannel(Path, OpenOption...)}</li>
-   *   <li>{@link Files#newByteChannel(Path, Set, FileAttribute...)}</li>
-   *   <li>{@link FileChannel#open(Path, OpenOption...)}</li>
-   *   <li>{@link FileChannel#open(Path, Set, FileAttribute...)}</li>
-   *   <li>{@link AsynchronousFileChannel#open(Path, OpenOption...)}</li>
-   *   <li>{@link AsynchronousFileChannel#open(Path, Set, ExecutorService, FileAttribute...)}</li>
-   * </ul>
-   *
-   * <p>If this feature is not enabled, the {@link SeekableByteChannel} instances returned by the
-   * {@code Files} methods will not be {@code FileChannel} instances and the
-   * {@code FileChannel.open} and {@code AsynchronousFileChannel.open} methods will throw
-   * {@link UnsupportedOperationException}.
-   */
-  // TODO(cgdecker): Should support for AsynchronousFileChannel be a separate feature?
-  FILE_CHANNEL
+    /**
+     * Feature controlling support for {@link FileChannel}.
+     * <p>
+     * <p>Affected methods:
+     * <p>
+     * <ul>
+     * <li>{@link Files#newByteChannel(Path, OpenOption...)}</li>
+     * <li>{@link Files#newByteChannel(Path, Set, FileAttribute...)}</li>
+     * <li>{@link FileChannel#open(Path, OpenOption...)}</li>
+     * <li>{@link FileChannel#open(Path, Set, FileAttribute...)}</li>
+     * <li>{@link AsynchronousFileChannel#open(Path, OpenOption...)}</li>
+     * <li>{@link AsynchronousFileChannel#open(Path, Set, ExecutorService, FileAttribute...)}</li>
+     * </ul>
+     * <p>
+     * <p>If this feature is not enabled, the {@link SeekableByteChannel} instances returned by the
+     * {@code Files} methods will not be {@code FileChannel} instances and the
+     * {@code FileChannel.open} and {@code AsynchronousFileChannel.open} methods will throw
+     * {@link UnsupportedOperationException}.
+     */
+    // TODO(cgdecker): Should support for AsynchronousFileChannel be a separate feature?
+    FILE_CHANNEL
 }

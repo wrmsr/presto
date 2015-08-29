@@ -15,15 +15,15 @@ package com.wrmsr.presto.jdbc.sqlite;
 
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
-import com.google.inject.*;
-import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
+import com.google.inject.Binder;
+import com.google.inject.Module;
+import com.google.inject.Scopes;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConfig;
 
 import static io.airlift.configuration.ConfigBinder.configBinder;
 
 public class SqliteClientModule
-    implements Module
+        implements Module
 {
     @Override
     public void configure(Binder binder)

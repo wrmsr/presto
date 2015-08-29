@@ -13,7 +13,12 @@
  */
 package com.wrmsr.presto.jdbc;
 
-import com.facebook.presto.plugin.jdbc.*;
+import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
+import com.facebook.presto.plugin.jdbc.JdbcClient;
+import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
+import com.facebook.presto.plugin.jdbc.JdbcRecordCursor;
+import com.facebook.presto.plugin.jdbc.JdbcSplit;
+import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.Domain;
 import com.facebook.presto.spi.Range;
@@ -22,9 +27,7 @@ import com.facebook.presto.spi.SortedRangeSet;
 import com.facebook.presto.spi.TupleDomain;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.jdbc.util.Queries;
-import com.wrmsr.presto.util.ColumnDomain;
 import com.wrmsr.presto.util.ImmutableCollectors;
 import io.airlift.log.Logger;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -36,14 +39,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
 
 public class ExtendedJdbcRecordCursor
         extends JdbcRecordCursor
@@ -156,7 +157,8 @@ public class ExtendedJdbcRecordCursor
                     obj = new Long((Integer) obj);
                 }
                 return obj;
-            } catch (SQLException e) {
+            }
+            catch (SQLException e) {
                 throw handleSqlException(e);
             }
         }).collect(Collectors.toList());
@@ -204,8 +206,8 @@ public class ExtendedJdbcRecordCursor
 
         // use try with resources to close everything properly
         try (Connection connection = this.connection;
-             Statement statement = this.statement;
-             ResultSet resultSet = this.resultSet) {
+                Statement statement = this.statement;
+                ResultSet resultSet = this.resultSet) {
             // do nothing
         }
         catch (SQLException e) {
@@ -215,7 +217,7 @@ public class ExtendedJdbcRecordCursor
 
     public String getIdentifierQuote()
     {
-        return((BaseJdbcClient)jdbcClient).getIdentifierQuote();
+        return ((BaseJdbcClient) jdbcClient).getIdentifierQuote();
     }
 
     private String quote(String name)

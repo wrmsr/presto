@@ -35,13 +35,13 @@ import java.util.List;
 import java.util.Map;
 
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static com.facebook.presto.spi.type.VarbinaryType.VARBINARY;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 
 public class FlatMetadata
-    implements ConnectorMetadata
+        implements ConnectorMetadata
 {
     public static final String SCHEMA_NAME = "data";
     public static final String TABLE_NAME = "data";
@@ -93,7 +93,7 @@ public class FlatMetadata
     }
 
     @Override
-    public ConnectorTableMetadata getTableMetadata(ConnectorSession session,ConnectorTableHandle tableHandle)
+    public ConnectorTableMetadata getTableMetadata(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         checkNotNull(tableHandle, "tableHandle is null");
         if (tableHandle instanceof FlatTableHandle) {
@@ -116,7 +116,7 @@ public class FlatMetadata
     }
 
     @Override
-    public ColumnHandle getSampleWeightColumnHandle(ConnectorSession session,ConnectorTableHandle tableHandle)
+    public ColumnHandle getSampleWeightColumnHandle(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         return null;
     }
@@ -128,7 +128,7 @@ public class FlatMetadata
     }
 
     @Override
-    public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session,ConnectorTableHandle tableHandle)
+    public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         checkNotNull(tableHandle, "tableHandle is null");
         if (tableHandle instanceof FlatTableHandle) {
@@ -140,7 +140,7 @@ public class FlatMetadata
     }
 
     @Override
-    public ColumnMetadata getColumnMetadata(ConnectorSession session,ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
+    public ColumnMetadata getColumnMetadata(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
     {
         checkNotNull(tableHandle, "tableHandle is null");
         checkNotNull(columnHandle, "columnHandle is null");
@@ -170,19 +170,19 @@ public class FlatMetadata
     }
 
     @Override
-    public void renameTable(ConnectorSession session,ConnectorTableHandle tableHandle, SchemaTableName newTableName)
+    public void renameTable(ConnectorSession session, ConnectorTableHandle tableHandle, SchemaTableName newTableName)
     {
         throw new PrestoException(NOT_SUPPORTED, "This connector does not support renaming tables");
     }
 
     @Override
-    public void renameColumn(ConnectorSession session,ConnectorTableHandle tableHandle, ColumnHandle source, String target)
+    public void renameColumn(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle source, String target)
     {
         throw new PrestoException(NOT_SUPPORTED, "This connector does not support renaming columns");
     }
 
     @Override
-    public void dropTable(ConnectorSession session,ConnectorTableHandle tableHandle)
+    public void dropTable(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         throw new PrestoException(NOT_SUPPORTED, "This connector does not support dropping tables");
     }
@@ -194,7 +194,7 @@ public class FlatMetadata
     }
 
     @Override
-    public void commitCreateTable(ConnectorSession session,ConnectorOutputTableHandle tableHandle, Collection<Slice> fragments)
+    public void commitCreateTable(ConnectorSession session, ConnectorOutputTableHandle tableHandle, Collection<Slice> fragments)
     {
         throw new UnsupportedOperationException();
     }
@@ -206,7 +206,7 @@ public class FlatMetadata
     }
 
     @Override
-    public void commitInsert(ConnectorSession session,ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
+    public void commitInsert(ConnectorSession session, ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
     {
         // throw new UnsupportedOperationException();
     }

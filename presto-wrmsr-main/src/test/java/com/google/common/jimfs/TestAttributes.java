@@ -21,11 +21,13 @@ import java.nio.file.attribute.BasicFileAttributes;
 /**
  * @author Colin Decker
  */
-public interface TestAttributes extends BasicFileAttributes {
+public interface TestAttributes
+        extends BasicFileAttributes
+{
 
-  String foo();
+    String foo();
 
-  long bar();
+    long bar();
 
-  int baz();
+    int baz();
 }

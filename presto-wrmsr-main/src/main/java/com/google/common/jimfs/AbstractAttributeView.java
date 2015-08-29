@@ -16,28 +16,33 @@
 
 package com.google.common.jimfs;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.IOException;
 import java.nio.file.attribute.FileAttributeView;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Abstract base class for {@link FileAttributeView} implementations.
  *
  * @author Colin Decker
  */
-abstract class AbstractAttributeView implements FileAttributeView {
+abstract class AbstractAttributeView
+        implements FileAttributeView
+{
 
-  private final FileLookup lookup;
+    private final FileLookup lookup;
 
-  protected AbstractAttributeView(FileLookup lookup) {
-    this.lookup = checkNotNull(lookup);
-  }
+    protected AbstractAttributeView(FileLookup lookup)
+    {
+        this.lookup = checkNotNull(lookup);
+    }
 
-  /**
-   * Looks up the file to get or set attributes on.
-   */
-  protected final File lookupFile() throws IOException {
-    return lookup.lookup();
-  }
+    /**
+     * Looks up the file to get or set attributes on.
+     */
+    protected final File lookupFile()
+            throws IOException
+    {
+        return lookup.lookup();
+    }
 }

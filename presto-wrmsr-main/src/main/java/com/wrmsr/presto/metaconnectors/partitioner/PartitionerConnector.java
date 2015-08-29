@@ -28,7 +28,7 @@ import com.google.inject.Inject;
 import java.util.Set;
 
 public class PartitionerConnector
-    implements Connector
+        implements Connector
 {
     private final PartitionerConnectorId connectorId;
     private final PartitionerTarget target;

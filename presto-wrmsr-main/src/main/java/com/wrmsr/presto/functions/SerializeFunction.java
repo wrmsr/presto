@@ -30,6 +30,7 @@ import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
 import javax.annotation.Nullable;
+
 import java.lang.invoke.MethodHandle;
 import java.util.Map;
 
@@ -42,7 +43,7 @@ import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 // TODO: COMPILE.
 // FIXME LOLOL RECURSION LINKED LISTS
 public class SerializeFunction
-    extends ParametricScalar
+        extends ParametricScalar
 {
     private static final Signature SIGNATURE = new Signature( // FIXME nullable
             "serialize", ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"), false, false);

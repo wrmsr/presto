@@ -28,9 +28,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Custom date format decoder.
- * <p/>
+ * <p>
  * <tt>formatHint</tt> uses {@link DateTimeFormatter} format.
- * <p/>
+ * <p>
  * Uses hardcoded UTC timezone and english locale.
  */
 public class CustomDateTimeJsonFieldCodec

@@ -13,32 +13,12 @@
  */
 package com.wrmsr.presto;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import io.airlift.log.Logger;
+
 /*
 import com.mysql.management.MysqldResource;
 import com.mysql.management.MysqldResourceI;
 */
-import io.airlift.log.Logger;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Map;
-import java.util.Set;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.wrmsr.presto.util.FileUtils.deleteRecursively;
-import static java.lang.String.format;
-import static java.nio.file.Files.createTempDirectory;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public final class TempMySqlServer
         // implements Closeable

@@ -16,11 +16,7 @@
 
 package com.google.common.jimfs;
 
-import static com.google.common.jimfs.UserLookupService.createUserPrincipal;
-import static com.google.common.truth.Truth.assertThat;
-
 import com.google.common.collect.ImmutableSet;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -29,6 +25,9 @@ import java.io.IOException;
 import java.nio.file.attribute.FileOwnerAttributeView;
 import java.util.Set;
 
+import static com.google.common.jimfs.UserLookupService.createUserPrincipal;
+import static com.google.common.truth.Truth.assertThat;
+
 /**
  * Tests for {@link OwnerAttributeProvider}.
  *
@@ -36,42 +35,49 @@ import java.util.Set;
  */
 @RunWith(JUnit4.class)
 public class OwnerAttributeProviderTest
-    extends AbstractAttributeProviderTest<OwnerAttributeProvider> {
+        extends AbstractAttributeProviderTest<OwnerAttributeProvider>
+{
 
-  @Override
-  protected OwnerAttributeProvider createProvider() {
-    return new OwnerAttributeProvider();
-  }
+    @Override
+    protected OwnerAttributeProvider createProvider()
+    {
+        return new OwnerAttributeProvider();
+    }
 
-  @Override
-  protected Set<? extends AttributeProvider> createInheritedProviders() {
-    return ImmutableSet.of();
-  }
+    @Override
+    protected Set<? extends AttributeProvider> createInheritedProviders()
+    {
+        return ImmutableSet.of();
+    }
 
-  @Test
-  public void testInitialAttributes() {
-    assertThat(provider.get(file, "owner")).isEqualTo(createUserPrincipal("user"));
-  }
+    @Test
+    public void testInitialAttributes()
+    {
+        assertThat(provider.get(file, "owner")).isEqualTo(createUserPrincipal("user"));
+    }
 
-  @Test
-  public void testSet() {
-    assertSetAndGetSucceeds("owner", createUserPrincipal("user"));
-    assertSetAndGetSucceedsOnCreate("owner", createUserPrincipal("user"));
+    @Test
+    public void testSet()
+    {
+        assertSetAndGetSucceeds("owner", createUserPrincipal("user"));
+        assertSetAndGetSucceedsOnCreate("owner", createUserPrincipal("user"));
 
-    // invalid type
-    assertSetFails("owner", "root");
-  }
+        // invalid type
+        assertSetFails("owner", "root");
+    }
 
-  @Test
-  public void testView() throws IOException {
-    FileOwnerAttributeView view = provider.view(fileLookup(), NO_INHERITED_VIEWS);
-    assertThat(view).isNotNull();
+    @Test
+    public void testView()
+            throws IOException
+    {
+        FileOwnerAttributeView view = provider.view(fileLookup(), NO_INHERITED_VIEWS);
+        assertThat(view).isNotNull();
 
-    assertThat(view.name()).isEqualTo("owner");
-    assertThat(view.getOwner()).isEqualTo(createUserPrincipal("user"));
+        assertThat(view.name()).isEqualTo("owner");
+        assertThat(view.getOwner()).isEqualTo(createUserPrincipal("user"));
 
-    view.setOwner(createUserPrincipal("root"));
-    assertThat(view.getOwner()).isEqualTo(createUserPrincipal("root"));
-    assertThat(file.getAttribute("owner", "owner")).isEqualTo(createUserPrincipal("root"));
-  }
+        view.setOwner(createUserPrincipal("root"));
+        assertThat(view.getOwner()).isEqualTo(createUserPrincipal("root"));
+        assertThat(file.getAttribute("owner", "owner")).isEqualTo(createUserPrincipal("root"));
+    }
 }

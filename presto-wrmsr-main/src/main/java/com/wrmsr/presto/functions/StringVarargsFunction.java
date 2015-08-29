@@ -13,8 +13,11 @@
  */
 package com.wrmsr.presto.functions;
 
-import com.facebook.presto.metadata.*;
-import com.facebook.presto.spi.type.StandardTypes;
+import com.facebook.presto.metadata.FunctionInfo;
+import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.metadata.ParametricScalar;
+import com.facebook.presto.metadata.Signature;
+import com.facebook.presto.metadata.TypeParameter;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.TypeSignature;

@@ -24,7 +24,7 @@ import com.wrmsr.presto.metaconnectors.codec.json.JsonDecoderModule;
 import com.wrmsr.presto.metaconnectors.codec.raw.RawDecoderModule;
 
 /**
- *  decoder specific module. Installs the registry and all known decoder submodules.
+ * decoder specific module. Installs the registry and all known decoder submodules.
  */
 public class CodecModule
         implements Module

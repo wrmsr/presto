@@ -19,10 +19,13 @@ import com.google.common.base.Throwables;
 import io.airlift.log.Logger;
 
 import java.io.BufferedReader;
-import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * @author Clinton Begin
@@ -190,7 +193,8 @@ public class ScriptRunner
         }
     }
 
-    private StringBuilder handleLine(StringBuilder command, String line) throws SQLException, UnsupportedEncodingException
+    private StringBuilder handleLine(StringBuilder command, String line)
+            throws SQLException, UnsupportedEncodingException
     {
         String trimmedLine = line.trim();
         if (lineIsComment(trimmedLine)) {
@@ -226,7 +230,8 @@ public class ScriptRunner
         return !fullLineDelimiter && trimmedLine.contains(delimiter) || fullLineDelimiter && trimmedLine.equals(delimiter);
     }
 
-    private void executeStatement(String command) throws SQLException
+    private void executeStatement(String command)
+            throws SQLException
     {
         boolean hasResults = false;
         try (Statement statement = connection.createStatement()) {

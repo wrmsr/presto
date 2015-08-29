@@ -19,7 +19,7 @@ import com.facebook.presto.type.MapType;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 
 public class PropertiesType
-    extends MapType
+        extends MapType
 {
     public static final PropertiesType PROPERTIES = new PropertiesType();
 

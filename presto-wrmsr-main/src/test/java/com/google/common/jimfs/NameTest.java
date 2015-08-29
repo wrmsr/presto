@@ -16,11 +16,11 @@
 
 package com.google.common.jimfs;
 
-import static com.google.common.truth.Truth.assertThat;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import static com.google.common.truth.Truth.assertThat;
 
 /**
  * Tests for {@link Name}.
@@ -28,14 +28,16 @@ import org.junit.runners.JUnit4;
  * @author Colin Decker
  */
 @RunWith(JUnit4.class)
-public class NameTest {
+public class NameTest
+{
 
-  @Test
-  public void testNames() {
-    assertThat(Name.create("foo", "foo")).isEqualTo(Name.create("foo", "foo"));
-    assertThat(Name.create("FOO", "foo")).isEqualTo(Name.create("foo", "foo"));
-    assertThat(Name.create("FOO", "foo")).isNotEqualTo(Name.create("FOO", "FOO"));
+    @Test
+    public void testNames()
+    {
+        assertThat(Name.create("foo", "foo")).isEqualTo(Name.create("foo", "foo"));
+        assertThat(Name.create("FOO", "foo")).isEqualTo(Name.create("foo", "foo"));
+        assertThat(Name.create("FOO", "foo")).isNotEqualTo(Name.create("FOO", "FOO"));
 
-    assertThat(Name.create("a", "b").toString()).isEqualTo("a");
-  }
+        assertThat(Name.create("a", "b").toString()).isEqualTo("a");
+    }
 }

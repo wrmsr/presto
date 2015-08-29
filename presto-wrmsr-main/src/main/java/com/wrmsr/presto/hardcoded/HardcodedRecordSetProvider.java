@@ -22,10 +22,10 @@ import com.facebook.presto.spi.RecordSet;
 import java.util.List;
 
 public class HardcodedRecordSetProvider
-    implements ConnectorRecordSetProvider
+        implements ConnectorRecordSetProvider
 {
     @Override
-    public RecordSet getRecordSet(ConnectorSession session,ConnectorSplit split, List<? extends ColumnHandle> columns)
+    public RecordSet getRecordSet(ConnectorSession session, ConnectorSplit split, List<? extends ColumnHandle> columns)
     {
         return null;
     }

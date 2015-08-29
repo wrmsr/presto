@@ -20,6 +20,7 @@ import com.wrmsr.presto.metaconnectors.codec.FieldValueProvider;
 import com.wrmsr.presto.metaconnectors.codec.RowCodec;
 
 import javax.inject.Inject;
+
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;

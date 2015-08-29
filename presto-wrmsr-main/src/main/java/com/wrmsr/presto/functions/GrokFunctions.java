@@ -14,7 +14,6 @@
 package com.wrmsr.presto.functions;
 
 import com.facebook.presto.operator.scalar.ScalarFunction;
-import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
@@ -23,16 +22,12 @@ import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.VarcharType;
 import com.facebook.presto.type.SqlType;
 import com.facebook.presto.util.ThreadLocalCache;
-import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.MapMaker;
-import com.wrmsr.presto.util.Exceptions;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import oi.thekraken.grok.api.Grok;
 import oi.thekraken.grok.api.Match;
-import org.joda.time.format.DateTimeFormatter;
 
 import javax.annotation.Nonnull;
 
@@ -111,7 +106,8 @@ public class GrokFunctions
 
                 grok.compile(key.getPat());
                 return grok;
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 throw Throwables.propagate(e);
             }
         }

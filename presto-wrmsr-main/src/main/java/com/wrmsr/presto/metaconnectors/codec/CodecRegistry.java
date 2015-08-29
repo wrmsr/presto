@@ -21,6 +21,7 @@ import io.airlift.log.Logger;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +44,7 @@ public class CodecRegistry
 
     @Inject
     CodecRegistry(Set<RowCodec> rowCodecs,
-                  Set<FieldCodec<?>> fieldCodecs)
+            Set<FieldCodec<?>> fieldCodecs)
     {
         checkNotNull(rowCodecs, "rowDecoders is null");
 

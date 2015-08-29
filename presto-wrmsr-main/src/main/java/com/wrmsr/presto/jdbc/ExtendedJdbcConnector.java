@@ -13,14 +13,20 @@
  */
 package com.wrmsr.presto.jdbc;
 
-import com.facebook.presto.plugin.jdbc.*;
+import com.facebook.presto.plugin.jdbc.JdbcClient;
+import com.facebook.presto.plugin.jdbc.JdbcConnector;
+import com.facebook.presto.plugin.jdbc.JdbcHandleResolver;
+import com.facebook.presto.plugin.jdbc.JdbcMetadata;
+import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
+import com.facebook.presto.plugin.jdbc.JdbcRecordSinkProvider;
+import com.facebook.presto.plugin.jdbc.JdbcSplitManager;
 import com.google.inject.Inject;
 import io.airlift.bootstrap.LifeCycleManager;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class ExtendedJdbcConnector
-    extends JdbcConnector
+        extends JdbcConnector
 {
     private final JdbcClient jdbcClient;
 

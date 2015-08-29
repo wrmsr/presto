@@ -16,12 +16,12 @@
 
 package com.google.common.jimfs;
 
-import static com.google.common.truth.Truth.assertThat;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import static com.google.common.truth.Truth.assertThat;
 
 /**
  * Tests for {@link FileFactory}.
@@ -29,46 +29,51 @@ import org.junit.runners.JUnit4;
  * @author Colin Decker
  */
 @RunWith(JUnit4.class)
-public class FileFactoryTest {
+public class FileFactoryTest
+{
 
-  private FileFactory factory;
+    private FileFactory factory;
 
-  @Before
-  public void setUp() {
-    factory = new FileFactory(new HeapDisk(2, 2, 0));
-  }
+    @Before
+    public void setUp()
+    {
+        factory = new FileFactory(new HeapDisk(2, 2, 0));
+    }
 
-  @Test
-  public void testCreateFiles_basic() {
-    File file = factory.createDirectory();
-    assertThat(file.id()).isEqualTo(0L);
-    assertThat(file.isDirectory()).isTrue();
+    @Test
+    public void testCreateFiles_basic()
+    {
+        File file = factory.createDirectory();
+        assertThat(file.id()).isEqualTo(0L);
+        assertThat(file.isDirectory()).isTrue();
 
-    file = factory.createRegularFile();
-    assertThat(file.id()).isEqualTo(1L);
-    assertThat(file.isRegularFile()).isTrue();
+        file = factory.createRegularFile();
+        assertThat(file.id()).isEqualTo(1L);
+        assertThat(file.isRegularFile()).isTrue();
 
-    file = factory.createSymbolicLink(fakePath());
-    assertThat(file.id()).isEqualTo(2L);
-    assertThat(file.isSymbolicLink()).isTrue();
-  }
+        file = factory.createSymbolicLink(fakePath());
+        assertThat(file.id()).isEqualTo(2L);
+        assertThat(file.isSymbolicLink()).isTrue();
+    }
 
-  @Test
-  public void testCreateFiles_withSupplier() {
-    File file = factory.directoryCreator().get();
-    assertThat(file.id()).isEqualTo(0L);
-    assertThat(file.isDirectory()).isTrue();
+    @Test
+    public void testCreateFiles_withSupplier()
+    {
+        File file = factory.directoryCreator().get();
+        assertThat(file.id()).isEqualTo(0L);
+        assertThat(file.isDirectory()).isTrue();
 
-    file = factory.regularFileCreator().get();
-    assertThat(file.id()).isEqualTo(1L);
-    assertThat(file.isRegularFile()).isTrue();
+        file = factory.regularFileCreator().get();
+        assertThat(file.id()).isEqualTo(1L);
+        assertThat(file.isRegularFile()).isTrue();
 
-    file = factory.symbolicLinkCreator(fakePath()).get();
-    assertThat(file.id()).isEqualTo(2L);
-    assertThat(file.isSymbolicLink()).isTrue();
-  }
+        file = factory.symbolicLinkCreator(fakePath()).get();
+        assertThat(file.id()).isEqualTo(2L);
+        assertThat(file.isSymbolicLink()).isTrue();
+    }
 
-  static JimfsPath fakePath() {
-    return PathServiceTest.fakeUnixPathService().emptyPath();
-  }
+    static JimfsPath fakePath()
+    {
+        return PathServiceTest.fakeUnixPathService().emptyPath();
+    }
 }

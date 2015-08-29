@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.functions;
 
-import com.facebook.presto.Session;
 import com.facebook.presto.byteCode.ClassDefinition;
 import com.facebook.presto.byteCode.DynamicClassLoader;
 import com.facebook.presto.byteCode.MethodDefinition;
@@ -21,32 +20,18 @@ import com.facebook.presto.byteCode.Parameter;
 import com.facebook.presto.byteCode.Scope;
 import com.facebook.presto.byteCode.Variable;
 import com.facebook.presto.byteCode.instruction.LabelNode;
-import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.BlockEncoding;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockEncoding;
 import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.sql.analyzer.Analysis;
-import com.facebook.presto.sql.analyzer.Analyzer;
-import com.facebook.presto.sql.analyzer.FeaturesConfig;
-import com.facebook.presto.sql.analyzer.Field;
-import com.facebook.presto.sql.analyzer.QueryExplainer;
-import com.facebook.presto.sql.analyzer.SemanticErrorCode;
-import com.facebook.presto.sql.analyzer.SemanticException;
-import com.facebook.presto.sql.analyzer.TupleDescriptor;
 import com.facebook.presto.sql.gen.CallSiteBinder;
 import com.facebook.presto.sql.gen.CompilerUtils;
-import com.facebook.presto.sql.parser.ParsingException;
-import com.facebook.presto.sql.parser.SqlParser;
-import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
-import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.type.ArrayType;
 import com.facebook.presto.type.MapType;
 import com.facebook.presto.type.RowType;
@@ -73,10 +58,10 @@ import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +75,7 @@ import static com.facebook.presto.byteCode.Access.STATIC;
 import static com.facebook.presto.byteCode.Access.a;
 import static com.facebook.presto.byteCode.Parameter.arg;
 import static com.facebook.presto.byteCode.ParameterizedType.type;
+import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
@@ -98,7 +84,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
-import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 
 public class StructManager
 {
@@ -327,7 +312,8 @@ public class StructManager
         }
     }
 
-    public static class NullableRowTypeConstructorCompiler extends RowTypeConstructorCompiler
+    public static class NullableRowTypeConstructorCompiler
+            extends RowTypeConstructorCompiler
     {
         @Override
         protected List<Parameter> createParameters(List<RowType.RowField> fieldTypes)
@@ -503,7 +489,8 @@ public class StructManager
         }
     }
 
-    public static class RowTypeSerializer extends StdSerializer<Box<List>>
+    public static class RowTypeSerializer
+            extends StdSerializer<Box<List>>
     {
         private final RowType rowType;
 
@@ -514,7 +501,8 @@ public class StructManager
         }
 
         @Override
-        public void serialize(Box<List> value, JsonGenerator jgen, SerializerProvider provider) throws IOException
+        public void serialize(Box<List> value, JsonGenerator jgen, SerializerProvider provider)
+                throws IOException
         {
             checkNotNull(value);
             List list = value.getValue();
@@ -534,7 +522,8 @@ public class StructManager
         }
     }
 
-    public static class RowTypeDeserializer extends StdDeserializer<Box<Slice>>
+    public static class RowTypeDeserializer
+            extends StdDeserializer<Box<Slice>>
     {
         private final RowType rowType;
 
@@ -545,7 +534,8 @@ public class StructManager
         }
 
         @Override
-        public Box<Slice> deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException
+        public Box<Slice> deserialize(JsonParser jp, DeserializationContext ctxt)
+                throws IOException
         {
             return null;
         }

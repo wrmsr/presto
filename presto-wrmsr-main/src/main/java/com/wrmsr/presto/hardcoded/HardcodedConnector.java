@@ -21,7 +21,7 @@ import com.facebook.presto.spi.ConnectorSplitManager;
 import com.google.inject.Inject;
 
 public class HardcodedConnector
-    implements Connector
+        implements Connector
 {
     private final ConnectorHandleResolver connectorHandleResolver;
     private final ConnectorMetadata connectorMetadata;

@@ -19,7 +19,7 @@ import com.facebook.presto.spi.ConnectorSplit;
 import com.google.inject.Inject;
 
 public class ExtendedJdbcHandleResolver
-    extends JdbcHandleResolver
+        extends JdbcHandleResolver
 {
     @Inject
     public ExtendedJdbcHandleResolver(JdbcConnectorId clientId)
@@ -32,5 +32,4 @@ public class ExtendedJdbcHandleResolver
     {
         return ExtendedJdbcSplit.class;
     }
-
 }

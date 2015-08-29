@@ -21,7 +21,7 @@ import com.facebook.presto.spi.RecordSink;
 import com.google.inject.Inject;
 
 public class FlatRecordSinkProvider
-    implements ConnectorRecordSinkProvider
+        implements ConnectorRecordSinkProvider
 {
     @Inject
     public FlatRecordSinkProvider()
@@ -29,13 +29,13 @@ public class FlatRecordSinkProvider
     }
 
     @Override
-    public RecordSink getRecordSink(ConnectorSession session,ConnectorOutputTableHandle tableHandle)
+    public RecordSink getRecordSink(ConnectorSession session, ConnectorOutputTableHandle tableHandle)
     {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public RecordSink getRecordSink(ConnectorSession session,ConnectorInsertTableHandle tableHandle)
+    public RecordSink getRecordSink(ConnectorSession session, ConnectorInsertTableHandle tableHandle)
     {
         return new FlatRecordSink();
     }

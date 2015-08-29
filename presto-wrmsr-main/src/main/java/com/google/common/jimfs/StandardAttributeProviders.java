@@ -26,34 +26,36 @@ import javax.annotation.Nullable;
  *
  * @author Colin Decker
  */
-final class StandardAttributeProviders {
+final class StandardAttributeProviders
+{
 
-  private StandardAttributeProviders() {}
+    private StandardAttributeProviders() {}
 
-  private static final ImmutableMap<String, AttributeProvider> PROVIDERS =
-      new ImmutableMap.Builder<String, AttributeProvider>()
-          .put("basic", new BasicAttributeProvider())
-          .put("owner", new OwnerAttributeProvider())
-          .put("posix", new PosixAttributeProvider())
-          .put("dos", new DosAttributeProvider())
-          .put("acl", new AclAttributeProvider())
-          .put("user", new UserDefinedAttributeProvider())
-          .build();
+    private static final ImmutableMap<String, AttributeProvider> PROVIDERS =
+            new ImmutableMap.Builder<String, AttributeProvider>()
+                    .put("basic", new BasicAttributeProvider())
+                    .put("owner", new OwnerAttributeProvider())
+                    .put("posix", new PosixAttributeProvider())
+                    .put("dos", new DosAttributeProvider())
+                    .put("acl", new AclAttributeProvider())
+                    .put("user", new UserDefinedAttributeProvider())
+                    .build();
 
-  /**
-   * Returns the attribute provider for the given view, or {@code null} if the given view is not
-   * one of the attribute views this supports.
-   */
-  @Nullable
-  public static AttributeProvider get(String view) {
-    AttributeProvider provider = PROVIDERS.get(view);
+    /**
+     * Returns the attribute provider for the given view, or {@code null} if the given view is not
+     * one of the attribute views this supports.
+     */
+    @Nullable
+    public static AttributeProvider get(String view)
+    {
+        AttributeProvider provider = PROVIDERS.get(view);
 
-    if (provider == null && view.equals("unix")) {
-      // create a new UnixAttributeProvider per file system, as it does some caching that should be
-      // cleaned up when the file system is garbage collected
-      return new UnixAttributeProvider();
+        if (provider == null && view.equals("unix")) {
+            // create a new UnixAttributeProvider per file system, as it does some caching that should be
+            // cleaned up when the file system is garbage collected
+            return new UnixAttributeProvider();
+        }
+
+        return provider;
     }
-
-    return provider;
-  }
 }

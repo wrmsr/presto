@@ -13,7 +13,12 @@
  */
 package com.wrmsr.presto.flat;
 
-import com.facebook.presto.spi.*;
+import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.spi.ConnectorHandleResolver;
+import com.facebook.presto.spi.ConnectorInsertTableHandle;
+import com.facebook.presto.spi.ConnectorOutputTableHandle;
+import com.facebook.presto.spi.ConnectorSplit;
+import com.facebook.presto.spi.ConnectorTableHandle;
 
 import javax.inject.Inject;
 
@@ -21,7 +26,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class FlatHandleResolver
-    implements ConnectorHandleResolver
+        implements ConnectorHandleResolver
 {
     private final String connectorId;
 

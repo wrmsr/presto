@@ -23,4 +23,5 @@ import java.nio.file.attribute.FileAttributeView;
  *
  * @author Colin Decker
  */
-interface UnixFileAttributeView extends FileAttributeView {}
+interface UnixFileAttributeView
+        extends FileAttributeView {}

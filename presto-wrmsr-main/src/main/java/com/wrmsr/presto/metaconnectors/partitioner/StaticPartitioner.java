@@ -13,11 +13,14 @@
  */
 package com.wrmsr.presto.metaconnectors.partitioner;
 
-import com.facebook.presto.spi.*;
+import com.facebook.presto.spi.ConnectorMetadata;
+import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.TupleDomain;
 
 import java.util.List;
 
-public class StaticPartitioner implements Partitioner
+public class StaticPartitioner
+        implements Partitioner
 {
     private final ConnectorMetadata metadata;
 

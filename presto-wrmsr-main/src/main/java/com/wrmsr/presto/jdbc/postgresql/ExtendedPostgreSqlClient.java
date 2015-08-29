@@ -23,6 +23,7 @@ import io.airlift.slice.Slice;
 import org.postgresql.Driver;
 
 import javax.inject.Inject;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
