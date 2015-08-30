@@ -172,7 +172,8 @@ public class MainPlugin
         public final Map<String, Object> connectors = ImmutableMap.of();
 
         // FIXME gp plugin section
-        // public final Map<String, Object> awsProfiles = ImmutableMap.of();
+        public final Map<String, Object> clusters = ImmutableMap.of();
+        public final Object aws = null;
     }
 
     public void installConfig(FileConfig fileConfig, StructManager structManager)
