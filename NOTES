@@ -1552,21 +1552,29 @@ https://github.com/wyukawa/yanagishima
 
 https://groups.google.com/forum/#!topic/presto-users/jzRa_fDIwKE
 
-
-https://fb.blinqautomation.com/atscale pls..
-Twitter Heron: Stream Processing at Scale
-Monitoring at 250 Gbit/s with Facebook
-Pinterest: A Serving System for Batch Generated Data Sets
-Proxygen Mobile with Facebook: Cross-platform Mobile Networking Challenges
-The Motivation for a Monolithic Codebase: Why Google Stores Billions of Lines of Code in a Single Repository
-Fair Failures: Balancing Multi-Tenancy and Isolation at 4 Billion QPS with Facebook
-Twitter: Dealing with Unreliable Networks
-Airbnb: Scaling and Syncing Data Warehouses Within AWS
-Taking Storage for a Ride with Uber
-Facebook: IPv6 is here and You're Hurting your Users
-Dataflow: A Unified Model for Batch and Streaming Data Processing with Google
-
-
 http://www.meetup.com/hadoopsf/events/223638704/
-
 http://www.meetup.com/AWS-SANFRANCISCO/events/224902500/
+
+
+
+create table dst as select id pk, txt from src;
+
+on insert
+insert into dst values after.id, after.txt;
+conflict = warn? die? configurable?
+
+on update
+pk resolution
+... updates...
+generate pre/post img, recurse.......
+
+on delete
+delete from dst where dst.id = before.id;
+missing = same
+
+fan in / fan out // aggregate / join
+
+INDEPENDENT STAGES
+exchange?
+existing machinery wo last trier ordering?
+
