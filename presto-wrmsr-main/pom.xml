@@ -31,11 +31,11 @@
             <artifactId>antlr4</artifactId>
             <version>${dep.antlr.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4-runtime</artifactId>
         </dependency>
+        -->
 
         <dependency>
             <groupId>com.ibm.icu</groupId>
@@ -43,7 +43,6 @@
             <optional>true</optional>
             <version>51.2</version>
         </dependency>
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -62,7 +61,44 @@
             <version>0.26</version>
             <scope>test</scope>
         </dependency>
-        -->
+
+        <dependency>
+            <groupId>javax.cache</groupId>
+            <artifactId>cache-api</artifactId>
+            <version>0.5</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.cache.implementation</groupId>
+            <artifactId>cache-ri-common</artifactId>
+            <version>0.5</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.enterprise</groupId>
+            <artifactId>cdi-api</artifactId>
+            <version>1.0-SP4</version>
+        </dependency>
+        <dependency>
+            <groupId>spy</groupId>
+            <artifactId>spymemcached</artifactId>
+            <version>2.7.3</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.transaction</groupId>
+            <artifactId>jta</artifactId>
+            <version>1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.10</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.thimbleware.jmemcached</groupId>
+            <artifactId>jmemcached-core</artifactId>
+            <version>1.0.0</version>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>io.thekraken</groupId>
