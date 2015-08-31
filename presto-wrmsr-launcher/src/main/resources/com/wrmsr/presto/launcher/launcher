@@ -54,7 +54,7 @@ for jdk_root in "${jdk_roots[@]}" ; do
         for jdk in $(find "$jdk_root" -maxdepth 1 -type d -not -path "$jdk_root") ; do
             possible_jdks+=("$jdk")
         done
-    done
+    fi
 done
 
 best_jdk=""
