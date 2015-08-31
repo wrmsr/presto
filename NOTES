@@ -1560,17 +1560,17 @@ http://www.meetup.com/AWS-SANFRANCISCO/events/224902500/
 create table dst as select id pk, txt from src;
 
 on insert
-insert into dst values after.id, after.txt;
-conflict = warn? die? configurable?
+ insert into dst values after.id, after.txt;
+ conflict = warn? die? configurable?
 
 on update
-pk resolution
-... updates...
-generate pre/post img, recurse.......
+ pk resolution
+ ... updates...
+ generate pre/post img, recurse.......
 
 on delete
-delete from dst where dst.id = before.id;
-missing = same
+ delete from dst where dst.id = before.id;
+ missing = same
 
 fan in / fan out // aggregate / join
 
@@ -1578,3 +1578,7 @@ INDEPENDENT STAGES
 exchange?
 existing machinery wo last trier ordering?
 
+
+
+https://github.com/qubole/presto-udfs/tree/master/src
+https://github.com/qubole/presto-kinesis

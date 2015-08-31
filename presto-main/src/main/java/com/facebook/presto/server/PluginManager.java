@@ -182,7 +182,8 @@ public class PluginManager
             loadPlugin(plugin);
         }
 
-        metadata.verifyComparableOrderableContract();
+        // FIXME ayy lmao
+        // metadata.verifyComparableOrderableContract();
 
         pluginsLoaded.set(true);
     }
