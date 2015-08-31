@@ -60,6 +60,17 @@ public interface Kv<K, V>
             return builder.build();
         }
 
+        default Set<K> containsKeys(Set<? extends K> keys)
+        {
+            ImmutableSet.Builder<K> builder = ImmutableSet.builder();
+            for (K key : keys) {
+                if (containsKey(key)) {
+                    builder.add(key);
+                }
+            }
+            return builder.build();
+        }
+
         default void putAll(Map<? extends K, ? extends V> map)
         {
             for (Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
@@ -90,6 +101,18 @@ public interface Kv<K, V>
             else {
                 checkState(map.containsKey(key));
                 return Optional.of(map.get(key));
+            }
+        }
+
+        default boolean containsKey(K key)
+        {
+            Set<K> keys = containsKeys(ImmutableSet.of(key));
+            if (keys.isEmpty()) {
+                return false;
+            }
+            else {
+                checkState(keys.contains(key));
+                return true;
             }
         }
 
