@@ -261,12 +261,19 @@ public interface Kv<K, V>
         @Override
         public Optional<V> get(K key)
         {
-            if (map.containsKey(key)) {
-                return Optional.of(map.get(key));
+            V value = map.get(key);
+            if (value != null) {
+                return Optional.of(value);
             }
             else {
                 return Optional.empty();
             }
+        }
+
+        @Override
+        public boolean containsKey(K key)
+        {
+            return map.containsKey(key);
         }
 
         @Override
@@ -278,13 +285,7 @@ public interface Kv<K, V>
         @Override
         public boolean remove(K key)
         {
-            if (map.containsKey(key)) {
-                map.remove(key);
-                return true;
-            }
-            else {
-                return false;
-            }
+            return map.remove(key) != null;
         }
     }
 }
