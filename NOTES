@@ -1582,3 +1582,26 @@ existing machinery wo last trier ordering?
 
 https://github.com/qubole/presto-udfs/tree/master/src
 https://github.com/qubole/presto-kinesis
+
+
+https://github.com/mauricio/postgresql-async
+
+
+ok fuck jcache - 1.0.0 v 0.5 v cache-ri-common fuck off get your shit together
+
+
+        <dependency>
+            <groupId>javax.transaction</groupId>
+            <artifactId>jta</artifactId>
+            <version>1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.cache</groupId>
+            <artifactId>cache-api</artifactId>
+            <version>0.5</version>
+        </dependency>
+
+ughhhh
+https://github.com/ehcache/ehcache-jcache
+https://github.com/dbrimley/jcache-examples
+

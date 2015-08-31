@@ -178,6 +178,52 @@ public class TestInsertRewriter
         return localQueryRunner;
     }
 
+    @Test
+    public void testOtherShit() throws Throwable
+    {
+        LocalQueryRunner lqr = createLocalQueryRunner();
+        // lqr.execute
+
+        LocalQueryRunner.MaterializedOutputFactory outputFactory = new LocalQueryRunner.MaterializedOutputFactory();
+
+        {
+            TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
+            List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), "select * from tpch.tiny.customer", outputFactory, taskContext);
+
+            boolean done = false;
+            while (!done) {
+                boolean processed = false;
+                for (Driver driver : drivers) {
+                    if (!driver.isFinished()) {
+                        driver.process();
+                        processed = true;
+                    }
+                }
+                done = !processed;
+            }
+
+            outputFactory.getMaterializingOperator().getMaterializedResult();
+        }
+
+        {
+            TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
+            List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), "select * from tpch.tiny.order inner join customer on order.custkey = customer.custkey", outputFactory, taskContext);
+
+            boolean done = false;
+            while (!done) {
+                boolean processed = false;
+                for (Driver driver : drivers) {
+                    if (!driver.isFinished()) {
+                        driver.process();
+                        processed = true;
+                    }
+                }
+                done = !processed;
+            }
+
+            outputFactory.getMaterializingOperator().getMaterializedResult();
+        }
+    }
 
     @Test
     public void testShit() throws Throwable
