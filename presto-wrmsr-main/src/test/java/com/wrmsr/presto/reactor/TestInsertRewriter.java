@@ -213,7 +213,7 @@ public class TestInsertRewriter
 
         {
             TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
-            List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), "select * from tpch.tiny.order inner join customer on order.custkey = customer.custkey", outputFactory, taskContext);
+            List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), "select * from tpch.tiny.\"orders\" as \"o\" inner join tpch.tiny.customer as \"c\" on \"o\".custkey = \"c\".custkey", outputFactory, taskContext);
 
             boolean done = false;
             while (!done) {
