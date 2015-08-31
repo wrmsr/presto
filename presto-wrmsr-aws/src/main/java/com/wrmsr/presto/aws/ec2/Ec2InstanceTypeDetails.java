@@ -15,14 +15,18 @@ package com.wrmsr.presto.aws.ec2;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wrmsr.presto.util.Serialization;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -40,18 +44,37 @@ import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
 public class Ec2InstanceTypeDetails
 {
     public static final String URL = "https://github.com/toelen/spymemcached-jcache";
+    public static final String RESOURCE = "com/wrmsr/presto/aws/ec2/instance-types.json";
 
-    public final String family;
-    public final boolean enhancedNetworking;
-    public final int vCpu;
-    public final String generation;
-    public final int ebsIops;
-    public final String networkPerformance;
-    public final int ebsThroughput;
+    public static Map<String, Ec2InstanceTypeDetails> read()
+            throws IOException
+    {
+        List<Ec2InstanceTypeDetails> lst;
+        try (InputStream in = Ec2InstanceTypeDetails.class.getClassLoader().getResourceAsStream(RESOURCE)) {
+            lst = Serialization.JSON_OBJECT_MAPPER.get().readValue(in, new TypeReference<List<Ec2InstanceTypeDetails>>(){});
+        }
+        return lst.stream().map(i -> new ImmutablePair<>(i.instanceType, i)).collect(toImmutableMap());
+    }
 
+    @JsonSerialize(using = RegionPricing.Serializer.class)
     @JsonDeserialize(using = RegionPricing.Deserializer.class)
     public static final class RegionPricing
     {
+        public static class Serializer extends JsonSerializer<RegionPricing>
+        {
+            @Override
+            public void serialize(RegionPricing value, JsonGenerator jgen, SerializerProvider provider)
+                    throws IOException, JsonProcessingException
+            {
+                if (value != null) {
+                    jgen.writeObject(value.getPlatformPricing());
+                }
+                else {
+                    jgen.writeNull();
+                }
+            }
+        }
+
         public static class Deserializer extends JsonDeserializer<RegionPricing>
         {
             @Override
@@ -72,20 +95,29 @@ public class Ec2InstanceTypeDetails
             }
         }
 
-        public final Map<String, PlatformPricing> platformPricing;
+        private final Map<String, PlatformPricing> platformPricing;
 
-        @JsonCreator
-        public RegionPricing(
-                @JsonProperty("platform") Map<String, PlatformPricing> platformPricing)
+        public RegionPricing(Map<String, PlatformPricing> platformPricing)
         {
             this.platformPricing = platformPricing;
+        }
+
+        public Map<String, PlatformPricing> getPlatformPricing()
+        {
+            return platformPricing;
+        }
+
+        @Override
+        public String toString()
+        {
+            return Serialization.toJsonString(this);
         }
     }
 
     public static final class PlatformPricing
     {
-        public final Map<String, String> reserved;
-        public final String ondemand;
+        private final Map<String, String> reserved;
+        private final String ondemand;
 
         @JsonCreator
         public PlatformPricing(
@@ -95,14 +127,30 @@ public class Ec2InstanceTypeDetails
             this.reserved = reserved;
             this.ondemand = ondemand;
         }
-    }
 
-    public final Map<String, RegionPricing> regionPricing;
+        @JsonProperty("reserved")
+        public Map<String, String> getReserved()
+        {
+            return reserved;
+        }
+
+        @JsonProperty("ondemand")
+        public String getOndemand()
+        {
+            return ondemand;
+        }
+
+        @Override
+        public String toString()
+        {
+            return Serialization.toJsonString(this);
+        }
+    }
 
     public static final class Vpc
     {
-        public final int ipsPerEni;
-        public final int maxEnis;
+        private final int ipsPerEni;
+        private final int maxEnis;
 
         @JsonCreator
         public Vpc(
@@ -112,20 +160,31 @@ public class Ec2InstanceTypeDetails
             this.ipsPerEni = ipsPerEni;
             this.maxEnis = maxEnis;
         }
+
+        @JsonProperty("ips_per_eni")
+        public int getIpsPerEni()
+        {
+            return ipsPerEni;
+        }
+
+        @JsonProperty("max_enis")
+        public int getMaxEnis()
+        {
+            return maxEnis;
+        }
+
+        @Override
+        public String toString()
+        {
+            return Serialization.toJsonString(this);
+        }
     }
-
-    public final Vpc vpc;
-
-    public final List<String> arch;
-
-    public final List<String> linuxVirtualizationTypes;
-    public final boolean ebsOptimized;
 
     public static final class Storage
     {
-        public final boolean ssd;
-        public final int devices;
-        public final int size;
+        private final boolean ssd;
+        private final int devices;
+        private final int size;
 
         @JsonCreator
         public Storage(
@@ -137,14 +196,49 @@ public class Ec2InstanceTypeDetails
             this.devices = devices;
             this.size = size;
         }
+
+        @JsonProperty("ssd")
+        public boolean isSsd()
+        {
+            return ssd;
+        }
+
+        @JsonProperty("devices")
+        public int getDevices()
+        {
+            return devices;
+        }
+
+        @JsonProperty("size")
+        public int getSize()
+        {
+            return size;
+        }
+
+        @Override
+        public String toString()
+        {
+            return Serialization.toJsonString(this);
+        }
     }
 
-    public final Storage storage;
-
-    public final int maxBandwidth;
-    public final String instanceType;
-    public final BigDecimal ecu;
-    public final BigDecimal memory;
+    private final String family;
+    private final boolean enhancedNetworking;
+    private final int vCpu;
+    private final String generation;
+    private final int ebsIops;
+    private final String networkPerformance;
+    private final int ebsThroughput;
+    private final Map<String, RegionPricing> regionPricing;
+    private final Vpc vpc;
+    private final List<String> arch;
+    private final List<String> linuxVirtualizationTypes;
+    private final boolean ebsOptimized;
+    private final Storage storage;
+    private final int maxBandwidth;
+    private final String instanceType;
+    private final BigDecimal ecu;
+    private final BigDecimal memory;
 
     @JsonCreator
     public Ec2InstanceTypeDetails(
@@ -185,13 +279,111 @@ public class Ec2InstanceTypeDetails
         this.memory = memory;
     }
 
-    public static Map<String, Ec2InstanceTypeDetails> read()
-            throws IOException
+    @JsonProperty("family")
+    public String getFamily()
     {
-        List<Ec2InstanceTypeDetails> lst;
-        try (InputStream in = Ec2InstanceTypeDetails.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/aws/ec2/instance-types.json")) {
-            lst = Serialization.JSON_OBJECT_MAPPER.get().readValue(in, new TypeReference<List<Ec2InstanceTypeDetails>>(){});
-        }
-        return lst.stream().map(i -> new ImmutablePair<>(i.instanceType, i)).collect(toImmutableMap());
+        return family;
+    }
+
+    @JsonProperty("enhanced_networking")
+    public boolean isEnhancedNetworking()
+    {
+        return enhancedNetworking;
+    }
+
+    @JsonProperty("vCPU")
+    public int getvCpu()
+    {
+        return vCpu;
+    }
+
+    @JsonProperty("generation")
+    public String getGeneration()
+    {
+        return generation;
+    }
+
+    @JsonProperty("ebs_iops")
+    public int getEbsIops()
+    {
+        return ebsIops;
+    }
+
+    @JsonProperty("network_performance")
+    public String getNetworkPerformance()
+    {
+        return networkPerformance;
+    }
+
+    @JsonProperty("ebs_throughput")
+    public int getEbsThroughput()
+    {
+        return ebsThroughput;
+    }
+
+    @JsonProperty("pricing")
+    public Map<String, RegionPricing> getRegionPricing()
+    {
+        return regionPricing;
+    }
+
+    @JsonProperty("vpc")
+    public Vpc getVpc()
+    {
+        return vpc;
+    }
+
+    @JsonProperty("arch")
+    public List<String> getArch()
+    {
+        return arch;
+    }
+
+    @JsonProperty("linux_virtualization_types")
+    public List<String> getLinuxVirtualizationTypes()
+    {
+        return linuxVirtualizationTypes;
+    }
+
+    @JsonProperty("ebs_optimized")
+    public boolean isEbsOptimized()
+    {
+        return ebsOptimized;
+    }
+
+    @JsonProperty("storage")
+    public Storage getStorage()
+    {
+        return storage;
+    }
+
+    @JsonProperty("max_bandwidth")
+    public int getMaxBandwidth()
+    {
+        return maxBandwidth;
+    }
+
+    @JsonProperty("instance_type")
+    public String getInstanceType()
+    {
+        return instanceType;
+    }
+
+    @JsonProperty("ECU")
+    public BigDecimal getEcu()
+    {
+        return ecu;
+    }
+
+    @JsonProperty("memory")
+    public BigDecimal getMemory()
+    {
+        return memory;
+    }
+
+    @Override
+    public String toString()
+    {
+        return Serialization.toJsonString(this);
     }
 }

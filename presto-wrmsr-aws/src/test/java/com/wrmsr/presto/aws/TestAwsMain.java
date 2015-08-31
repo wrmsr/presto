@@ -16,6 +16,8 @@ package com.wrmsr.presto.aws;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.DescribeSpotPriceHistoryRequest;
+import com.amazonaws.services.ec2.model.DescribeSpotPriceHistoryResult;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -34,7 +36,7 @@ public class TestAwsMain
     @Test
     public void test() throws Throwable
     {
-        Ini i = new Ini(new File("/Users/spinlock/Dropbox/yelp_wtimoney_boto"));
+        Ini i = new Ini(new File("/Users/wtimoney/.boto"));
         // Map<String, String> m = i.get("profile devc");
         Map<String, String> m = i.get("profile devc");
         AmazonS3 s3Client = new AmazonS3Client(new BasicAWSCredentials(m.get("aws_access_key_id"), m.get("aws_secret_access_key")));
@@ -44,7 +46,7 @@ public class TestAwsMain
     @Test
     public void testEc2() throws Throwable
     {
-        Ini i = new Ini(new File("/Users/spinlock/Dropbox/yelp_wtimoney_boto"));
+        Ini i = new Ini(new File("/Users/wtimoney/.boto"));
         Map<String, String> m = i.get("profile devc");
         AmazonEC2 ec2Client = new AmazonEC2Client(new BasicAWSCredentials(m.get("aws_access_key_id"), m.get("aws_secret_access_key")));
         ec2Client.describeRegions();
@@ -57,5 +59,31 @@ public class TestAwsMain
     {
         Map<String, Ec2InstanceTypeDetails> m = Ec2InstanceTypeDetails.read();
         System.out.println(m);
+    }
+
+    @Test
+    public void testSpotPrices() throws Throwable
+    {
+        Ini ini = new Ini(new File("/Users/wtimoney/.boto"));
+        Map<String, String> m = ini.get("Credentials");
+        AmazonEC2 ec2 = new AmazonEC2Client(new BasicAWSCredentials(m.get("aws_access_key_id"), m.get("aws_secret_access_key")));
+
+        // Get the spot price history
+        String nextToken = "";
+        do {
+            // Prepare request (include nextToken if available from previous result)
+            DescribeSpotPriceHistoryRequest request = new DescribeSpotPriceHistoryRequest().withNextToken(nextToken);
+
+            // Perform request
+            DescribeSpotPriceHistoryResult result = ec2.describeSpotPriceHistory(request);
+            for (int i = 0; i < result.getSpotPriceHistory().size(); i++) {
+                System.out.println(result.getSpotPriceHistory().get(i));
+            }
+
+            // 'nextToken' is the string marking the next set of results returned (if any),
+            // it will be empty if there are no more results to be returned.
+            nextToken = result.getNextToken();
+
+        } while (!nextToken.isEmpty());
     }
 }

@@ -14,6 +14,7 @@
 package com.wrmsr.presto.util;
 
 import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.DefaultDeserializationContext;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -23,6 +24,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -84,4 +86,14 @@ public class Serialization
             .put("yml", YAML_OBJECT_MAPPER)
             .put("xml", XML_OBJECT_MAPPER)
             .build();
+
+    public static String toJsonString(Object object)
+    {
+        try {
+            return Serialization.JSON_OBJECT_MAPPER.get().writerWithDefaultPrettyPrinter().writeValueAsString(object);
+        }
+        catch (JsonProcessingException e) {
+            throw Throwables.propagate(e);
+        }
+    }
 }
