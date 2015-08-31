@@ -44,6 +44,7 @@ import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.util.Kv;
 import io.airlift.json.JsonCodec;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -59,6 +60,7 @@ import static com.facebook.presto.sql.QueryUtil.simpleQuery;
 import static com.facebook.presto.sql.QueryUtil.table;
 import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Locale.ENGLISH;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static org.testng.Assert.fail;
@@ -185,6 +187,10 @@ public class TestInsertRewriter
         // lqr.execute
 
         LocalQueryRunner.MaterializedOutputFactory outputFactory = new LocalQueryRunner.MaterializedOutputFactory();
+
+        Kv<String, String> kv = new Kv.Synchronized<>(new Kv.MapImpl<>(newHashMap()));
+        kv.put("hi", "there");
+        kv.get("hi");
 
         {
             TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());

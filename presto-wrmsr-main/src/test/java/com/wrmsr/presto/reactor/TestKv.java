@@ -61,15 +61,6 @@ public class TestKv
 
     }
 
-    public interface Kv<K, V>
-    {
-        V get(K key);
-
-        void put(K key, V value);
-
-        void delete(K key);
-    }
-
     @Test
     public void test()
             throws Throwable

@@ -153,7 +153,7 @@ public interface Kv<K, V>
         @Override
         public void put(K key, V value)
         {
-            put(key, value);
+            wrapped.put(key, value);
         }
 
         @Override
@@ -165,7 +165,7 @@ public interface Kv<K, V>
         @Override
         public boolean remove(K key)
         {
-            return remove(key);
+            return wrapped.remove(key);
         }
     }
 
