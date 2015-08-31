@@ -192,6 +192,7 @@ public class TestInsertRewriter
         kv.put("hi", "there");
         kv.get("hi");
 
+        /*
         {
             TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
             List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), "select * from tpch.tiny.customer", outputFactory, taskContext);
@@ -210,6 +211,7 @@ public class TestInsertRewriter
 
             outputFactory.getMaterializingOperator().getMaterializedResult();
         }
+        */
 
         {
             TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
