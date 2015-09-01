@@ -23,7 +23,7 @@ import com.wrmsr.presto.util.Repositories;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
 import com.wrmsr.presto.launcher.util.ParentLastURLClassLoader;
-import io.airlift.command.*;
+import io.airlift.airline.*;
 import io.airlift.resolver.ArtifactResolver;
 import jnr.posix.POSIX;
 import org.ots.dns.NameStore;

@@ -45,10 +45,10 @@ zkfc 'org.apache.hadoop.hdfs.tools.DFSZKFailoverController'
 */
 
 import com.google.common.base.Throwables;
-import io.airlift.command.Arguments;
-import io.airlift.command.Cli;
-import io.airlift.command.Command;
-import io.airlift.command.Help;
+import io.airlift.airline.Arguments;
+import io.airlift.airline.Cli;
+import io.airlift.airline.Command;
+import io.airlift.airline.Help;
 import io.airlift.log.Logging;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DFSConfigKeys;

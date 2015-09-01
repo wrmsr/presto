@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-git fetch upstream ; git pull origin master ; ./push ; ./build
+git fetch upstream ; git pull upstream master ; ./push ; ./build

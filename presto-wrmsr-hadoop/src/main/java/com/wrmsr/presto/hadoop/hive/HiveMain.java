@@ -20,10 +20,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import com.wrmsr.presto.util.Jvm;
-import io.airlift.command.Arguments;
-import io.airlift.command.Cli;
-import io.airlift.command.Command;
-import io.airlift.command.Help;
+import io.airlift.airline.Arguments;
+import io.airlift.airline.Cli;
+import io.airlift.airline.Command;
+import io.airlift.airline.Help;
 import org.apache.hadoop.hive.cli.CliDriver;
 
 import javax.xml.namespace.QName;
