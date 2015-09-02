@@ -1641,3 +1641,11 @@ https://www-ssl.intel.com/content/www/us/en/processors/xeon/xeon-e5-brief.html
 
 lol mmap /dev/mem make jnr structs for descriptor entries
  - bonus points for making jnr translate the addrs for me
+
+https://stackoverflow.com/questions/18298097/escalating-to-ring-0-in-linux-application
+http://slashdot.org/story/00/07/20/1440204/answers-from-planet-tux-ingo-molnar-responds
+https://people.redhat.com/~mingo/TUX-patches/tux3-2.6.18-1
+http://www.fenrus.demon.nl/
+/dev/mem PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE|MAP_NORESERVEM
+ share?
+rez the sigscannere lol
