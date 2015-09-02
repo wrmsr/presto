@@ -39,6 +39,7 @@ import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.type.RowType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.airlift.slice.Slice;
 
 import javax.annotation.Nullable;
@@ -108,7 +109,7 @@ public class DefineStructForQueryFunction
 
     public Analysis analyzeStatement(Statement statement, Session session)
     {
-        QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
+        QueryExplainer explainer = new QueryExplainer(planOptimizers, metadata, sqlParser, ImmutableMap.of(), experimentalSyntaxEnabled);
         Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
         return analyzer.analyze(statement);
     }

@@ -230,7 +230,6 @@ public class StorageManagerConfig
         return this;
     }
 
-<<<<<<< HEAD
     @Nullable
     private String rawCompression;
 
@@ -259,7 +258,8 @@ public class StorageManagerConfig
     public void setRawDelimiter(@Nullable String rawDelimiter)
     {
         this.rawDelimiter = rawDelimiter;
-=======
+    }
+
     public boolean isCompactionEnabled()
     {
         return compactionEnabled;
@@ -270,6 +270,5 @@ public class StorageManagerConfig
     {
         this.compactionEnabled = compactionEnabled;
         return this;
->>>>>>> f00b07012b2c8f56b3a133371536fac7bdad83dc
     }
 }

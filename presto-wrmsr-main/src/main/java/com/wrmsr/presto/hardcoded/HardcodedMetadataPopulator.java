@@ -30,6 +30,7 @@ import com.facebook.presto.sql.parser.ParsingException;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
+import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.ImmutableCollectors;
 import io.airlift.json.JsonCodec;
 
@@ -68,7 +69,7 @@ public class HardcodedMetadataPopulator
 
     public Analysis analyzeStatement(Statement statement, Session session)
     {
-        QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
+        QueryExplainer explainer = new QueryExplainer(planOptimizers, metadata, sqlParser, ImmutableMap.of(), experimentalSyntaxEnabled);
         Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
         return analyzer.analyze(statement);
     }
