@@ -39,6 +39,7 @@ public class StorageManagerConfig
     private File dataDirectory;
     private Duration shardRecoveryTimeout = new Duration(30, TimeUnit.SECONDS);
     private Duration missingShardDiscoveryInterval = new Duration(5, TimeUnit.MINUTES);
+    private boolean compactionEnabled = true;
     private Duration compactionInterval = new Duration(1, TimeUnit.HOURS);
     private DataSize orcMaxMergeDistance = new DataSize(1, MEGABYTE);
     private DataSize orcMaxReadSize = new DataSize(8, MEGABYTE);
@@ -229,6 +230,7 @@ public class StorageManagerConfig
         return this;
     }
 
+<<<<<<< HEAD
     @Nullable
     private String rawCompression;
 
@@ -257,5 +259,17 @@ public class StorageManagerConfig
     public void setRawDelimiter(@Nullable String rawDelimiter)
     {
         this.rawDelimiter = rawDelimiter;
+=======
+    public boolean isCompactionEnabled()
+    {
+        return compactionEnabled;
+    }
+
+    @Config("storage.compaction-enabled")
+    public StorageManagerConfig setCompactionEnabled(boolean compactionEnabled)
+    {
+        this.compactionEnabled = compactionEnabled;
+        return this;
+>>>>>>> f00b07012b2c8f56b3a133371536fac7bdad83dc
     }
 }

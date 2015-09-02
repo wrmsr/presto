@@ -21,14 +21,11 @@ import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
-import com.facebook.presto.sql.analyzer.QueryExplainer;
 import com.facebook.presto.sql.parser.ParsingException;
 import com.facebook.presto.sql.parser.SqlParser;
-import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.CreateView;
 import com.facebook.presto.sql.tree.Query;
 import com.facebook.presto.sql.tree.Statement;
-import com.google.common.collect.ImmutableList;
 import io.airlift.json.JsonCodec;
 
 import javax.inject.Inject;
@@ -48,15 +45,13 @@ public class CreateViewTask
 {
     private final JsonCodec<ViewDefinition> codec;
     private final SqlParser sqlParser;
-    private final List<PlanOptimizer> planOptimizers;
     private final boolean experimentalSyntaxEnabled;
 
     @Inject
-    public CreateViewTask(JsonCodec<ViewDefinition> codec, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
+    public CreateViewTask(JsonCodec<ViewDefinition> codec, SqlParser sqlParser, FeaturesConfig featuresConfig)
     {
         this.codec = checkNotNull(codec, "codec is null");
         this.sqlParser = checkNotNull(sqlParser, "sqlParser is null");
-        this.planOptimizers = ImmutableList.copyOf(checkNotNull(planOptimizers, "planOptimizers is null"));
         checkNotNull(featuresConfig, "featuresConfig is null");
         this.experimentalSyntaxEnabled = featuresConfig.isExperimentalSyntaxEnabled();
     }
@@ -65,6 +60,12 @@ public class CreateViewTask
     public String getName()
     {
         return "CREATE VIEW";
+    }
+
+    @Override
+    public String explain(CreateView statement)
+    {
+        return "CREATE VIEW " + statement.getName();
     }
 
     @Override
@@ -88,8 +89,7 @@ public class CreateViewTask
 
     private Analysis analyzeStatement(Statement statement, Session session, Metadata metadata)
     {
-        QueryExplainer explainer = new QueryExplainer(session, planOptimizers, metadata, sqlParser, experimentalSyntaxEnabled);
-        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
+        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.empty(), experimentalSyntaxEnabled);
         return analyzer.analyze(statement);
     }
 

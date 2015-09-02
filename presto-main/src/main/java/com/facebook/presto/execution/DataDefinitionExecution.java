@@ -176,6 +176,13 @@ public class DataDefinitionExecution<T extends Statement>
             this.tasks = checkNotNull(tasks, "tasks is null");
         }
 
+        public String explain(Statement statement)
+        {
+            DataDefinitionTask<Statement> task = getTask(statement);
+            checkArgument(task != null, "no task for statement: %s", statement.getClass().getSimpleName());
+            return task.explain(statement);
+        }
+
         @Override
         public DataDefinitionExecution<?> createQueryExecution(
                 QueryId queryId,
@@ -188,12 +195,9 @@ public class DataDefinitionExecution<T extends Statement>
             return createExecution(statement, session, stateMachine);
         }
 
-        private <T extends Statement> DataDefinitionExecution<?> createExecution(
-                T statement,
-                Session session,
-                QueryStateMachine stateMachine)
+        private DataDefinitionExecution<?> createExecution(Statement statement, Session session, QueryStateMachine stateMachine)
         {
-            DataDefinitionTask<T> task = getTask(statement);
+            DataDefinitionTask<Statement> task = getTask(statement);
             checkArgument(task != null, "no task for statement: %s", statement.getClass().getSimpleName());
             stateMachine.setUpdateType(task.getName());
             return new DataDefinitionExecution<>(task, statement, session, metadata, stateMachine);
