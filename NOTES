@@ -1,3 +1,8 @@
+http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
+
+
+
+
 auto jdbc partitioning
 further jdbc predicate pushdown
  - composite pk scrolling :|
@@ -1648,4 +1653,7 @@ https://people.redhat.com/~mingo/TUX-patches/tux3-2.6.18-1
 http://www.fenrus.demon.nl/
 /dev/mem PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE|MAP_NORESERVEM
  share?
-rez the sigscannere lol
+rez the sigscanner lol
+
+http://dev.yorhel.nl/doc/easyipc
+https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-manual-325462.pdf @ 1949
