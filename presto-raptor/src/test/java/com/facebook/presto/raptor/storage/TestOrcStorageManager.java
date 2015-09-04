@@ -19,6 +19,7 @@ import com.facebook.presto.orc.OrcDataSource;
 import com.facebook.presto.orc.OrcRecordReader;
 import com.facebook.presto.orc.SliceVector;
 import com.facebook.presto.raptor.RaptorColumnHandle;
+import com.facebook.presto.raptor.backup.BackupManager;
 import com.facebook.presto.raptor.backup.BackupStore;
 import com.facebook.presto.raptor.backup.FileBackupStore;
 import com.facebook.presto.raptor.metadata.ColumnStats;
@@ -40,6 +41,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.airlift.json.JsonCodec;
+import io.airlift.slice.Slice;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
 import org.joda.time.DateTime;
@@ -54,6 +56,8 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.BitSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -73,7 +77,9 @@ import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.testing.MaterializedResult.materializeSourceDataStream;
 import static com.facebook.presto.testing.MaterializedResult.resultBuilder;
 import static com.facebook.presto.testing.TestingConnectorSession.SESSION;
+import static com.google.common.hash.Hashing.md5;
 import static com.google.common.io.Files.createTempDir;
+import static com.google.common.io.Files.hash;
 import static io.airlift.json.JsonCodec.jsonCodec;
 import static io.airlift.slice.Slices.utf8Slice;
 import static io.airlift.slice.Slices.wrappedBuffer;
@@ -195,6 +201,8 @@ public class TestOrcStorageManager
         assertFile(file, "primary shard");
         assertFile(backupFile, "backup shard");
 
+        assertFileEquals(file, backupFile);
+
         // remove primary shard to force recovery from backup
         assertTrue(file.delete());
         assertTrue(file.getParentFile().delete());
@@ -295,6 +303,42 @@ public class TestOrcStorageManager
             MaterializedResult result = materializeSourceDataStream(SESSION, pageSource, columnTypes);
             assertEquals(result.getRowCount(), 0);
         }
+    }
+
+    @Test
+    public void testRewriter()
+            throws Exception
+    {
+        OrcStorageManager manager = createOrcStorageManager();
+
+        List<Long> columnIds = ImmutableList.of(3L, 7L);
+        List<Type> columnTypes = ImmutableList.<Type>of(BIGINT, VARCHAR);
+
+        // create file with 2 rows
+        StoragePageSink sink = manager.createStoragePageSink(columnIds, columnTypes);
+        List<Page> pages = rowPagesBuilder(columnTypes)
+                .row(123, "hello")
+                .row(456, "bye")
+                .build();
+        sink.appendPages(pages);
+        List<ShardInfo> shards = sink.commit();
+
+        // delete one row
+        BitSet rowsToDelete = new BitSet();
+        rowsToDelete.set(0);
+        Collection<Slice> fragments = manager.rewriteShard(shards.get(0).getShardUuid(), rowsToDelete);
+
+        Slice shardDelta = Iterables.getOnlyElement(fragments);
+        ShardDelta shardDeltas = jsonCodec(ShardDelta.class).fromJson(shardDelta.getBytes());
+        ShardInfo shardInfo = Iterables.getOnlyElement(shardDeltas.getNewShards());
+
+        // check that output file has one row
+        assertEquals(shardInfo.getRowCount(), 1);
+
+        // check that storage file is same as backup file
+        File storageFile = storageService.getStorageFile(shardInfo.getShardUuid());
+        File backupFile = fileBackupStore.getBackupFile(shardInfo.getShardUuid());
+        assertFileEquals(storageFile, backupFile);
     }
 
     @Test
@@ -489,6 +533,7 @@ public class TestOrcStorageManager
                 ORC_MAX_MERGE_DISTANCE,
                 ORC_MAX_READ_SIZE,
                 ORC_STREAM_BUFFER_SIZE,
+                new BackupManager(backupStore, 1),
                 recoveryManager,
                 new TypeRegistry(),
                 CONNECTOR_ID,
@@ -496,6 +541,12 @@ public class TestOrcStorageManager
                 SHARD_RECOVERY_TIMEOUT,
                 maxShardRows,
                 maxFileSize);
+    }
+
+    private static void assertFileEquals(File actual, File expected)
+            throws IOException
+    {
+        assertEquals(hash(actual, md5()), hash(expected, md5()));
     }
 
     private static void assertColumnStats(List<ColumnStats> list, long columnId, Object min, Object max)
