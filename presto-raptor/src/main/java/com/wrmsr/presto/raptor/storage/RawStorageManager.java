@@ -23,7 +23,6 @@ import com.facebook.presto.raptor.storage.Row;
 import com.facebook.presto.raptor.storage.ShardRecoveryManager;
 import com.facebook.presto.raptor.storage.StorageManager;
 import com.facebook.presto.raptor.storage.StorageManagerConfig;
-import com.facebook.presto.raptor.storage.StorageManagerStats;
 import com.facebook.presto.raptor.storage.StoragePageSink;
 import com.facebook.presto.raptor.storage.StorageService;
 import com.facebook.presto.raptor.util.CurrentNodeId;
@@ -80,7 +79,6 @@ public class RawStorageManager
     private final long maxShardRows;
     private final DataSize maxShardSize;
     private final DataSize maxBufferSize;
-    private final StorageManagerStats stats;
     private final String compression;
     private final String delimiter;
 
@@ -131,7 +129,6 @@ public class RawStorageManager
         this.maxShardRows = min(maxShardRows, MAX_ROWS);
         this.maxShardSize = checkNotNull(maxShardSize, "maxShardSize is null");
         this.maxBufferSize = checkNotNull(maxBufferSize, "maxBufferSize is null");
-        this.stats = new StorageManagerStats();
         this.compression = compression;
         this.delimiter = delimiter;
     }
@@ -171,7 +168,6 @@ public class RawStorageManager
         if (isBackupAvailable()) {
             long start = System.nanoTime();
             backupStore.get().backupShard(shardUuid, storageFile);
-            stats.addCopyShardDataRate(new DataSize(storageFile.length(), BYTE), nanosSince(start));
         }
     }
 
