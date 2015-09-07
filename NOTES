@@ -1663,3 +1663,10 @@ http://www.infoq.com/articles/Tuning-Java-Servers
 https://github.com/jemalloc/jemalloc/releases/tag/4.0.0
 https://github.com/simongog/sdsl-lite
 
+
+http://derekmolloy.ie/writing-a-linux-kernel-module-part-1-introduction/
+http://derekmolloy.ie/writing-a-linux-kernel-module-part-2-a-character-device/
+http://derekmolloy.ie/kernel-gpio-programming-buttons-and-leds/
+
+
+starr -> misc_register
