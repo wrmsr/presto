@@ -17,6 +17,7 @@ import com.facebook.presto.block.BlockEncodingManager;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.FunctionFactory;
 import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.security.AccessControlManager;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.Plugin;
 import com.wrmsr.presto.server.PreloadedPluginSet;
@@ -24,6 +25,7 @@ import com.wrmsr.presto.server.ServerEvent;
 import com.wrmsr.presto.spi.ScriptEngineProvider;
 import com.facebook.presto.spi.block.BlockEncodingFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
+import com.facebook.presto.spi.security.SystemAccessControl;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.type.ParametricType;
 import com.facebook.presto.type.TypeRegistry;
@@ -88,6 +90,7 @@ public class PluginManager
     private final Injector injector;
     private final ConnectorManager connectorManager;
     private final Metadata metadata;
+    private final AccessControlManager accessControlManager;
     private final BlockEncodingManager blockEncodingManager;
     private final TypeRegistry typeRegistry;
     private final Optional<PreloadedPluginSet> preloadedPlugins;
@@ -108,6 +111,7 @@ public class PluginManager
             ConnectorManager connectorManager,
             ConfigurationFactory configurationFactory,
             Metadata metadata,
+            AccessControlManager accessControlManager,
             BlockEncodingManager blockEncodingManager,
             TypeRegistry typeRegistry,
             Optional<PreloadedPluginSet> preloadedPlugins)
@@ -136,6 +140,7 @@ public class PluginManager
 
         this.connectorManager = checkNotNull(connectorManager, "connectorManager is null");
         this.metadata = checkNotNull(metadata, "metadata is null");
+        this.accessControlManager = checkNotNull(accessControlManager, "accessControlManager is null");
         this.blockEncodingManager = checkNotNull(blockEncodingManager, "blockEncodingManager is null");
         this.typeRegistry = checkNotNull(typeRegistry, "typeRegistry is null");
         this.preloadedPlugins = checkNotNull(preloadedPlugins);
@@ -246,6 +251,11 @@ public class PluginManager
             metadata.addFunctions(functionFactory.listFunctions());
         }
 
+        for (SystemAccessControl accessControl : plugin.getServices(SystemAccessControl.class)) {
+            log.info("Registering system access control %s", accessControl.getClass().getName());
+            accessControlManager.addSystemAccessControl(accessControl);
+        }
+
         for (ServerEvent.Listener serverEventListener : plugin.getServices(ServerEvent.Listener.class)) {
             log.info("Registering server event listener %s", serverEventListener.getClass().getName());
             serverEventListeners.add(serverEventListener);
@@ -254,7 +264,7 @@ public class PluginManager
         for (ScriptEngineProvider scriptEngineProvider : plugin.getServices(ScriptEngineProvider.class)) {
             log.info("Registering script engine provider %s", scriptEngineProvider.getName());
             scriptEngineProviders.put(scriptEngineProvider.getName(), scriptEngineProvider);
-        }
+	}
     }
 
     public static URLClassLoader buildClassLoader(ArtifactResolver resolver, String plugin)

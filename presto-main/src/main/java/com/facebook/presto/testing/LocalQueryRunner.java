@@ -120,6 +120,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.sql.testing.TreeAssertions.assertFormattedSql;
@@ -142,6 +145,7 @@ public class LocalQueryRunner
     private final InMemoryNodeManager nodeManager;
     private final TypeRegistry typeRegistry;
     private final MetadataManager metadata;
+    private final TestingAccessControlManager accessControl;
     private final SplitManager splitManager;
     private final BlockEncodingSerde blockEncodingSerde;
     private final PageSourceManager pageSourceManager;
@@ -153,6 +157,8 @@ public class LocalQueryRunner
     private final ImmutableMap<Class<? extends Statement>, DataDefinitionTask<?>> dataDefinitionTask;
 
     private boolean printPlan;
+
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     public LocalQueryRunner(Session defaultSession)
     {
@@ -174,12 +180,14 @@ public class LocalQueryRunner
                 blockEncodingSerde,
                 new SessionPropertyManager(),
                 new TablePropertyManager());
+        this.accessControl = new TestingAccessControlManager();
         this.pageSourceManager = new PageSourceManager();
 
         this.compiler = new ExpressionCompiler(metadata);
 
         this.connectorManager = new ConnectorManager(
                 metadata,
+                accessControl,
                 splitManager,
                 pageSourceManager,
                 indexManager,
@@ -198,7 +206,7 @@ public class LocalQueryRunner
 
         // rewrite session to use managed SessionPropertyMetadata
         this.defaultSession = new Session(
-                defaultSession.getUser(),
+                defaultSession.getIdentity(),
                 defaultSession.getSource(),
                 defaultSession.getCatalog(),
                 defaultSession.getSchema(),
@@ -213,7 +221,7 @@ public class LocalQueryRunner
 
         dataDefinitionTask = ImmutableMap.<Class<? extends Statement>, DataDefinitionTask<?>>builder()
                 .put(CreateTable.class, new CreateTableTask())
-                .put(CreateView.class, new CreateViewTask(jsonCodec(ViewDefinition.class), sqlParser, new FeaturesConfig()))
+                .put(CreateView.class, new CreateViewTask(jsonCodec(ViewDefinition.class), sqlParser, accessControl, new FeaturesConfig()))
                 .put(DropTable.class, new DropTableTask())
                 .put(DropView.class, new DropViewTask())
                 .put(RenameColumn.class, new RenameColumnTask())
@@ -250,6 +258,12 @@ public class LocalQueryRunner
     public Metadata getMetadata()
     {
         return metadata;
+    }
+
+    @Override
+    public TestingAccessControlManager getAccessControl()
+    {
+        return accessControl;
     }
 
     public ExecutorService getExecutor()
@@ -340,14 +354,28 @@ public class LocalQueryRunner
     @Override
     public List<QualifiedTableName> listTables(Session session, String catalog, String schema)
     {
-        return getMetadata().listTables(session, new QualifiedTablePrefix(catalog, schema));
+        lock.readLock().lock();
+        try {
+            return getMetadata().listTables(session, new QualifiedTablePrefix(catalog, schema));
+        }
+        finally {
+            lock.readLock().unlock();
+        }
+
     }
 
     @Override
     public boolean tableExists(Session session, String table)
     {
-        QualifiedTableName name = new QualifiedTableName(session.getCatalog(), session.getSchema(), table);
-        return getMetadata().getTableHandle(session, name).isPresent();
+        lock.readLock().lock();
+        try {
+            QualifiedTableName name = new QualifiedTableName(session.getCatalog(), session.getSchema(), table);
+            return getMetadata().getTableHandle(session, name).isPresent();
+        }
+        finally {
+            lock.readLock().unlock();
+        }
+
     }
 
     @Override
@@ -359,24 +387,37 @@ public class LocalQueryRunner
     @Override
     public MaterializedResult execute(Session session, @Language("SQL") String sql)
     {
-        MaterializedOutputFactory outputFactory = new MaterializedOutputFactory();
+        lock.readLock().lock();
+        try {
+            MaterializedOutputFactory outputFactory = new MaterializedOutputFactory();
 
-        TaskContext taskContext = createTaskContext(executor, session);
-        List<Driver> drivers = createDrivers(session, sql, outputFactory, taskContext);
+            TaskContext taskContext = createTaskContext(executor, session);
+            List<Driver> drivers = createDrivers(session, sql, outputFactory, taskContext);
 
-        boolean done = false;
-        while (!done) {
-            boolean processed = false;
-            for (Driver driver : drivers) {
-                if (!driver.isFinished()) {
-                    driver.process();
-                    processed = true;
+            boolean done = false;
+            while (!done) {
+                boolean processed = false;
+                for (Driver driver : drivers) {
+                    if (!driver.isFinished()) {
+                        driver.process();
+                        processed = true;
+                    }
                 }
+                done = !processed;
             }
-            done = !processed;
+
+            return outputFactory.getMaterializingOperator().getMaterializedResult();
+        }
+        finally {
+            lock.readLock().unlock();
         }
 
-        return outputFactory.getMaterializingOperator().getMaterializedResult();
+    }
+
+    @Override
+    public Lock getExclusiveLock()
+    {
+        return lock.writeLock();
     }
 
     public List<Driver> createDrivers(@Language("SQL") String sql, OutputFactory outputFactory, TaskContext taskContext)
@@ -402,8 +443,14 @@ public class LocalQueryRunner
                 .setOptimizeHashGeneration(true);
         PlanOptimizersFactory planOptimizersFactory = new PlanOptimizersFactory(metadata, sqlParser, indexManager, featuresConfig, true);
 
-        QueryExplainer queryExplainer = new QueryExplainer(planOptimizersFactory.get(), metadata, sqlParser, dataDefinitionTask, featuresConfig.isExperimentalSyntaxEnabled());
-        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(queryExplainer), featuresConfig.isExperimentalSyntaxEnabled());
+        QueryExplainer queryExplainer = new QueryExplainer(
+                planOptimizersFactory.get(),
+                metadata,
+                accessControl,
+                sqlParser,
+                dataDefinitionTask,
+                featuresConfig.isExperimentalSyntaxEnabled());
+        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, accessControl, Optional.of(queryExplainer), featuresConfig.isExperimentalSyntaxEnabled());
 
         Analysis analysis = analyzer.analyze(statement);
         Plan plan = new LogicalPlanner(session, planOptimizersFactory.get(), idAllocator, metadata).plan(analysis);
