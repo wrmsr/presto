@@ -20,6 +20,7 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ParametricScalar;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.Signature;
+import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.type.StandardTypes;
@@ -72,8 +73,9 @@ public class DefineStructForQueryFunction
     private final boolean experimentalSyntaxEnabled;
     private final StructManager structManager;
     private final Metadata metadata;
+    private final AccessControl accessControl;
 
-    public DefineStructForQueryFunction(StructManager structManager, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig, Metadata metadata)
+    public DefineStructForQueryFunction(StructManager structManager, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig, Metadata metadata, AccessControl accessControl)
     {
         this.structManager = structManager;
         this.sqlParser = checkNotNull(sqlParser);
@@ -81,6 +83,7 @@ public class DefineStructForQueryFunction
         checkNotNull(featuresConfig, "featuresConfig is null");
         this.experimentalSyntaxEnabled = featuresConfig.isExperimentalSyntaxEnabled();
         this.metadata = metadata;
+        this.accessControl = accessControl;
     }
 
     @Override
@@ -109,8 +112,8 @@ public class DefineStructForQueryFunction
 
     public Analysis analyzeStatement(Statement statement, Session session)
     {
-        QueryExplainer explainer = new QueryExplainer(planOptimizers, metadata, sqlParser, ImmutableMap.of(), experimentalSyntaxEnabled);
-        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
+        QueryExplainer explainer = new QueryExplainer(planOptimizers, metadata, accessControl, sqlParser, ImmutableMap.of(), experimentalSyntaxEnabled);
+        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, accessControl, Optional.of(explainer), experimentalSyntaxEnabled);
         return analyzer.analyze(statement);
     }
 
@@ -137,7 +140,6 @@ public class DefineStructForQueryFunction
     public RowType buildRowType(String name, String sql)
     {
         Session.SessionBuilder builder = Session.builder(new SessionPropertyManager())
-                .setUser("system")
                 .setSource("system")
                 .setCatalog("default")
                 .setTimeZoneKey(UTC_KEY)

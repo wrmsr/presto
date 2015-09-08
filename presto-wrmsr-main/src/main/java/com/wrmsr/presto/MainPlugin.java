@@ -20,6 +20,7 @@ import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
+import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.server.PluginManager;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
@@ -97,6 +98,7 @@ public class MainPlugin
     private SqlParser sqlParser;
     private List<PlanOptimizer> planOptimizers;
     private FeaturesConfig featuresConfig;
+    private AccessControl accessControl;
 
     @Override
     public void setOptionalConfig(Map<String, String> optionalConfig)
@@ -156,6 +158,12 @@ public class MainPlugin
     public void setFeaturesConfig(FeaturesConfig featuresConfig)
     {
         this.featuresConfig = featuresConfig;
+    }
+
+    @Inject
+    public void setAccessControl(AccessControl accessControl)
+    {
+        this.accessControl = accessControl;
     }
 
     public static final Set<String> KNOWN_MODULE_NAMES = ImmutableSet.of(
@@ -246,7 +254,8 @@ public class MainPlugin
                     metadata,
                     sqlParser,
                     planOptimizers,
-                    featuresConfig
+                    featuresConfig,
+                    accessControl
             ).run();
 
             metadata.addFunctions(
@@ -255,7 +264,7 @@ public class MainPlugin
                             .scalar(GrokFunctions.class)
                             .function(new SerializeFunction(metadata.getFunctionRegistry(), structManager))
                             .function(new DefineStructFunction(structManager))
-                            .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata))
+                            .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata, accessControl))
                             .function(new PropertiesFunction(typeRegistry))
                                     //.function(new ConnectFunction())
                             .function(Hash.HASH)

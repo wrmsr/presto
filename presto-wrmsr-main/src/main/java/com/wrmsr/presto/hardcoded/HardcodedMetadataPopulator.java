@@ -18,6 +18,7 @@ import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.ViewDefinition;
+import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.sql.analyzer.Analysis;
@@ -55,8 +56,9 @@ public class HardcodedMetadataPopulator
     private final SqlParser sqlParser;
     private final List<PlanOptimizer> planOptimizers;
     private final boolean experimentalSyntaxEnabled;
+    private final AccessControl accessControl;
 
-    public HardcodedMetadataPopulator(ConnectorManager connectorManager, JsonCodec<ViewDefinition> viewCodec, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig)
+    public HardcodedMetadataPopulator(ConnectorManager connectorManager, JsonCodec<ViewDefinition> viewCodec, Metadata metadata, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig, AccessControl accessControl)
     {
         this.connectorManager = checkNotNull(connectorManager);
         this.viewCodec = viewCodec;
@@ -65,12 +67,13 @@ public class HardcodedMetadataPopulator
         this.planOptimizers = checkNotNull(planOptimizers);
         checkNotNull(featuresConfig, "featuresConfig is null");
         this.experimentalSyntaxEnabled = featuresConfig.isExperimentalSyntaxEnabled();
+        this.accessControl = accessControl;
     }
 
     public Analysis analyzeStatement(Statement statement, Session session)
     {
-        QueryExplainer explainer = new QueryExplainer(planOptimizers, metadata, sqlParser, ImmutableMap.of(), experimentalSyntaxEnabled);
-        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(explainer), experimentalSyntaxEnabled);
+        QueryExplainer explainer = new QueryExplainer(planOptimizers, metadata, accessControl, sqlParser, ImmutableMap.of(), experimentalSyntaxEnabled);
+        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, accessControl, Optional.of(explainer), experimentalSyntaxEnabled);
         return analyzer.analyze(statement);
     }
 
@@ -128,7 +131,6 @@ public class HardcodedMetadataPopulator
         public Session createSession(@Nullable String schemaName)
         {
             Session.SessionBuilder builder = Session.builder(new SessionPropertyManager())
-                    .setUser("system")
                     .setSource("system")
                     .setCatalog(name)
                     .setTimeZoneKey(UTC_KEY)
