@@ -1670,3 +1670,5 @@ http://derekmolloy.ie/kernel-gpio-programming-buttons-and-leds/
 
 
 starr -> misc_register
+ - god damn sysexit - easy do do whole-core or whole-system :|
+http://stackoverflow.com/a/13585364

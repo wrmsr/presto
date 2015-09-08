@@ -26,3 +26,5 @@ npm-debug.log
 derby.log
 *.pid
 metastore_db
+*.log
+
