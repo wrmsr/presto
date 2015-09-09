@@ -25,7 +25,6 @@ import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Field;
 import com.facebook.presto.sql.analyzer.FieldOrExpression;
 import com.facebook.presto.sql.analyzer.SemanticException;
-import com.facebook.presto.sql.analyzer.TupleAnalyzer;
 import com.facebook.presto.sql.analyzer.TupleDescriptor;
 import com.facebook.presto.sql.planner.plan.AggregationNode;
 import com.facebook.presto.sql.planner.plan.FilterNode;
@@ -90,6 +89,7 @@ import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.facebook.presto.util.Types.checkType;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Verify.verify;
 
 class RelationPlanner
         extends DefaultTraversalVisitor<RelationPlan, Void>
@@ -238,8 +238,8 @@ class RelationPlanner
                 if (comparison.getType() != EQUAL && node.getType() != INNER) {
                     throw new SemanticException(NOT_SUPPORTED, node, "Non-equi joins only supported for inner join: %s", conjunct);
                 }
-                Set<QualifiedName> firstDependencies = TupleAnalyzer.DependencyExtractor.extract(comparison.getLeft());
-                Set<QualifiedName> secondDependencies = TupleAnalyzer.DependencyExtractor.extract(comparison.getRight());
+                Set<QualifiedName> firstDependencies = DependencyExtractor.extractNames(comparison.getLeft());
+                Set<QualifiedName> secondDependencies = DependencyExtractor.extractNames(comparison.getRight());
 
                 Expression leftExpression;
                 Expression rightExpression;
@@ -489,9 +489,9 @@ class RelationPlanner
             return plan;
         }
 
-        List<Symbol> oldSymbols = plan.getRoot().getOutputSymbols();
+        List<Symbol> oldSymbols = plan.getOutputSymbols();
         TupleDescriptor oldDescriptor = plan.getDescriptor().withOnlyVisibleFields();
-        checkArgument(coerceToTypes.length == oldSymbols.size());
+        verify(coerceToTypes.length == oldSymbols.size());
         ImmutableList.Builder<Symbol> newSymbols = new ImmutableList.Builder<>();
         Field[] newFields = new Field[coerceToTypes.length];
         ImmutableMap.Builder<Symbol, Expression> assignments = new ImmutableMap.Builder<>();
