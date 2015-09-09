@@ -103,8 +103,7 @@ public class TestHashSemiJoinOperator
                 2,
                 setBuilderOperatorFactory.getSetProvider(),
                 rowPagesBuilderProbe.getTypes(),
-                0,
-                rowPagesBuilderProbe.getHashChannel());
+                0);
         Operator joinOperator = joinOperatorFactory.createOperator(driverContext);
 
         // expected
@@ -160,8 +159,7 @@ public class TestHashSemiJoinOperator
                 2,
                 setBuilderOperatorFactory.getSetProvider(),
                 rowPagesBuilderProbe.getTypes(),
-                0,
-                rowPagesBuilderProbe.getHashChannel());
+                0);
         Operator joinOperator = joinOperatorFactory.createOperator(driverContext);
 
         // expected
@@ -211,8 +209,7 @@ public class TestHashSemiJoinOperator
                 2,
                 setBuilderOperatorFactory.getSetProvider(),
                 rowPagesBuilderProbe.getTypes(),
-                0,
-                rowPagesBuilderProbe.getHashChannel());
+                0);
         Operator joinOperator = joinOperatorFactory.createOperator(driverContext);
 
         // expected
@@ -263,8 +260,7 @@ public class TestHashSemiJoinOperator
                 2,
                 setBuilderOperatorFactory.getSetProvider(),
                 rowPagesBuilderProbe.getTypes(),
-                0,
-                rowPagesBuilderProbe.getHashChannel());
+                0);
         Operator joinOperator = joinOperatorFactory.createOperator(driverContext);
 
         // expected
@@ -278,7 +274,7 @@ public class TestHashSemiJoinOperator
         OperatorAssertion.assertOperatorEquals(joinOperator, probeInput, expected, hashEnabled, ImmutableList.of(probeTypes.size()));
     }
 
-    @Test(dataProvider = "hashEnabledValues", expectedExceptions = ExceededMemoryLimitException.class, expectedExceptionsMessageRegExp = "Task exceeded max memory size.*")
+    @Test(dataProvider = "hashEnabledValues", expectedExceptions = ExceededMemoryLimitException.class, expectedExceptionsMessageRegExp = "Query exceeded local memory limit of.*")
     public void testMemoryLimit(boolean hashEnabled)
             throws Exception
     {

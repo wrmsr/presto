@@ -18,6 +18,7 @@ import com.facebook.presto.orc.DoubleVector;
 import com.facebook.presto.orc.LongVector;
 import com.facebook.presto.orc.OrcDataSource;
 import com.facebook.presto.orc.OrcRecordReader;
+import com.facebook.presto.orc.SingleObjectVector;
 import com.facebook.presto.orc.SliceVector;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.PrestoException;
@@ -25,6 +26,7 @@ import com.facebook.presto.spi.UpdatablePageSource;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.block.LazyArrayBlock;
 import com.facebook.presto.spi.block.LazyBlockLoader;
 import com.facebook.presto.spi.block.LazyFixedWidthBlock;
 import com.facebook.presto.spi.block.LazySliceArrayBlock;
@@ -38,9 +40,12 @@ import java.io.IOException;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static com.facebook.presto.orc.Vector.MAX_VECTOR_LENGTH;
 import static com.facebook.presto.raptor.RaptorErrorCode.RAPTOR_ERROR;
+import static com.facebook.presto.raptor.util.Types.isArrayType;
+import static com.facebook.presto.raptor.util.Types.isMapType;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
@@ -72,6 +77,8 @@ public class OrcPageSource
     private final OrcRecordReader recordReader;
     private final OrcDataSource orcDataSource;
 
+    private final BitSet rowsToDelete;
+
     private final List<Long> columnIds;
     private final List<Type> types;
 
@@ -82,8 +89,6 @@ public class OrcPageSource
 
     private int batchId;
     private boolean closed;
-
-    private BitSet rowsToDelete;
 
     public OrcPageSource(
             ShardRewriter shardRewriter,
@@ -96,6 +101,8 @@ public class OrcPageSource
         this.shardRewriter = checkNotNull(shardRewriter, "shardRewriter is null");
         this.recordReader = checkNotNull(recordReader, "recordReader is null");
         this.orcDataSource = checkNotNull(orcDataSource, "orcDataSource is null");
+
+        this.rowsToDelete = new BitSet(Ints.checkedCast(recordReader.getFileRowCount()));
 
         checkArgument(columnIds.size() == columnTypes.size(), "ids and types mismatch");
         checkArgument(columnIds.size() == columnIndexes.size(), "ids and indexes mismatch");
@@ -149,7 +156,7 @@ public class OrcPageSource
                 close();
                 return null;
             }
-            long filePosition = recordReader.getFilePosition() - batchSize;
+            long filePosition = recordReader.getFilePosition();
 
             Block[] blocks = new Block[columnIndexes.length];
             for (int fieldId = 0; fieldId < blocks.length; fieldId++) {
@@ -174,6 +181,9 @@ public class OrcPageSource
                 }
                 else if (VARCHAR.equals(type) || VARBINARY.equals(type)) {
                     blocks[fieldId] = new LazySliceArrayBlock(batchSize, new LazySliceBlockLoader(columnIndexes[fieldId], batchSize));
+                }
+                else if (isArrayType(type) || isMapType(type)) {
+                    blocks[fieldId] = new LazyArrayBlock(new LazyStructuralBlockLoader(columnIndexes[fieldId], type));
                 }
                 else {
                     throw new PrestoException(NOT_SUPPORTED, "Unsupported column type: " + type);
@@ -215,9 +225,6 @@ public class OrcPageSource
     @Override
     public void deleteRows(Block rowIds)
     {
-        if (rowsToDelete == null) {
-            rowsToDelete = new BitSet(Ints.checkedCast(recordReader.getFileRowCount()));
-        }
         for (int i = 0; i < rowIds.getPositionCount(); i++) {
             long rowId = BIGINT.getLong(rowIds, i);
             rowsToDelete.set(Ints.checkedCast(rowId));
@@ -225,7 +232,7 @@ public class OrcPageSource
     }
 
     @Override
-    public Collection<Slice> commit()
+    public CompletableFuture<Collection<Slice>> commit()
     {
         return shardRewriter.rewrite(rowsToDelete);
     }
@@ -407,9 +414,43 @@ public class OrcPageSource
         {
             checkState(batchId == expectedBatchId);
             try {
-                SliceVector vector = new SliceVector(batchSize);
+                SliceVector vector = new SliceVector();
                 recordReader.readVector(columnIndex, vector);
-                block.setValues(vector.vector);
+                if (vector.dictionary) {
+                    block.setValues(vector.vector, vector.ids, vector.isNull);
+                }
+                else {
+                    block.setValues(vector.vector);
+                }
+            }
+            catch (IOException e) {
+                throw new PrestoException(RAPTOR_ERROR, e);
+            }
+        }
+    }
+
+    private final class LazyStructuralBlockLoader
+            implements LazyBlockLoader<LazyArrayBlock>
+    {
+        private final int expectedBatchId = batchId;
+        private final int columnIndex;
+        private final Type type;
+
+        public LazyStructuralBlockLoader(int columnIndex, Type type)
+        {
+            this.columnIndex = columnIndex;
+            this.type = type;
+        }
+
+        @Override
+        public void load(LazyArrayBlock block)
+        {
+            checkState(batchId == expectedBatchId);
+            try {
+                SingleObjectVector vector = new SingleObjectVector();
+                recordReader.readVector(type, columnIndex, vector);
+                Block resultBlock = (Block) vector.object;
+                block.copyFromBlock(resultBlock);
             }
             catch (IOException e) {
                 throw new PrestoException(RAPTOR_ERROR, e);

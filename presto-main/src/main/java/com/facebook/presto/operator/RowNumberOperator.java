@@ -176,9 +176,14 @@ public class RowNumberOperator
     {
         if (isSinglePartition() && maxRowsPerPartition.isPresent()) {
             // Check if single partition is done
-            return partitionRowCount.get(0) < maxRowsPerPartition.get();
+            return partitionRowCount.get(0) < maxRowsPerPartition.get() && !finishing && inputPage == null;
         }
         return !finishing && inputPage == null;
+    }
+
+    private long getEstimatedByteSize()
+    {
+        return groupByHash.map(GroupByHash::getEstimatedSize).orElse(0L) + partitionRowCount.sizeOf();
     }
 
     @Override
@@ -192,6 +197,7 @@ public class RowNumberOperator
             partitionIds = groupByHash.get().getGroupIds(inputPage);
             partitionRowCount.ensureCapacity(partitionIds.getGroupCount());
         }
+        operatorContext.setMemoryReservation(getEstimatedByteSize());
     }
 
     @Override
@@ -210,6 +216,7 @@ public class RowNumberOperator
         }
 
         inputPage = null;
+        operatorContext.setMemoryReservation(getEstimatedByteSize());
         return outputPage;
     }
 

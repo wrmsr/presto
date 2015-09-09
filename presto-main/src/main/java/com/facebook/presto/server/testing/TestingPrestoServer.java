@@ -20,20 +20,24 @@ import com.facebook.presto.memory.LocalMemoryManager;
 import com.facebook.presto.metadata.AllNodes;
 import com.facebook.presto.metadata.InternalNodeManager;
 import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.security.AccessControl;
+import com.facebook.presto.security.AccessControlManager;
 import com.facebook.presto.server.PluginManager;
 import com.facebook.presto.server.ServerMainModule;
 import com.facebook.presto.spi.Node;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.sql.parser.SqlParserOptions;
+import com.facebook.presto.testing.TestingAccessControlManager;
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HostAndPort;
+import com.google.inject.Binder;
 import com.google.inject.Injector;
 import com.google.inject.Module;
+import com.google.inject.Scopes;
 import io.airlift.bootstrap.Bootstrap;
 import io.airlift.bootstrap.LifeCycleManager;
 import io.airlift.discovery.client.Announcer;
@@ -60,6 +64,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static com.facebook.presto.server.testing.FileUtils.deleteRecursively;
@@ -78,6 +83,7 @@ public class TestingPrestoServer
     private final ConnectorManager connectorManager;
     private final TestingHttpServer server;
     private final Metadata metadata;
+    private final TestingAccessControlManager accessControl;
     private final ClusterMemoryManager clusterMemoryManager;
     private final LocalMemoryManager localMemoryManager;
     private final InternalNodeManager nodeManager;
@@ -107,7 +113,12 @@ public class TestingPrestoServer
                 .put("coordinator", String.valueOf(coordinator))
                 .put("presto.version", "testversion")
                 .put("task.default-concurrency", "4")
+                .put("task.max-worker-threads", "4")
                 .put("analyzer.experimental-syntax-enabled", "true");
+
+        if (!properties.containsKey("query.max-memory-per-node")) {
+            serverProperties.put("query.max-memory-per-node", "512MB");
+        }
 
         if (coordinator) {
             // TODO: enable failure detector
@@ -115,7 +126,7 @@ public class TestingPrestoServer
         }
 
         ImmutableList.Builder<Module> modules = ImmutableList.<Module>builder()
-                .add(new TestingNodeModule(Optional.fromNullable(environment)))
+                .add(new TestingNodeModule(Optional.ofNullable(environment)))
                 .add(new TestingHttpServerModule())
                 .add(new JsonModule())
                 .add(new JaxrsModule(true))
@@ -123,7 +134,16 @@ public class TestingPrestoServer
                 .add(new TestingJmxModule())
                 .add(new EventModule())
                 .add(new TraceTokenModule())
-                .add(new ServerMainModule(new SqlParserOptions()));
+                .add(new ServerMainModule(new SqlParserOptions()))
+                .add(new Module() {
+                    @Override
+                    public void configure(Binder binder)
+                    {
+                        binder.bind(TestingAccessControlManager.class).in(Scopes.SINGLETON);
+                        binder.bind(AccessControlManager.class).to(TestingAccessControlManager.class).in(Scopes.SINGLETON);
+                        binder.bind(AccessControl.class).to(AccessControlManager.class).in(Scopes.SINGLETON);
+                    }
+                });
 
         if (discoveryUri != null) {
             checkNotNull(environment, "environment required when discoveryUri is present");
@@ -162,6 +182,7 @@ public class TestingPrestoServer
 
         server = injector.getInstance(TestingHttpServer.class);
         metadata = injector.getInstance(Metadata.class);
+        accessControl = injector.getInstance(TestingAccessControlManager.class);
         clusterMemoryManager = injector.getInstance(ClusterMemoryManager.class);
         localMemoryManager = injector.getInstance(LocalMemoryManager.class);
         nodeManager = injector.getInstance(InternalNodeManager.class);
@@ -233,6 +254,11 @@ public class TestingPrestoServer
     public Metadata getMetadata()
     {
         return metadata;
+    }
+
+    public TestingAccessControlManager getAccessControl()
+    {
+        return accessControl;
     }
 
     public LocalMemoryManager getLocalMemoryManager()

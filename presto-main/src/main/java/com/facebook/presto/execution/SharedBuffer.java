@@ -13,7 +13,6 @@
  */
 package com.facebook.presto.execution;
 
-import com.facebook.presto.HashPagePartitionFunction;
 import com.facebook.presto.OutputBuffers;
 import com.facebook.presto.PagePartitionFunction;
 import com.facebook.presto.execution.StateMachine.StateChangeListener;
@@ -36,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
@@ -58,7 +58,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
 @ThreadSafe
 public class SharedBuffer
@@ -150,13 +152,19 @@ public class SharedBuffer
 
     public SharedBuffer(TaskId taskId, Executor executor, DataSize maxBufferSize)
     {
+        this(taskId, executor, maxBufferSize, deltaMemory -> { });
+    }
+
+    public SharedBuffer(TaskId taskId, Executor executor, DataSize maxBufferSize, SystemMemoryUsageListener systemMemoryUsageListener)
+    {
         checkNotNull(taskId, "taskId is null");
         checkNotNull(executor, "executor is null");
         state = new StateMachine<>(taskId + "-buffer", executor, OPEN, TERMINAL_BUFFER_STATES);
 
         checkNotNull(maxBufferSize, "maxBufferSize is null");
         checkArgument(maxBufferSize.toBytes() > 0, "maxBufferSize must be at least 1");
-        this.memoryManager = new SharedBufferMemoryManager(maxBufferSize.toBytes());
+        checkNotNull(systemMemoryUsageListener, "systemMemoryUsageListener is null");
+        this.memoryManager = new SharedBufferMemoryManager(maxBufferSize.toBytes(), systemMemoryUsageListener);
     }
 
     public void addStateChangeListener(StateChangeListener<BufferState> stateChangeListener)
@@ -174,7 +182,7 @@ public class SharedBuffer
         //
         // NOTE: this code must be lock free to we are not hanging state machine updates
         //
-        checkState(!Thread.holdsLock(this), "Thread must NOT hold a lock on the %s", SharedBuffer.class.getSimpleName());
+        checkDoesNotHoldLock();
         BufferState state = this.state.get();
         ImmutableList.Builder<BufferInfo> infos = ImmutableList.builder();
         for (NamedBuffer namedBuffer : namedBuffers.values()) {
@@ -216,10 +224,7 @@ public class SharedBuffer
                 checkState(state.get().canAddBuffers(), "Cannot add buffers to %s", SharedBuffer.class.getSimpleName());
                 PagePartitionFunction partitionFunction = entry.getValue();
 
-                int partition = 0;
-                if (partitionFunction instanceof HashPagePartitionFunction) {
-                    partition = ((HashPagePartitionFunction) partitionFunction).getPartition();
-                }
+                int partition = partitionFunction.getPartition();
 
                 PartitionBuffer partitionBuffer = createOrGetPartitionBuffer(partition);
                 NamedBuffer namedBuffer = new NamedBuffer(bufferId, partitionBuffer);
@@ -246,7 +251,7 @@ public class SharedBuffer
 
     private PartitionBuffer createOrGetPartitionBuffer(int partition)
     {
-        checkState(Thread.holdsLock(this), "Thread must hold a lock on the %s", SharedBuffer.class.getSimpleName());
+        checkHoldsLock();
         return partitionBuffers.computeIfAbsent(partition, k -> new PartitionBuffer(partition, memoryManager));
     }
 
@@ -272,7 +277,7 @@ public class SharedBuffer
         return result;
     }
 
-    public synchronized ListenableFuture<BufferResult> get(TaskId outputId, long startingSequenceId, DataSize maxSize)
+    public synchronized CompletableFuture<BufferResult> get(TaskId outputId, long startingSequenceId, DataSize maxSize)
     {
         checkNotNull(outputId, "outputId is null");
         checkArgument(maxSize.toBytes() > 0, "maxSize must be at least 1 byte");
@@ -281,7 +286,7 @@ public class SharedBuffer
         // this can happen with limit queries
         BufferState state = this.state.get();
         if (state != FAILED && !state.canAddBuffers() && namedBuffers.get(outputId) == null) {
-            return immediateFuture(emptyResults(0, true));
+            return completedFuture(emptyResults(0, true));
         }
 
         // return a future for data
@@ -348,7 +353,7 @@ public class SharedBuffer
 
     private void checkFlushComplete()
     {
-        checkState(Thread.holdsLock(this), "Thread must hold a lock on the %s", SharedBuffer.class.getSimpleName());
+        checkHoldsLock();
 
         if (state.get() == FLUSHING) {
             for (NamedBuffer namedBuffer : namedBuffers.values()) {
@@ -362,7 +367,7 @@ public class SharedBuffer
 
     private void updateState()
     {
-        checkState(Thread.holdsLock(this), "Thread must hold a lock on the %s", SharedBuffer.class.getSimpleName());
+        checkHoldsLock();
 
         try {
             processPendingReads();
@@ -388,9 +393,9 @@ public class SharedBuffer
                             .min()
                             .getAsLong();
                     partitionBuffer.advanceSequenceId(newMasterSequenceId);
-                    // this might have freed up space in the buffers, try to dequeue pages
-                    partitionBuffers.values().forEach(PartitionBuffer::dequeuePages);
                 }
+                // this might have freed up space in the buffers, try to dequeue pages
+                partitionBuffers.values().forEach(PartitionBuffer::dequeuePages);
             }
 
             // remove any completed buffers
@@ -405,9 +410,25 @@ public class SharedBuffer
 
     private void processPendingReads()
     {
-        checkState(Thread.holdsLock(this), "Thread must hold a lock on the %s", SharedBuffer.class.getSimpleName());
+        checkHoldsLock();
+        Set<GetBufferResult> finishedListeners = ImmutableList.copyOf(stateChangeListeners).stream().filter(GetBufferResult::execute).collect(toImmutableSet());
+        stateChangeListeners.removeAll(finishedListeners);
+    }
 
-        ImmutableList.copyOf(stateChangeListeners).stream().filter(GetBufferResult::execute).forEach(stateChangeListeners::remove);
+    private void checkHoldsLock()
+    {
+        // This intentionally does not use checkState, because it's called *very* frequently. To the point that
+        // SharedBuffer.class.getSimpleName() showed up in perf
+        if (!Thread.holdsLock(this)) {
+            throw new IllegalStateException(format("Thread must hold a lock on the %s", SharedBuffer.class.getSimpleName()));
+        }
+    }
+
+    private void checkDoesNotHoldLock()
+    {
+        if (Thread.holdsLock(this)) {
+            throw new IllegalStateException(format("Thread must NOT hold a lock on the %s", SharedBuffer.class.getSimpleName()));
+        }
     }
 
     @ThreadSafe
@@ -430,7 +451,7 @@ public class SharedBuffer
             //
             // NOTE: this code must be lock free to we are not hanging state machine updates
             //
-            checkState(!Thread.holdsLock(SharedBuffer.this), "Thread must NOT hold a lock on the %s", SharedBuffer.class.getSimpleName());
+            checkDoesNotHoldLock();
 
             long sequenceId = this.sequenceId.get();
 
@@ -444,14 +465,14 @@ public class SharedBuffer
 
         public long getSequenceId()
         {
-            checkState(Thread.holdsLock(SharedBuffer.this), "Thread must hold a lock on the %s", SharedBuffer.class.getSimpleName());
+            checkHoldsLock();
 
             return sequenceId.get();
         }
 
         public BufferResult getPages(long startingSequenceId, DataSize maxSize)
         {
-            checkState(Thread.holdsLock(SharedBuffer.this), "Thread must hold a lock on the %s", SharedBuffer.class.getSimpleName());
+            checkHoldsLock();
             checkArgument(maxSize.toBytes() > 0, "maxSize must be at least 1 byte");
 
             long sequenceId = this.sequenceId.get();
@@ -473,14 +494,14 @@ public class SharedBuffer
 
         public void abort()
         {
-            checkState(Thread.holdsLock(SharedBuffer.this), "Thread must hold a lock on the %s", SharedBuffer.class.getSimpleName());
+            checkHoldsLock();
 
             finished.set(true);
         }
 
         public boolean checkCompletion()
         {
-            checkState(Thread.holdsLock(SharedBuffer.this), "Thread must hold a lock on the %s", SharedBuffer.class.getSimpleName());
+            checkHoldsLock();
             // WARNING: finish must short circuit this call, or the call to checkFlushComplete below will cause an infinite recursion
             if (finished.get()) {
                 return true;
@@ -511,7 +532,7 @@ public class SharedBuffer
     @Immutable
     private class GetBufferResult
     {
-        private final SettableFuture<BufferResult> future = SettableFuture.create();
+        private final CompletableFuture<BufferResult> future = new CompletableFuture<>();
 
         private final TaskId outputId;
         private final long startingSequenceId;
@@ -524,14 +545,14 @@ public class SharedBuffer
             this.maxSize = maxSize;
         }
 
-        public SettableFuture<BufferResult> getFuture()
+        public CompletableFuture<BufferResult> getFuture()
         {
             return future;
         }
 
         public boolean execute()
         {
-            checkState(Thread.holdsLock(SharedBuffer.this), "Thread must hold a lock on the %s", SharedBuffer.class.getSimpleName());
+            checkHoldsLock();
 
             if (future.isDone()) {
                 return true;
@@ -549,7 +570,7 @@ public class SharedBuffer
                 // this could be a request for a buffer that never existed, but that is ok since the buffer
                 // could have been destroyed before the creation message was received
                 if (state.get() == FINISHED) {
-                    future.set(emptyResults(namedBuffer == null ? 0 : namedBuffer.getSequenceId(), true));
+                    future.complete(emptyResults(namedBuffer == null ? 0 : namedBuffer.getSequenceId(), true));
                     return true;
                 }
 
@@ -560,7 +581,7 @@ public class SharedBuffer
 
                 // if request is for pages before the current position, just return an empty page
                 if (startingSequenceId < namedBuffer.getSequenceId()) {
-                    future.set(emptyResults(startingSequenceId, false));
+                    future.complete(emptyResults(startingSequenceId, false));
                     return true;
                 }
 
@@ -575,10 +596,10 @@ public class SharedBuffer
                     return false;
                 }
 
-                future.set(bufferResult);
+                future.complete(bufferResult);
             }
             catch (Throwable throwable) {
-                future.setException(throwable);
+                future.completeExceptionally(throwable);
             }
             return true;
         }

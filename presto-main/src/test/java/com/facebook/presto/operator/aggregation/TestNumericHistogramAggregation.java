@@ -17,13 +17,13 @@ import com.facebook.presto.block.BlockEncodingManager;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.PageBuilder;
+import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.type.MapType;
 import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
-import io.airlift.slice.Slice;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -34,7 +34,6 @@ import static com.facebook.presto.operator.aggregation.AggregationTestUtils.getF
 import static com.facebook.presto.operator.aggregation.AggregationTestUtils.getIntermediateBlock;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
-import static com.facebook.presto.type.TypeUtils.createBlock;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
@@ -50,19 +49,7 @@ public class TestNumericHistogramAggregation
         InternalAggregationFunction function = functionRegistry.resolveFunction(QualifiedName.of("numeric_histogram"), ImmutableList.of(BIGINT.getTypeSignature(), DOUBLE.getTypeSignature(), DOUBLE.getTypeSignature()), false).getAggregationFunction();
         factory = function.bind(ImmutableList.of(0, 1, 2), Optional.empty(), Optional.empty(), 1.0);
 
-        int numberOfBuckets = 10;
-
-        PageBuilder builder = new PageBuilder(ImmutableList.of(BIGINT, DOUBLE, DOUBLE));
-
-        for (int i = 0; i < 100; i++) {
-            builder.declarePosition();
-
-            BIGINT.writeLong(builder.getBlockBuilder(0), numberOfBuckets);
-            DOUBLE.writeDouble(builder.getBlockBuilder(1), i); // value
-            DOUBLE.writeDouble(builder.getBlockBuilder(2), 1); // weight
-        }
-
-        input = builder.build();
+        input = makeInput(10);
     }
 
     @Test
@@ -118,11 +105,33 @@ public class TestNumericHistogramAggregation
         assertTrue(result.isNull(0));
     }
 
+    @Test(expectedExceptions = PrestoException.class)
+    public void testBadNumberOfBuckets()
+    {
+        Accumulator singleStep = factory.createAccumulator();
+        singleStep.addInput(makeInput(0));
+        getFinalBlock(singleStep);
+    }
+
     private static Map<Double, Double> extractSingleValue(Block block)
             throws IOException
     {
-        Slice slice = block.getSlice(0, 0, block.getLength(0));
         MapType mapType = new MapType(DOUBLE, DOUBLE);
-        return (Map<Double, Double>) mapType.getObjectValue(null, createBlock(mapType, slice), 0);
+        return (Map<Double, Double>) mapType.getObjectValue(null, block, 0);
+    }
+
+    private Page makeInput(int numberOfBuckets)
+    {
+        PageBuilder builder = new PageBuilder(ImmutableList.of(BIGINT, DOUBLE, DOUBLE));
+
+        for (int i = 0; i < 100; i++) {
+            builder.declarePosition();
+
+            BIGINT.writeLong(builder.getBlockBuilder(0), numberOfBuckets);
+            DOUBLE.writeDouble(builder.getBlockBuilder(1), i); // value
+            DOUBLE.writeDouble(builder.getBlockBuilder(2), 1); // weight
+        }
+
+        return builder.build();
     }
 }

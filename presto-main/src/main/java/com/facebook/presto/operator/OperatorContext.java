@@ -13,7 +13,6 @@
  */
 package com.facebook.presto.operator;
 
-import com.facebook.presto.ExceededMemoryLimitException;
 import com.facebook.presto.Session;
 import com.facebook.presto.spi.Page;
 import com.google.common.util.concurrent.FutureCallback;
@@ -34,6 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import static com.facebook.presto.ExceededMemoryLimitException.exceededLocalLimit;
 import static com.facebook.presto.operator.BlockedReason.WAITING_FOR_MEMORY;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -78,6 +78,7 @@ public class OperatorContext
     private final AtomicLong finishUserNanos = new AtomicLong();
 
     private final AtomicLong memoryReservation = new AtomicLong();
+    private final AtomicLong systemMemoryReservation = new AtomicLong();
     private final long maxMemoryReservation;
 
     private final AtomicReference<Supplier<Object>> infoSupplier = new AtomicReference<>();
@@ -207,11 +208,6 @@ public class OperatorContext
         return memoryFuture.get();
     }
 
-    public DataSize getMaxMemorySize()
-    {
-        return driverContext.getMaxMemorySize();
-    }
-
     public DataSize getOperatorPreAllocatedMemory()
     {
         return driverContext.getOperatorPreAllocatedMemory();
@@ -250,11 +246,18 @@ public class OperatorContext
                 }
             });
         }
-        long newReservation = memoryReservation.getAndAdd(bytes);
+        long newReservation = memoryReservation.addAndGet(bytes);
         if (newReservation > maxMemoryReservation) {
             memoryReservation.getAndAdd(-bytes);
-            throw new ExceededMemoryLimitException(getMaxMemorySize());
+            throw exceededLocalLimit(new DataSize(maxMemoryReservation, BYTE));
         }
+    }
+
+    public void reserveSystemMemory(long bytes)
+    {
+        checkArgument(bytes >= 0, "bytes is negative");
+        driverContext.reserveSystemMemory(bytes);
+        systemMemoryReservation.addAndGet(bytes);
     }
 
     public boolean tryReserveMemory(long bytes)
@@ -263,9 +266,10 @@ public class OperatorContext
             return false;
         }
 
-        long newReservation = memoryReservation.getAndAdd(bytes);
+        long newReservation = memoryReservation.addAndGet(bytes);
         if (newReservation > maxMemoryReservation) {
             memoryReservation.getAndAdd(-bytes);
+            driverContext.freeMemory(bytes);
             return false;
         }
         return true;
@@ -277,6 +281,14 @@ public class OperatorContext
         checkArgument(bytes <= memoryReservation.get(), "tried to free more memory than is reserved");
         driverContext.freeMemory(bytes);
         memoryReservation.getAndAdd(-bytes);
+    }
+
+    public void freeSystemMemory(long bytes)
+    {
+        checkArgument(bytes >= 0, "bytes is negative");
+        checkArgument(bytes <= systemMemoryReservation.get(), "tried to free more memory than is reserved");
+        driverContext.freeSystemMemory(bytes);
+        systemMemoryReservation.getAndAdd(-bytes);
     }
 
     public void moreMemoryAvailable()
@@ -373,6 +385,7 @@ public class OperatorContext
                 new Duration(finishUserNanos.get(), NANOSECONDS).convertToMostSuccinctTimeUnit(),
 
                 new DataSize(memoryReservation.get(), BYTE).convertToMostSuccinctDataSize(),
+                new DataSize(systemMemoryReservation.get(), BYTE).convertToMostSuccinctDataSize(),
                 memoryFuture.get().isDone() ? Optional.empty() : Optional.of(WAITING_FOR_MEMORY),
                 info);
     }

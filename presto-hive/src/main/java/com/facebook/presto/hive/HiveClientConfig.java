@@ -20,10 +20,12 @@ import com.google.common.net.HostAndPort;
 import io.airlift.configuration.Config;
 import io.airlift.configuration.ConfigDescription;
 import io.airlift.configuration.DefunctConfig;
+import io.airlift.configuration.LegacyConfig;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
 import io.airlift.units.MinDataSize;
 import io.airlift.units.MinDuration;
+import org.joda.time.DateTimeZone;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -43,7 +45,7 @@ public class HiveClientConfig
 {
     private static final Splitter SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
-    private TimeZone timeZone = TimeZone.getDefault();
+    private String timeZone = TimeZone.getDefault().getID();
 
     private DataSize maxSplitSize = new DataSize(64, MEGABYTE);
     private int maxOutstandingSplits = 1_000;
@@ -52,6 +54,7 @@ public class HiveClientConfig
     private int maxPartitionBatchSize = 100;
     private int maxInitialSplits = 200;
     private DataSize maxInitialSplitSize;
+    private int domainCompactionThreshold = 100;
     private boolean forceLocalScheduling;
     private boolean recursiveDirWalkerEnabled;
     private boolean allowDropTable;
@@ -69,7 +72,6 @@ public class HiveClientConfig
     private Duration dfsConnectTimeout = new Duration(500, TimeUnit.MILLISECONDS);
     private int dfsConnectMaxRetries = 5;
     private boolean verifyChecksum = true;
-
     private String domainSocketPath;
 
     private String s3AwsAccessKey;
@@ -127,6 +129,20 @@ public class HiveClientConfig
         return this;
     }
 
+    @Min(1)
+    public int getDomainCompactionThreshold()
+    {
+        return domainCompactionThreshold;
+    }
+
+    @Config("hive.domain-compaction-threshold")
+    @ConfigDescription("Maximum ranges to allow in a tuple domain without compacting it")
+    public HiveClientConfig setDomainCompactionThreshold(int domainCompactionThreshold)
+    {
+        this.domainCompactionThreshold = domainCompactionThreshold;
+        return this;
+    }
+
     public boolean isForceLocalScheduling()
     {
         return forceLocalScheduling;
@@ -137,12 +153,6 @@ public class HiveClientConfig
     {
         this.forceLocalScheduling = forceLocalScheduling;
         return this;
-    }
-
-    @NotNull
-    public TimeZone getTimeZone()
-    {
-        return timeZone;
     }
 
     @Config("hive.recursive-directories")
@@ -157,16 +167,21 @@ public class HiveClientConfig
         return recursiveDirWalkerEnabled;
     }
 
+    public DateTimeZone getDateTimeZone()
+    {
+        return DateTimeZone.forTimeZone(TimeZone.getTimeZone(timeZone));
+    }
+
+    @NotNull
+    public String getTimeZone()
+    {
+        return timeZone;
+    }
+
     @Config("hive.time-zone")
     public HiveClientConfig setTimeZone(String id)
     {
-        this.timeZone = (id == null) ? TimeZone.getDefault() : TimeZone.getTimeZone(id);
-        return this;
-    }
-
-    public HiveClientConfig setTimeZone(TimeZone timeZone)
-    {
-        this.timeZone = (timeZone == null) ? TimeZone.getDefault() : timeZone;
+        this.timeZone = (id != null) ? id : TimeZone.getDefault().getID();
         return this;
     }
 
@@ -416,7 +431,8 @@ public class HiveClientConfig
         return domainSocketPath;
     }
 
-    @Config("dfs.domain-socket-path")
+    @Config("hive.dfs.domain-socket-path")
+    @LegacyConfig("dfs.domain-socket-path")
     public HiveClientConfig setDomainSocketPath(String domainSocketPath)
     {
         this.domainSocketPath = domainSocketPath;

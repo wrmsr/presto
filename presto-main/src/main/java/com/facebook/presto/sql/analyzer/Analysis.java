@@ -28,10 +28,12 @@ import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.sql.tree.Query;
 import com.facebook.presto.sql.tree.QuerySpecification;
+import com.facebook.presto.sql.tree.Relation;
 import com.facebook.presto.sql.tree.SampledRelation;
 import com.facebook.presto.sql.tree.Table;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 
@@ -72,6 +74,7 @@ public class Analysis
     private final IdentityHashMap<Expression, Boolean> rowFieldReferences = new IdentityHashMap<>();
     private final IdentityHashMap<Expression, Type> types = new IdentityHashMap<>();
     private final IdentityHashMap<Expression, Type> coercions = new IdentityHashMap<>();
+    private final IdentityHashMap<Relation, Type[]> relationCoercions = new IdentityHashMap<>();
     private final IdentityHashMap<FunctionCall, FunctionInfo> functionInfo = new IdentityHashMap<>();
 
     private final IdentityHashMap<Field, ColumnHandle> columns = new IdentityHashMap<>();
@@ -80,6 +83,7 @@ public class Analysis
 
     // for create table
     private Optional<QualifiedTableName> createTableDestination = Optional.empty();
+    private Map<String, Expression> createTableProperties = ImmutableMap.of();
 
     // for insert
     private Optional<TableHandle> insertTarget = Optional.empty();
@@ -141,6 +145,21 @@ public class Analysis
     {
         Preconditions.checkArgument(types.containsKey(expression), "Expression not analyzed: %s", expression);
         return types.get(expression);
+    }
+
+    public Type[] getRelationCoercion(Relation relation)
+    {
+        return relationCoercions.get(relation);
+    }
+
+    public void addRelationCoercion(Relation relation, Type[] types)
+    {
+        relationCoercions.put(relation, types);
+    }
+
+    public IdentityHashMap<Expression, Type> getCoercions()
+    {
+        return coercions;
     }
 
     public Type getCoercion(Expression expression)
@@ -322,6 +341,16 @@ public class Analysis
     public Optional<QualifiedTableName> getCreateTableDestination()
     {
         return createTableDestination;
+    }
+
+    public void setCreateTableProperties(Map<String, Expression> createTableProperties)
+    {
+        this.createTableProperties = createTableProperties;
+    }
+
+    public Map<String, Expression> getCreateTableProperties()
+    {
+        return createTableProperties;
     }
 
     public void setInsertTarget(TableHandle target)

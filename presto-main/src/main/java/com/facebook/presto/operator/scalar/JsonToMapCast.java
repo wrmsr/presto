@@ -19,6 +19,10 @@ import com.facebook.presto.metadata.OperatorType;
 import com.facebook.presto.metadata.ParametricOperator;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
+import com.facebook.presto.spi.block.Block;
+import com.facebook.presto.spi.block.BlockBuilder;
+import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.block.InterleavedBlockBuilder;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
@@ -33,7 +37,7 @@ import static com.facebook.presto.metadata.FunctionRegistry.operatorInfo;
 import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
 import static com.facebook.presto.metadata.Signature.typeParameter;
 import static com.facebook.presto.spi.StandardErrorCode.INVALID_CAST_ARGUMENT;
-import static com.facebook.presto.type.MapType.toStackRepresentation;
+import static com.facebook.presto.type.TypeJsonUtils.appendToBlockBuilder;
 import static com.facebook.presto.type.TypeJsonUtils.canCastFromJson;
 import static com.facebook.presto.type.TypeJsonUtils.stackRepresentationToObject;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
@@ -64,14 +68,21 @@ public class JsonToMapCast
         return operatorInfo(OperatorType.CAST, mapType.getTypeSignature(), ImmutableList.of(parameterizedTypeName(StandardTypes.JSON)), methodHandle, true, ImmutableList.of(false));
     }
 
-    public static Slice toMap(Type mapType, ConnectorSession connectorSession, Slice json)
+    public static Block toMap(Type mapType, ConnectorSession connectorSession, Slice json)
     {
         try {
-            Object map = stackRepresentationToObject(connectorSession, json, mapType);
+            Map<?, ?> map = (Map<?, ?>) stackRepresentationToObject(connectorSession, json, mapType);
             if (map == null) {
                 return null;
             }
-            return toStackRepresentation((Map<?, ?>) map, ((MapType) mapType).getKeyType(), ((MapType) mapType).getValueType());
+            Type keyType = ((MapType) mapType).getKeyType();
+            Type valueType = ((MapType) mapType).getValueType();
+            BlockBuilder blockBuilder = new InterleavedBlockBuilder(ImmutableList.of(keyType, valueType), new BlockBuilderStatus(), map.size() * 2);
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                appendToBlockBuilder(keyType, entry.getKey(), blockBuilder);
+                appendToBlockBuilder(valueType, entry.getValue(), blockBuilder);
+            }
+            return blockBuilder.build();
         }
         catch (RuntimeException e) {
             throw new PrestoException(INVALID_CAST_ARGUMENT, "Value cannot be cast to " + mapType, e);

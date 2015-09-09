@@ -43,6 +43,7 @@ import com.facebook.presto.byteCode.instruction.VariableInstruction.IncrementVar
 import com.facebook.presto.byteCode.instruction.VariableInstruction.LoadVariableInstruction;
 import com.facebook.presto.byteCode.instruction.VariableInstruction.StoreVariableInstruction;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -155,7 +156,7 @@ public class DumpByteCodeVisitor
     }
 
     @Override
-    public Void visitBlock(ByteCodeNode parent, Block block)
+    public Void visitBlock(ByteCodeNode parent, ByteCodeBlock block)
     {
         // only indent if we have a block description or more than one child node
         boolean indented;
@@ -182,11 +183,11 @@ public class DumpByteCodeVisitor
         return null;
     }
 
-    private void visitBlockContents(Block block)
+    private void visitBlockContents(ByteCodeBlock block)
     {
         for (ByteCodeNode node : block.getChildNodes()) {
-            if (node instanceof Block) {
-                Block childBlock = (Block) node;
+            if (node instanceof ByteCodeBlock) {
+                ByteCodeBlock childBlock = (ByteCodeBlock) node;
                 if (childBlock.getDescription() != null) {
                     visitBlock(block, childBlock);
                 }
@@ -538,18 +539,7 @@ public class DumpByteCodeVisitor
 
     private String indent(int level)
     {
-        StringBuilder builder = new StringBuilder();
-
-//        if (lineNumber >= 0) {
-//            builder.append(String.format("%4s", lineNumber + ": "));
-//        } else {
-//            builder.append("    ");
-//        }
-
-        for (int i = 0; i < level; i++) {
-            builder.append("    ");
-        }
-        return builder.toString();
+        return Strings.repeat("    ", level);
     }
 
     private void visitNestedNode(String description, ByteCodeNode node, ByteCodeNode parent)

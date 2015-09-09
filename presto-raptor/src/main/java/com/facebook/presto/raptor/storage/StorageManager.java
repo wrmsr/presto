@@ -14,7 +14,6 @@
 package com.facebook.presto.raptor.storage;
 
 import com.facebook.presto.raptor.RaptorColumnHandle;
-import com.facebook.presto.raptor.util.PageBuffer;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.TupleDomain;
 import com.facebook.presto.spi.type.Type;
@@ -27,8 +26,4 @@ public interface StorageManager
     ConnectorPageSource getPageSource(UUID shardUuid, List<Long> columnIds, List<Type> columnTypes, TupleDomain<RaptorColumnHandle> effectivePredicate);
 
     StoragePageSink createStoragePageSink(List<Long> columnIds, List<Type> columnTypes);
-
-    boolean isBackupAvailable();
-
-    PageBuffer createPageBuffer();
 }

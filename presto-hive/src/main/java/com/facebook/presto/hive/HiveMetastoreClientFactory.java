@@ -23,6 +23,7 @@ import org.apache.thrift.transport.TTransportException;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -63,31 +64,58 @@ public class HiveMetastoreClientFactory
         return new HiveMetastoreClient(createTransport(host, port));
     }
 
-    protected TTransport createTransport(String host, int port)
+    protected TTransport createRawTransport(String host, int port)
             throws TTransportException
     {
-        TTransport transport;
         if (socksProxy == null) {
-            transport = new TTransportWrapper(new TSocket(host, port, timeoutMillis), host);
-            transport.open();
+            TTransport transport = new TSocket(host, port, timeoutMillis);
+
+            try {
+                transport.open();
+                return transport;
+            }
+            catch (Throwable t) {
+                transport.close();
+                throw t;
+            }
         }
-        else {
-            Socket socks = createSocksSocket(socksProxy);
+
+        Socket socks = createSocksSocket(socksProxy);
+        try {
             try {
                 socks.connect(InetSocketAddress.createUnresolved(host, port), timeoutMillis);
                 socks.setSoTimeout(timeoutMillis);
+                return new TSocket(socks);
             }
-            catch (IOException e) {
-                throw rewriteException(new TTransportException(e), host);
-            }
-            try {
-                transport = new TTransportWrapper(new TSocket(socks), host);
-            }
-            catch (TTransportException e) {
-                throw rewriteException(e, host);
+            catch (Throwable t) {
+                closeQuietly(socks);
+                throw t;
             }
         }
-        return transport;
+        catch (IOException e) {
+            throw new TTransportException(e);
+        }
+    }
+
+    protected TTransport createTransport(String host, int port)
+            throws TTransportException
+    {
+        try {
+            return new TTransportWrapper(createRawTransport(host, port), host);
+        }
+        catch (TTransportException e) {
+            throw rewriteException(e, host);
+        }
+    }
+
+    private static void closeQuietly(Closeable closeable)
+    {
+        try {
+            closeable.close();
+        }
+        catch (IOException e) {
+            // ignored
+        }
     }
 
     private static class TTransportWrapper

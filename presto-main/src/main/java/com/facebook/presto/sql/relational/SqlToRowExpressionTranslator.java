@@ -56,7 +56,6 @@ import com.facebook.presto.sql.tree.TimestampLiteral;
 import com.facebook.presto.sql.tree.WhenClause;
 import com.facebook.presto.type.UnknownType;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.airlift.slice.Slices;
@@ -91,6 +90,7 @@ import static com.facebook.presto.sql.relational.Signatures.subscriptSignature;
 import static com.facebook.presto.sql.relational.Signatures.switchSignature;
 import static com.facebook.presto.sql.relational.Signatures.tryCastSignature;
 import static com.facebook.presto.sql.relational.Signatures.whenSignature;
+import static com.facebook.presto.type.JsonType.JSON;
 import static com.facebook.presto.type.LikePatternType.LIKE_PATTERN;
 import static com.facebook.presto.util.DateTimeUtils.parseDayTimeInterval;
 import static com.facebook.presto.util.DateTimeUtils.parseTimeWithTimeZone;
@@ -188,6 +188,13 @@ public final class SqlToRowExpressionTranslator
                 throw new IllegalArgumentException("Unsupported type: " + node.getType());
             }
 
+            if (JSON.equals(type)) {
+                return call(
+                        new Signature("json_parse", types.get(node).getTypeSignature(), VARCHAR.getTypeSignature()),
+                        types.get(node),
+                        constant(Slices.copiedBuffer(node.getValue(), StandardCharsets.UTF_8), VARCHAR));
+            }
+
             return call(
                     castSignature(types.get(node), VARCHAR),
                     types.get(node),
@@ -213,7 +220,7 @@ public final class SqlToRowExpressionTranslator
         {
             long value;
             if (types.get(node).equals(TIMESTAMP_WITH_TIME_ZONE)) {
-                value = parseTimestampWithTimeZone(node.getValue());
+                value = parseTimestampWithTimeZone(timeZoneKey, node.getValue());
             }
             else {
                 // parse in time zone of client
@@ -255,10 +262,10 @@ public final class SqlToRowExpressionTranslator
                     .map(value -> process(value, context))
                     .collect(toImmutableList());
 
-            List<TypeSignature> argumentTypes = FluentIterable.from(arguments)
-                    .transform(RowExpression::getType)
-                    .transform(Type::getTypeSignature)
-                    .toList();
+            List<TypeSignature> argumentTypes = arguments.stream()
+                    .map(RowExpression::getType)
+                    .map(Type::getTypeSignature)
+                    .collect(toImmutableList());
             Signature signature = new Signature(node.getName().getSuffix(), types.get(node).getTypeSignature(), argumentTypes);
 
             return call(signature, types.get(node), arguments);
@@ -324,7 +331,7 @@ public final class SqlToRowExpressionTranslator
                             .map(value -> process(value, context))
                             .collect(toImmutableList());
 
-            List<Type> argumentTypes = FluentIterable.from(arguments).transform(RowExpression::getType).toList();
+            List<Type> argumentTypes = arguments.stream().map(RowExpression::getType).collect(toImmutableList());
             return call(coalesceSignature(types.get(node), argumentTypes), types.get(node), arguments);
         }
 
@@ -507,9 +514,9 @@ public final class SqlToRowExpressionTranslator
             List<RowExpression> arguments = node.getValues().stream()
                     .map(value -> process(value, context))
                     .collect(toImmutableList());
-            List<Type> argumentTypes = FluentIterable.from(arguments)
-                    .transform(RowExpression::getType)
-                    .toList();
+            List<Type> argumentTypes = arguments.stream()
+                    .map(RowExpression::getType)
+                    .collect(toImmutableList());
             return call(arrayConstructorSignature(types.get(node), argumentTypes), types.get(node), arguments);
         }
     }

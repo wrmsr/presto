@@ -18,6 +18,7 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.QualifiedTableName;
 import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.metadata.TableMetadata;
+import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.type.Type;
@@ -27,6 +28,7 @@ import com.facebook.presto.sql.tree.TableElement;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.facebook.presto.metadata.MetadataUtil.createQualifiedTableName;
@@ -46,14 +48,23 @@ public class CreateTableTask
     }
 
     @Override
-    public void execute(CreateTable statement, Session session, Metadata metadata, QueryStateMachine stateMachine)
+    public String explain(CreateTable statement)
+    {
+        return "CREATE TABLE " + statement.getName();
+    }
+
+    @Override
+    public void execute(CreateTable statement, Session session, Metadata metadata, AccessControl accessControl, QueryStateMachine stateMachine)
     {
         checkArgument(!statement.getElements().isEmpty(), "no columns for table");
 
         QualifiedTableName tableName = createQualifiedTableName(session, statement.getName());
         Optional<TableHandle> tableHandle = metadata.getTableHandle(session, tableName);
         if (tableHandle.isPresent()) {
-            throw new SemanticException(TABLE_ALREADY_EXISTS, statement, "Table '%s' already exists", tableName);
+            if (!statement.isNotExists()) {
+                throw new SemanticException(TABLE_ALREADY_EXISTS, statement, "Table '%s' already exists", tableName);
+            }
+            return;
         }
 
         List<ColumnMetadata> columns = new ArrayList<>();
@@ -65,9 +76,17 @@ public class CreateTableTask
             columns.add(new ColumnMetadata(element.getName(), type, false));
         }
 
+        accessControl.checkCanCreateTable(session.getIdentity(), tableName);
+
+        Map<String, Object> properties = metadata.getTablePropertyManager().getTableProperties(
+                tableName.getCatalogName(),
+                statement.getProperties(),
+                session,
+                metadata);
+
         TableMetadata tableMetadata = new TableMetadata(
                 tableName.getCatalogName(),
-                new ConnectorTableMetadata(tableName.asSchemaTableName(), columns, session.getUser(), false));
+                new ConnectorTableMetadata(tableName.asSchemaTableName(), columns, properties, session.getUser(), false));
 
         metadata.createTable(session, tableName.getCatalogName(), tableMetadata);
     }

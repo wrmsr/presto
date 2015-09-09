@@ -360,6 +360,7 @@ public final class SqlFormatter
                 builder.append(formatExpression(row));
                 first = false;
             }
+            builder.append('\n');
 
             return null;
         }
@@ -594,9 +595,16 @@ public final class SqlFormatter
         protected Void visitCreateTableAsSelect(CreateTableAsSelect node, Integer indent)
         {
             builder.append("CREATE TABLE ")
-                    .append(node.getName())
-                    .append(" AS ");
+                    .append(node.getName());
 
+            if (!node.getProperties().isEmpty()) {
+                builder.append(" WITH (");
+                Joiner.on(", ").appendTo(builder, transform(node.getProperties().entrySet(),
+                        entry -> entry.getKey() + " = " + formatExpression(entry.getValue())));
+                builder.append(")");
+            }
+
+            builder.append(" AS ");
             process(node.getQuery(), indent);
 
             return null;
@@ -605,14 +613,25 @@ public final class SqlFormatter
         @Override
         protected Void visitCreateTable(CreateTable node, Integer indent)
         {
-            builder.append("CREATE TABLE ")
-                    .append(node.getName())
+            builder.append("CREATE TABLE ");
+            if (node.isNotExists()) {
+                builder.append("IF NOT EXISTS ");
+            }
+            builder.append(node.getName())
                     .append(" (");
 
             Joiner.on(", ").appendTo(builder, transform(node.getElements(),
                     element -> element.getName() + " " + element.getType()));
 
             builder.append(")");
+
+            if (!node.getProperties().isEmpty()) {
+                builder.append(" WITH (");
+                Joiner.on(", ").appendTo(builder, transform(node.getProperties().entrySet(),
+                        entry -> entry.getKey() + " = " + formatExpression(entry.getValue())));
+                builder.append(")");
+            }
+
             return null;
         }
 
@@ -670,7 +689,7 @@ public final class SqlFormatter
             builder.append("SET SESSION ")
                     .append(node.getName())
                     .append(" = ")
-                    .append(formatStringLiteral(node.getValue()));
+                    .append(formatExpression(node.getValue()));
 
             return null;
         }

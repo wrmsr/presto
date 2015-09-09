@@ -43,6 +43,7 @@ import static com.facebook.presto.execution.StageState.PLANNED;
 import static com.facebook.presto.execution.StageState.RUNNING;
 import static com.facebook.presto.execution.StageState.SCHEDULED;
 import static com.facebook.presto.execution.StageState.SCHEDULING;
+import static com.facebook.presto.execution.StageState.SCHEDULING_SPLITS;
 import static com.facebook.presto.execution.StageState.TERMINAL_STAGE_STATES;
 import static io.airlift.units.DataSize.Unit.BYTE;
 import static io.airlift.units.DataSize.succinctDataSize;
@@ -99,6 +100,11 @@ public class StageStateMachine
         return stageState.get();
     }
 
+    public PlanFragment getFragment()
+    {
+        return fragment;
+    }
+
     public void addStateChangeListener(StateChangeListener<StageState> stateChangeListener)
     {
         stageState.addStateChangeListener(stateChangeListener);
@@ -109,10 +115,15 @@ public class StageStateMachine
         return stageState.compareAndSet(PLANNED, SCHEDULING);
     }
 
+    public synchronized boolean transitionToSchedulingSplits()
+    {
+        return stageState.setIf(SCHEDULING_SPLITS, currentState -> currentState == PLANNED || currentState == SCHEDULING);
+    }
+
     public synchronized boolean transitionToScheduled()
     {
         schedulingComplete.compareAndSet(null, DateTime.now());
-        return stageState.setIf(SCHEDULED, currentState -> currentState == PLANNED || currentState == SCHEDULING);
+        return stageState.setIf(SCHEDULED, currentState -> currentState == PLANNED || currentState == SCHEDULING || currentState == SCHEDULING_SPLITS);
     }
 
     public boolean transitionToRunning()

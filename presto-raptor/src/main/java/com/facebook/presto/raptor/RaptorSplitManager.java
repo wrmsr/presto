@@ -13,13 +13,14 @@
  */
 package com.facebook.presto.raptor;
 
+import com.facebook.presto.raptor.backup.BackupService;
 import com.facebook.presto.raptor.metadata.ShardManager;
 import com.facebook.presto.raptor.metadata.ShardNodes;
-import com.facebook.presto.raptor.storage.StorageManager;
 import com.facebook.presto.raptor.util.CloseableIterator;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorPartition;
 import com.facebook.presto.spi.ConnectorPartitionResult;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.ConnectorSplitManager;
 import com.facebook.presto.spi.ConnectorSplitSource;
@@ -63,16 +64,21 @@ public class RaptorSplitManager
     private final String connectorId;
     private final NodeManager nodeManager;
     private final ShardManager shardManager;
-    private final StorageManager storageManager;
+    private final boolean backupAvailable;
     private final ExecutorService executor;
 
     @Inject
-    public RaptorSplitManager(RaptorConnectorId connectorId, NodeManager nodeManager, ShardManager shardManager, StorageManager storageManager)
+    public RaptorSplitManager(RaptorConnectorId connectorId, NodeManager nodeManager, ShardManager shardManager, BackupService backupService)
+    {
+        this(connectorId, nodeManager, shardManager, checkNotNull(backupService, "backupService is null").isBackupAvailable());
+    }
+
+    public RaptorSplitManager(RaptorConnectorId connectorId, NodeManager nodeManager, ShardManager shardManager, boolean backupAvailable)
     {
         this.connectorId = checkNotNull(connectorId, "connectorId is null").toString();
         this.nodeManager = checkNotNull(nodeManager, "nodeManager is null");
         this.shardManager = checkNotNull(shardManager, "shardManager is null");
-        this.storageManager = checkNotNull(storageManager, "storageManager is null");
+        this.backupAvailable = backupAvailable;
         this.executor = newCachedThreadPool(daemonThreadsNamed("raptor-split-" + connectorId + "-%s"));
     }
 
@@ -83,7 +89,7 @@ public class RaptorSplitManager
     }
 
     @Override
-    public ConnectorPartitionResult getPartitions(ConnectorTableHandle tableHandle, TupleDomain<ColumnHandle> tupleDomain)
+    public ConnectorPartitionResult getPartitions(ConnectorSession session, ConnectorTableHandle tableHandle, TupleDomain<ColumnHandle> tupleDomain)
     {
         RaptorTableHandle handle = checkType(tableHandle, RaptorTableHandle.class, "table");
         ConnectorPartition partition = new RaptorPartition(handle.getTableId(), tupleDomain);
@@ -91,7 +97,7 @@ public class RaptorSplitManager
     }
 
     @Override
-    public ConnectorSplitSource getPartitionSplits(ConnectorTableHandle tableHandle, List<ConnectorPartition> partitions)
+    public ConnectorSplitSource getPartitionSplits(ConnectorSession session, ConnectorTableHandle tableHandle, List<ConnectorPartition> partitions)
     {
         RaptorTableHandle raptorTableHandle = checkType(tableHandle, RaptorTableHandle.class, "tableHandle");
 
@@ -117,14 +123,7 @@ public class RaptorSplitManager
     @SuppressWarnings("unchecked")
     private static TupleDomain<RaptorColumnHandle> toRaptorTupleDomain(TupleDomain<ColumnHandle> tupleDomain)
     {
-        return tupleDomain.transform(new TupleDomain.Function<ColumnHandle, RaptorColumnHandle>()
-        {
-            @Override
-            public RaptorColumnHandle apply(ColumnHandle handle)
-            {
-                return checkType(handle, RaptorColumnHandle.class, "columnHandle");
-            }
-        });
+        return tupleDomain.transform(handle -> checkType(handle, RaptorColumnHandle.class, "columnHandle"));
     }
 
     private static <T> T selectRandom(Iterable<T> elements)
@@ -180,7 +179,7 @@ public class RaptorSplitManager
             List<HostAddress> addresses = getAddressesForNodes(nodesById, nodeIds);
 
             if (addresses.isEmpty()) {
-                if (!storageManager.isBackupAvailable()) {
+                if (!backupAvailable) {
                     throw new PrestoException(RAPTOR_NO_HOST_FOR_SHARD, format("No host for shard %s found: %s", shardId, nodeIds));
                 }
 
@@ -195,7 +194,7 @@ public class RaptorSplitManager
                 addresses = ImmutableList.of(node.getHostAndPort());
             }
 
-            return new RaptorSplit(shardId, addresses, effectivePredicate);
+            return new RaptorSplit(connectorId, shardId, addresses, effectivePredicate);
         }
     }
 }

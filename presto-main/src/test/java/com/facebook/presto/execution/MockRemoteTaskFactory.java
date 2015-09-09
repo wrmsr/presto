@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
@@ -66,7 +67,7 @@ public class MockRemoteTaskFactory
 {
     private final Executor executor;
 
-    MockRemoteTaskFactory(Executor executor)
+    public MockRemoteTaskFactory(Executor executor)
     {
         this.executor = executor;
     }
@@ -92,7 +93,8 @@ public class MockRemoteTaskFactory
                 PlanFragment.PlanDistribution.SOURCE,
                 tableScanNodeId,
                 PlanFragment.OutputPartitioning.NONE,
-                ImmutableList.<Symbol>of(),
+                Optional.empty(),
+                Optional.empty(),
                 Optional.empty()
         );
 
@@ -115,7 +117,7 @@ public class MockRemoteTaskFactory
         return new MockRemoteTask(taskId, fragment, node.getNodeIdentifier(), executor, initialSplits);
     }
 
-    private static class MockRemoteTask
+    public static class MockRemoteTask
             implements RemoteTask
     {
         private final AtomicLong nextTaskInfoVersion = new AtomicLong(TaskInfo.STARTING_VERSION);
@@ -142,8 +144,9 @@ public class MockRemoteTaskFactory
         {
             this.taskStateMachine = new TaskStateMachine(checkNotNull(taskId, "taskId is null"), checkNotNull(executor, "executor is null"));
 
-            MemoryPool memoryPool = new MemoryPool(new MemoryPoolId("test"), new DataSize(1, GIGABYTE), false);
-            this.taskContext = new QueryContext(false, new DataSize(1, MEGABYTE), memoryPool, executor).addTaskContext(taskStateMachine, TEST_SESSION, new DataSize(256, MEGABYTE), new DataSize(1, MEGABYTE), true, true);
+            MemoryPool memoryPool = new MemoryPool(new MemoryPoolId("test"), new DataSize(1, GIGABYTE));
+            MemoryPool memorySystemPool = new MemoryPool(new MemoryPoolId("testSystem"), new DataSize(1, GIGABYTE));
+            this.taskContext = new QueryContext(taskId.getQueryId(), new DataSize(1, MEGABYTE), memoryPool, memorySystemPool, executor).addTaskContext(taskStateMachine, TEST_SESSION, new DataSize(1, MEGABYTE), true, true);
 
             this.location = URI.create("fake://task/" + taskId);
 
@@ -151,6 +154,12 @@ public class MockRemoteTaskFactory
             this.fragment = checkNotNull(fragment, "fragment is null");
             this.nodeId = checkNotNull(nodeId, "nodeId is null");
             splits.putAll(initialSplits);
+        }
+
+        @Override
+        public TaskId getTaskId()
+        {
+            return taskStateMachine.getTaskId();
         }
 
         @Override
@@ -179,6 +188,11 @@ public class MockRemoteTaskFactory
                     ImmutableSet.<PlanNodeId>of(),
                     taskContext.getTaskStats(),
                     failures);
+        }
+
+        public void clearSplits()
+        {
+            splits.clear();
         }
 
         @Override
@@ -220,6 +234,12 @@ public class MockRemoteTaskFactory
         public void addStateChangeListener(StateChangeListener<TaskInfo> stateChangeListener)
         {
             taskStateMachine.addStateChangeListener(newValue -> stateChangeListener.stateChanged(getTaskInfo()));
+        }
+
+        @Override
+        public CompletableFuture<TaskInfo> getStateChange(TaskInfo taskInfo)
+        {
+            return taskStateMachine.getStateChange(taskInfo.getState()).thenApply(ignored -> getTaskInfo());
         }
 
         @Override

@@ -14,8 +14,10 @@
 package com.facebook.presto.sql.tree;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
@@ -26,11 +28,15 @@ public class CreateTable
 {
     private final QualifiedName name;
     private final List<TableElement> elements;
+    private final boolean notExists;
+    private final Map<String, Expression> properties;
 
-    public CreateTable(QualifiedName name, List<TableElement> elements)
+    public CreateTable(QualifiedName name, List<TableElement> elements, boolean notExists, Map<String, Expression> properties)
     {
         this.name = checkNotNull(name, "table is null");
         this.elements = ImmutableList.copyOf(checkNotNull(elements, "elements is null"));
+        this.notExists = notExists;
+        this.properties = ImmutableMap.copyOf(checkNotNull(properties, "properties is null"));
     }
 
     public QualifiedName getName()
@@ -43,6 +49,16 @@ public class CreateTable
         return elements;
     }
 
+    public boolean isNotExists()
+    {
+        return notExists;
+    }
+
+    public Map<String, Expression> getProperties()
+    {
+        return properties;
+    }
+
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {
@@ -52,7 +68,7 @@ public class CreateTable
     @Override
     public int hashCode()
     {
-        return Objects.hash(name, elements);
+        return Objects.hash(name, elements, notExists, properties);
     }
 
     @Override
@@ -66,7 +82,9 @@ public class CreateTable
         }
         CreateTable o = (CreateTable) obj;
         return Objects.equals(name, o.name) &&
-                Objects.equals(elements, o.elements);
+                Objects.equals(elements, o.elements) &&
+                Objects.equals(notExists, o.notExists) &&
+                Objects.equals(properties, o.properties);
     }
 
     @Override
@@ -75,6 +93,8 @@ public class CreateTable
         return toStringHelper(this)
                 .add("name", name)
                 .add("elements", elements)
+                .add("notExists", notExists)
+                .add("properties", properties)
                 .toString();
     }
 }

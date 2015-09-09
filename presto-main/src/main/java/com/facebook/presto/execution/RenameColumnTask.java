@@ -17,6 +17,7 @@ import com.facebook.presto.Session;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.QualifiedTableName;
 import com.facebook.presto.metadata.TableHandle;
+import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.RenameColumn;
@@ -28,6 +29,7 @@ import static com.facebook.presto.metadata.MetadataUtil.createQualifiedTableName
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.COLUMN_ALREADY_EXISTS;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MISSING_COLUMN;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MISSING_TABLE;
+import static java.util.Locale.ENGLISH;
 
 public class RenameColumnTask
         implements DataDefinitionTask<RenameColumn>
@@ -39,22 +41,26 @@ public class RenameColumnTask
     }
 
     @Override
-    public void execute(RenameColumn statement, Session session, Metadata metadata, QueryStateMachine stateMachine)
+    public void execute(RenameColumn statement, Session session, Metadata metadata, AccessControl accessControl, QueryStateMachine stateMachine)
     {
         QualifiedTableName tableName = createQualifiedTableName(session, statement.getTable());
         Optional<TableHandle> tableHandle = metadata.getTableHandle(session, tableName);
+
+        String source = statement.getSource().toLowerCase(ENGLISH);
+        String target = statement.getTarget().toLowerCase(ENGLISH);
+
         if (!tableHandle.isPresent()) {
             throw new SemanticException(MISSING_TABLE, statement, "Table '%s' does not exist", tableName);
         }
 
-        Map<String, ColumnHandle> columnHandles = metadata.getColumnHandles(tableHandle.get());
-        if (!columnHandles.containsKey(statement.getSource())) {
-            throw new SemanticException(MISSING_COLUMN, statement, "Column '%s' does not exist", statement.getSource());
+        Map<String, ColumnHandle> columnHandles = metadata.getColumnHandles(session, tableHandle.get());
+        if (!columnHandles.containsKey(source)) {
+            throw new SemanticException(MISSING_COLUMN, statement, "Column '%s' does not exist", source);
         }
 
-        if (columnHandles.containsKey(statement.getTarget())) {
-            throw new SemanticException(COLUMN_ALREADY_EXISTS, statement, "Column '%s' already exists", statement.getTarget());
+        if (columnHandles.containsKey(target)) {
+            throw new SemanticException(COLUMN_ALREADY_EXISTS, statement, "Column '%s' already exists", target);
         }
-        metadata.renameColumn(tableHandle.get(), columnHandles.get(statement.getSource()), statement.getTarget());
+        metadata.renameColumn(session, tableHandle.get(), columnHandles.get(source), target);
     }
 }

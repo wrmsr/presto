@@ -103,7 +103,9 @@ public class TestStatementBuilder
         printStatement("show partitions from foo where name = 'foo'");
         printStatement("show partitions from foo order by x");
         printStatement("show partitions from foo limit 10");
+        printStatement("show partitions from foo limit all");
         printStatement("show partitions from foo order by x desc limit 10");
+        printStatement("show partitions from foo order by x desc limit all");
 
         printStatement("show functions");
 
@@ -124,7 +126,8 @@ public class TestStatementBuilder
 
         printStatement("select * from foo approximate at 90 confidence");
 
-        printStatement("create table foo as select * from abc");
+        printStatement("create table foo as (select * from abc)");
+        printStatement("create table foo with (a = 'apple', b = 'banana') as select * from abc");
         printStatement("drop table foo");
 
         printStatement("insert into foo select * from abc");
@@ -139,6 +142,9 @@ public class TestStatementBuilder
         printStatement("(table foo)");
         printStatement("(table foo) limit 10");
         printStatement("(table foo limit 5) limit 10");
+
+        printStatement("select * from a limit all");
+        printStatement("select * from a order by x limit all");
 
         printStatement("select * from a union select * from b");
         printStatement("table a union all table b");
@@ -159,6 +165,8 @@ public class TestStatementBuilder
         printStatement("alter table a.b.c rename column x to y");
 
         printStatement("create table test (a boolean, b bigint, c double, d varchar, e timestamp)");
+        printStatement("create table if not exists baz (a timestamp, b varchar)");
+        printStatement("create table test (a boolean, b bigint) with (a = 'apple', b = 'banana')");
         printStatement("drop table test");
 
         printStatement("create view foo as with a as (select 123) select * from a");

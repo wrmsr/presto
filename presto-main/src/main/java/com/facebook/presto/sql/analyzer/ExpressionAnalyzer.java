@@ -14,6 +14,8 @@
 package com.facebook.presto.sql.analyzer;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.security.AccessControl;
+import com.facebook.presto.security.DenyAllAccessControl;
 import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
@@ -100,6 +102,8 @@ import static com.facebook.presto.spi.type.TimestampWithTimeZoneType.TIMESTAMP_W
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.AMBIGUOUS_ATTRIBUTE;
+import static com.facebook.presto.sql.analyzer.SemanticErrorCode.EXPRESSION_NOT_CONSTANT;
+import static com.facebook.presto.sql.analyzer.SemanticErrorCode.INVALID_LITERAL;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MISSING_ATTRIBUTE;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MULTIPLE_FIELDS_FROM_SCALAR_SUBQUERY;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.NOT_SUPPORTED;
@@ -107,8 +111,10 @@ import static com.facebook.presto.sql.analyzer.SemanticErrorCode.TYPE_MISMATCH;
 import static com.facebook.presto.sql.tree.Extract.Field.TIMEZONE_HOUR;
 import static com.facebook.presto.sql.tree.Extract.Field.TIMEZONE_MINUTE;
 import static com.facebook.presto.type.ArrayParametricType.ARRAY;
+import static com.facebook.presto.type.JsonType.JSON;
 import static com.facebook.presto.type.RowType.RowField;
 import static com.facebook.presto.type.UnknownType.UNKNOWN;
+import static com.facebook.presto.util.DateTimeUtils.parseTimestampLiteral;
 import static com.facebook.presto.util.DateTimeUtils.timeHasTimeZone;
 import static com.facebook.presto.util.DateTimeUtils.timestampHasTimeZone;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
@@ -116,6 +122,7 @@ import static com.facebook.presto.util.Types.checkType;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newIdentityHashSet;
+import static java.util.Objects.requireNonNull;
 
 public class ExpressionAnalyzer
 {
@@ -128,12 +135,14 @@ public class ExpressionAnalyzer
     private final IdentityHashMap<Expression, Type> expressionCoercions = new IdentityHashMap<>();
     private final IdentityHashMap<Expression, Boolean> rowFieldReferences = new IdentityHashMap<>();
     private final Set<InPredicate> subqueryInPredicates = newIdentityHashSet();
+    private final Session session;
 
-    public ExpressionAnalyzer(FunctionRegistry functionRegistry, TypeManager typeManager, Function<Node, StatementAnalyzer> statementAnalyzerFactory)
+    public ExpressionAnalyzer(FunctionRegistry functionRegistry, TypeManager typeManager, Function<Node, StatementAnalyzer> statementAnalyzerFactory, Session session)
     {
         this.functionRegistry = checkNotNull(functionRegistry, "functionRegistry is null");
         this.typeManager = checkNotNull(typeManager, "typeManager is null");
         this.statementAnalyzerFactory = checkNotNull(statementAnalyzerFactory, "statementAnalyzerFactory is null");
+        this.session = requireNonNull(session, "session is null");
     }
 
     public Map<QualifiedName, Integer> getResolvedNames()
@@ -217,7 +226,7 @@ public class ExpressionAnalyzer
         @Override
         public Type process(Node node, @Nullable AnalysisContext context)
         {
-            // don't double processs a node
+            // don't double process a node
             Type type = expressionTypes.get(node);
             if (type != null) {
                 return type;
@@ -565,11 +574,13 @@ public class ExpressionAnalyzer
                 throw new SemanticException(TYPE_MISMATCH, node, "Unknown type: " + node.getType());
             }
 
-            try {
-                functionRegistry.getCoercion(VARCHAR, type);
-            }
-            catch (IllegalArgumentException e) {
-                throw new SemanticException(TYPE_MISMATCH, node, "No literal form for type %s", type);
+            if (!JSON.equals(type)) {
+                try {
+                    functionRegistry.getCoercion(VARCHAR, type);
+                }
+                catch (IllegalArgumentException e) {
+                    throw new SemanticException(TYPE_MISMATCH, node, "No literal form for type %s", type);
+                }
             }
 
             expressionTypes.put(node, type);
@@ -593,6 +604,13 @@ public class ExpressionAnalyzer
         @Override
         protected Type visitTimestampLiteral(TimestampLiteral node, AnalysisContext context)
         {
+            try {
+                parseTimestampLiteral(session.getTimeZoneKey(), node.getValue());
+            }
+            catch (Exception e) {
+                throw new SemanticException(INVALID_LITERAL, node, "'%s' is not a valid timestamp literal", node.getValue());
+            }
+
             Type type;
             if (timestampHasTimeZone(node.getValue())) {
                 type = TIMESTAMP_WITH_TIME_ZONE;
@@ -970,7 +988,7 @@ public class ExpressionAnalyzer
         return analyzeExpressions(session, metadata, sqlParser, new TupleDescriptor(fields), expressions);
     }
 
-    public static ExpressionAnalysis analyzeExpressionsWithInputs(
+    private static ExpressionAnalysis analyzeExpressionsWithInputs(
             Session session,
             Metadata metadata,
             SqlParser sqlParser,
@@ -993,7 +1011,9 @@ public class ExpressionAnalyzer
             TupleDescriptor tupleDescriptor,
             Iterable<? extends Expression> expressions)
     {
-        ExpressionAnalyzer analyzer = create(new Analysis(), session, metadata, sqlParser, false);
+        // expressions at this point can not have sub queries so deny all access checks
+        // in the future, we will need a full access controller here to verify access to functions
+        ExpressionAnalyzer analyzer = create(new Analysis(), session, metadata, sqlParser, new DenyAllAccessControl(), false);
         for (Expression expression : expressions) {
             analyzer.analyze(expression, tupleDescriptor, new AnalysisContext());
         }
@@ -1007,6 +1027,7 @@ public class ExpressionAnalyzer
     public static ExpressionAnalysis analyzeExpression(
             Session session,
             Metadata metadata,
+            AccessControl accessControl,
             SqlParser sqlParser,
             TupleDescriptor tupleDescriptor,
             Analysis analysis,
@@ -1014,7 +1035,7 @@ public class ExpressionAnalyzer
             AnalysisContext context,
             Expression expression)
     {
-        ExpressionAnalyzer analyzer = create(analysis, session, metadata, sqlParser, approximateQueriesEnabled);
+        ExpressionAnalyzer analyzer = create(analysis, session, metadata, sqlParser, accessControl, approximateQueriesEnabled);
         analyzer.analyze(expression, tupleDescriptor, context);
 
         IdentityHashMap<Expression, Type> expressionTypes = analyzer.getExpressionTypes();
@@ -1035,18 +1056,34 @@ public class ExpressionAnalyzer
         return new ExpressionAnalysis(expressionTypes, expressionCoercions, subqueryInPredicates);
     }
 
-    public static ExpressionAnalyzer create(Analysis analysis, Session session, Metadata metadata, SqlParser sqlParser, boolean experimentalSyntaxEnabled)
+    public static ExpressionAnalyzer create(
+            Analysis analysis,
+            Session session,
+            Metadata metadata,
+            SqlParser sqlParser,
+            AccessControl accessControl,
+            boolean experimentalSyntaxEnabled)
     {
         return new ExpressionAnalyzer(
                 metadata.getFunctionRegistry(),
                 metadata.getTypeManager(),
-                node -> new StatementAnalyzer(analysis, metadata, sqlParser, session, experimentalSyntaxEnabled, Optional.empty()));
+                node -> new StatementAnalyzer(analysis, metadata, sqlParser, accessControl, session, experimentalSyntaxEnabled, Optional.empty()),
+                session);
+    }
+    public static ExpressionAnalyzer createConstantAnalyzer(Metadata metadata, Session session)
+    {
+        return createWithoutSubqueries(
+                metadata.getFunctionRegistry(),
+                metadata.getTypeManager(),
+                session,
+                EXPRESSION_NOT_CONSTANT,
+                "Constant expression cannot contain a subquery");
     }
 
-    public static ExpressionAnalyzer createWithoutSubqueries(FunctionRegistry functionRegistry, TypeManager typeManager, SemanticErrorCode errorCode, String message)
+    public static ExpressionAnalyzer createWithoutSubqueries(FunctionRegistry functionRegistry, TypeManager typeManager, Session session, SemanticErrorCode errorCode, String message)
     {
         return new ExpressionAnalyzer(functionRegistry, typeManager, node -> {
             throw new SemanticException(errorCode, node, message);
-        });
+        }, session);
     }
 }

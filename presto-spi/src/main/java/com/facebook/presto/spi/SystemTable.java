@@ -13,14 +13,7 @@
  */
 package com.facebook.presto.spi;
 
-import com.facebook.presto.spi.type.Type;
-
-import java.util.List;
-
-import static java.util.stream.Collectors.toList;
-
 public interface SystemTable
-        extends RecordSet
 {
     /**
      * True if table is distributed across all nodes.
@@ -29,11 +22,11 @@ public interface SystemTable
 
     ConnectorTableMetadata getTableMetadata();
 
-    @Override
-    default List<Type> getColumnTypes()
-    {
-        return getTableMetadata().getColumns().stream()
-                .map(ColumnMetadata::getType)
-                .collect(toList());
-    }
+    /**
+     * Create a cursor for the data in this table.
+     *
+     * @param session the session to use for creating the data
+     * @param constraint the constraints for the table columns (indexed from 0)
+     */
+    RecordCursor cursor(ConnectorSession session, TupleDomain<Integer> constraint);
 }

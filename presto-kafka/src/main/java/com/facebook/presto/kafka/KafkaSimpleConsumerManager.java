@@ -25,7 +25,6 @@ import kafka.javaapi.consumer.SimpleConsumer;
 
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
-import javax.inject.Named;
 
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -44,17 +43,22 @@ public class KafkaSimpleConsumerManager
     private final LoadingCache<HostAddress, SimpleConsumer> consumerCache;
 
     private final String connectorId;
-    private final KafkaConnectorConfig kafkaConnectorConfig;
     private final NodeManager nodeManager;
+    private final int connectTimeoutMillis;
+    private final int bufferSizeBytes;
 
     @Inject
-    KafkaSimpleConsumerManager(@Named("connectorId") String connectorId,
+    public KafkaSimpleConsumerManager(
+            KafkaConnectorId connectorId,
             KafkaConnectorConfig kafkaConnectorConfig,
             NodeManager nodeManager)
     {
-        this.connectorId = checkNotNull(connectorId, "connectorId is null");
-        this.kafkaConnectorConfig = checkNotNull(kafkaConnectorConfig, "kafkaConfig is null");
+        this.connectorId = checkNotNull(connectorId, "connectorId is null").toString();
         this.nodeManager = checkNotNull(nodeManager, "nodeManager is null");
+
+        checkNotNull(kafkaConnectorConfig, "kafkaConfig is null");
+        this.connectTimeoutMillis = Ints.checkedCast(kafkaConnectorConfig.getKafkaConnectTimeout().toMillis());
+        this.bufferSizeBytes = Ints.checkedCast(kafkaConnectorConfig.getKafkaBufferSize().toBytes());
 
         this.consumerCache = CacheBuilder.newBuilder().build(new SimpleConsumerCacheLoader());
     }
@@ -93,8 +97,8 @@ public class KafkaSimpleConsumerManager
             log.info("Creating new Consumer for %s", host);
             return new SimpleConsumer(host.getHostText(),
                     host.getPort(),
-                    Ints.checkedCast(kafkaConnectorConfig.getKafkaConnectTimeout().toMillis()),
-                    Ints.checkedCast(kafkaConnectorConfig.getKafkaBufferSize().toBytes()),
+                    connectTimeoutMillis,
+                    bufferSizeBytes,
                     format("presto-kafka-%s-%s", connectorId, nodeManager.getCurrentNode().getNodeIdentifier()));
         }
     }

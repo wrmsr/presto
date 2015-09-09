@@ -33,6 +33,10 @@ General Aggregate Functions
 
     Returns ``TRUE`` if any input value is ``TRUE``, otherwise ``FALSE``.
 
+.. function:: checksum(x) -> varbinary
+
+    Returns an order-insensitive checksum of the given values.
+
 .. function:: count(*) -> bigint
 
     Returns the number of input rows.
@@ -73,9 +77,18 @@ General Aggregate Functions
 Map Aggregate Functions
 -----------------------
 
+.. function:: histogram(x) -> map<K,bigint>
+
+    Returns a map containing the count of the number of times each input value occurs.
+
 .. function:: map_agg(key, value) -> map<K,V>
 
     Returns a map created from the input ``key`` / ``value`` pairs.
+
+.. function:: multimap_agg(key, value) -> map<K,array<V>>
+
+    Returns a multimap created from the input ``key`` / ``value`` pairs.
+    Each key can be associated with multiple values.
 
 Approximate Aggregate Functions
 -------------------------------

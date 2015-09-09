@@ -31,6 +31,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.io.SymlinkTextInputFormat;
 import org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat;
@@ -67,6 +69,7 @@ import static com.facebook.presto.hive.HiveErrorCode.HIVE_CANNOT_OPEN_SPLIT;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_INVALID_METADATA;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_INVALID_PARTITION_VALUE;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_INVALID_VIEW_DATA;
+import static com.facebook.presto.hive.HiveErrorCode.HIVE_SERDE_NOT_FOUND;
 import static com.facebook.presto.hive.HivePartitionKey.HIVE_DEFAULT_DYNAMIC_PARTITION;
 import static com.facebook.presto.hive.HiveType.HIVE_BOOLEAN;
 import static com.facebook.presto.hive.HiveType.HIVE_BYTE;
@@ -95,6 +98,7 @@ import static java.lang.Long.parseLong;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.hadoop.hive.metastore.MetaStoreUtils.getTableMetadata;
+import static org.apache.hadoop.hive.metastore.Warehouse.makePartName;
 import static org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.FILE_INPUT_FORMAT;
 import static org.apache.hadoop.hive.serde.serdeConstants.SERIALIZATION_LIB;
 import static org.apache.hadoop.hive.serde2.ColumnProjectionUtils.READ_ALL_COLUMNS;
@@ -128,7 +132,7 @@ public final class HiveUtil
     {
     }
 
-    public static RecordReader<?, ?> createRecordReader(String clientId, Configuration configuration, Path path, long start, long length, Properties schema, List<HiveColumnHandle> columns, TypeManager typeManager)
+    public static RecordReader<?, ?> createRecordReader(Configuration configuration, Path path, long start, long length, Properties schema, List<HiveColumnHandle> columns)
     {
         // determine which hive columns we will read
         List<HiveColumnHandle> readColumns = ImmutableList.copyOf(filter(columns, not(HiveColumnHandle::isPartitionKey)));
@@ -137,16 +141,14 @@ public final class HiveUtil
         // Tell hive the columns we would like to read, this lets hive optimize reading column oriented files
         setReadColumns(configuration, readHiveColumnIndexes);
 
-        final InputFormat<?, ?> inputFormat = getInputFormat(configuration, schema, true);
-        final JobConf jobConf = new JobConf(configuration);
-        final FileSplit fileSplit = new FileSplit(path, start, length, (String[]) null);
+        InputFormat<?, ?> inputFormat = getInputFormat(configuration, schema, true);
+        JobConf jobConf = new JobConf(configuration);
+        FileSplit fileSplit = new FileSplit(path, start, length, (String[]) null);
 
         // propagate serialization configuration to getRecordReader
-        for (String name : schema.stringPropertyNames()) {
-            if (name.startsWith("serialization.")) {
-                jobConf.set(name, schema.getProperty(name));
-            }
-        }
+        schema.stringPropertyNames().stream()
+                .filter(name -> name.startsWith("serialization."))
+                .forEach(name -> jobConf.set(name, schema.getProperty(name)));
 
         try {
             return retry()
@@ -257,7 +259,7 @@ public final class HiveUtil
         return getTableObjectInspector(getDeserializer(schema));
     }
 
-    public static StructObjectInspector getTableObjectInspector(Deserializer deserializer)
+    public static StructObjectInspector getTableObjectInspector(@SuppressWarnings("deprecation") Deserializer deserializer)
     {
         try {
             ObjectInspector inspector = deserializer.getObjectInspector();
@@ -308,7 +310,7 @@ public final class HiveUtil
             return Class.forName(name, true, JavaUtils.getClassLoader()).asSubclass(Deserializer.class);
         }
         catch (ClassNotFoundException e) {
-            throw new RuntimeException("deserializer does not exist: " + name);
+            throw new PrestoException(HIVE_SERDE_NOT_FOUND, "deserializer does not exist: " + name);
         }
         catch (ClassCastException e) {
             throw new RuntimeException("invalid deserializer class: " + name);
@@ -330,7 +332,7 @@ public final class HiveUtil
     private static void initializeDeserializer(Deserializer deserializer, Properties schema)
     {
         try {
-            deserializer.initialize(null, schema);
+            deserializer.initialize(new Configuration(false), schema);
         }
         catch (SerDeException e) {
             throw new RuntimeException("error initializing deserializer: " + deserializer.getClass().getName());
@@ -539,6 +541,16 @@ public final class HiveUtil
         }
 
         return columns.build();
+    }
+
+    public static String createPartitionName(Partition partition, Table table)
+    {
+        try {
+            return makePartName(table.getPartitionKeys(), partition.getValues());
+        }
+        catch (MetaException e) {
+            throw new PrestoException(HIVE_INVALID_METADATA, e);
+        }
     }
 
     public static Slice base64Decode(byte[] bytes)

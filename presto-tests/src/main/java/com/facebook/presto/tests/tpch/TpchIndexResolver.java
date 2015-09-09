@@ -14,11 +14,12 @@
 package com.facebook.presto.tests.tpch;
 
 import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.spi.ConnectorIndex;
 import com.facebook.presto.spi.ConnectorIndexHandle;
 import com.facebook.presto.spi.ConnectorIndexResolver;
 import com.facebook.presto.spi.ConnectorResolvedIndex;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
-import com.facebook.presto.spi.ConnectorIndex;
 import com.facebook.presto.spi.RecordSet;
 import com.facebook.presto.spi.TupleDomain;
 import com.facebook.presto.spi.type.Type;
@@ -58,7 +59,11 @@ public class TpchIndexResolver
     }
 
     @Override
-    public ConnectorResolvedIndex resolveIndex(ConnectorTableHandle tableHandle, Set<ColumnHandle> indexableColumns, TupleDomain<ColumnHandle> tupleDomain)
+    public ConnectorResolvedIndex resolveIndex(
+            ConnectorSession session,
+            ConnectorTableHandle tableHandle,
+            Set<ColumnHandle> indexableColumns,
+            TupleDomain<ColumnHandle> tupleDomain)
     {
         TpchTableHandle tpchTableHandle = checkType(tableHandle, TpchTableHandle.class, "tableHandle");
 
@@ -85,7 +90,7 @@ public class TpchIndexResolver
     }
 
     @Override
-    public ConnectorIndex getIndex(ConnectorIndexHandle indexHandle, List<ColumnHandle> lookupSchema, List<ColumnHandle> outputSchema)
+    public ConnectorIndex getIndex(ConnectorSession session, ConnectorIndexHandle indexHandle, List<ColumnHandle> lookupSchema, List<ColumnHandle> outputSchema)
     {
         TpchIndexHandle tpchIndexHandle = checkType(indexHandle, TpchIndexHandle.class, "indexHandle");
 

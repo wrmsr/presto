@@ -14,9 +14,12 @@
 package com.facebook.presto.sql.analyzer;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.security.AccessControl;
+import com.facebook.presto.security.AllowAllAccessControl;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.MetadataUtil;
 import com.facebook.presto.metadata.QualifiedTableName;
+import com.facebook.presto.metadata.SessionPropertyManager.SessionPropertyValue;
 import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.SchemaTableName;
@@ -56,17 +59,13 @@ import com.facebook.presto.sql.tree.Values;
 import com.facebook.presto.sql.tree.With;
 import com.facebook.presto.sql.tree.WithQuery;
 import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 
 import static com.facebook.presto.connector.informationSchema.InformationSchemaMetadata.TABLE_COLUMNS;
 import static com.facebook.presto.connector.informationSchema.InformationSchemaMetadata.TABLE_INTERNAL_FUNCTIONS;
@@ -93,12 +92,14 @@ import static com.facebook.presto.sql.QueryUtil.subquery;
 import static com.facebook.presto.sql.QueryUtil.table;
 import static com.facebook.presto.sql.QueryUtil.unaliasedName;
 import static com.facebook.presto.sql.QueryUtil.values;
+import static com.facebook.presto.sql.analyzer.ExpressionAnalyzer.createConstantAnalyzer;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.COLUMN_NAME_NOT_SPECIFIED;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.DUPLICATE_COLUMN_NAME;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.DUPLICATE_RELATION;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.INVALID_ORDINAL;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.INVALID_SCHEMA_NAME;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MISMATCHED_SET_COLUMN_TYPES;
+import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MISSING_SCHEMA;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MISSING_TABLE;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.NOT_SUPPORTED;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.TABLE_ALREADY_EXISTS;
@@ -106,8 +107,10 @@ import static com.facebook.presto.sql.tree.BooleanLiteral.FALSE_LITERAL;
 import static com.facebook.presto.sql.tree.BooleanLiteral.TRUE_LITERAL;
 import static com.facebook.presto.sql.tree.ExplainFormat.Type.TEXT;
 import static com.facebook.presto.sql.tree.ExplainType.Type.LOGICAL;
+import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.Iterables.elementsEqual;
 import static com.google.common.collect.Iterables.transform;
 import static java.util.stream.Collectors.toList;
@@ -121,18 +124,20 @@ class StatementAnalyzer
     private final Optional<QueryExplainer> queryExplainer;
     private final boolean experimentalSyntaxEnabled;
     private final SqlParser sqlParser;
+    private final AccessControl accessControl;
 
     public StatementAnalyzer(
             Analysis analysis,
             Metadata metadata,
             SqlParser sqlParser,
-            Session session,
+            AccessControl accessControl, Session session,
             boolean experimentalSyntaxEnabled,
             Optional<QueryExplainer> queryExplainer)
     {
         this.analysis = checkNotNull(analysis, "analysis is null");
         this.metadata = checkNotNull(metadata, "metadata is null");
         this.sqlParser = checkNotNull(sqlParser, "sqlParser is null");
+        this.accessControl = checkNotNull(accessControl, "accessControl is null");
         this.session = checkNotNull(session, "session is null");
         this.experimentalSyntaxEnabled = experimentalSyntaxEnabled;
         this.queryExplainer = checkNotNull(queryExplainer, "queryExplainer is null");
@@ -156,7 +161,9 @@ class StatementAnalyzer
             schemaName = schema.get().getSuffix();
         }
 
-        // TODO: throw SemanticException if schema does not exist
+        if (!metadata.listSchemaNames(session, catalogName).contains(schemaName)) {
+            throw new SemanticException(MISSING_SCHEMA, showTables, "Schema '%s' does not exist", schemaName);
+        }
 
         Expression predicate = equal(nameReference("table_schema"), new StringLiteral(schemaName));
 
@@ -261,7 +268,7 @@ class StatementAnalyzer
         ImmutableList.Builder<SelectItem> selectList = ImmutableList.builder();
         ImmutableList.Builder<SelectItem> wrappedList = ImmutableList.builder();
         selectList.add(unaliasedName("partition_number"));
-        for (ColumnMetadata column : metadata.getTableMetadata(tableHandle.get()).getColumns()) {
+        for (ColumnMetadata column : metadata.getTableMetadata(session, tableHandle.get()).getColumns()) {
             if (!column.isPartitionKey()) {
                 continue;
             }
@@ -323,33 +330,34 @@ class StatementAnalyzer
     protected TupleDescriptor visitShowSession(ShowSession node, AnalysisContext context)
     {
         ImmutableList.Builder<Expression> rows = ImmutableList.builder();
-        for (Entry<String, String> property : new TreeMap<>(session.getSystemProperties()).entrySet()) {
+        List<SessionPropertyValue> sessionProperties = metadata.getSessionPropertyManager().getAllSessionProperties(session);
+        for (SessionPropertyValue sessionProperty : sessionProperties) {
+            String value = sessionProperty.getValue();
+            String defaultValue = sessionProperty.getDefaultValue();
             rows.add(row(
-                    new StringLiteral(property.getKey()),
-                    new StringLiteral(property.getValue()),
+                    new StringLiteral(sessionProperty.getFullyQualifiedName()),
+                    new StringLiteral(nullToEmpty(value)),
+                    new StringLiteral(nullToEmpty(defaultValue)),
+                    new StringLiteral(sessionProperty.getType()),
+                    new StringLiteral(sessionProperty.getDescription()),
                     TRUE_LITERAL));
-        }
-        for (Entry<String, Map<String, String>> entry : new TreeMap<>(session.getCatalogProperties()).entrySet()) {
-            String catalog = entry.getKey();
-            for (Entry<String, String> property : new TreeMap<>(entry.getValue()).entrySet()) {
-                rows.add(row(
-                        new StringLiteral(catalog + "." + property.getKey()),
-                        new StringLiteral(property.getValue()),
-                        TRUE_LITERAL));
-            }
         }
 
         // add bogus row so we can support empty sessions
-        rows.add(row(new StringLiteral(""), new StringLiteral(""), FALSE_LITERAL));
+        StringLiteral empty = new StringLiteral("");
+        rows.add(row(empty, empty, empty, empty, empty, FALSE_LITERAL));
 
         Query query = simpleQuery(
                 selectList(
                         aliasedName("name", "Name"),
-                        aliasedName("value", "Value")),
+                        aliasedName("value", "Value"),
+                        aliasedName("default", "Default"),
+                        aliasedName("type", "Type"),
+                        aliasedName("description", "Description")),
                 aliased(
                         new Values(rows.build()),
                         "session",
-                        ImmutableList.of("name", "value", "include")),
+                        ImmutableList.of("name", "value", "default", "type", "description", "include")),
                 nameReference("include"));
 
         return process(query, context);
@@ -358,23 +366,29 @@ class StatementAnalyzer
     @Override
     protected TupleDescriptor visitInsert(Insert insert, AnalysisContext context)
     {
+        QualifiedTableName targetTable = MetadataUtil.createQualifiedTableName(session, insert.getTarget());
+        if (metadata.getView(session, targetTable).isPresent()) {
+            throw new SemanticException(NOT_SUPPORTED, insert, "Inserting into views is not supported");
+        }
+
         analysis.setUpdateType("INSERT");
 
         // analyze the query that creates the data
         TupleDescriptor descriptor = process(insert.getQuery(), context);
 
         // verify the insert destination columns match the query
-        QualifiedTableName targetTable = MetadataUtil.createQualifiedTableName(session, insert.getTarget());
         Optional<TableHandle> targetTableHandle = metadata.getTableHandle(session, targetTable);
         if (!targetTableHandle.isPresent()) {
             throw new SemanticException(MISSING_TABLE, insert, "Table '%s' does not exist", targetTable);
         }
+        accessControl.checkCanInsertIntoTable(session.getIdentity(), targetTable);
         analysis.setInsertTarget(targetTableHandle.get());
 
-        List<ColumnMetadata> columns = metadata.getTableMetadata(targetTableHandle.get()).getColumns();
-        Iterable<Type> tableTypes = FluentIterable.from(columns)
+        List<ColumnMetadata> columns = metadata.getTableMetadata(session, targetTableHandle.get()).getColumns();
+        Iterable<Type> tableTypes = columns.stream()
                 .filter(column -> !column.isHidden())
-                .transform(ColumnMetadata::getType);
+                .map(ColumnMetadata::getType)
+                .collect(toImmutableList());
 
         Iterable<Type> queryTypes = transform(descriptor.getVisibleFields(), Field::getType);
 
@@ -390,13 +404,21 @@ class StatementAnalyzer
     @Override
     protected TupleDescriptor visitDelete(Delete node, AnalysisContext context)
     {
+        QualifiedTableName tableName = MetadataUtil.createQualifiedTableName(session, node.getTable().getName());
+        if (metadata.getView(session, tableName).isPresent()) {
+            throw new SemanticException(NOT_SUPPORTED, node, "Deleting from views is not supported");
+        }
+
         analysis.setUpdateType("DELETE");
 
         analysis.setDelete(node);
 
-        TupleAnalyzer analyzer = new TupleAnalyzer(analysis, session, metadata, sqlParser, experimentalSyntaxEnabled);
+        // Tuple analyzer checks for select permissions but DELETE has a separate permission, so disable access checks
+        TupleAnalyzer analyzer = new TupleAnalyzer(analysis, session, metadata, sqlParser, new AllowAllAccessControl(), experimentalSyntaxEnabled);
         TupleDescriptor descriptor = analyzer.process(node.getTable(), context);
         node.getWhere().ifPresent(where -> analyzer.analyzeWhere(node, descriptor, context, where));
+
+        accessControl.checkCanDeleteFromTable(session.getIdentity(), tableName);
 
         return new TupleDescriptor(Field.newUnqualified("rows", BIGINT));
     }
@@ -410,10 +432,18 @@ class StatementAnalyzer
         QualifiedTableName targetTable = MetadataUtil.createQualifiedTableName(session, node.getName());
         analysis.setCreateTableDestination(targetTable);
 
+        for (Expression expression : node.getProperties().values()) {
+            // analyze table property value expressions which must be constant
+            createConstantAnalyzer(metadata, session)
+                    .analyze(expression, new TupleDescriptor(), context);
+        }
+        analysis.setCreateTableProperties(node.getProperties());
+
         Optional<TableHandle> targetTableHandle = metadata.getTableHandle(session, targetTable);
         if (targetTableHandle.isPresent()) {
             throw new SemanticException(TABLE_ALREADY_EXISTS, node, "Destination table '%s' already exists", targetTable);
         }
+        accessControl.checkCanCreateTable(session.getIdentity(), targetTable);
 
         // analyze the query that creates the table
         TupleDescriptor descriptor = process(node.getQuery(), context);
@@ -430,6 +460,9 @@ class StatementAnalyzer
 
         // analyze the query that creates the view
         TupleDescriptor descriptor = process(node.getQuery(), context);
+
+        QualifiedTableName viewName = MetadataUtil.createQualifiedTableName(session, node.getName());
+        accessControl.checkCanCreateView(session.getIdentity(), viewName);
 
         validateColumnNames(node, descriptor);
 
@@ -492,12 +525,12 @@ class StatementAnalyzer
     {
         switch (planFormat) {
             case GRAPHVIZ:
-                return queryExplainer.get().getGraphvizPlan(node.getStatement(), planType);
+                return queryExplainer.get().getGraphvizPlan(session, node.getStatement(), planType);
             case TEXT:
-                return queryExplainer.get().getPlan(node.getStatement(), planType);
+                return queryExplainer.get().getPlan(session, node.getStatement(), planType);
             case JSON:
                 // ignore planType if planFormat is JSON
-                return queryExplainer.get().getJsonPlan(node.getStatement());
+                return queryExplainer.get().getJsonPlan(session, node.getStatement());
         }
         throw new IllegalArgumentException("Invalid Explain Format: " + planFormat.toString());
     }
@@ -516,7 +549,7 @@ class StatementAnalyzer
 
         analyzeWith(node, context);
 
-        TupleAnalyzer analyzer = new TupleAnalyzer(analysis, session, metadata, sqlParser, experimentalSyntaxEnabled);
+        TupleAnalyzer analyzer = new TupleAnalyzer(analysis, session, metadata, sqlParser, accessControl, experimentalSyntaxEnabled);
         TupleDescriptor descriptor = analyzer.process(node.getQueryBody(), context);
         analyzeOrderBy(node, descriptor, context);
 
@@ -592,7 +625,7 @@ class StatementAnalyzer
                     orderByField = new FieldOrExpression(expression);
                     ExpressionAnalysis expressionAnalysis = ExpressionAnalyzer.analyzeExpression(session,
                             metadata,
-                            sqlParser,
+                            accessControl, sqlParser,
                             tupleDescriptor,
                             analysis,
                             experimentalSyntaxEnabled,

@@ -13,7 +13,6 @@
  */
 package com.facebook.presto.operator;
 
-import com.facebook.presto.ExceededMemoryLimitException;
 import com.facebook.presto.Session;
 import com.facebook.presto.execution.StateMachine.StateChangeListener;
 import com.facebook.presto.execution.TaskId;
@@ -52,10 +51,10 @@ public class TaskContext
     private final Executor executor;
     private final Session session;
 
-    private final long maxMemory;
     private final DataSize operatorPreAllocatedMemory;
 
     private final AtomicLong memoryReservation = new AtomicLong();
+    private final AtomicLong systemMemoryReservation = new AtomicLong();
 
     private final long createNanos = System.nanoTime();
 
@@ -75,7 +74,6 @@ public class TaskContext
             TaskStateMachine taskStateMachine,
             Executor executor,
             Session session,
-            DataSize maxMemory,
             DataSize operatorPreAllocatedMemory,
             boolean verboseStats,
             boolean cpuTimerEnabled)
@@ -84,7 +82,6 @@ public class TaskContext
         this.queryContext = requireNonNull(queryContext, "queryContext is null");
         this.executor = checkNotNull(executor, "executor is null");
         this.session = session;
-        this.maxMemory = checkNotNull(maxMemory, "maxMemory is null").toBytes();
         this.operatorPreAllocatedMemory = checkNotNull(operatorPreAllocatedMemory, "operatorPreAllocatedMemory is null");
 
         taskStateMachine.addStateChangeListener(new StateChangeListener<TaskState>()
@@ -145,11 +142,6 @@ public class TaskContext
         return taskStateMachine.getState();
     }
 
-    public DataSize getMaxMemorySize()
-    {
-        return new DataSize(maxMemory, BYTE).convertToMostSuccinctDataSize();
-    }
-
     public DataSize getOperatorPreAllocatedMemory()
     {
         return operatorPreAllocatedMemory;
@@ -159,11 +151,16 @@ public class TaskContext
     {
         checkArgument(bytes >= 0, "bytes is negative");
 
-        if (memoryReservation.get() + bytes > maxMemory) {
-            throw new ExceededMemoryLimitException(getMaxMemorySize());
-        }
         ListenableFuture<?> future = queryContext.reserveMemory(bytes);
         memoryReservation.getAndAdd(bytes);
+        return future;
+    }
+
+    public synchronized ListenableFuture<?> reserveSystemMemory(long bytes)
+    {
+        checkArgument(bytes >= 0, "bytes is negative");
+        ListenableFuture<?> future = queryContext.reserveSystemMemory(bytes);
+        systemMemoryReservation.getAndAdd(bytes);
         return future;
     }
 
@@ -171,9 +168,6 @@ public class TaskContext
     {
         checkArgument(bytes >= 0, "bytes is negative");
 
-        if (memoryReservation.get() + bytes > maxMemory) {
-            return false;
-        }
         if (queryContext.tryReserveMemory(bytes)) {
             memoryReservation.getAndAdd(bytes);
             return true;
@@ -187,6 +181,14 @@ public class TaskContext
         checkArgument(bytes <= memoryReservation.get(), "tried to free more memory than is reserved");
         memoryReservation.getAndAdd(-bytes);
         queryContext.freeMemory(bytes);
+    }
+
+    public synchronized void freeSystemMemory(long bytes)
+    {
+        checkArgument(bytes >= 0, "bytes is negative");
+        checkArgument(bytes <= systemMemoryReservation.get(), "tried to free more memory than is reserved");
+        systemMemoryReservation.getAndAdd(-bytes);
+        queryContext.freeSystemMemory(bytes);
     }
 
     public void moreMemoryAvailable()
@@ -345,6 +347,7 @@ public class TaskContext
                 runningPartitionedDrivers,
                 completedDrivers,
                 new DataSize(memoryReservation.get(), BYTE).convertToMostSuccinctDataSize(),
+                new DataSize(systemMemoryReservation.get(), BYTE).convertToMostSuccinctDataSize(),
                 new Duration(totalScheduledTime, NANOSECONDS).convertToMostSuccinctTimeUnit(),
                 new Duration(totalCpuTime, NANOSECONDS).convertToMostSuccinctTimeUnit(),
                 new Duration(totalUserTime, NANOSECONDS).convertToMostSuccinctTimeUnit(),

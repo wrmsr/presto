@@ -30,9 +30,10 @@ statement
     : query                                                            #statementDefault
     | USE schema=identifier                                            #use
     | USE catalog=identifier '.' schema=identifier                     #use
-    | CREATE TABLE qualifiedName AS query                              #createTableAsSelect
-    | CREATE TABLE qualifiedName
-        '(' tableElement (',' tableElement)* ')'                       #createTable
+    | CREATE TABLE qualifiedName (WITH tableProperties)? AS query      #createTableAsSelect
+    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
+        '(' tableElement (',' tableElement)* ')'
+        (WITH tableProperties)?                                        #createTable
     | DROP TABLE (IF EXISTS)? qualifiedName                            #dropTable
     | INSERT INTO qualifiedName query                                  #insertInto
     | DELETE FROM qualifiedName (WHERE booleanExpression)?             #delete
@@ -50,12 +51,12 @@ statement
     | DESC qualifiedName                                               #showColumns
     | SHOW FUNCTIONS                                                   #showFunctions
     | SHOW SESSION                                                     #showSession
-    | SET SESSION qualifiedName EQ STRING                              #setSession
+    | SET SESSION qualifiedName EQ expression                          #setSession
     | RESET SESSION qualifiedName                                      #resetSession
     | SHOW PARTITIONS (FROM | IN) qualifiedName
         (WHERE booleanExpression)?
         (ORDER BY sortItem (',' sortItem)*)?
-        (LIMIT limit=INTEGER_VALUE)?                                   #showPartitions
+        (LIMIT limit=(INTEGER_VALUE | ALL))?                           #showPartitions
     ;
 
 query
@@ -70,10 +71,18 @@ tableElement
     : identifier type
     ;
 
+tableProperties
+    : '(' tableProperty (',' tableProperty)* ')'
+    ;
+
+tableProperty
+    : identifier EQ expression
+    ;
+
 queryNoWith:
       queryTerm
       (ORDER BY sortItem (',' sortItem)*)?
-      (LIMIT limit=INTEGER_VALUE)?
+      (LIMIT limit=(INTEGER_VALUE | ALL))?
       (APPROXIMATE AT confidence=number CONFIDENCE)?
     ;
 
@@ -231,7 +240,9 @@ primaryExpression
     | name=LOCALTIME ('(' precision=INTEGER_VALUE ')')?                              #specialDateTimeFunction
     | name=LOCALTIMESTAMP ('(' precision=INTEGER_VALUE ')')?                         #specialDateTimeFunction
     | SUBSTRING '(' valueExpression FROM valueExpression (FOR valueExpression)? ')'  #substring
+    | NORMALIZE '(' valueExpression (',' normalForm)? ')'                            #normalize
     | EXTRACT '(' identifier FROM valueExpression ')'                                #extract
+    | POSITION '(' valueExpression IN valueExpression ')'                            #position
     | '(' expression ')'                                                             #parenthesizedExpression
     ;
 
@@ -333,6 +344,12 @@ nonReserved
     | SET | RESET
     | VIEW | REPLACE
     | IF | NULLIF | COALESCE
+    | normalForm
+    | POSITION
+    ;
+
+normalForm
+    : NFD | NFC | NFKD | NFKC
     ;
 
 SELECT: 'SELECT';
@@ -369,6 +386,7 @@ ESCAPE: 'ESCAPE';
 ASC: 'ASC';
 DESC: 'DESC';
 SUBSTRING: 'SUBSTRING';
+POSITION: 'POSITION';
 FOR: 'FOR';
 DATE: 'DATE';
 TIME: 'TIME';
@@ -463,6 +481,12 @@ SET: 'SET';
 RESET: 'RESET';
 SESSION: 'SESSION';
 
+NORMALIZE: 'NORMALIZE';
+NFD : 'NFD';
+NFC : 'NFC';
+NFKD : 'NFKD';
+NFKC : 'NFKC';
+
 IF: 'IF';
 NULLIF: 'NULLIF';
 COALESCE: 'COALESCE';
@@ -548,5 +572,5 @@ WS
 // We use this to be able to ignore and recover all the text
 // when splitting statements with DelimiterLexer
 UNRECOGNIZED
-    : .+?
+    : .
     ;

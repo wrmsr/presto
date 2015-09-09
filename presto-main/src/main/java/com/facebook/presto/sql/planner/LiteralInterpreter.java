@@ -13,12 +13,14 @@
  */
 package com.facebook.presto.sql.planner;
 
+import com.facebook.presto.block.BlockSerdeUtil;
 import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.operator.scalar.VarbinaryFunctions;
 import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.ArithmeticUnaryExpression;
@@ -39,7 +41,10 @@ import com.facebook.presto.sql.tree.TimeLiteral;
 import com.facebook.presto.sql.tree.TimestampLiteral;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.Primitives;
+import io.airlift.slice.DynamicSliceOutput;
 import io.airlift.slice.Slice;
+import io.airlift.slice.SliceOutput;
 
 import java.util.List;
 
@@ -48,11 +53,13 @@ import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
+import static com.facebook.presto.sql.analyzer.SemanticErrorCode.INVALID_LITERAL;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.TYPE_MISMATCH;
+import static com.facebook.presto.type.JsonType.JSON;
 import static com.facebook.presto.type.UnknownType.UNKNOWN;
 import static com.facebook.presto.util.DateTimeUtils.parseDayTimeInterval;
 import static com.facebook.presto.util.DateTimeUtils.parseTime;
-import static com.facebook.presto.util.DateTimeUtils.parseTimestamp;
+import static com.facebook.presto.util.DateTimeUtils.parseTimestampLiteral;
 import static com.facebook.presto.util.DateTimeUtils.parseYearMonthInterval;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -88,6 +95,8 @@ public final class LiteralInterpreter
 
     public static Expression toExpression(Object object, Type type)
     {
+        checkNotNull(type, "type is null");
+
         if (object instanceof Expression) {
             return (Expression) object;
         }
@@ -98,6 +107,8 @@ public final class LiteralInterpreter
             }
             return new Cast(new NullLiteral(), type.getTypeSignature().toString());
         }
+
+        checkArgument(Primitives.wrap(type.getJavaType()).isInstance(object), "object.getClass (%s) and type.getJavaType (%s) do not agree", object.getClass(), type.getJavaType());
 
         if (type.equals(BIGINT)) {
             return new LongLiteral(object.toString());
@@ -129,10 +140,19 @@ public final class LiteralInterpreter
             if (object instanceof String) {
                 return new StringLiteral((String) object);
             }
+
+            throw new IllegalArgumentException("object must be instance of Slice or String when type is VARCHAR");
         }
 
         if (type.equals(BOOLEAN)) {
             return new BooleanLiteral(object.toString());
+        }
+
+        if (object instanceof Block) {
+            SliceOutput output = new DynamicSliceOutput(((Block) object).getSizeInBytes());
+            BlockSerdeUtil.writeBlock(output, (Block) object);
+            object = output.slice();
+            // This if condition will evaluate to true: object instanceof Slice && !type.equals(VARCHAR)
         }
 
         if (object instanceof Slice && !type.equals(VARCHAR)) {
@@ -145,7 +165,7 @@ public final class LiteralInterpreter
         }
 
         Signature signature = FunctionRegistry.getMagicLiteralFunctionSignature(type);
-        Expression rawLiteral = toExpression(object, FunctionRegistry.type(type.getJavaType()));
+        Expression rawLiteral = toExpression(object, FunctionRegistry.typeForMagicLiteral(type));
 
         return new FunctionCall(new QualifiedName(signature.getName()), ImmutableList.of(rawLiteral));
     }
@@ -198,6 +218,16 @@ public final class LiteralInterpreter
                 throw new SemanticException(TYPE_MISMATCH, node, "Unknown type: " + node.getType());
             }
 
+            if (JSON.equals(type)) {
+                FunctionInfo operator = metadata.getFunctionRegistry().getExactFunction(new Signature("json_parse", JSON.getTypeSignature(), VARCHAR.getTypeSignature()));
+                try {
+                    return ExpressionInterpreter.invoke(session, operator.getMethodHandle(), ImmutableList.<Object>of(utf8Slice(node.getValue())));
+                }
+                catch (Throwable throwable) {
+                    throw Throwables.propagate(throwable);
+                }
+            }
+
             FunctionInfo operator;
             try {
                 operator = metadata.getFunctionRegistry().getCoercion(VARCHAR, type);
@@ -222,7 +252,12 @@ public final class LiteralInterpreter
         @Override
         protected Long visitTimestampLiteral(TimestampLiteral node, ConnectorSession session)
         {
-            return parseTimestamp(session.getTimeZoneKey(), node.getValue());
+            try {
+                return parseTimestampLiteral(session.getTimeZoneKey(), node.getValue());
+            }
+            catch (Exception e) {
+                throw new SemanticException(INVALID_LITERAL, node, "'%s' is not a valid timestamp literal", node.getValue());
+            }
         }
 
         @Override

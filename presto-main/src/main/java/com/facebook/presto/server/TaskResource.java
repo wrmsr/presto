@@ -13,17 +13,16 @@
  */
 package com.facebook.presto.server;
 
+import com.facebook.presto.Session;
 import com.facebook.presto.execution.BufferResult;
 import com.facebook.presto.execution.TaskId;
 import com.facebook.presto.execution.TaskInfo;
 import com.facebook.presto.execution.TaskManager;
 import com.facebook.presto.execution.TaskState;
+import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.spi.Page;
-import com.facebook.presto.util.MoreFutures;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.airlift.units.DataSize;
 import io.airlift.units.DataSize.Unit;
 import io.airlift.units.Duration;
@@ -49,6 +48,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static com.facebook.presto.PrestoMediaTypes.PRESTO_PAGES;
@@ -58,6 +58,7 @@ import static com.facebook.presto.client.PrestoHeaders.PRESTO_PAGE_NEXT_TOKEN;
 import static com.facebook.presto.client.PrestoHeaders.PRESTO_PAGE_TOKEN;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
+import static io.airlift.concurrent.MoreFutures.addTimeout;
 import static io.airlift.http.server.AsyncResponseHandler.bindAsyncResponse;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -72,12 +73,16 @@ public class TaskResource
     private static final Duration DEFAULT_MAX_WAIT_TIME = new Duration(1, SECONDS);
 
     private final TaskManager taskManager;
+    private final SessionPropertyManager sessionPropertyManager;
     private final ScheduledExecutorService executor;
 
     @Inject
-    public TaskResource(TaskManager taskManager, @ForAsyncHttpResponse ScheduledExecutorService executor)
+    public TaskResource(TaskManager taskManager,
+            SessionPropertyManager sessionPropertyManager,
+            @ForAsyncHttpResponse ScheduledExecutorService executor)
     {
         this.taskManager = checkNotNull(taskManager, "taskManager is null");
+        this.sessionPropertyManager = checkNotNull(sessionPropertyManager, "sessionPropertyManager is null");
         this.executor = checkNotNull(executor, "executor is null");
     }
 
@@ -100,7 +105,8 @@ public class TaskResource
     {
         checkNotNull(taskUpdateRequest, "taskUpdateRequest is null");
 
-        TaskInfo taskInfo = taskManager.updateTask(taskUpdateRequest.getSession(),
+        Session session = taskUpdateRequest.getSession().toSession(sessionPropertyManager);
+        TaskInfo taskInfo = taskManager.updateTask(session,
                 taskId,
                 taskUpdateRequest.getFragment(),
                 taskUpdateRequest.getSources(),
@@ -133,14 +139,14 @@ public class TaskResource
             return;
         }
 
-        ListenableFuture<TaskInfo> futureTaskInfo = MoreFutures.addTimeout(
+        CompletableFuture<TaskInfo> futureTaskInfo = addTimeout(
                 taskManager.getTaskInfo(taskId, currentState),
                 () -> taskManager.getTaskInfo(taskId),
                 maxWait,
                 executor);
 
         if (shouldSummarize(uriInfo)) {
-            futureTaskInfo = Futures.transform(futureTaskInfo, TaskInfo::summarize);
+            futureTaskInfo = futureTaskInfo.thenApply(TaskInfo::summarize);
         }
 
         // For hard timeout, add an additional 5 seconds to max wait for thread scheduling contention and GC
@@ -184,14 +190,14 @@ public class TaskResource
         checkNotNull(taskId, "taskId is null");
         checkNotNull(outputId, "outputId is null");
 
-        ListenableFuture<BufferResult> bufferResultFuture = taskManager.getTaskResults(taskId, outputId, token, DEFAULT_MAX_SIZE);
-        bufferResultFuture = MoreFutures.addTimeout(
+        CompletableFuture<BufferResult> bufferResultFuture = taskManager.getTaskResults(taskId, outputId, token, DEFAULT_MAX_SIZE);
+        bufferResultFuture = addTimeout(
                 bufferResultFuture,
                 () -> BufferResult.emptyResults(token, false),
                 DEFAULT_MAX_WAIT_TIME,
                 executor);
 
-        ListenableFuture<Response> responseFuture = Futures.transform(bufferResultFuture, (BufferResult result) -> {
+        CompletableFuture<Response> responseFuture = bufferResultFuture.thenApply(result -> {
             List<Page> pages = result.getPages();
 
             GenericEntity<?> entity = null;

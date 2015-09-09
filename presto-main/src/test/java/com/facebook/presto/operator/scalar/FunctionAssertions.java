@@ -529,7 +529,8 @@ public final class FunctionAssertions
         filter = ExpressionTreeRewriter.rewriteWith(new SymbolToInputRewriter(INPUT_MAPPING), filter);
         projection = ExpressionTreeRewriter.rewriteWith(new SymbolToInputRewriter(INPUT_MAPPING), projection);
 
-        IdentityHashMap<Expression, Type> expressionTypes = getExpressionTypesFromInput(TEST_SESSION, metadata, SQL_PARSER, INPUT_TYPES, ImmutableList.of(filter, projection));
+        IdentityHashMap<Expression, Type> expressionTypes = getExpressionTypesFromInput(TEST_SESSION, metadata,
+                SQL_PARSER, INPUT_TYPES, ImmutableList.of(filter, projection));
 
         try {
             List<RowExpression> projections = ImmutableList.of(toRowExpression(projection, expressionTypes));
@@ -550,7 +551,8 @@ public final class FunctionAssertions
         filter = ExpressionTreeRewriter.rewriteWith(new SymbolToInputRewriter(INPUT_MAPPING), filter);
         projection = ExpressionTreeRewriter.rewriteWith(new SymbolToInputRewriter(INPUT_MAPPING), projection);
 
-        IdentityHashMap<Expression, Type> expressionTypes = getExpressionTypesFromInput(TEST_SESSION, metadata, SQL_PARSER, INPUT_TYPES, ImmutableList.of(filter, projection));
+        IdentityHashMap<Expression, Type> expressionTypes = getExpressionTypesFromInput(TEST_SESSION, metadata,
+                SQL_PARSER, INPUT_TYPES, ImmutableList.of(filter, projection));
 
         try {
             CursorProcessor cursorProcessor = compiler.compileCursorProcessor(
@@ -630,7 +632,7 @@ public final class FunctionAssertions
             implements PageSourceProvider
     {
         @Override
-        public ConnectorPageSource createPageSource(Split split, List<ColumnHandle> columns)
+        public ConnectorPageSource createPageSource(Session session, Split split, List<ColumnHandle> columns)
         {
             assertInstanceOf(split.getConnectorSplit(), FunctionAssertions.TestSplit.class);
             FunctionAssertions.TestSplit testSplit = (FunctionAssertions.TestSplit) split.getConnectorSplit();

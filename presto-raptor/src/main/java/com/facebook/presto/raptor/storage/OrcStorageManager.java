@@ -23,6 +23,8 @@ import com.facebook.presto.orc.TupleDomainOrcPredicate.ColumnReference;
 import com.facebook.presto.orc.metadata.OrcMetadataReader;
 import com.facebook.presto.orc.metadata.OrcType;
 import com.facebook.presto.raptor.RaptorColumnHandle;
+import com.facebook.presto.raptor.RaptorConnectorId;
+import com.facebook.presto.raptor.backup.BackupManager;
 import com.facebook.presto.raptor.backup.BackupStore;
 import com.facebook.presto.raptor.metadata.ColumnInfo;
 import com.facebook.presto.raptor.metadata.ColumnStats;
@@ -30,25 +32,27 @@ import com.facebook.presto.raptor.metadata.ShardDelta;
 import com.facebook.presto.raptor.metadata.ShardInfo;
 import com.facebook.presto.raptor.storage.OrcFileRewriter.OrcFileInfo;
 import com.facebook.presto.raptor.util.CurrentNodeId;
-import com.facebook.presto.raptor.util.PageBuffer;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.TupleDomain;
+import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.spi.type.TypeSignature;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.airlift.concurrent.MoreFutures;
 import io.airlift.json.JsonCodec;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
-import org.weakref.jmx.Flatten;
-import org.weakref.jmx.Managed;
 
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import java.io.File;
@@ -62,7 +66,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -78,10 +84,13 @@ import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static io.airlift.units.DataSize.Unit.BYTE;
-import static io.airlift.units.Duration.nanosSince;
+import static io.airlift.concurrent.MoreFutures.getFutureValue;
+import static io.airlift.concurrent.Threads.daemonThreadsNamed;
 import static java.lang.Math.min;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
+import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.CompletableFuture.supplyAsync;
+import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.joda.time.DateTimeZone.UTC;
 
 public class OrcStorageManager
@@ -96,12 +105,13 @@ public class OrcStorageManager
     private final DataSize orcMaxMergeDistance;
     private final DataSize orcMaxReadSize;
     private final DataSize orcStreamBufferSize;
+    private final BackupManager backupManager;
     private final ShardRecoveryManager recoveryManager;
     private final Duration recoveryTimeout;
     private final long maxShardRows;
     private final DataSize maxShardSize;
-    private final DataSize maxBufferSize;
-    private final StorageManagerStats stats;
+    private final TypeManager typeManager;
+    private final ExecutorService deletionExecutor;
 
     @Inject
     public OrcStorageManager(
@@ -110,7 +120,10 @@ public class OrcStorageManager
             Optional<BackupStore> backupStore,
             JsonCodec<ShardDelta> shardDeltaCodec,
             StorageManagerConfig config,
-            ShardRecoveryManager recoveryManager)
+            RaptorConnectorId connectorId,
+            BackupManager backgroundBackupManager,
+            ShardRecoveryManager recoveryManager,
+            TypeManager typeManager)
     {
         this(currentNodeId.toString(),
                 storageService,
@@ -119,11 +132,14 @@ public class OrcStorageManager
                 config.getOrcMaxMergeDistance(),
                 config.getOrcMaxReadSize(),
                 config.getOrcStreamBufferSize(),
+                backgroundBackupManager,
                 recoveryManager,
+                typeManager,
+                connectorId.toString(),
+                config.getDeletionThreads(),
                 config.getShardRecoveryTimeout(),
                 config.getMaxShardRows(),
-                config.getMaxShardSize(),
-                config.getMaxBufferSize());
+                config.getMaxShardSize());
     }
 
     public OrcStorageManager(
@@ -134,11 +150,14 @@ public class OrcStorageManager
             DataSize orcMaxMergeDistance,
             DataSize orcMaxReadSize,
             DataSize orcStreamBufferSize,
+            BackupManager backgroundBackupManager,
             ShardRecoveryManager recoveryManager,
+            TypeManager typeManager,
+            String connectorId,
+            int deletionThreads,
             Duration shardRecoveryTimeout,
             long maxShardRows,
-            DataSize maxShardSize,
-            DataSize maxBufferSize)
+            DataSize maxShardSize)
     {
         this.nodeId = checkNotNull(nodeId, "nodeId is null");
         this.storageService = checkNotNull(storageService, "storageService is null");
@@ -148,14 +167,21 @@ public class OrcStorageManager
         this.orcMaxReadSize = checkNotNull(orcMaxReadSize, "orcMaxReadSize is null");
         this.orcStreamBufferSize = checkNotNull(orcStreamBufferSize, "orcStreamBufferSize is null");
 
+        backupManager = requireNonNull(backgroundBackupManager, "backgroundBackupManager is null");
         this.recoveryManager = checkNotNull(recoveryManager, "recoveryManager is null");
         this.recoveryTimeout = checkNotNull(shardRecoveryTimeout, "shardRecoveryTimeout is null");
 
         checkArgument(maxShardRows > 0, "maxShardRows must be > 0");
         this.maxShardRows = min(maxShardRows, MAX_ROWS);
         this.maxShardSize = checkNotNull(maxShardSize, "maxShardSize is null");
-        this.maxBufferSize = checkNotNull(maxBufferSize, "maxBufferSize is null");
-        this.stats = new StorageManagerStats();
+        this.typeManager = requireNonNull(typeManager, "typeManager is null");
+        this.deletionExecutor = newFixedThreadPool(deletionThreads, daemonThreadsNamed("raptor-delete-" + connectorId + "-%s"));
+    }
+
+    @PreDestroy
+    public void shutdown()
+    {
+        deletionExecutor.shutdownNow();
     }
 
     @Override
@@ -190,7 +216,7 @@ public class OrcStorageManager
 
             OrcRecordReader recordReader = reader.createRecordReader(includedColumns.build(), predicate, UTC);
 
-            ShardRewriter shardRewriter = rowsToDelete -> rewriteShard(shardUuid, rowsToDelete);
+            ShardRewriter shardRewriter = rowsToDelete -> supplyAsync(() -> rewriteShard(shardUuid, rowsToDelete), deletionExecutor);
 
             return new OrcPageSource(shardRewriter, recordReader, dataSource, columnIds, columnTypes, columnIndexes.build());
         }
@@ -213,6 +239,10 @@ public class OrcStorageManager
 
     private void writeShard(UUID shardUuid)
     {
+        if (backupStore.isPresent() && !backupExists(shardUuid)) {
+            throw new PrestoException(RAPTOR_ERROR, "Backup does not exist after write");
+        }
+
         File stagingFile = storageService.getStagingFile(shardUuid);
         File storageFile = storageService.getStorageFile(shardUuid);
 
@@ -224,31 +254,6 @@ public class OrcStorageManager
         catch (IOException e) {
             throw new PrestoException(RAPTOR_ERROR, "Failed to move shard file", e);
         }
-
-        if (isBackupAvailable()) {
-            long start = System.nanoTime();
-            backupStore.get().backupShard(shardUuid, storageFile);
-            stats.addCopyShardDataRate(new DataSize(storageFile.length(), BYTE), nanosSince(start));
-        }
-    }
-
-    @Override
-    public PageBuffer createPageBuffer()
-    {
-        return new PageBuffer(maxBufferSize.toBytes(), Integer.MAX_VALUE);
-    }
-
-    @Override
-    public boolean isBackupAvailable()
-    {
-        return backupStore.isPresent();
-    }
-
-    @Managed
-    @Flatten
-    public StorageManagerStats getStats()
-    {
-        return stats;
     }
 
     @VisibleForTesting
@@ -307,7 +312,8 @@ public class OrcStorageManager
         }
     }
 
-    private Collection<Slice> rewriteShard(UUID shardUuid, BitSet rowsToDelete)
+    @VisibleForTesting
+    Collection<Slice> rewriteShard(UUID shardUuid, BitSet rowsToDelete)
     {
         if (rowsToDelete.isEmpty()) {
             return ImmutableList.of();
@@ -323,6 +329,9 @@ public class OrcStorageManager
         if (rowCount == 0) {
             return shardDelta(shardUuid, Optional.empty());
         }
+
+        // submit for backup and wait until it finishes
+        getFutureValue(backupManager.submit(newShardUuid, output));
 
         Set<String> nodes = ImmutableSet.of(nodeId);
         long uncompressedSize = info.getUncompressedSize();
@@ -351,27 +360,27 @@ public class OrcStorageManager
         }
     }
 
-    private static List<ColumnInfo> getColumnInfo(OrcReader reader)
+    private List<ColumnInfo> getColumnInfo(OrcReader reader)
     {
         // TODO: These should be stored as proper metadata.
         // XXX: Relying on ORC types will not work when more Presto types are supported.
 
         List<String> names = reader.getColumnNames();
-        List<OrcType> types = reader.getFooter().getTypes();
-        types = types.subList(1, types.size()); // skip struct
-        if (names.size() != types.size()) {
+        Type rowType = getType(reader.getFooter().getTypes(), 0);
+        if (names.size() != rowType.getTypeParameters().size()) {
             throw new PrestoException(RAPTOR_ERROR, "Column names and types do not match");
         }
 
         ImmutableList.Builder<ColumnInfo> list = ImmutableList.builder();
         for (int i = 0; i < names.size(); i++) {
-            list.add(new ColumnInfo(Long.parseLong(names.get(i)), getType(types.get(i))));
+            list.add(new ColumnInfo(Long.parseLong(names.get(i)), rowType.getTypeParameters().get(i)));
         }
         return list.build();
     }
 
-    private static Type getType(OrcType type)
+    private Type getType(List<OrcType> types, int index)
     {
+        OrcType type = types.get(index);
         switch (type.getOrcTypeKind()) {
             case BOOLEAN:
                 return BOOLEAN;
@@ -383,6 +392,19 @@ public class OrcStorageManager
                 return VARCHAR;
             case BINARY:
                 return VARBINARY;
+            case LIST:
+                TypeSignature elementType = getType(types, type.getFieldTypeIndex(0)).getTypeSignature();
+                return typeManager.getParameterizedType(StandardTypes.ARRAY, ImmutableList.of(elementType), ImmutableList.of());
+            case MAP:
+                TypeSignature keyType = getType(types, type.getFieldTypeIndex(0)).getTypeSignature();
+                TypeSignature valueType = getType(types, type.getFieldTypeIndex(1)).getTypeSignature();
+                return typeManager.getParameterizedType(StandardTypes.MAP, ImmutableList.of(keyType, valueType), ImmutableList.of());
+            case STRUCT:
+                ImmutableList.Builder<TypeSignature> fieldTypes = ImmutableList.builder();
+                for (int i = 0; i < type.getFieldCount(); i++) {
+                    fieldTypes.add(getType(types, type.getFieldTypeIndex(i)).getTypeSignature());
+                }
+                return typeManager.getParameterizedType(StandardTypes.ROW, fieldTypes.build(), ImmutableList.copyOf(type.getFieldNames()));
         }
         throw new PrestoException(RAPTOR_ERROR, "Unhandled ORC type: " + type);
     }
@@ -415,6 +437,7 @@ public class OrcStorageManager
         private final List<Type> columnTypes;
 
         private final List<ShardInfo> shards = new ArrayList<>();
+        private final List<CompletableFuture<?>> futures = new ArrayList<>();
 
         private boolean committed;
         private OrcFileWriter writer;
@@ -463,6 +486,7 @@ public class OrcStorageManager
                 writer.close();
 
                 File stagingFile = storageService.getStagingFile(shardUuid);
+                futures.add(backupManager.submit(shardUuid, stagingFile));
 
                 Set<String> nodes = ImmutableSet.of(nodeId);
                 long rowCount = writer.getRowCount();
@@ -482,6 +506,10 @@ public class OrcStorageManager
             committed = true;
 
             flush();
+
+            // backup jobs depend on the staging files, so wait until all backups have finished
+            futures.forEach(MoreFutures::getFutureValue);
+
             for (ShardInfo shard : shards) {
                 writeShard(shard.getShardUuid());
             }

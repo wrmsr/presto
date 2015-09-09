@@ -13,11 +13,11 @@
  */
 package com.facebook.presto.block;
 
-import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.type.ArrayType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,17 +28,14 @@ import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
-import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
+import static com.facebook.presto.testing.TestingConnectorSession.SESSION;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Locale.ENGLISH;
 import static org.testng.Assert.assertEquals;
 
 public final class BlockAssertions
 {
-    public static final ConnectorSession SESSION = new ConnectorSession("user", UTC_KEY, ENGLISH, System.currentTimeMillis(), null);
-
     private BlockAssertions()
     {
     }
@@ -189,6 +186,15 @@ public final class BlockAssertions
         return builder.build();
     }
 
+    public static Block createLongRepeatBlock(int value, int length)
+    {
+        BlockBuilder builder = BIGINT.createFixedSizeBlockBuilder(length);
+        for (int i = 0; i < length; i++) {
+            BIGINT.writeLong(builder, value);
+        }
+        return builder.build();
+    }
+
     public static Block createBooleanSequenceBlock(int start, int end)
     {
         BlockBuilder builder = BOOLEAN.createFixedSizeBlockBuilder(end - start);
@@ -229,6 +235,23 @@ public final class BlockAssertions
 
         for (int i = start; i < end; i++) {
             DOUBLE.writeDouble(builder, (double) i);
+        }
+
+        return builder.build();
+    }
+
+    public static Block createArrayBigintBlock(Iterable<? extends Iterable<Long>> values)
+    {
+        ArrayType arrayType = new ArrayType(BIGINT);
+        BlockBuilder builder = arrayType.createBlockBuilder(new BlockBuilderStatus(), 100);
+
+        for (Iterable<Long> value : values) {
+            if (value == null) {
+                builder.appendNull();
+            }
+            else {
+                arrayType.writeObject(builder, createLongsBlock(value));
+            }
         }
 
         return builder.build();

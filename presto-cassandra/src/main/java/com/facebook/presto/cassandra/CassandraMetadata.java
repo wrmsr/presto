@@ -14,8 +14,8 @@
 package com.facebook.presto.cassandra;
 
 import com.facebook.presto.cassandra.util.CassandraCqlUtils;
-import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 
 import static com.facebook.presto.cassandra.CassandraColumnHandle.SAMPLE_WEIGHT_COLUMN_NAME;
-import static com.facebook.presto.cassandra.CassandraColumnHandle.columnMetadataGetter;
 import static com.facebook.presto.cassandra.CassandraType.BIGINT;
 import static com.facebook.presto.cassandra.CassandraType.toCassandraType;
 import static com.facebook.presto.cassandra.util.Types.checkType;
@@ -50,10 +49,10 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.collect.Iterables.transform;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Locale.ENGLISH;
+import static java.util.stream.Collectors.toList;
 
 public class CassandraMetadata
         implements ConnectorMetadata
@@ -106,17 +105,19 @@ public class CassandraMetadata
     }
 
     @Override
-    public ConnectorTableMetadata getTableMetadata(ConnectorTableHandle tableHandle)
+    public ConnectorTableMetadata getTableMetadata(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         checkNotNull(tableHandle, "tableHandle is null");
         SchemaTableName tableName = getTableName(tableHandle);
-        return getTableMetadata(tableName);
+        return getTableMetadata(session, tableName);
     }
 
-    private ConnectorTableMetadata getTableMetadata(SchemaTableName tableName)
+    private ConnectorTableMetadata getTableMetadata(ConnectorSession session, SchemaTableName tableName)
     {
         CassandraTableHandle tableHandle = schemaProvider.getTableHandle(tableName);
-        List<ColumnMetadata> columns = ImmutableList.copyOf(transform(getColumnHandles(tableHandle).values(), columnMetadataGetter()));
+        List<ColumnMetadata> columns = getColumnHandles(session, tableHandle).values().stream()
+                .map(column -> checkType(column, CassandraColumnHandle.class, "columnHandle").getColumnMetadata())
+                .collect(toList());
         return new ConnectorTableMetadata(tableName, columns);
     }
 
@@ -146,13 +147,13 @@ public class CassandraMetadata
     }
 
     @Override
-    public ColumnHandle getSampleWeightColumnHandle(ConnectorTableHandle tableHandle)
+    public ColumnHandle getSampleWeightColumnHandle(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         return getColumnHandles(tableHandle, true).get(SAMPLE_WEIGHT_COLUMN_NAME);
     }
 
     @Override
-    public Map<String, ColumnHandle> getColumnHandles(ConnectorTableHandle tableHandle)
+    public Map<String, ColumnHandle> getColumnHandles(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         return getColumnHandles(tableHandle, false);
     }
@@ -176,7 +177,7 @@ public class CassandraMetadata
         ImmutableMap.Builder<SchemaTableName, List<ColumnMetadata>> columns = ImmutableMap.builder();
         for (SchemaTableName tableName : listTables(session, prefix)) {
             try {
-                columns.put(tableName, getTableMetadata(tableName).getColumns());
+                columns.put(tableName, getTableMetadata(session, tableName).getColumns());
             }
             catch (NotFoundException e) {
                 // table disappeared during listing operation
@@ -194,7 +195,7 @@ public class CassandraMetadata
     }
 
     @Override
-    public ColumnMetadata getColumnMetadata(ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
+    public ColumnMetadata getColumnMetadata(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle columnHandle)
     {
         checkType(tableHandle, CassandraTableHandle.class, "tableHandle");
         return checkType(columnHandle, CassandraColumnHandle.class, "columnHandle").getColumnMetadata();
@@ -221,7 +222,7 @@ public class CassandraMetadata
     }
 
     @Override
-    public void dropTable(ConnectorTableHandle tableHandle)
+    public void dropTable(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         checkArgument(tableHandle instanceof CassandraTableHandle, "tableHandle is not an instance of CassandraTableHandle");
 
@@ -239,7 +240,7 @@ public class CassandraMetadata
     }
 
     @Override
-    public void renameTable(ConnectorTableHandle tableHandle, SchemaTableName newTableName)
+    public void renameTable(ConnectorSession session, ConnectorTableHandle tableHandle, SchemaTableName newTableName)
     {
         throw new PrestoException(NOT_SUPPORTED, "Renaming tables not yet supported for Cassandra");
     }
@@ -297,7 +298,7 @@ public class CassandraMetadata
     }
 
     @Override
-    public void commitCreateTable(ConnectorOutputTableHandle tableHandle, Collection<Slice> fragments)
+    public void commitCreateTable(ConnectorSession session, ConnectorOutputTableHandle tableHandle, Collection<Slice> fragments)
     {
         CassandraOutputTableHandle outputTableHandle = checkType(tableHandle, CassandraOutputTableHandle.class, "tableHandle");
         schemaProvider.flushTable(new SchemaTableName(outputTableHandle.getSchemaName(), outputTableHandle.getTableName()));
@@ -310,7 +311,7 @@ public class CassandraMetadata
     }
 
     @Override
-    public void commitInsert(ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
+    public void commitInsert(ConnectorSession session, ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
     {
         throw new UnsupportedOperationException();
     }

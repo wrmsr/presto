@@ -13,11 +13,11 @@
  */
 package com.facebook.presto.sql.gen;
 
-import com.facebook.presto.byteCode.Block;
+import com.facebook.presto.byteCode.ByteCodeBlock;
 import com.facebook.presto.byteCode.ClassDefinition;
-import com.facebook.presto.byteCode.Scope;
 import com.facebook.presto.byteCode.MethodDefinition;
 import com.facebook.presto.byteCode.Parameter;
+import com.facebook.presto.byteCode.Scope;
 import com.facebook.presto.byteCode.Variable;
 import com.facebook.presto.byteCode.expression.ByteCodeExpression;
 import com.facebook.presto.byteCode.instruction.LabelNode;
@@ -26,6 +26,7 @@ import com.facebook.presto.operator.PagesIndexComparator;
 import com.facebook.presto.operator.PagesIndexOrdering;
 import com.facebook.presto.operator.SimplePagesIndexComparator;
 import com.facebook.presto.operator.SyntheticAddress;
+import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.SortOrder;
 import com.facebook.presto.spi.type.Type;
 import com.google.common.annotations.VisibleForTesting;
@@ -180,7 +181,7 @@ public class OrderingCompiler
             int sortChannel = sortChannels.get(i);
             SortOrder sortOrder = sortOrders.get(i);
 
-            Block block = new Block()
+            ByteCodeBlock block = new ByteCodeBlock()
                     .setDescription("compare channel " + sortChannel + " " + sortOrder);
 
             Type sortType = sortTypes.get(i);
@@ -188,17 +189,17 @@ public class OrderingCompiler
             ByteCodeExpression leftBlock = pagesIndex
                     .invoke("getChannel", ObjectArrayList.class, constantInt(sortChannel))
                     .invoke("get", Object.class, leftBlockIndex)
-                    .cast(com.facebook.presto.spi.block.Block.class);
+                    .cast(Block.class);
 
             ByteCodeExpression rightBlock = pagesIndex
                     .invoke("getChannel", ObjectArrayList.class, constantInt(sortChannel))
                     .invoke("get", Object.class, rightBlockIndex)
-                    .cast(com.facebook.presto.spi.block.Block.class);
+                    .cast(Block.class);
 
             block.append(getStatic(SortOrder.class, sortOrder.name())
                     .invoke("compareBlockValue",
                             int.class,
-                            ImmutableList.of(Type.class, com.facebook.presto.spi.block.Block.class, int.class, com.facebook.presto.spi.block.Block.class, int.class),
+                            ImmutableList.of(Type.class, Block.class, int.class, Block.class, int.class),
                             constantType(callSiteBinder, sortType),
                             leftBlock,
                             leftBlockPosition,

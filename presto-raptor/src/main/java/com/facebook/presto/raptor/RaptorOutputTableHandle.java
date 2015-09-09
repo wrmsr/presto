@@ -20,9 +20,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 
-import javax.annotation.Nullable;
-
 import java.util.List;
+import java.util.Optional;
 
 import static com.facebook.presto.raptor.util.MetadataUtil.checkSchemaName;
 import static com.facebook.presto.raptor.util.MetadataUtil.checkTableName;
@@ -31,32 +30,43 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class RaptorOutputTableHandle
         implements ConnectorOutputTableHandle
 {
+    private final String connectorId;
     private final String schemaName;
     private final String tableName;
     private final List<RaptorColumnHandle> columnHandles;
     private final List<Type> columnTypes;
-    @Nullable
-    private final RaptorColumnHandle sampleWeightColumnHandle;
+    private final Optional<RaptorColumnHandle> sampleWeightColumnHandle;
     private final List<RaptorColumnHandle> sortColumnHandles;
     private final List<SortOrder> sortOrders;
+    private final Optional<RaptorColumnHandle> temporalColumnHandle;
 
     @JsonCreator
     public RaptorOutputTableHandle(
+            @JsonProperty("connectorId") String connectorId,
             @JsonProperty("schemaName") String schemaName,
             @JsonProperty("tableName") String tableName,
             @JsonProperty("columnHandles") List<RaptorColumnHandle> columnHandles,
             @JsonProperty("columnTypes") List<Type> columnTypes,
-            @JsonProperty("sampleWeightColumnHandle") @Nullable RaptorColumnHandle sampleWeightColumnHandle,
+            @JsonProperty("sampleWeightColumnHandle") Optional<RaptorColumnHandle> sampleWeightColumnHandle,
             @JsonProperty("sortColumnHandles") List<RaptorColumnHandle> sortColumnHandles,
-            @JsonProperty("sortOrders") List<SortOrder> sortOrders)
+            @JsonProperty("sortOrders") List<SortOrder> sortOrders,
+            @JsonProperty("temporalColumnHandle") Optional<RaptorColumnHandle> temporalColumnHandle)
     {
+        this.connectorId = checkNotNull(connectorId, "connectorId is null");
         this.schemaName = checkSchemaName(schemaName);
         this.tableName = checkTableName(tableName);
         this.columnHandles = ImmutableList.copyOf(checkNotNull(columnHandles, "columnHandles is null"));
         this.columnTypes = ImmutableList.copyOf(checkNotNull(columnTypes, "columnTypes is null"));
-        this.sampleWeightColumnHandle = sampleWeightColumnHandle;
+        this.sampleWeightColumnHandle = checkNotNull(sampleWeightColumnHandle, "sampleWeightColumnHandle is null");
         this.sortOrders = checkNotNull(sortOrders, "sortOrders is null");
         this.sortColumnHandles = checkNotNull(sortColumnHandles, "sortColumnHandles is null");
+        this.temporalColumnHandle = checkNotNull(temporalColumnHandle, "temporalColumnHandle is null");
+    }
+
+    @JsonProperty
+    public String getConnectorId()
+    {
+        return connectorId;
     }
 
     @JsonProperty
@@ -83,9 +93,8 @@ public class RaptorOutputTableHandle
         return columnTypes;
     }
 
-    @Nullable
     @JsonProperty
-    public RaptorColumnHandle getSampleWeightColumnHandle()
+    public Optional<RaptorColumnHandle> getSampleWeightColumnHandle()
     {
         return sampleWeightColumnHandle;
     }
@@ -100,6 +109,12 @@ public class RaptorOutputTableHandle
     public List<SortOrder> getSortOrders()
     {
         return sortOrders;
+    }
+
+    @JsonProperty
+    public Optional<RaptorColumnHandle> getTemporalColumnHandle()
+    {
+        return temporalColumnHandle;
     }
 
     @Override

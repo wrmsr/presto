@@ -59,6 +59,7 @@ public class PipelineContext
     private final AtomicInteger completedDrivers = new AtomicInteger();
 
     private final AtomicLong memoryReservation = new AtomicLong();
+    private final AtomicLong systemMemoryReservation = new AtomicLong();
 
     private final Distribution queuedTime = new Distribution();
     private final Distribution elapsedTime = new Distribution();
@@ -188,11 +189,6 @@ public class PipelineContext
         return taskContext.isDone();
     }
 
-    public DataSize getMaxMemorySize()
-    {
-        return taskContext.getMaxMemorySize();
-    }
-
     public DataSize getOperatorPreAllocatedMemory()
     {
         return taskContext.getOperatorPreAllocatedMemory();
@@ -202,6 +198,14 @@ public class PipelineContext
     {
         ListenableFuture<?> future = taskContext.reserveMemory(bytes);
         memoryReservation.getAndAdd(bytes);
+        return future;
+    }
+
+    public synchronized ListenableFuture<?> reserveSystemMemory(long bytes)
+    {
+        checkArgument(bytes >= 0, "bytes is negative");
+        ListenableFuture<?> future = taskContext.reserveSystemMemory(bytes);
+        systemMemoryReservation.getAndAdd(bytes);
         return future;
     }
 
@@ -220,6 +224,14 @@ public class PipelineContext
         checkArgument(bytes <= memoryReservation.get(), "tried to free more memory than is reserved");
         taskContext.freeMemory(bytes);
         memoryReservation.getAndAdd(-bytes);
+    }
+
+    public synchronized void freeSystemMemory(long bytes)
+    {
+        checkArgument(bytes >= 0, "bytes is negative");
+        checkArgument(bytes <= systemMemoryReservation.get(), "tried to free more memory than is reserved");
+        taskContext.freeSystemMemory(bytes);
+        systemMemoryReservation.getAndAdd(-bytes);
     }
 
     public void moreMemoryAvailable()
@@ -380,6 +392,7 @@ public class PipelineContext
                 completedDrivers,
 
                 new DataSize(memoryReservation.get(), BYTE).convertToMostSuccinctDataSize(),
+                new DataSize(systemMemoryReservation.get(), BYTE).convertToMostSuccinctDataSize(),
 
                 queuedTime.snapshot(),
                 elapsedTime.snapshot(),

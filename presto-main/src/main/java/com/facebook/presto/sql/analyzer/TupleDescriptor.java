@@ -114,7 +114,7 @@ public class TupleDescriptor
 
     /**
      * Returns all unique relations in this tuple.
-     * For detecting detecting duplicate relations in a Join.
+     * For detecting duplicate relations in a Join.
      */
     public Set<QualifiedName> getRelationAliases()
     {
@@ -152,7 +152,7 @@ public class TupleDescriptor
 
     /**
      * Creates a new tuple descriptor containing all fields from this tuple descriptor
-     * and all fields from the specified tuple decriptor.
+     * and all fields from the specified tuple descriptor.
      */
     public TupleDescriptor joinWith(TupleDescriptor other)
     {

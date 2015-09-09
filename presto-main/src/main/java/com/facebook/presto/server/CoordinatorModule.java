@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.server;
 
+import com.facebook.presto.SystemSessionProperties;
 import com.facebook.presto.execution.CreateTableTask;
 import com.facebook.presto.execution.CreateViewTask;
 import com.facebook.presto.execution.DataDefinitionTask;
@@ -34,12 +35,18 @@ import com.facebook.presto.execution.ResetSessionTask;
 import com.facebook.presto.execution.SetSessionTask;
 import com.facebook.presto.execution.SqlQueryManager;
 import com.facebook.presto.execution.SqlQueryQueueManager;
+import com.facebook.presto.execution.scheduler.AllAtOnceExecutionPolicy;
+import com.facebook.presto.execution.scheduler.ExecutionPolicy;
+import com.facebook.presto.execution.scheduler.PhasedExecutionPolicy;
 import com.facebook.presto.metadata.DiscoveryNodeManager;
 import com.facebook.presto.metadata.InternalNodeManager;
+import com.facebook.presto.metadata.SessionPropertyManager;
+import com.facebook.presto.metadata.TablePropertyManager;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.split.SplitManager;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
+import com.facebook.presto.sql.analyzer.QueryExplainer;
 import com.facebook.presto.sql.tree.CreateTable;
 import com.facebook.presto.sql.tree.CreateTableAsSelect;
 import com.facebook.presto.sql.tree.CreateView;
@@ -109,8 +116,18 @@ public class CoordinatorModule
         // analyzer
         configBinder(binder).bindConfig(FeaturesConfig.class);
 
+        // query explainer
+        binder.bind(QueryExplainer.class).in(Scopes.SINGLETON);
+
         // split manager
         binder.bind(SplitManager.class).in(Scopes.SINGLETON);
+
+        // session properties
+        binder.bind(SessionPropertyManager.class).in(Scopes.SINGLETON);
+        binder.bind(SystemSessionProperties.class).in(Scopes.SINGLETON);
+
+        // table properties
+        binder.bind(TablePropertyManager.class).in(Scopes.SINGLETON);
 
         // node scheduler
         binder.bind(InternalNodeManager.class).to(DiscoveryNodeManager.class).in(Scopes.SINGLETON);
@@ -153,6 +170,10 @@ public class CoordinatorModule
         bindDataDefinitionTask(binder, executionBinder, DropView.class, DropViewTask.class);
         bindDataDefinitionTask(binder, executionBinder, SetSession.class, SetSessionTask.class);
         bindDataDefinitionTask(binder, executionBinder, ResetSession.class, ResetSessionTask.class);
+
+        MapBinder<String, ExecutionPolicy> executionPolicyBinder = newMapBinder(binder, String.class, ExecutionPolicy.class);
+        executionPolicyBinder.addBinding("all-at-once").to(AllAtOnceExecutionPolicy.class);
+        executionPolicyBinder.addBinding("phased").to(PhasedExecutionPolicy.class);
 
         jsonCodecBinder(binder).bindJsonCodec(ViewDefinition.class);
     }

@@ -13,14 +13,14 @@
  */
 package com.facebook.presto.raptor.metadata;
 
+import com.facebook.presto.metadata.MetadataUtil;
 import com.facebook.presto.raptor.RaptorColumnHandle;
 import com.facebook.presto.raptor.RaptorConnectorId;
 import com.facebook.presto.raptor.RaptorMetadata;
 import com.facebook.presto.raptor.RaptorTableHandle;
-import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorMetadata;
-import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.PrestoException;
@@ -41,14 +41,15 @@ import java.util.List;
 import java.util.Map;
 
 import static com.facebook.presto.metadata.MetadataUtil.TableMetadataBuilder.tableMetadataBuilder;
+import static com.facebook.presto.raptor.RaptorTableProperties.ORDERING_PROPERTY;
+import static com.facebook.presto.raptor.RaptorTableProperties.TEMPORAL_COLUMN_PROPERTY;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
+import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
-import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
-import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
+import static com.facebook.presto.testing.TestingConnectorSession.SESSION;
 import static io.airlift.json.JsonCodec.jsonCodec;
 import static io.airlift.testing.Assertions.assertEqualsIgnoreOrder;
 import static io.airlift.testing.Assertions.assertInstanceOf;
-import static java.util.Locale.ENGLISH;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
@@ -60,9 +61,9 @@ public class TestRaptorMetadata
 {
     private static final JsonCodec<ShardInfo> SHARD_INFO_CODEC = jsonCodec(ShardInfo.class);
     private static final JsonCodec<ShardDelta> SHARD_DELTA_CODEC = jsonCodec(ShardDelta.class);
-    private static final ConnectorSession SESSION = new ConnectorSession("user", UTC_KEY, ENGLISH, System.currentTimeMillis(), null);
     private static final SchemaTableName DEFAULT_TEST_ORDERS = new SchemaTableName("test", "orders");
 
+    private DBI dbi;
     private Handle dummyHandle;
     private ConnectorMetadata metadata;
 
@@ -71,7 +72,7 @@ public class TestRaptorMetadata
             throws Exception
     {
         TypeRegistry typeRegistry = new TypeRegistry();
-        DBI dbi = new DBI("jdbc:h2:mem:test" + System.nanoTime());
+        dbi = new DBI("jdbc:h2:mem:test" + System.nanoTime());
         dbi.registerMapper(new TableColumn.Mapper(typeRegistry));
         dummyHandle = dbi.open();
         metadata = new RaptorMetadata(new RaptorConnectorId("default"), dbi, new DatabaseShardManager(dbi), SHARD_INFO_CODEC, SHARD_DELTA_CODEC);
@@ -93,12 +94,12 @@ public class TestRaptorMetadata
         assertInstanceOf(tableHandle, RaptorTableHandle.class);
 
         RaptorTableHandle raptorTableHandle = (RaptorTableHandle) tableHandle;
-        ColumnHandle columnHandle = metadata.getColumnHandles(tableHandle).get("orderkey");
+        ColumnHandle columnHandle = metadata.getColumnHandles(SESSION, tableHandle).get("orderkey");
 
-        metadata.renameColumn(raptorTableHandle, columnHandle, "orderkey_renamed");
+        metadata.renameColumn(SESSION, raptorTableHandle, columnHandle, "orderkey_renamed");
 
-        assertNull(metadata.getColumnHandles(tableHandle).get("orderkey"));
-        assertNotNull(metadata.getColumnHandles(tableHandle).get("orderkey_renamed"));
+        assertNull(metadata.getColumnHandles(SESSION, tableHandle).get("orderkey"));
+        assertNotNull(metadata.getColumnHandles(SESSION, tableHandle).get("orderkey_renamed"));
     }
 
     @Test
@@ -113,7 +114,7 @@ public class TestRaptorMetadata
         RaptorTableHandle raptorTableHandle = (RaptorTableHandle) tableHandle;
         SchemaTableName renamedTable = new SchemaTableName(raptorTableHandle.getSchemaName(), "orders_renamed");
 
-        metadata.renameTable(raptorTableHandle, renamedTable);
+        metadata.renameTable(SESSION, raptorTableHandle, renamedTable);
         assertNull(metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS));
         ConnectorTableHandle renamedTableHandle = metadata.getTableHandle(SESSION, renamedTable);
         assertNotNull(renamedTableHandle);
@@ -126,21 +127,139 @@ public class TestRaptorMetadata
         assertNull(metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS));
 
         metadata.createTable(SESSION, getOrdersTable());
+
         ConnectorTableHandle tableHandle = metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS);
         assertInstanceOf(tableHandle, RaptorTableHandle.class);
         assertEquals(((RaptorTableHandle) tableHandle).getTableId(), 1);
 
-        ConnectorTableMetadata table = metadata.getTableMetadata(tableHandle);
+        ConnectorTableMetadata table = metadata.getTableMetadata(SESSION, tableHandle);
         assertTableEqual(table, getOrdersTable());
 
-        ColumnHandle columnHandle = metadata.getColumnHandles(tableHandle).get("orderkey");
+        ColumnHandle columnHandle = metadata.getColumnHandles(SESSION, tableHandle).get("orderkey");
         assertInstanceOf(columnHandle, RaptorColumnHandle.class);
         assertEquals(((RaptorColumnHandle) columnHandle).getColumnId(), 1);
 
-        ColumnMetadata columnMetadata = metadata.getColumnMetadata(tableHandle, columnHandle);
+        ColumnMetadata columnMetadata = metadata.getColumnMetadata(SESSION, tableHandle, columnHandle);
         assertNotNull(columnMetadata);
         assertEquals(columnMetadata.getName(), "orderkey");
         assertEquals(columnMetadata.getType(), BIGINT);
+    }
+
+    @Test
+    public void testTableProperties()
+            throws Exception
+    {
+        assertNull(metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS));
+
+        ConnectorTableMetadata ordersTable = getOrdersTable(ImmutableMap.of(
+                ORDERING_PROPERTY, ImmutableList.of("orderdate", "custkey"),
+                TEMPORAL_COLUMN_PROPERTY, "orderdate"));
+        metadata.createTable(SESSION, ordersTable);
+
+        ConnectorTableHandle tableHandle = metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS);
+        assertInstanceOf(tableHandle, RaptorTableHandle.class);
+        RaptorTableHandle raptorTableHandle = (RaptorTableHandle) tableHandle;
+        assertEquals(raptorTableHandle.getTableId(), 1);
+
+        long tableId = raptorTableHandle.getTableId();
+        MetadataDao metadataDao = dbi.onDemand(MetadataDao.class);
+
+        // verify sort columns
+        List<TableColumn> sortColumns = metadataDao.listSortColumns(tableId);
+        assertEquals(sortColumns.size(), 2);
+        assertEquals(sortColumns, ImmutableList.of(
+                new TableColumn(DEFAULT_TEST_ORDERS, "orderdate", DATE, 4),
+                new TableColumn(DEFAULT_TEST_ORDERS, "custkey", BIGINT, 2)));
+
+        // verify temporal column
+        assertEquals(metadataDao.getTemporalColumnId(tableId), Long.valueOf(4));
+        metadata.dropTable(SESSION, tableHandle);
+    }
+
+    @Test(expectedExceptions = PrestoException.class, expectedExceptionsMessageRegExp = "Ordering column .* does not exist")
+    public void testInvalidOrderingColumns()
+            throws Exception
+    {
+        assertNull(metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS));
+
+        ConnectorTableMetadata ordersTable = getOrdersTable(ImmutableMap.of(ORDERING_PROPERTY, ImmutableList.of("orderdatefoo")));
+        metadata.createTable(SESSION, ordersTable);
+        fail("Expected createTable to fail");
+    }
+
+    @Test(expectedExceptions = PrestoException.class, expectedExceptionsMessageRegExp = "Temporal column .* does not exist")
+    public void testInvalidTemporalColumn()
+            throws Exception
+    {
+        assertNull(metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS));
+
+        ConnectorTableMetadata ordersTable = getOrdersTable(ImmutableMap.of(TEMPORAL_COLUMN_PROPERTY, "foo"));
+        metadata.createTable(SESSION, ordersTable);
+        fail("Expected createTable to fail");
+    }
+
+    @Test(expectedExceptions = PrestoException.class, expectedExceptionsMessageRegExp = "Temporal column must be of type timestamp or date: orderkey")
+    public void testInvalidTemporalColumnType()
+            throws Exception
+    {
+        assertNull(metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS));
+        metadata.createTable(SESSION, getOrdersTable(ImmutableMap.of(TEMPORAL_COLUMN_PROPERTY, "orderkey")));
+    }
+
+    @Test
+    public void testSortOrderProperty()
+            throws Exception
+    {
+        assertNull(metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS));
+
+        ConnectorTableMetadata ordersTable = getOrdersTable(ImmutableMap.of(ORDERING_PROPERTY, ImmutableList.of("orderdate", "custkey")));
+        metadata.createTable(SESSION, ordersTable);
+
+        ConnectorTableHandle tableHandle = metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS);
+        assertInstanceOf(tableHandle, RaptorTableHandle.class);
+        RaptorTableHandle raptorTableHandle = (RaptorTableHandle) tableHandle;
+        assertEquals(raptorTableHandle.getTableId(), 1);
+
+        long tableId = raptorTableHandle.getTableId();
+        MetadataDao metadataDao = dbi.onDemand(MetadataDao.class);
+
+        // verify sort columns
+        List<TableColumn> sortColumns = metadataDao.listSortColumns(tableId);
+        assertEquals(sortColumns.size(), 2);
+        assertEquals(sortColumns, ImmutableList.of(
+                new TableColumn(DEFAULT_TEST_ORDERS, "orderdate", DATE, 4),
+                new TableColumn(DEFAULT_TEST_ORDERS, "custkey", BIGINT, 2)));
+
+        // verify temporal column is not set
+        assertEquals(metadataDao.getTemporalColumnId(tableId), null);
+        metadata.dropTable(SESSION, tableHandle);
+    }
+
+    @Test
+    public void testTemporalColumn()
+            throws Exception
+    {
+        assertNull(metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS));
+
+        ConnectorTableMetadata ordersTable = getOrdersTable(ImmutableMap.of(TEMPORAL_COLUMN_PROPERTY, "orderdate"));
+        metadata.createTable(SESSION, ordersTable);
+
+        ConnectorTableHandle tableHandle = metadata.getTableHandle(SESSION, DEFAULT_TEST_ORDERS);
+        assertInstanceOf(tableHandle, RaptorTableHandle.class);
+        RaptorTableHandle raptorTableHandle = (RaptorTableHandle) tableHandle;
+        assertEquals(raptorTableHandle.getTableId(), 1);
+
+        long tableId = raptorTableHandle.getTableId();
+        MetadataDao metadataDao = dbi.onDemand(MetadataDao.class);
+
+        // verify sort columns are not set
+        List<TableColumn> sortColumns = metadataDao.listSortColumns(tableId);
+        assertEquals(sortColumns.size(), 0);
+        assertEquals(sortColumns, ImmutableList.of());
+
+        // verify temporal column is set
+        assertEquals(metadataDao.getTemporalColumnId(tableId), Long.valueOf(4));
+        metadata.dropTable(SESSION, tableHandle);
     }
 
     @Test
@@ -234,12 +353,24 @@ public class TestRaptorMetadata
 
     private static ConnectorTableMetadata getOrdersTable()
     {
-        return tableMetadataBuilder(DEFAULT_TEST_ORDERS)
+        return getOrdersTable(ImmutableMap.of());
+    }
+
+    private static ConnectorTableMetadata getOrdersTable(Map<String, Object> properties)
+    {
+        MetadataUtil.TableMetadataBuilder builder = tableMetadataBuilder(DEFAULT_TEST_ORDERS)
                 .column("orderkey", BIGINT)
                 .column("custkey", BIGINT)
                 .column("totalprice", DOUBLE)
-                .column("orderdate", VARCHAR)
-                .build();
+                .column("orderdate", DATE);
+
+        if (!properties.isEmpty()) {
+            for (Map.Entry<String, Object> entry : properties.entrySet()) {
+                builder.property(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return builder.build();
     }
 
     private static void assertTableEqual(ConnectorTableMetadata actual, ConnectorTableMetadata expected)

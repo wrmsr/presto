@@ -183,8 +183,8 @@ class QueryPlanner
     {
         TupleDescriptor descriptor = analysis.getOutputDescriptor(node.getTable());
         TableHandle handle = analysis.getTableHandle(node.getTable());
-        ColumnHandle rowIdHandle = metadata.getUpdateRowIdColumnHandle(handle);
-        Type rowIdType = metadata.getColumnMetadata(handle, rowIdHandle).getType();
+        ColumnHandle rowIdHandle = metadata.getUpdateRowIdColumnHandle(session, handle);
+        Type rowIdType = metadata.getColumnMetadata(session, handle, rowIdHandle).getType();
 
         // add table columns
         ImmutableList.Builder<Symbol> outputSymbols = ImmutableList.builder();
@@ -688,20 +688,23 @@ class QueryPlanner
         Iterator<SortItem> sortItems = orderBy.iterator();
 
         ImmutableList.Builder<Symbol> orderBySymbols = ImmutableList.builder();
-        ImmutableMap.Builder<Symbol, SortOrder> orderings = ImmutableMap.builder();
+        Map<Symbol, SortOrder> orderings = new HashMap<Symbol, SortOrder>();
         for (FieldOrExpression fieldOrExpression : orderByExpressions) {
             Symbol symbol = subPlan.translate(fieldOrExpression);
-            orderBySymbols.add(symbol);
 
-            orderings.put(symbol, toSortOrder(sortItems.next()));
+            SortItem sortItem = sortItems.next();
+            if (!orderings.containsKey(symbol)) {
+                orderBySymbols.add(symbol);
+                orderings.put(symbol, toSortOrder(sortItem));
+            }
         }
 
         PlanNode planNode;
-        if (limit.isPresent()) {
-            planNode = new TopNNode(idAllocator.getNextId(), subPlan.getRoot(), Long.parseLong(limit.get()), orderBySymbols.build(), orderings.build(), false);
+        if (limit.isPresent() && !limit.get().equalsIgnoreCase("all")) {
+            planNode = new TopNNode(idAllocator.getNextId(), subPlan.getRoot(), Long.parseLong(limit.get()), orderBySymbols.build(), orderings, false);
         }
         else {
-            planNode = new SortNode(idAllocator.getNextId(), subPlan.getRoot(), orderBySymbols.build(), orderings.build());
+            planNode = new SortNode(idAllocator.getNextId(), subPlan.getRoot(), orderBySymbols.build(), orderings);
         }
 
         return new PlanBuilder(subPlan.getTranslations(), planNode, subPlan.getSampleWeight());
@@ -720,8 +723,13 @@ class QueryPlanner
     private PlanBuilder limit(PlanBuilder subPlan, List<SortItem> orderBy, Optional<String> limit)
     {
         if (orderBy.isEmpty() && limit.isPresent()) {
-            long limitValue = Long.parseLong(limit.get());
-            return new PlanBuilder(subPlan.getTranslations(), new LimitNode(idAllocator.getNextId(), subPlan.getRoot(), limitValue), subPlan.getSampleWeight());
+            if (limit.get().equalsIgnoreCase("all")) {
+                return subPlan;
+            }
+            else {
+                long limitValue = Long.parseLong(limit.get());
+                return new PlanBuilder(subPlan.getTranslations(), new LimitNode(idAllocator.getNextId(), subPlan.getRoot(), limitValue), subPlan.getSampleWeight());
+            }
         }
 
         return subPlan;

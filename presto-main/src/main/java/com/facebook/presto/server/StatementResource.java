@@ -32,7 +32,10 @@ import com.facebook.presto.execution.StageInfo;
 import com.facebook.presto.execution.StageState;
 import com.facebook.presto.execution.TaskId;
 import com.facebook.presto.execution.TaskInfo;
+import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.operator.ExchangeClient;
+import com.facebook.presto.operator.ExchangeClientSupplier;
+import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ErrorCode;
 import com.facebook.presto.spi.Page;
@@ -84,7 +87,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
 
 import static com.facebook.presto.client.PrestoHeaders.PRESTO_CLEAR_SESSION;
 import static com.facebook.presto.client.PrestoHeaders.PRESTO_SET_SESSION;
@@ -114,15 +116,23 @@ public class StatementResource
     private static final long DESIRED_RESULT_BYTES = new DataSize(1, MEGABYTE).toBytes();
 
     private final QueryManager queryManager;
-    private final Supplier<ExchangeClient> exchangeClientSupplier;
+    private final AccessControl accessControl;
+    private final SessionPropertyManager sessionPropertyManager;
+    private final ExchangeClientSupplier exchangeClientSupplier;
 
     private final ConcurrentMap<QueryId, Query> queries = new ConcurrentHashMap<>();
     private final ScheduledExecutorService queryPurger = newSingleThreadScheduledExecutor(threadsNamed("query-purger"));
 
     @Inject
-    public StatementResource(QueryManager queryManager, Supplier<ExchangeClient> exchangeClientSupplier)
+    public StatementResource(
+            QueryManager queryManager,
+            AccessControl accessControl,
+            SessionPropertyManager sessionPropertyManager,
+            ExchangeClientSupplier exchangeClientSupplier)
     {
         this.queryManager = checkNotNull(queryManager, "queryManager is null");
+        this.accessControl = checkNotNull(accessControl, "accessControl is null");
+        this.sessionPropertyManager = checkNotNull(sessionPropertyManager, "sessionPropertyManager is null");
         this.exchangeClientSupplier = checkNotNull(exchangeClientSupplier, "exchangeClientSupplier is null");
 
         queryPurger.scheduleWithFixedDelay(new PurgeQueriesRunnable(queries, queryManager), 200, 200, MILLISECONDS);
@@ -144,9 +154,9 @@ public class StatementResource
     {
         assertRequest(!isNullOrEmpty(statement), "SQL statement is empty");
 
-        Session session = createSessionForRequest(servletRequest);
+        Session session = createSessionForRequest(servletRequest, accessControl, sessionPropertyManager);
 
-        ExchangeClient exchangeClient = exchangeClientSupplier.get();
+        ExchangeClient exchangeClient = exchangeClientSupplier.get(deltaMemoryInBytes -> { });
         Query query = new Query(session, statement, queryManager, exchangeClient);
         queries.put(query.getQueryId(), query);
 
@@ -471,7 +481,7 @@ public class StatementResource
                 return true;
             }
 
-            // has the stage finished scheduling?
+            // have all stage tasks been scheduled?
             if (stageState == StageState.PLANNED || stageState == StageState.SCHEDULING) {
                 return false;
             }

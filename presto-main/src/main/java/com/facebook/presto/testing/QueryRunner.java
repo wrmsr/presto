@@ -14,6 +14,7 @@
 package com.facebook.presto.testing;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.QualifiedTableName;
 import com.facebook.presto.spi.Plugin;
 import org.intellij.lang.annotations.Language;
@@ -21,6 +22,7 @@ import org.intellij.lang.annotations.Language;
 import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
 
 public interface QueryRunner
         extends Closeable
@@ -31,6 +33,10 @@ public interface QueryRunner
     int getNodeCount();
 
     Session getDefaultSession();
+
+    Metadata getMetadata();
+
+    TestingAccessControlManager getAccessControl();
 
     MaterializedResult execute(@Language("SQL") String sql);
 
@@ -43,4 +49,6 @@ public interface QueryRunner
     void installPlugin(Plugin plugin);
 
     void createCatalog(String catalogName, String connectorName, Map<String, String> properties);
+
+    Lock getExclusiveLock();
 }

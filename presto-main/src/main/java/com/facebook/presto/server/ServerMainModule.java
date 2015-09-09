@@ -18,7 +18,6 @@ import com.facebook.presto.block.BlockEncodingManager;
 import com.facebook.presto.client.QueryResults;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.connector.informationSchema.InformationSchemaModule;
-import com.facebook.presto.connector.jmx.JmxConnectorFactory;
 import com.facebook.presto.connector.system.SystemTablesModule;
 import com.facebook.presto.event.query.QueryCompletionEvent;
 import com.facebook.presto.event.query.QueryCreatedEvent;
@@ -50,9 +49,9 @@ import com.facebook.presto.metadata.HandleJsonModule;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.MetadataManager;
 import com.facebook.presto.metadata.NodeVersion;
-import com.facebook.presto.operator.ExchangeClient;
 import com.facebook.presto.operator.ExchangeClientConfig;
 import com.facebook.presto.operator.ExchangeClientFactory;
+import com.facebook.presto.operator.ExchangeClientSupplier;
 import com.facebook.presto.operator.ForExchange;
 import com.facebook.presto.operator.ForScheduler;
 import com.facebook.presto.operator.index.IndexJoinLookupStats;
@@ -99,7 +98,6 @@ import javax.inject.Singleton;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -173,7 +171,7 @@ public class ServerMainModule
         jaxrsBinder(binder).bind(PagesResponseWriter.class);
 
         // exchange client
-        binder.bind(new TypeLiteral<Supplier<ExchangeClient>>() {}).to(ExchangeClientFactory.class).in(Scopes.SINGLETON);
+        binder.bind(new TypeLiteral<ExchangeClientSupplier>() {}).to(ExchangeClientFactory.class).in(Scopes.SINGLETON);
         httpClientBinder(binder).bindHttpClient("exchange", ForExchange.class)
                 .withTracing()
                 .withConfigDefaults(config -> {
@@ -241,9 +239,6 @@ public class ServerMainModule
         // connector
         binder.bind(ConnectorManager.class).in(Scopes.SINGLETON);
         MapBinder<String, ConnectorFactory> connectorFactoryBinder = newMapBinder(binder, String.class, ConnectorFactory.class);
-
-        // jmx connector
-        connectorFactoryBinder.addBinding("jmx").to(JmxConnectorFactory.class);
 
         // information schema
         binder.install(new InformationSchemaModule());

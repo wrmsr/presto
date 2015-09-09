@@ -15,7 +15,7 @@ Synopsis
     [ HAVING condition]
     [ UNION [ ALL | DISTINCT ] select ]
     [ ORDER BY expression [ ASC | DESC ] [, ...] ]
-    [ LIMIT count ]
+    [ LIMIT [ count | ALL ] ]
 
 where ``from_item`` is one of
 
@@ -182,12 +182,14 @@ output expressions:
 Each expression may be composed of output columns or it may be an ordinal
 number selecting an output column by position (starting at one). The
 ``ORDER BY`` clause is evaluated as the last step of a query after any
-``GROUP BY`` or ``HAVING`` clause.
+``GROUP BY`` or ``HAVING`` clause. The default null ordering is ``NULLS LAST``,
+regardless of the ordering direction.
 
 LIMIT Clause
 ------------
 
 The ``LIMIT`` clause restricts the number of rows in the result set.
+``LIMIT ALL`` is the same as omitting the ``LIMIT`` clause.
 The following example queries a large table, but the limit clause restricts
 the output to only have five rows (because the query lacks an ``ORDER BY``,
 exactly which rows are returned is arbitrary)::

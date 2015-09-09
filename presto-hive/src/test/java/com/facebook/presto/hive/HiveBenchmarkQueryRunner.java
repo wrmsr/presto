@@ -29,9 +29,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
+import static com.facebook.presto.testing.TestingSession.testSessionBuilder;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Locale.ENGLISH;
 
 public final class HiveBenchmarkQueryRunner
 {
@@ -54,13 +53,9 @@ public final class HiveBenchmarkQueryRunner
 
     public static LocalQueryRunner createLocalQueryRunner(File tempDir)
     {
-        Session session = Session.builder()
-                .setUser("user")
-                .setSource("test")
+        Session session = testSessionBuilder()
                 .setCatalog("hive")
                 .setSchema("tpch")
-                .setTimeZoneKey(UTC_KEY)
-                .setLocale(ENGLISH)
                 .build();
 
         LocalQueryRunner localQueryRunner = new LocalQueryRunner(session);
@@ -70,9 +65,9 @@ public final class HiveBenchmarkQueryRunner
         localQueryRunner.createCatalog("tpch", new TpchConnectorFactory(nodeManager, 1), ImmutableMap.<String, String>of());
 
         // add hive
-        InMemoryHiveMetastore metastore = new InMemoryHiveMetastore();
-        File tpchDataDir = new File(tempDir, "tpch");
-        tpchDataDir.mkdir();
+        File hiveDir = new File(tempDir, "hive_data");
+        InMemoryHiveMetastore metastore = new InMemoryHiveMetastore(hiveDir);
+        File tpchDataDir = new File(hiveDir, "tpch");
         metastore.createDatabase(new Database("tpch", null, tpchDataDir.toURI().toString(), null));
 
         HiveConnectorFactory hiveConnectorFactory = new HiveConnectorFactory(

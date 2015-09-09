@@ -16,8 +16,6 @@ package com.facebook.presto.operator;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.PageBuilder;
 import com.facebook.presto.spi.block.Block;
-import com.facebook.presto.spi.type.Type;
-import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import io.airlift.slice.XxHash64;
 import it.unimi.dsi.fastutil.HashCommon;
@@ -26,11 +24,11 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 
 import java.util.Arrays;
-import java.util.List;
 
 import static com.facebook.presto.operator.SyntheticAddress.decodePosition;
 import static com.facebook.presto.operator.SyntheticAddress.decodeSliceIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static io.airlift.slice.SizeOf.sizeOf;
 import static io.airlift.slice.SizeOf.sizeOfBooleanArray;
 import static io.airlift.slice.SizeOf.sizeOfIntArray;
 
@@ -47,18 +45,17 @@ public final class InMemoryJoinHash
     private final boolean[] keyVisited;
     private final int[] positionLinks;
     private final long size;
-    private final List<Type> hashTypes;
 
-    public InMemoryJoinHash(LongArrayList addresses, List<Type> hashTypes, PagesHashStrategy pagesHashStrategy)
+    public InMemoryJoinHash(LongArrayList addresses, PagesHashStrategy pagesHashStrategy)
     {
         this.addresses = checkNotNull(addresses, "addresses is null");
-        this.hashTypes = ImmutableList.copyOf(checkNotNull(hashTypes, "hashTypes is null"));
         this.pagesHashStrategy = checkNotNull(pagesHashStrategy, "pagesHashStrategy is null");
         this.channelCount = pagesHashStrategy.getChannelCount();
 
         // reserve memory for the arrays
         int hashSize = HashCommon.arraySize(addresses.size(), 0.75f);
-        size = sizeOfIntArray(hashSize) + sizeOfBooleanArray(hashSize) + sizeOfIntArray(addresses.size());
+        size = sizeOfIntArray(hashSize) + sizeOfBooleanArray(hashSize) + sizeOfIntArray(addresses.size())
+                +  sizeOf(addresses.elements()) + pagesHashStrategy.getSizeInBytes();
 
         mask = hashSize - 1;
         key = new int[hashSize];
