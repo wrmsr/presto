@@ -22,8 +22,8 @@ import com.google.inject.Scopes;
 import com.wrmsr.presto.raptor.storage.RawStorageManager;
 import com.wrmsr.presto.raptor.storage.StorageEngine;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static io.airlift.configuration.ConfigBinder.configBinder;
+import static java.util.Objects.requireNonNull;
 import static org.weakref.jmx.ObjectNames.generatedNameOf;
 import static org.weakref.jmx.guice.ExportBinder.newExporter;
 
@@ -35,8 +35,8 @@ public class StorageModule
 
     public StorageModule(String connectorId, StorageEngine storageEngine)
     {
-        this.connectorId = checkNotNull(connectorId, "connectorId is null");
-        this.storageEngine = checkNotNull(storageEngine);
+        this.connectorId = requireNonNull(connectorId, "connectorId is null");
+        this.storageEngine = requireNonNull(storageEngine);
     }
 
     @Override
