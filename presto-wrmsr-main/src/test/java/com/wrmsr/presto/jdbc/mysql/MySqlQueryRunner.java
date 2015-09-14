@@ -77,7 +77,6 @@ public final class MySqlQueryRunner
     public static Session createSession()
     {
         return Session.builder(new SessionPropertyManager())
-                .setUser("user")
                 .setSource("test")
                 .setCatalog("mysql")
                 .setSchema(TPCH_SCHEMA)

@@ -18,6 +18,8 @@ import com.facebook.presto.block.BlockEncodingManager;
 import com.facebook.presto.metadata.*;
 import com.facebook.presto.operator.Driver;
 import com.facebook.presto.operator.TaskContext;
+import com.facebook.presto.security.AccessControl;
+import com.facebook.presto.security.AllowAllAccessControl;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.ConnectorTableMetadata;
@@ -69,7 +71,6 @@ import static java.lang.String.format;
 public class TestInsertRewriter
 {
     public static final Session SESSION = Session.builder(new SessionPropertyManager())
-            .setUser("user")
             .setSource("test")
             .setCatalog("default")
             .setSchema("default")
@@ -90,6 +91,7 @@ public class TestInsertRewriter
         metadata.addConnectorMetadata("tpch", "tpch", new TestingMetadata());
         metadata.addConnectorMetadata("c2", "c2", new TestingMetadata());
         metadata.addConnectorMetadata("c3", "c3", new TestingMetadata());
+        AccessControl accessControl = new AllowAllAccessControl();
 
         SchemaTableName table1 = new SchemaTableName("default", "t1");
         metadata.createTable(SESSION, "tpch", new TableMetadata("tpch", new ConnectorTableMetadata(table1,
@@ -145,7 +147,6 @@ public class TestInsertRewriter
 
         analyzer = new Analyzer(
                 Session.builder(new SessionPropertyManager())
-                        .setUser("user")
                         .setSource("test")
                         .setCatalog("tpch")
                         .setSchema("default")
@@ -154,6 +155,7 @@ public class TestInsertRewriter
                         .build(),
                 metadata,
                 SQL_PARSER,
+                accessControl,
                 Optional.empty(),
                 true);
     }

@@ -69,7 +69,6 @@ public class TestMainPlugin
     private static LocalQueryRunner createLocalQueryRunner()
     {
        Session defaultSession = Session.builder(new SessionPropertyManager())
-               .setUser("user")
                .setSource("test")
                .setCatalog("local")
                .setSchema(TINY_SCHEMA_NAME)

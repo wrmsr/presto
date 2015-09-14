@@ -92,7 +92,6 @@ public final class PostgreSqlQueryRunner
     public static Session createSession()
     {
         return Session.builder(new SessionPropertyManager())
-                .setUser("user")
                 .setSource("test")
                 .setCatalog("postgresql")
                 .setSchema(TPCH_SCHEMA)
