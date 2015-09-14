@@ -28,6 +28,7 @@ import io.airlift.log.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -152,6 +153,29 @@ public class ExtendedJdbcClient
         }
 
         return supplier.get();
+    }
+
+    @SuppressWarnings({"unchecked"})
+    public static Driver newDriver(String fqcn)
+    {
+        Class<? extends Driver> cls;
+        try {
+           cls = (Class<? extends Driver>) Class.forName(fqcn);
+        }
+        catch (ClassNotFoundException e) {
+            throw Throwables.propagate(e);
+        }
+        return newDriver(cls);
+    }
+
+    public static Driver newDriver(Class<? extends Driver> cls)
+    {
+        try {
+            return cls.getDeclaredConstructor().newInstance();
+        }
+        catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     public String quoted(String name)

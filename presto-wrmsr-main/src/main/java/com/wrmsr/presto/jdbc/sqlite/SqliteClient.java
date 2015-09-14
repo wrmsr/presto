@@ -25,6 +25,6 @@ public class SqliteClient
     @Inject
     public SqliteClient(JdbcConnectorId connectorId, BaseJdbcConfig config, ExtendedJdbcConfig extendedConfig)
     {
-        super(connectorId, config, extendedConfig, "\"", createDriver(extendedConfig, () -> null));
+        super(connectorId, config, extendedConfig, "\"", createDriver(extendedConfig, () -> newDriver("org.sqlite.JDBC")));
     }
 }

@@ -130,7 +130,7 @@ public class BaseJdbcClient
 
     public Connection getConnection(String url, Properties info) throws SQLException
     {
-        return requireNonNull(driver).connect(url, info);
+        return driver.connect(url, info);
     }
 
     @Override
