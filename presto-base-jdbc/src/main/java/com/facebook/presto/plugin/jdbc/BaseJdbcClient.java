@@ -98,7 +98,7 @@ public class BaseJdbcClient
     {
         this.connectorId = requireNonNull(connectorId, "connectorId is null").toString();
         this.identifierQuote = requireNonNull(identifierQuote, "identifierQuote is null");
-        this.driver = requireNonNull(driver, "driver is null");
+        this.driver = driver;
 
         requireNonNull(config, "config is null");
         connectionUrl = config.getConnectionUrl();
@@ -130,7 +130,7 @@ public class BaseJdbcClient
 
     public Connection getConnection(String url, Properties info) throws SQLException
     {
-        return driver.connect(url, info);
+        return requireNonNull(driver).connect(url, info);
     }
 
     @Override

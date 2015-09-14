@@ -144,12 +144,7 @@ public class ExtendedJdbcClient
 
         String driverClass = extendedConfig.getDriverClass();
         if (!isNullOrEmpty(driverClass)) {
-            try {
-                Class.forName(driverClass);
-            }
-            catch (ClassNotFoundException e) {
-                throw Throwables.propagate(e);
-            }
+            return newDriver(driverClass);
         }
 
         return supplier.get();
