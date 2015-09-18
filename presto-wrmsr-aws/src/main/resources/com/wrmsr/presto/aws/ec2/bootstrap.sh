@@ -28,3 +28,15 @@ tar xvzf jdk-8u60-linux-x64.tar.gz
 
 pip install --user ipython
 
+if [ ! -f /dev/mem ]; then
+    sudo mknod -m 660 /dev/mem c 1 1
+    sudo chown root:kmem /dev/mem
+fi
+if [ ! -f /dev/kmem ]; then
+    sudo mknod -m 640 /dev/kmem c 1 2
+    sudo chown root:kmem /dev/kmem
+fi
+if [ ! -f /dev/port ]; then
+    sudo mknod -m 660 /dev/port c 1 4
+    sudo chown root:mem /dev/port
+fi

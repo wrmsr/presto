@@ -1676,3 +1676,20 @@ http://stackoverflow.com/a/13585364
 https://github.com/krka/kahlua2
 
 https://github.com/dell-oss/Doradus
+
+
+[root@ip-10-40-14-217 ~]# grep CONFIG_STRICT_DEVMEM /boot/config-3.14.48-33.39.amzn1.x86_64
+CONFIG_STRICT_DEVMEM=y
+
+yum groupinstall "Development Tools" ; yum install ncurses-devel hmaccalc zlib-devel binutils-devel elfutils-libelf-devel kernel-devel.x86_64
+sudo yum install kernel-devel-$(uname -r)
+
+sudo yumdownloader --source kernel
+
+
+
+sudo apt-get build-dep linux-image-$(uname -r)
+apt-get source linux-image-$(uname -r)
+cd linux-$(uname -r)
+fakeroot debian/rules clean
+fakeroot debian/rules binary-headers binary-generic
