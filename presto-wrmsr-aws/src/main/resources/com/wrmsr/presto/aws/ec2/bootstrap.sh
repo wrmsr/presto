@@ -13,7 +13,7 @@ if [[ $ISSUE == "Ubuntu"* ]] ; then
     sudo apt-get update
     # sudo DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade
     sudo DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
-    sudo apt-get install -y htop tcpdump iotop tmux mtr mosh iftop ack-grep python-pip msr-tools
+    sudo apt-get install -y htop tcpdump iotop tmux mtr mosh iftop ack-grep python-pip msr-tools silversearcher-ag
 
 elif [[ $ISSUE == "Amazon Linux"* ]] ; then
     sudo yum update -y

@@ -1632,7 +1632,6 @@ https://web.archive.org/web/20070709194542/http://www.codeproject.com/system/sov
 https://github.com/mirror/reactos/blob/c6d2b35ffc91e09f50dfb214ea58237509329d6b/reactos/hal/halx86/apic/apic.c#L8 hahaha
 
 http://falsinsoft.blogspot.com/2013/10/access-physical-memory-in-linux.html BAHAHAHAHAHAHAAHAHAHAH
-
 so raptor = http://tinyurl.com/raptorrrr
 https://stackoverflow.com/questions/1629605/getting-user-inside-shell-script-when-running-with-sudo
 https://wiki.postgresql.org/wiki/PGStrom
@@ -1644,47 +1643,17 @@ http://blog.nobugware.com/post/2015/leveldb_geohash_golang/
 http://newsroom.intel.com/community/intel_newsroom/blog/2015/06/12/chip-shot-custom-intel-xeon-sever-chip-boost-cloud-processing-power-for-amazon-web-services-customers?wapkw=e5-2676
 https://www-ssl.intel.com/content/www/us/en/processors/xeon/xeon-e5-brief.html
 
-lol mmap /dev/mem make jnr structs for descriptor entries
- - bonus points for making jnr translate the addrs for me
-
-https://stackoverflow.com/questions/18298097/escalating-to-ring-0-in-linux-application
-http://slashdot.org/story/00/07/20/1440204/answers-from-planet-tux-ingo-molnar-responds
-https://people.redhat.com/~mingo/TUX-patches/tux3-2.6.18-1
-http://www.fenrus.demon.nl/
-/dev/mem PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE|MAP_NORESERVEM
- share?
-rez the sigscanner lol
-
-http://dev.yorhel.nl/doc/easyipc
-https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-manual-325462.pdf @ 1949
-
 https://github.com/jcjohnson/neural-style
 http://www.infoq.com/articles/Tuning-Java-Servers
 https://github.com/jemalloc/jemalloc/releases/tag/4.0.0
 https://github.com/simongog/sdsl-lite
 
 
-http://derekmolloy.ie/writing-a-linux-kernel-module-part-1-introduction/
-http://derekmolloy.ie/writing-a-linux-kernel-module-part-2-a-character-device/
-http://derekmolloy.ie/kernel-gpio-programming-buttons-and-leds/
-
-
-starr -> misc_register
- - god damn sysexit - easy do do whole-core or whole-system :|
-http://stackoverflow.com/a/13585364
 
 https://github.com/krka/kahlua2
-
 https://github.com/dell-oss/Doradus
 
 
-[root@ip-10-40-14-217 ~]# grep CONFIG_STRICT_DEVMEM /boot/config-3.14.48-33.39.amzn1.x86_64
-CONFIG_STRICT_DEVMEM=y
-
-yum groupinstall "Development Tools" ; yum install ncurses-devel hmaccalc zlib-devel binutils-devel elfutils-libelf-devel kernel-devel.x86_64
-sudo yum install kernel-devel-$(uname -r)
-
-sudo yumdownloader --source kernel
 
 
 
