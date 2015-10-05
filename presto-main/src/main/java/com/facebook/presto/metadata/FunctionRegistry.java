@@ -30,6 +30,7 @@ import com.facebook.presto.operator.aggregation.CountAggregation;
 import com.facebook.presto.operator.aggregation.CountIfAggregation;
 import com.facebook.presto.operator.aggregation.CovarianceAggregation;
 import com.facebook.presto.operator.aggregation.DoubleSumAggregation;
+import com.facebook.presto.operator.aggregation.GeometricMeanAggregations;
 import com.facebook.presto.operator.aggregation.LongSumAggregation;
 import com.facebook.presto.operator.aggregation.MergeHyperLogLogAggregation;
 import com.facebook.presto.operator.aggregation.NumericHistogramAggregation;
@@ -124,9 +125,11 @@ import static com.facebook.presto.operator.aggregation.Histogram.HISTOGRAM;
 import static com.facebook.presto.operator.aggregation.MapAggregation.MAP_AGG;
 import static com.facebook.presto.operator.aggregation.MaxAggregation.MAX_AGGREGATION;
 import static com.facebook.presto.operator.aggregation.MaxBy.MAX_BY;
+import static com.facebook.presto.operator.aggregation.MaxByNAggregation.MAX_BY_N_AGGREGATION;
 import static com.facebook.presto.operator.aggregation.MaxNAggregation.MAX_N_AGGREGATION;
 import static com.facebook.presto.operator.aggregation.MinAggregation.MIN_AGGREGATION;
 import static com.facebook.presto.operator.aggregation.MinBy.MIN_BY;
+import static com.facebook.presto.operator.aggregation.MinByNAggregation.MIN_BY_N_AGGREGATION;
 import static com.facebook.presto.operator.aggregation.MinNAggregation.MIN_N_AGGREGATION;
 import static com.facebook.presto.operator.aggregation.MultimapAggregation.MULTIMAP_AGG;
 import static com.facebook.presto.operator.scalar.ArrayCardinalityFunction.ARRAY_CARDINALITY;
@@ -257,6 +260,7 @@ public class FunctionRegistry
                 .aggregate(DoubleSumAggregation.class)
                 .aggregate(LongSumAggregation.class)
                 .aggregate(AverageAggregations.class)
+                .aggregate(GeometricMeanAggregations.class)
                 .aggregate(ApproximateCountDistinctAggregations.class)
                 .aggregate(MergeHyperLogLogAggregation.class)
                 .aggregate(ApproximateSetAggregation.class)
@@ -308,7 +312,7 @@ public class FunctionRegistry
                 .function(ARBITRARY_AGGREGATION)
                 .function(ARRAY_AGGREGATION)
                 .functions(GREATEST, LEAST)
-                .functions(MAX_BY, MIN_BY)
+                .functions(MAX_BY, MIN_BY, MAX_BY_N_AGGREGATION, MIN_BY_N_AGGREGATION)
                 .functions(MAX_AGGREGATION, MIN_AGGREGATION, MAX_N_AGGREGATION, MIN_N_AGGREGATION)
                 .function(COUNT_COLUMN)
                 .functions(ROW_HASH_CODE, ROW_TO_JSON, ROW_EQUAL, ROW_NOT_EQUAL)
@@ -625,6 +629,14 @@ public class FunctionRegistry
 
         if ((firstType.equals(BIGINT) || firstType.equals(DOUBLE)) && (secondType.equals(BIGINT) || secondType.equals(DOUBLE))) {
             return Optional.<Type>of(DOUBLE);
+        }
+
+        if ((firstType.equals(DATE) || firstType.equals(TIMESTAMP)) && (secondType.equals(DATE) || secondType.equals(TIMESTAMP))) {
+            return Optional.<Type>of(TIMESTAMP);
+        }
+
+        if ((firstType.equals(DATE) || firstType.equals(TIMESTAMP_WITH_TIME_ZONE)) && (secondType.equals(DATE) || secondType.equals(TIMESTAMP_WITH_TIME_ZONE))) {
+            return Optional.<Type>of(TIMESTAMP_WITH_TIME_ZONE);
         }
 
         if ((firstType.equals(TIME) || firstType.equals(TIME_WITH_TIME_ZONE)) && (secondType.equals(TIME) || secondType.equals(TIME_WITH_TIME_ZONE))) {

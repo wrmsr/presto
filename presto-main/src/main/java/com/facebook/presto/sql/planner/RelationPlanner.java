@@ -229,6 +229,7 @@ class RelationPlanner
             List<Expression> rightExpressions = new ArrayList<>();
             List<ComparisonExpression.Type> comparisonTypes = new ArrayList<>();
             for (Expression conjunct : ExpressionUtils.extractConjuncts(criteria)) {
+                conjunct = ExpressionUtils.normalize(conjunct);
                 if (!(conjunct instanceof ComparisonExpression)) {
                     throw new SemanticException(NOT_SUPPORTED, node, "Unsupported non-equi join form: %s", conjunct);
                 }
@@ -506,8 +507,10 @@ class RelationPlanner
                 newSymbols.add(outputSymbol);
             }
             else {
-                assignments.put(inputSymbol, new QualifiedNameReference(inputSymbol.toQualifiedName()));
-                newSymbols.add(inputSymbol);
+                QualifiedNameReference qualifiedNameReference = new QualifiedNameReference(inputSymbol.toQualifiedName());
+                Symbol outputSymbol = symbolAllocator.newSymbol(qualifiedNameReference, outputType);
+                assignments.put(outputSymbol, qualifiedNameReference);
+                newSymbols.add(outputSymbol);
             }
             Field oldField = oldDescriptor.getFieldByIndex(i);
             newFields[i] = new Field(oldField.getRelationAlias(), oldField.getName(), coerceToTypes[i], oldField.isHidden());

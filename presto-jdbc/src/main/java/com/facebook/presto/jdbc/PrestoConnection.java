@@ -14,6 +14,7 @@
 package com.facebook.presto.jdbc;
 
 import com.facebook.presto.client.ClientSession;
+import com.facebook.presto.client.ServerInfo;
 import com.facebook.presto.client.StatementClient;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
@@ -78,8 +79,6 @@ public class PrestoConnection
         this.address = HostAndPort.fromParts(uri.getHost(), uri.getPort());
         this.user = requireNonNull(user, "user is null");
         this.queryExecutor = requireNonNull(queryExecutor, "queryExecutor is null");
-        catalog.set("default");
-        schema.set("default");
         timeZoneId.set(TimeZone.getDefault().getID());
         locale.set(Locale.getDefault());
 
@@ -565,6 +564,11 @@ public class PrestoConnection
     String getUser()
     {
         return user;
+    }
+
+    ServerInfo getServerInfo()
+    {
+        return queryExecutor.getServerInfo(createHttpUri(address));
     }
 
     StatementClient startQuery(String sql)

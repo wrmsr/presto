@@ -25,6 +25,7 @@ import com.facebook.presto.spi.ConnectorTableLayout;
 import com.facebook.presto.spi.ConnectorTableLayoutHandle;
 import com.facebook.presto.spi.ConnectorTableLayoutResult;
 import com.facebook.presto.spi.ConnectorTableMetadata;
+import com.facebook.presto.spi.ConnectorViewDefinition;
 import com.facebook.presto.spi.Constraint;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaNotFoundException;
@@ -101,6 +102,8 @@ public class HiveMetadata
     private final String connectorId;
     private final boolean allowDropTable;
     private final boolean allowRenameTable;
+    private final boolean allowAddColumn;
+    private final boolean allowRenameColumn;
     private final boolean allowCorruptWritesForTesting;
     private final HiveMetastore metastore;
     private final HdfsEnvironment hdfsEnvironment;
@@ -126,6 +129,8 @@ public class HiveMetadata
                 hiveClientConfig.getDateTimeZone(),
                 hiveClientConfig.getAllowDropTable(),
                 hiveClientConfig.getAllowRenameTable(),
+                hiveClientConfig.getAllowAddColumn(),
+                hiveClientConfig.getAllowRenameColumn(),
                 hiveClientConfig.getAllowCorruptWritesForTesting(),
                 typeManager);
     }
@@ -138,6 +143,8 @@ public class HiveMetadata
             DateTimeZone timeZone,
             boolean allowDropTable,
             boolean allowRenameTable,
+            boolean allowAddColumn,
+            boolean allowRenameColumn,
             boolean allowCorruptWritesForTesting,
             TypeManager typeManager)
     {
@@ -145,6 +152,8 @@ public class HiveMetadata
 
         this.allowDropTable = allowDropTable;
         this.allowRenameTable = allowRenameTable;
+        this.allowAddColumn = allowAddColumn;
+        this.allowRenameColumn = allowRenameColumn;
         this.allowCorruptWritesForTesting = allowCorruptWritesForTesting;
 
         this.metastore = requireNonNull(metastore, "metastore is null");
@@ -379,6 +388,35 @@ public class HiveMetadata
     }
 
     @Override
+    public void renameColumn(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnHandle source, String target)
+    {
+        if (!allowRenameColumn) {
+            throw new PrestoException(PERMISSION_DENIED, "Renaming columns is disabled in this Hive catalog");
+        }
+
+        HiveTableHandle hiveTableHandle = checkType(tableHandle, HiveTableHandle.class, "tableHandle");
+        HiveColumnHandle sourceHandle = checkType(source, HiveColumnHandle.class, "columnHandle");
+        Optional<Table> tableMetadata = metastore.getTable(hiveTableHandle.getSchemaName(), hiveTableHandle.getTableName());
+        if (!tableMetadata.isPresent()) {
+            throw new TableNotFoundException(hiveTableHandle.getSchemaTableName());
+        }
+        Table table = tableMetadata.get();
+        StorageDescriptor sd = table.getSd();
+        ImmutableList.Builder<FieldSchema> columns = ImmutableList.builder();
+        for (FieldSchema fieldSchema : sd.getCols()) {
+            if (fieldSchema.getName().equals(sourceHandle.getName())) {
+                columns.add(new FieldSchema(target, fieldSchema.getType(), fieldSchema.getComment()));
+            }
+            else {
+                columns.add(fieldSchema);
+            }
+        }
+        sd.setCols(columns.build());
+        table.setSd(sd);
+        metastore.alterTable(hiveTableHandle.getSchemaName(), hiveTableHandle.getTableName(), table);
+    }
+
+    @Override
     public void renameTable(ConnectorSession session, ConnectorTableHandle tableHandle, SchemaTableName newTableName)
     {
         if (!allowRenameTable) {
@@ -386,7 +424,15 @@ public class HiveMetadata
         }
 
         HiveTableHandle handle = checkType(tableHandle, HiveTableHandle.class, "tableHandle");
-        metastore.renameTable(handle.getSchemaName(), handle.getTableName(), newTableName.getSchemaName(), newTableName.getTableName());
+        SchemaTableName tableName = schemaTableName(tableHandle);
+        Optional<Table> source = metastore.getTable(handle.getSchemaName(), handle.getTableName());
+        if (!source.isPresent()) {
+            throw new TableNotFoundException(tableName);
+        }
+        Table table = source.get();
+        table.setDbName(newTableName.getSchemaName());
+        table.setTableName(newTableName.getTableName());
+        metastore.alterTable(handle.getSchemaName(), handle.getTableName(), table);
     }
 
     @Override
@@ -538,6 +584,30 @@ public class HiveMetadata
                 ImmutableMap.of()));
 
         metastore.createTable(table);
+    }
+
+    @Override
+    public void addColumn(ConnectorSession session, ConnectorTableHandle tableHandle, ColumnMetadata column)
+    {
+        if (!allowAddColumn) {
+            throw new PrestoException(PERMISSION_DENIED, "Adding Columns is disabled in this Hive catalog");
+        }
+
+        HiveTableHandle handle = checkType(tableHandle, HiveTableHandle.class, "tableHandle");
+        Optional<Table> tableMetadata = metastore.getTable(handle.getSchemaName(), handle.getTableName());
+        if (!tableMetadata.isPresent()) {
+            throw new TableNotFoundException(handle.getSchemaTableName());
+        }
+        Table table = tableMetadata.get();
+        StorageDescriptor sd = table.getSd();
+
+        ImmutableList.Builder<FieldSchema> columns = ImmutableList.builder();
+        columns.addAll(sd.getCols());
+        columns.add(new FieldSchema(column.getName(), column.getType().getDisplayName(), column.getComment()));
+        sd.setCols(columns.build());
+
+        table.setSd(sd);
+        metastore.alterTable(handle.getSchemaName(), handle.getTableName(), table);
     }
 
     private Path getTargetPath(String schemaName, String tableName, SchemaTableName schemaTableName)
@@ -693,7 +763,7 @@ public class HiveMetadata
     @Override
     public void dropView(ConnectorSession session, SchemaTableName viewName)
     {
-        String view = getViews(session, viewName.toSchemaTablePrefix()).get(viewName);
+        ConnectorViewDefinition view = getViews(session, viewName.toSchemaTablePrefix()).get(viewName);
         if (view == null) {
             throw new ViewNotFoundException(viewName);
         }
@@ -719,9 +789,9 @@ public class HiveMetadata
     }
 
     @Override
-    public Map<SchemaTableName, String> getViews(ConnectorSession session, SchemaTablePrefix prefix)
+    public Map<SchemaTableName, ConnectorViewDefinition> getViews(ConnectorSession session, SchemaTablePrefix prefix)
     {
-        ImmutableMap.Builder<SchemaTableName, String> views = ImmutableMap.builder();
+        ImmutableMap.Builder<SchemaTableName, ConnectorViewDefinition> views = ImmutableMap.builder();
         List<SchemaTableName> tableNames;
         if (prefix.getTableName() != null) {
             tableNames = ImmutableList.of(new SchemaTableName(prefix.getSchemaName(), prefix.getTableName()));
@@ -733,7 +803,10 @@ public class HiveMetadata
         for (SchemaTableName schemaTableName : tableNames) {
             Optional<Table> table = metastore.getTable(schemaTableName.getSchemaName(), schemaTableName.getTableName());
             if (table.isPresent() && HiveUtil.isPrestoView(table.get())) {
-                views.put(schemaTableName, decodeViewData(table.get().getViewOriginalText()));
+                views.put(schemaTableName, new ConnectorViewDefinition(
+                        schemaTableName,
+                        Optional.ofNullable(table.get().getOwner()),
+                        decodeViewData(table.get().getViewOriginalText())));
             }
         }
 

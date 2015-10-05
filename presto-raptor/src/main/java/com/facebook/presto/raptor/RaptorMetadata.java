@@ -31,6 +31,7 @@ import com.facebook.presto.spi.ConnectorOutputTableHandle;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
+import com.facebook.presto.spi.ConnectorViewDefinition;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
@@ -83,8 +84,8 @@ import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
 import static java.util.Collections.nCopies;
-import static java.util.stream.Collectors.toCollection;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
 public class RaptorMetadata
@@ -375,7 +376,7 @@ public class RaptorMetadata
 
         long newTableId = dbi.inTransaction((dbiHandle, status) -> {
             MetadataDao dao = dbiHandle.attach(MetadataDao.class);
-            long tableId = dao.insertTable(table.getSchemaName(), table.getTableName());
+            long tableId = dao.insertTable(table.getSchemaName(), table.getTableName(), true);
             List<RaptorColumnHandle> sortColumnHandles = table.getSortColumnHandles();
 
             for (int i = 0; i < table.getColumnTypes().size(); i++) {
@@ -521,11 +522,11 @@ public class RaptorMetadata
     }
 
     @Override
-    public Map<SchemaTableName, String> getViews(ConnectorSession session, SchemaTablePrefix prefix)
+    public Map<SchemaTableName, ConnectorViewDefinition> getViews(ConnectorSession session, SchemaTablePrefix prefix)
     {
-        ImmutableMap.Builder<SchemaTableName, String> map = ImmutableMap.builder();
+        ImmutableMap.Builder<SchemaTableName, ConnectorViewDefinition> map = ImmutableMap.builder();
         for (ViewResult view : dao.getViews(prefix.getSchemaName(), prefix.getTableName())) {
-            map.put(view.getName(), view.getData());
+            map.put(view.getName(), new ConnectorViewDefinition(view.getName(), Optional.empty(), view.getData()));
         }
         return map.build();
     }

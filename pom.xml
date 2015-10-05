@@ -10,7 +10,7 @@
 
     <groupId>com.facebook.presto</groupId>
     <artifactId>presto-root</artifactId>
-    <version>0.119-SNAPSHOT</version>
+    <version>0.122-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>presto-root</name>
@@ -64,7 +64,9 @@
     <modules>
         <module>presto-spi</module>
         <module>presto-jmx</module>
+        <module>presto-record-decoder</module>
         <module>presto-kafka</module>
+        <module>presto-redis</module>
         <module>presto-cassandra</module>
         <module>presto-blackhole</module>
         <module>presto-orc</module>
@@ -117,6 +119,12 @@
             <dependency>
                 <groupId>com.facebook.presto</groupId>
                 <artifactId>presto-spi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.facebook.presto</groupId>
+                <artifactId>presto-record-decoder</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -266,7 +274,7 @@
             <dependency>
                 <groupId>com.facebook.presto.hive</groupId>
                 <artifactId>hive-apache</artifactId>
-                <version>0.14</version>
+                <version>0.15</version>
             </dependency>
 
             <dependency>
@@ -446,7 +454,7 @@
             <dependency>
                 <groupId>com.h2database</groupId>
                 <artifactId>h2</artifactId>
-                <version>1.3.170</version>
+                <version>1.4.189</version>
             </dependency>
 
             <dependency>
@@ -458,7 +466,7 @@
             <dependency>
                 <groupId>io.airlift.resolver</groupId>
                 <artifactId>resolver</artifactId>
-                <version>1.1</version>
+                <version>1.2</version>
             </dependency>
 
             <dependency>
@@ -530,7 +538,7 @@
             <dependency>
                 <groupId>org.jdbi</groupId>
                 <artifactId>jdbi</artifactId>
-                <version>2.55</version>
+                <version>2.63.1</version>
             </dependency>
 
             <dependency>
@@ -661,6 +669,18 @@
                 <groupId>org.jgrapht</groupId>
                 <artifactId>jgrapht-core</artifactId>
                 <version>0.9.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>redis.clients</groupId>
+                <artifactId>jedis</artifactId>
+                <version>2.6.2</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.orange.redis-embedded</groupId>
+                <artifactId>embedded-redis</artifactId>
+                <version>0.6</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -858,7 +878,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.15</version>
+                <version>2.16</version>
                 <executions>
                     <execution>
                         <phase>validate</phase>
@@ -876,14 +896,10 @@
                     </execution>
                 </executions>
                 <dependencies>
-                    <!-- The version of checkstyle the plugin depends on doesn't support Java 8,
-                         so override it manually until a new version of the plugin is released.
-                         This is copied verbatim from the dependency declaration in the checkstyle
-                         plugin -->
                     <dependency>
                         <groupId>com.puppycrawl.tools</groupId>
                         <artifactId>checkstyle</artifactId>
-                        <version>6.6</version>
+                        <version>6.11.1</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -935,6 +951,27 @@
                                 <argument>--debug</argument>
                             </arguments>
                         </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>eclipse-compiler</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <compilerId>eclipse</compilerId>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.codehaus.plexus</groupId>
+                                <artifactId>plexus-compiler-eclipse</artifactId>
+                                <version>2.6</version>
+                            </dependency>
+                        </dependencies>
                     </plugin>
                 </plugins>
             </build>

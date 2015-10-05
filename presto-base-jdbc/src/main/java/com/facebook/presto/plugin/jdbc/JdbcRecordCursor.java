@@ -82,7 +82,7 @@ public class JdbcRecordCursor
     {
         try {
             String sql = jdbcClient.buildSql(split, columnHandles);
-            statement = connection.createStatement();
+            statement = jdbcClient.getStatement(connection);
             statement.setFetchSize(1000);
 
             log.debug("Executing: %s", sql);

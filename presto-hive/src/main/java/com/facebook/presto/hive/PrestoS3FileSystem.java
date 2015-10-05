@@ -18,12 +18,15 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.internal.StaticCredentialsProvider;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -548,15 +551,28 @@ public class PrestoS3FileSystem
 
     private AmazonS3Client createAmazonS3Client(URI uri, Configuration hadoopConfig, ClientConfiguration clientConfig)
     {
+        AWSCredentialsProvider credentials = getAwsCredentialsProvider(uri, hadoopConfig);
+        AmazonS3Client client = new AmazonS3Client(credentials, clientConfig, METRIC_COLLECTOR);
+
+        // use local region when running inside of EC2
+        Region region = Regions.getCurrentRegion();
+        if (region != null) {
+            client.setRegion(region);
+        }
+        return client;
+    }
+
+    private AWSCredentialsProvider getAwsCredentialsProvider(URI uri, Configuration conf)
+    {
         // first try credentials from URI or static properties
         try {
-            return new AmazonS3Client(new StaticCredentialsProvider(getAwsCredentials(uri, hadoopConfig)), clientConfig, METRIC_COLLECTOR);
+            return new StaticCredentialsProvider(getAwsCredentials(uri, conf));
         }
         catch (IllegalArgumentException ignored) {
         }
 
         if (useInstanceCredentials) {
-            return new AmazonS3Client(new InstanceProfileCredentialsProvider(), clientConfig, METRIC_COLLECTOR);
+            return new InstanceProfileCredentialsProvider();
         }
 
         throw new RuntimeException("S3 credentials not configured");

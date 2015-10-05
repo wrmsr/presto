@@ -13,7 +13,7 @@
  */
 package com.facebook.presto.kafka;
 
-import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.decoder.DecoderColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.type.Type;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -28,7 +28,7 @@ import static java.util.Objects.requireNonNull;
  * Kafka specific connector column handle.
  */
 public final class KafkaColumnHandle
-        implements ColumnHandle, Comparable<KafkaColumnHandle>
+        implements DecoderColumnHandle, Comparable<KafkaColumnHandle>
 {
     private final String connectorId;
     private final int ordinalPosition;
@@ -111,30 +111,35 @@ public final class KafkaColumnHandle
         return ordinalPosition;
     }
 
+    @Override
     @JsonProperty
     public String getName()
     {
         return name;
     }
 
+    @Override
     @JsonProperty
     public Type getType()
     {
         return type;
     }
 
+    @Override
     @JsonProperty
     public String getMapping()
     {
         return mapping;
     }
 
+    @Override
     @JsonProperty
     public String getDataFormat()
     {
         return dataFormat;
     }
 
+    @Override
     @JsonProperty
     public String getFormatHint()
     {
@@ -153,6 +158,7 @@ public final class KafkaColumnHandle
         return hidden;
     }
 
+    @Override
     @JsonProperty
     public boolean isInternal()
     {

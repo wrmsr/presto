@@ -4,11 +4,12 @@ Aggregate Functions
 
 Aggregate functions operate on a set of values to compute a single result.
 
-Except for :func:`count`, :func:`count_if`, :func:`max_by` and :func:`approx_distinct`, all
-of these aggregate functions ignore null values and return null for no input
-rows or when all values are null. For example, :func:`sum` returns null
-rather than zero and :func:`avg` does not include null values in the count.
-The ``coalesce`` function can be used to convert null into zero.
+Except for :func:`count`, :func:`count_if`, :func:`max_by`, :func:`min_by` and
+:func:`approx_distinct`, all of these aggregate functions ignore null values
+and return null for no input rows or when all values are null. For example,
+:func:`sum` returns null rather than zero and :func:`avg` does not include null
+values in the count. The ``coalesce`` function can be used to convert null into
+zero.
 
 General Aggregate Functions
 ---------------------------
@@ -54,21 +55,41 @@ General Aggregate Functions
 
     This is an alias for :func:`bool_and`.
 
+.. function:: geometric_mean(x) -> double
+
+    Returns the geometric mean of all input values.
+
 .. function:: max_by(x, y) -> [same as x]
 
     Returns the value of ``x`` associated with the maximum value of ``y`` over all input values.
+
+.. function:: max_by(x, y, n) -> array<[same as x]>
+
+    Returns ``n`` values of ``x`` associated with the ``n`` largest of all input values of ``y``.
 
 .. function:: min_by(x, y) -> [same as x]
 
     Returns the value of ``x`` associated with the minimum value of ``y`` over all input values.
 
+.. function:: min_by(x, y, n) -> array<[same as x]>
+
+    Returns ``n`` values of ``x`` associated with the ``n`` smallest of all input values of ``y``.
+
 .. function:: max(x) -> [same as input]
 
     Returns the maximum value of all input values.
 
+.. function:: max(x, n) -> array<[same as x]>
+
+    Returns ``n`` largest values of all input values of ``x``.
+
 .. function:: min(x) -> [same as input]
 
     Returns the minimum value of all input values.
+
+.. function:: min(x, n) -> array<[same as x]>
+
+    Returns ``n`` smallest values of all input values of ``x``.
 
 .. function:: sum(x) -> [same as input]
 

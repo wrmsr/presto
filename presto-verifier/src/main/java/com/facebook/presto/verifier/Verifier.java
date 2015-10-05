@@ -41,6 +41,7 @@ public class Verifier
     private final int threadCount;
     private final Set<String> whitelist;
     private final Set<String> blacklist;
+    private final int precision;
 
     public Verifier(PrintStream out, VerifierConfig config, Set<EventClient> eventClients)
     {
@@ -50,9 +51,11 @@ public class Verifier
         this.whitelist = requireNonNull(config.getWhitelist(), "whitelist is null");
         this.blacklist = requireNonNull(config.getBlacklist(), "blacklist is null");
         this.threadCount = config.getThreadCount();
+        this.precision = config.getDoublePrecision();
     }
 
-    public void run(List<QueryPair> queries)
+    // Returns number of failed queries
+    public int run(List<QueryPair> queries)
             throws InterruptedException
     {
         ExecutorService executor = newFixedThreadPool(threadCount);
@@ -128,6 +131,7 @@ public class Verifier
         }
 
         log.info("Results: %s / %s (%s skipped)", valid, failed, skipped);
+        return failed;
     }
 
     private VerifierQueryEvent buildEvent(Validator validator)
@@ -143,7 +147,7 @@ public class Verifier
                 errorMessage += getStackTraceAsString(test.getException());
             }
             else {
-                errorMessage += validator.getResultsComparison().trim();
+                errorMessage += validator.getResultsComparison(precision).trim();
             }
         }
 

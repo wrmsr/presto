@@ -13,8 +13,8 @@
  */
 package com.facebook.presto.execution.scheduler;
 
+import com.facebook.presto.client.NodeVersion;
 import com.facebook.presto.execution.MockRemoteTaskFactory;
-import com.facebook.presto.metadata.NodeVersion;
 import com.facebook.presto.metadata.PrestoNode;
 import com.facebook.presto.spi.Node;
 import com.google.common.collect.ImmutableList;
@@ -46,7 +46,8 @@ public class TestCurrentNodeScheduler
         MockRemoteTaskFactory taskFactory = new MockRemoteTaskFactory(executor);
 
         CurrentNodeScheduler nodeScheduler = new CurrentNodeScheduler(
-                node -> taskFactory.createTableScanTask((Node) node, ImmutableList.of()),
+                node -> taskFactory.createTableScanTask((Node) node, ImmutableList.of(), (delta) -> {
+                }),
                 () -> new PrestoNode("other1", URI.create("http://127.0.0.1:11"), NodeVersion.UNKNOWN));
 
         ScheduleResult result = nodeScheduler.schedule();

@@ -79,7 +79,7 @@ public class CreateViewTask
     @Override
     public void execute(CreateView statement, Session session, Metadata metadata, AccessControl accessControl, QueryStateMachine stateMachine)
     {
-        QualifiedTableName name = createQualifiedTableName(session, statement.getName());
+        QualifiedTableName name = createQualifiedTableName(session, statement, statement.getName());
 
         accessControl.checkCanCreateView(session.getIdentity(), name);
 
@@ -92,7 +92,7 @@ public class CreateViewTask
                 .map(field -> new ViewColumn(field.getName().get(), field.getType()))
                 .collect(toImmutableList());
 
-        String data = codec.toJson(new ViewDefinition(sql, session.getCatalog(), session.getSchema(), columns));
+        String data = codec.toJson(new ViewDefinition(sql, session.getCatalog(), session.getSchema(), columns, Optional.of(session.getUser())));
 
         metadata.createView(session, name, data, statement.isReplace());
     }

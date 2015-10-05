@@ -54,6 +54,7 @@ public class Query
     private static final Signal SIGINT = new Signal("INT");
 
     private final AtomicBoolean ignoreUserInterrupt = new AtomicBoolean();
+    private final AtomicBoolean userAbortedQuery = new AtomicBoolean();
     private final StatementClient client;
 
     public Query(StatementClient client)
@@ -78,6 +79,7 @@ public class Query
             if (ignoreUserInterrupt.get() || client.isClosed()) {
                 return;
             }
+            userAbortedQuery.set(true);
             client.close();
             clientThread.interrupt();
         });
@@ -190,12 +192,26 @@ public class Query
     private void pageOutput(OutputFormat format, List<String> fieldNames)
             throws IOException
     {
-        // ignore the user pressing ctrl-C while in the pager
-        ignoreUserInterrupt.set(true);
-
-        try (Writer writer = createWriter(Pager.create());
+        try (Pager pager = Pager.create();
+                Writer writer = createWriter(pager);
                 OutputHandler handler = createOutputHandler(format, writer, fieldNames)) {
+            if (!pager.isNullPager()) {
+                // ignore the user pressing ctrl-C while in the pager
+                ignoreUserInterrupt.set(true);
+                Thread clientThread = Thread.currentThread();
+                pager.getFinishFuture().thenRun(() -> {
+                    userAbortedQuery.set(true);
+                    ignoreUserInterrupt.set(false);
+                    clientThread.interrupt();
+                });
+            }
             handler.processRows(client);
+        }
+        catch (RuntimeException | IOException e) {
+            if (userAbortedQuery.get() && !(e instanceof QueryAbortedException)) {
+                throw new QueryAbortedException(e);
+            }
+            throw e;
         }
     }
 

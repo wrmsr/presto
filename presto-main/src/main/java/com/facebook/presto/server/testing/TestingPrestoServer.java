@@ -75,8 +75,6 @@ import static java.util.Objects.requireNonNull;
 public class TestingPrestoServer
         implements Closeable
 {
-    public static final String TEST_CATALOG = "default"; // TODO: change this to test_catalog
-
     private final Path baseDataDir;
     private final LifeCycleManager lifeCycleManager;
     private final PluginManager pluginManager;
@@ -89,7 +87,7 @@ public class TestingPrestoServer
     private final InternalNodeManager nodeManager;
     private final ServiceSelectorManager serviceSelectorManager;
     private final Announcer announcer;
-    private QueryManager queryManager;
+    private final QueryManager queryManager;
 
     public TestingPrestoServer()
             throws Exception

@@ -42,6 +42,11 @@ public class AllowAllAccessControl
     }
 
     @Override
+    public void checkCanAddColumns(Identity identity, QualifiedTableName tableName)
+    {
+    }
+
+    @Override
     public void checkCanRenameColumn(Identity identity, QualifiedTableName tableName)
     {
     }
@@ -73,6 +78,16 @@ public class AllowAllAccessControl
 
     @Override
     public void checkCanSelectFromView(Identity identity, QualifiedTableName viewName)
+    {
+    }
+
+    @Override
+    public void checkCanCreateViewWithSelectFromTable(Identity identity, QualifiedTableName tableName)
+    {
+    }
+
+    @Override
+    public void checkCanCreateViewWithSelectFromView(Identity identity, QualifiedTableName viewName)
     {
     }
 
