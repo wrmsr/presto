@@ -14,12 +14,13 @@
 package com.facebook.presto.connector.informationSchema;
 
 import com.facebook.presto.Session;
-import com.facebook.presto.metadata.FunctionInfo;
+import com.facebook.presto.execution.QueryId;
 import com.facebook.presto.metadata.InternalTable;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.OperatorNotFoundException;
 import com.facebook.presto.metadata.QualifiedTableName;
 import com.facebook.presto.metadata.QualifiedTablePrefix;
+import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.metadata.TableLayout;
 import com.facebook.presto.metadata.TableLayoutResult;
@@ -46,7 +47,9 @@ import io.airlift.slice.Slice;
 
 import javax.inject.Inject;
 
+import java.lang.invoke.MethodHandle;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -111,6 +114,7 @@ public class InformationSchemaPageSourceProvider
         Map<String, SerializableNativeValue> filters = split.getFilters();
 
         Session session = Session.builder(metadata.getSessionPropertyManager())
+                .setQueryId(new QueryId(connectorSession.getQueryId()))
                 .setIdentity(connectorSession.getIdentity())
                 .setSource("information_schema")
                 .setCatalog("") // default catalog is not be used
@@ -239,13 +243,25 @@ public class InformationSchemaPageSourceProvider
 
         Optional<TableHandle> tableHandle = metadata.getTableHandle(session, tableName);
         checkArgument(tableHandle.isPresent(), "Table %s does not exist", tableName);
-        Map<ColumnHandle, String> columnHandles = ImmutableBiMap.copyOf(metadata.getColumnHandles(session, tableHandle.get())).inverse();
 
         List<TableLayoutResult> layouts = metadata.getLayouts(session, tableHandle.get(), Constraint.<ColumnHandle>alwaysTrue(), Optional.empty());
 
         if (layouts.size() == 1) {
-            TableLayout layout = Iterables.getOnlyElement(layouts).getLayout();
+            Map<ColumnHandle, String> columnHandles = ImmutableBiMap.copyOf(metadata.getColumnHandles(session, tableHandle.get())).inverse();
+            Map<ColumnHandle, MethodHandle> methodHandles = new HashMap<>();
+            for (ColumnHandle columnHandle : columnHandles.keySet()) {
+                try {
+                    ColumnMetadata columnMetadata = metadata.getColumnMetadata(session, tableHandle.get(), columnHandle);
+                    Signature operator = metadata.getFunctionRegistry().getCoercion(columnMetadata.getType(), VARCHAR);
+                    MethodHandle methodHandle = metadata.getFunctionRegistry().getScalarFunctionImplementation(operator).getMethodHandle();
+                    methodHandles.put(columnHandle, methodHandle);
+                }
+                catch (OperatorNotFoundException exception) {
+                    // Do not put the columnHandle in the map.
+                }
+            }
 
+            TableLayout layout = Iterables.getOnlyElement(layouts).getLayout();
             layout.getDiscretePredicates().ifPresent(domains -> {
                 int partitionNumber = 1;
                 for (TupleDomain<ColumnHandle> domain : domains) {
@@ -254,16 +270,17 @@ public class InformationSchemaPageSourceProvider
                         String columnName = columnHandles.get(columnHandle);
                         String value = null;
                         if (entry.getValue().getValue() != null) {
-                            ColumnMetadata columnMetadata = metadata.getColumnMetadata(session, tableHandle.get(), columnHandle);
-                            try {
-                                FunctionInfo operator = metadata.getFunctionRegistry().getCoercion(columnMetadata.getType(), VARCHAR);
-                                value = ((Slice) operator.getMethodHandle().invokeWithArguments(entry.getValue().getValue())).toStringUtf8();
+                            if (methodHandles.containsKey(columnHandle)) {
+                                try {
+                                    value = ((Slice) methodHandles.get(columnHandle).invokeWithArguments(entry.getValue().getValue())).toStringUtf8();
+                                }
+                                catch (Throwable throwable) {
+                                    throw Throwables.propagate(throwable);
+                                }
                             }
-                            catch (OperatorNotFoundException e) {
+                            else {
+                                // OperatorNotFoundException was thrown for this columnHandle
                                 value = "<UNREPRESENTABLE VALUE>";
-                            }
-                            catch (Throwable throwable) {
-                                throw Throwables.propagate(throwable);
                             }
                         }
                         table.add(

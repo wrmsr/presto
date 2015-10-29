@@ -14,8 +14,8 @@
 package com.facebook.presto.sql.analyzer;
 
 import com.facebook.presto.Session;
-import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.metadata.FunctionType;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.MetadataUtil;
 import com.facebook.presto.metadata.QualifiedTableName;
@@ -44,6 +44,7 @@ import com.facebook.presto.sql.tree.AliasedRelation;
 import com.facebook.presto.sql.tree.AllColumns;
 import com.facebook.presto.sql.tree.ComparisonExpression;
 import com.facebook.presto.sql.tree.DefaultTraversalVisitor;
+import com.facebook.presto.sql.tree.DereferenceExpression;
 import com.facebook.presto.sql.tree.Except;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FrameBound;
@@ -94,6 +95,9 @@ import java.util.Optional;
 import java.util.Set;
 
 import static com.facebook.presto.metadata.FunctionRegistry.getCommonSuperType;
+import static com.facebook.presto.metadata.FunctionType.AGGREGATE;
+import static com.facebook.presto.metadata.FunctionType.APPROXIMATE_AGGREGATE;
+import static com.facebook.presto.metadata.FunctionType.WINDOW;
 import static com.facebook.presto.metadata.ViewDefinition.ViewColumn;
 import static com.facebook.presto.spi.StandardErrorCode.INVALID_FUNCTION_ARGUMENT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
@@ -294,7 +298,7 @@ public class TupleAnalyzer
             throw new SemanticException(NOT_SUPPORTED, relation, "STRATIFY ON is not yet implemented");
         }
 
-        if (!DependencyExtractor.extractNames(relation.getSamplePercentage()).isEmpty()) {
+        if (!DependencyExtractor.extractNames(relation.getSamplePercentage(), analysis.getColumnReferences()).isEmpty()) {
             throw new SemanticException(NON_NUMERIC_SAMPLE_PERCENTAGE, relation.getSamplePercentage(), "Sample percentage cannot contain column references");
         }
 
@@ -363,7 +367,7 @@ public class TupleAnalyzer
         List<FieldOrExpression> orderByExpressions = analyzeOrderBy(node, tupleDescriptor, context, outputExpressions);
         analyzeHaving(node, tupleDescriptor, context);
 
-        analyzeAggregations(node, tupleDescriptor, groupByExpressions, outputExpressions, orderByExpressions, context);
+        analyzeAggregations(node, tupleDescriptor, groupByExpressions, outputExpressions, orderByExpressions, context, analysis.getColumnReferences());
         analyzeWindowFunctions(node, outputExpressions, orderByExpressions);
 
         TupleDescriptor descriptor = computeOutputDescriptor(node, tupleDescriptor);
@@ -533,8 +537,8 @@ public class TupleAnalyzer
                 }
 
                 ComparisonExpression comparison = (ComparisonExpression) conjunct;
-                Set<QualifiedName> firstDependencies = DependencyExtractor.extractNames(comparison.getLeft());
-                Set<QualifiedName> secondDependencies = DependencyExtractor.extractNames(comparison.getRight());
+                Set<QualifiedName> firstDependencies = DependencyExtractor.extractNames(comparison.getLeft(), analyzer.getColumnReferences());
+                Set<QualifiedName> secondDependencies = DependencyExtractor.extractNames(comparison.getRight(), analyzer.getColumnReferences());
 
                 Expression leftExpression;
                 Expression rightExpression;
@@ -696,8 +700,8 @@ public class TupleAnalyzer
 
             List<TypeSignature> argumentTypes = Lists.transform(windowFunction.getArguments(), expression -> analysis.getType(expression).getTypeSignature());
 
-            FunctionInfo info = metadata.resolveFunction(windowFunction.getName(), argumentTypes, false);
-            if (!info.isWindow()) {
+            FunctionType type = metadata.getFunctionRegistry().resolveFunction(windowFunction.getName(), argumentTypes, false).getType();
+            if (type != AGGREGATE && type != APPROXIMATE_AGGREGATE && type != WINDOW) {
                 throw new SemanticException(MUST_BE_WINDOW_FUNCTION, node, "Not a window function: %s", windowFunction.getName());
             }
         }
@@ -898,14 +902,23 @@ public class TupleAnalyzer
             }
             else if (item instanceof SingleColumn) {
                 SingleColumn column = (SingleColumn) item;
+                Expression expression = column.getExpression();
 
                 Optional<String> alias = column.getAlias();
-                if (!alias.isPresent() && column.getExpression() instanceof QualifiedNameReference) {
-                    QualifiedName name = ((QualifiedNameReference) column.getExpression()).getName();
-                    alias = Optional.of(getLast(name.getOriginalParts()));
+                if (!alias.isPresent()) {
+                    QualifiedName name = null;
+                    if (expression instanceof QualifiedNameReference) {
+                        name = ((QualifiedNameReference) expression).getName();
+                    }
+                    else if (expression instanceof DereferenceExpression) {
+                        name = DereferenceExpression.getQualifiedName((DereferenceExpression) expression);
+                    }
+                    if (name != null) {
+                        alias = Optional.of(getLast(name.getOriginalParts()));
+                    }
                 }
 
-                outputFields.add(Field.newUnqualified(alias, analysis.getType(column.getExpression()))); // TODO don't use analysis as a side-channel. Use outputExpressions to look up the type
+                outputFields.add(Field.newUnqualified(alias, analysis.getType(expression))); // TODO don't use analysis as a side-channel. Use outputExpressions to look up the type
             }
             else {
                 throw new IllegalArgumentException("Unsupported SelectItem type: " + item.getClass().getName());
@@ -1001,7 +1014,8 @@ public class TupleAnalyzer
             List<FieldOrExpression> groupByExpressions,
             List<FieldOrExpression> outputExpressions,
             List<FieldOrExpression> orderByExpressions,
-            AnalysisContext context)
+            AnalysisContext context,
+            Set<Expression> columnReferences)
     {
         List<FunctionCall> aggregates = extractAggregates(node);
 
@@ -1019,11 +1033,11 @@ public class TupleAnalyzer
             //     SELECT f(a + 1) GROUP BY a + 1
             //     SELECT a + sum(b) GROUP BY a
             for (FieldOrExpression fieldOrExpression : Iterables.concat(outputExpressions, orderByExpressions)) {
-                verifyAggregations(node, groupByExpressions, tupleDescriptor, fieldOrExpression);
+                verifyAggregations(node, groupByExpressions, tupleDescriptor, fieldOrExpression, columnReferences);
             }
 
             if (node.getHaving().isPresent()) {
-                verifyAggregations(node, groupByExpressions, tupleDescriptor, new FieldOrExpression(node.getHaving().get()));
+                verifyAggregations(node, groupByExpressions, tupleDescriptor, new FieldOrExpression(node.getHaving().get()), columnReferences);
             }
         }
     }
@@ -1051,9 +1065,14 @@ public class TupleAnalyzer
         return aggregates;
     }
 
-    private void verifyAggregations(QuerySpecification node, List<FieldOrExpression> groupByExpressions, TupleDescriptor tupleDescriptor, FieldOrExpression fieldOrExpression)
+    private void verifyAggregations(
+            QuerySpecification node,
+            List<FieldOrExpression> groupByExpressions,
+            TupleDescriptor tupleDescriptor,
+            FieldOrExpression fieldOrExpression,
+            Set<Expression> columnReferences)
     {
-        AggregationAnalyzer analyzer = new AggregationAnalyzer(groupByExpressions, metadata, tupleDescriptor);
+        AggregationAnalyzer analyzer = new AggregationAnalyzer(groupByExpressions, metadata, tupleDescriptor, columnReferences);
 
         if (fieldOrExpression.isExpression()) {
             analyzer.analyze(fieldOrExpression.getExpression());
@@ -1099,6 +1118,7 @@ public class TupleAnalyzer
             }
 
             Session viewSession = Session.builder(metadata.getSessionPropertyManager())
+                    .setQueryId(session.getQueryId())
                     .setIdentity(identity)
                     .setSource(session.getSource().orElse(null))
                     .setCatalog(catalog.orElse(null))

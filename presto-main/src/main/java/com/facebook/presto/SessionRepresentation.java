@@ -13,6 +13,7 @@
  */
 package com.facebook.presto;
 
+import com.facebook.presto.execution.QueryId;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.TimeZoneKey;
@@ -29,7 +30,9 @@ import static java.util.Objects.requireNonNull;
 
 public final class SessionRepresentation
 {
+    private final String queryId;
     private final String user;
+    private final Optional<String> principal;
     private final Optional<String> source;
     private final Optional<String> catalog;
     private final Optional<String> schema;
@@ -43,7 +46,9 @@ public final class SessionRepresentation
 
     @JsonCreator
     public SessionRepresentation(
+            @JsonProperty("queryId") String queryId,
             @JsonProperty("user") String user,
+            @JsonProperty("principal") Optional<String> principal,
             @JsonProperty("source") Optional<String> source,
             @JsonProperty("catalog") Optional<String> catalog,
             @JsonProperty("schema") Optional<String> schema,
@@ -55,7 +60,9 @@ public final class SessionRepresentation
             @JsonProperty("systemProperties") Map<String, String> systemProperties,
             @JsonProperty("catalogProperties") Map<String, Map<String, String>> catalogProperties)
     {
+        this.queryId = requireNonNull(queryId, "queryId is null");
         this.user = requireNonNull(user, "user is null");
+        this.principal = requireNonNull(principal, "principal is null");
         this.source = requireNonNull(source, "source is null");
         this.catalog = requireNonNull(catalog, "catalog is null");
         this.schema = requireNonNull(schema, "schema is null");
@@ -74,9 +81,21 @@ public final class SessionRepresentation
     }
 
     @JsonProperty
+    public String getQueryId()
+    {
+        return queryId;
+    }
+
+    @JsonProperty
     public String getUser()
     {
         return user;
+    }
+
+    @JsonProperty
+    public Optional<String> getPrincipal()
+    {
+        return principal;
     }
 
     @JsonProperty
@@ -142,6 +161,7 @@ public final class SessionRepresentation
     public Session toSession(SessionPropertyManager sessionPropertyManager)
     {
         return new Session(
+                new QueryId(queryId),
                 new Identity(user, Optional.empty()),
                 source,
                 catalog,

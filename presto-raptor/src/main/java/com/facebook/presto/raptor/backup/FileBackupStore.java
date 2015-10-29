@@ -86,6 +86,13 @@ public class FileBackupStore
         }
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Override
+    public void deleteShard(UUID uuid)
+    {
+        getBackupFile(uuid).delete();
+    }
+
     @Override
     public boolean shardExists(UUID uuid)
     {

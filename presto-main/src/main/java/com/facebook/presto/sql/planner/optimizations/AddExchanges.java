@@ -15,7 +15,7 @@ package com.facebook.presto.sql.planner.optimizations;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.SystemSessionProperties;
-import com.facebook.presto.metadata.FunctionInfo;
+import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.TableLayoutResult;
@@ -64,6 +64,7 @@ import com.facebook.presto.sql.tree.BooleanLiteral;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.NullLiteral;
+import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
@@ -104,6 +105,7 @@ import static com.facebook.presto.sql.planner.plan.ExchangeNode.gatheringExchang
 import static com.facebook.presto.sql.planner.plan.ExchangeNode.partitionedExchange;
 import static com.facebook.presto.sql.planner.plan.ExchangeNode.partitionedExchangeNullReplicate;
 import static com.facebook.presto.sql.planner.plan.JoinNode.Type.FULL;
+import static com.facebook.presto.sql.planner.plan.JoinNode.Type.INNER;
 import static com.facebook.presto.sql.planner.plan.JoinNode.Type.RIGHT;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableSet;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -116,22 +118,21 @@ public class AddExchanges
 {
     private final SqlParser parser;
     private final Metadata metadata;
-    private final boolean distributedIndexJoins;
 
-    public AddExchanges(Metadata metadata, SqlParser parser, boolean distributedIndexJoins)
+    public AddExchanges(Metadata metadata, SqlParser parser)
     {
         this.metadata = metadata;
         this.parser = parser;
-        this.distributedIndexJoins = distributedIndexJoins;
     }
 
     @Override
     public PlanNode optimize(PlanNode plan, Session session, Map<Symbol, Type> types, SymbolAllocator symbolAllocator, PlanNodeIdAllocator idAllocator)
     {
         boolean distributedJoinEnabled = SystemSessionProperties.isDistributedJoinEnabled(session);
+        boolean distributedIndexJoinEnabled = SystemSessionProperties.isDistributedIndexJoinEnabled(session);
         boolean redistributeWrites = SystemSessionProperties.isRedistributeWrites(session);
         boolean preferStreamingOperators = SystemSessionProperties.preferStreamingOperators(session);
-        PlanWithProperties result = plan.accept(new Rewriter(symbolAllocator, idAllocator, symbolAllocator, session, distributedIndexJoins, distributedJoinEnabled, preferStreamingOperators, redistributeWrites), new Context(PreferredProperties.any(), false));
+        PlanWithProperties result = plan.accept(new Rewriter(symbolAllocator, idAllocator, symbolAllocator, session, distributedIndexJoinEnabled, distributedJoinEnabled, preferStreamingOperators, redistributeWrites), new Context(PreferredProperties.any(), false));
         return result.getNode();
     }
 
@@ -232,10 +233,10 @@ public class AddExchanges
         @Override
         public PlanWithProperties visitAggregation(AggregationNode node, Context context)
         {
+            FunctionRegistry functionRegistry = metadata.getFunctionRegistry();
             boolean decomposable = node.getFunctions()
                     .values().stream()
-                    .map(metadata::getExactFunction)
-                    .map(FunctionInfo::getAggregationFunction)
+                    .map(functionRegistry::getAggregateFunctionImplementation)
                     .allMatch(InternalAggregationFunction::isDecomposable);
 
             PreferredProperties preferredProperties = node.getGroupBy().isEmpty()
@@ -291,9 +292,9 @@ public class AddExchanges
             Map<Symbol, Symbol> intermediateMask = new HashMap<>();
             for (Map.Entry<Symbol, FunctionCall> entry : node.getAggregations().entrySet()) {
                 Signature signature = node.getFunctions().get(entry.getKey());
-                FunctionInfo function = metadata.getExactFunction(signature);
+                InternalAggregationFunction function = metadata.getFunctionRegistry().getAggregateFunctionImplementation(signature);
 
-                Symbol intermediateSymbol = allocator.newSymbol(function.getName().getSuffix(), metadata.getType(function.getIntermediateType()));
+                Symbol intermediateSymbol = allocator.newSymbol(signature.getName(), function.getIntermediateType());
                 intermediateCalls.put(intermediateSymbol, entry.getValue());
                 intermediateFunctions.put(intermediateSymbol, signature);
                 if (masks.containsKey(entry.getKey())) {
@@ -301,7 +302,7 @@ public class AddExchanges
                 }
 
                 // rewrite final aggregation in terms of intermediate function
-                finalCalls.put(entry.getKey(), new FunctionCall(function.getName(), ImmutableList.<Expression>of(new QualifiedNameReference(intermediateSymbol.toQualifiedName()))));
+                finalCalls.put(entry.getKey(), new FunctionCall(QualifiedName.of(signature.getName()), ImmutableList.<Expression>of(new QualifiedNameReference(intermediateSymbol.toQualifiedName()))));
             }
 
             PlanWithProperties partial = withDerivedProperties(
@@ -544,10 +545,6 @@ public class AddExchanges
 
             if (child.getProperties().isDistributed()) {
                 child = withDerivedProperties(
-                        new DistinctLimitNode(idAllocator.getNextId(), child.getNode(), node.getLimit(), node.getHashSymbol()),
-                        child.getProperties());
-
-                child = withDerivedProperties(
                         gatheringExchange(
                                 idAllocator.getNextId(),
                                 new DistinctLimitNode(idAllocator.getNextId(), child.getNode(), node.getLimit(), node.getHashSymbol())),
@@ -729,7 +726,7 @@ public class AddExchanges
             PlanWithProperties left;
             PlanWithProperties right;
 
-            if (distributedJoins || node.getType() == FULL || node.getType() == RIGHT) {
+            if ((distributedJoins && !(node.getType() == INNER && leftSymbols.isEmpty())) || node.getType() == FULL || node.getType() == RIGHT) {
                 // The implementation of full outer join only works if the data is hash partitioned. See LookupJoinOperators#buildSideOuterJoinUnvisitedPositions
 
                 left = node.getLeft().accept(this, context.withPreferredProperties(PreferredProperties.hashPartitioned(leftSymbols)));

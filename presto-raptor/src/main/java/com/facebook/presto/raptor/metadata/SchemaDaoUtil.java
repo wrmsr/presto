@@ -16,22 +16,24 @@ package com.facebook.presto.raptor.metadata;
 import com.google.common.base.Throwables;
 import io.airlift.log.Logger;
 import io.airlift.units.Duration;
+import org.skife.jdbi.v2.Handle;
+import org.skife.jdbi.v2.IDBI;
 import org.skife.jdbi.v2.exceptions.UnableToObtainConnectionException;
 
 import java.util.concurrent.TimeUnit;
 
-public final class ShardManagerDaoUtils
+public final class SchemaDaoUtil
 {
-    private static final Logger log = Logger.get(ShardManagerDaoUtils.class);
+    private static final Logger log = Logger.get(SchemaDaoUtil.class);
 
-    private ShardManagerDaoUtils() {}
+    private SchemaDaoUtil() {}
 
-    public static void createShardTablesWithRetry(ShardManagerDao dao)
+    public static void createTablesWithRetry(IDBI dbi)
     {
-        Duration delay = new Duration(10, TimeUnit.SECONDS);
+        Duration delay = new Duration(2, TimeUnit.SECONDS);
         while (true) {
-            try {
-                createShardTables(dao);
+            try (Handle handle = dbi.open()) {
+                createTables(handle.attach(SchemaDao.class));
                 return;
             }
             catch (UnableToObtainConnectionException e) {
@@ -41,8 +43,11 @@ public final class ShardManagerDaoUtils
         }
     }
 
-    private static void createShardTables(ShardManagerDao dao)
+    private static void createTables(SchemaDao dao)
     {
+        dao.createTableTables();
+        dao.createTableColumns();
+        dao.createTableViews();
         dao.createTableNodes();
         dao.createTableShards();
         dao.createTableShardNodes();

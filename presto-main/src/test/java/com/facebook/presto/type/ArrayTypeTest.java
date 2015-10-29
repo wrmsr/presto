@@ -11,38 +11,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.metadata;
+package com.facebook.presto.type;
 
-public abstract class ParametricScalar
-        implements ParametricFunction
+import org.testng.annotations.Test;
+
+import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
+import static org.testng.Assert.assertEquals;
+
+public class ArrayTypeTest
 {
-    @Override
-    public final boolean isScalar()
+    @Test
+    public void testDisplayName()
     {
-        return true;
-    }
-
-    @Override
-    public final boolean isAggregate()
-    {
-        return false;
-    }
-
-    @Override
-    public final boolean isApproximate()
-    {
-        return false;
-    }
-
-    @Override
-    public final boolean isWindow()
-    {
-        return false;
-    }
-
-    @Override
-    public final boolean isUnbound()
-    {
-        return true;
+        ArrayType type = new ArrayType(BOOLEAN);
+        assertEquals(type.getDisplayName(), "array<boolean>");
     }
 }

@@ -25,7 +25,7 @@ import com.wrmsr.presto.server.ServerEvent;
 import com.wrmsr.presto.spi.ScriptEngineProvider;
 import com.facebook.presto.spi.block.BlockEncodingFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
-import com.facebook.presto.spi.security.SystemAccessControl;
+import com.facebook.presto.spi.security.SystemAccessControlFactory;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.type.ParametricType;
 import com.facebook.presto.type.TypeRegistry;
@@ -65,6 +65,8 @@ import java.util.TreeMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.facebook.presto.server.PluginDiscovery.discoverPlugins;
+import static com.facebook.presto.server.PluginDiscovery.writePluginServices;
 import static java.util.Objects.requireNonNull;
 
 @ThreadSafe
@@ -251,9 +253,9 @@ public class PluginManager
             metadata.addFunctions(functionFactory.listFunctions());
         }
 
-        for (SystemAccessControl accessControl : plugin.getServices(SystemAccessControl.class)) {
-            log.info("Registering system access control %s", accessControl.getClass().getName());
-            accessControlManager.addSystemAccessControl(accessControl);
+        for (SystemAccessControlFactory accessControlFactory : plugin.getServices(SystemAccessControlFactory.class)) {
+            log.info("Registering system access control %s", accessControlFactory.getName());
+            accessControlManager.addSystemAccessControlFactory(accessControlFactory);
         }
 
         for (ServerEvent.Listener serverEventListener : plugin.getServices(ServerEvent.Listener.class)) {
@@ -297,7 +299,15 @@ public class PluginManager
             throws Exception
     {
         List<Artifact> artifacts = resolver.resolvePom(pomFile);
-        return createClassLoader(artifacts, pomFile.getPath());
+        URLClassLoader classLoader = createClassLoader(artifacts, pomFile.getPath());
+
+        Artifact artifact = artifacts.get(0);
+        Set<String> plugins = discoverPlugins(artifact, classLoader);
+        if (!plugins.isEmpty()) {
+            writePluginServices(plugins, artifact.getFile());
+        }
+
+        return classLoader;
     }
 
     private static URLClassLoader buildClassLoaderFromDirectory(File dir)

@@ -32,14 +32,19 @@ public interface ShardManager
     void createTable(long tableId, List<ColumnInfo> columns);
 
     /**
+     * Drop a table.
+     */
+    void dropTable(long tableId);
+
+    /**
+     * Add a column to the end of the table.
+     */
+    void addColumn(long tableId, ColumnInfo column);
+
+    /**
      * Commit data for a table.
      */
     void commitShards(long tableId, List<ColumnInfo> columns, Collection<ShardInfo> shards, Optional<String> externalBatchId);
-
-    /**
-     * Replace oldShardsIds with newShards.
-     */
-    void replaceShardIds(long tableId, List<ColumnInfo> columns, Set<Long> oldShardIds, Collection<ShardInfo> newShards);
 
     /**
      * Replace oldShardsUuids with newShards.

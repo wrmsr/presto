@@ -17,7 +17,6 @@ import com.facebook.presto.raptor.metadata.ColumnInfo;
 import com.facebook.presto.raptor.metadata.ColumnStats;
 import com.facebook.presto.raptor.metadata.DatabaseShardManager;
 import com.facebook.presto.raptor.metadata.MetadataDao;
-import com.facebook.presto.raptor.metadata.MetadataDaoUtils;
 import com.facebook.presto.raptor.metadata.ShardInfo;
 import com.facebook.presto.raptor.metadata.ShardManager;
 import com.facebook.presto.raptor.metadata.ShardMetadata;
@@ -80,11 +79,9 @@ public class TestShardCompactionDiscovery
             throws Exception
     {
         List<ColumnInfo> columns = ImmutableList.of(new ColumnInfo(1, BIGINT), new ColumnInfo(2, BIGINT));
-        long tableId = 1;
+        long tableId = createTable("test");
         shardManager.createTable(tableId, columns);
-        MetadataDao metadataDao = dbi.onDemand(MetadataDao.class);
-        MetadataDaoUtils.createMetadataTablesWithRetry(metadataDao);
-        metadataDao.updateTemporalColumnId(1, 1);
+        dbi.onDemand(MetadataDao.class).updateTemporalColumnId(1, 1);
 
         Set<ShardInfo> nonTimeRangeShards = ImmutableSet.<ShardInfo>builder()
                 .add(shardInfo(UUID.randomUUID(), "node1"))
@@ -126,5 +123,10 @@ public class TestShardCompactionDiscovery
         Set<ShardMetadata> shardMetadata = shardManager.getNodeShards("node1");
         Set<ShardMetadata> temporalMetadata = shardCompactionManager.filterShardsWithTemporalMetadata(shardMetadata, 1, 1);
         assertEquals(temporalMetadata.stream().map(ShardMetadata::getShardUuid).collect(toSet()), timeRangeShards.stream().map(ShardInfo::getShardUuid).collect(toSet()));
+    }
+
+    private long createTable(String name)
+    {
+        return dbi.onDemand(MetadataDao.class).insertTable("test", name, false);
     }
 }
