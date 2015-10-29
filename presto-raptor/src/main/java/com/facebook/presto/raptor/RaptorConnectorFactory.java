@@ -35,6 +35,7 @@ import org.weakref.jmx.guice.MBeanModule;
 
 import javax.management.MBeanServer;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -89,7 +90,7 @@ public class RaptorConnectorFactory
         try {
             StorageEngine storageEngine = StorageEngine.DEFAULT;
             if (config.containsKey(STORAGE_ENGINE_KEY)) {
-                config = Maps.newHashMap(config);
+                config = new HashMap<>(config);
                 String storageEngineStr = config.get(STORAGE_ENGINE_KEY).toUpperCase();
                 config.remove(STORAGE_ENGINE_KEY);
                 storageEngine = StorageEngine.valueOf(storageEngineStr);

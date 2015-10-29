@@ -15,7 +15,7 @@ package com.wrmsr.presto.functions;
 
 import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
-import com.facebook.presto.metadata.ParametricScalar;
+import com.facebook.presto.metadata.ParametricFunction;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
@@ -23,7 +23,7 @@ import com.facebook.presto.spi.type.TypeManager;
 import java.util.Map;
 
 public class ConnectFunction
-        extends ParametricScalar
+        implements ParametricFunction
 {
     /*
     private static final Signature SIGNATURE = new Signature(

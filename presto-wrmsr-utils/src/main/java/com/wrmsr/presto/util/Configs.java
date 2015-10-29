@@ -42,11 +42,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Maps.transformValues;
-import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
-import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPERS_BY_EXTENSION;
 import static com.wrmsr.presto.util.Primitives.toBool;
 
 /*
@@ -228,7 +223,7 @@ public class Configs
     {
         List<ConfigurationNode> children = node.getChildren();
         if (!children.isEmpty()) {
-            Map<String, List<ConfigurationNode>> namedChildren = newHashMap();
+            Map<String, List<ConfigurationNode>> namedChildren = new HashMap<>();
             for (ConfigurationNode child : children) {
                 if (namedChildren.containsKey(child.getName())) {
                     namedChildren.get(child.getName()).add(child);
@@ -237,7 +232,7 @@ public class Configs
                     namedChildren.put(child.getName(), com.google.common.collect.Lists.newArrayList(child));
                 }
             }
-            Map ret = newHashMap();
+            Map ret = new HashMap<>();
             for (Map.Entry<String, List<ConfigurationNode>> e : namedChildren.entrySet()) {
                 List<ConfigurationNode> l = e.getValue();
                 checkState(!l.isEmpty());

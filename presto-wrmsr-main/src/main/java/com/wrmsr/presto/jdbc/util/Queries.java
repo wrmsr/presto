@@ -28,6 +28,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -37,7 +38,6 @@ import java.util.stream.IntStream;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.collect.Maps.newHashMap;
 
 public class Queries
 {
@@ -129,7 +129,7 @@ public class Queries
             throws SQLException, IOException
     {
         String clusteredIndexName = null;
-        Map<Integer, String> clusteredColumnsByOrdinal = newHashMap();
+        Map<Integer, String> clusteredColumnsByOrdinal = new HashMap<>();
         DatabaseMetaData metadata = connection.getMetaData();
 
         // FIXME postgres catalog support
@@ -202,7 +202,7 @@ public class Queries
                 ResultSet result = statement.executeQuery(sql.toString())) {
             checkState(result.next());
             checkState(result.getMetaData().getColumnCount() == columnNames.size() * 2);
-            Map<String, ColumnDomain> ret = newHashMap();
+            Map<String, ColumnDomain> ret = new HashMap<>();
             for (int i = 0; i < columnNames.size(); ++i) {
                 ret.put(columnNames.get(i),
                         new ColumnDomain(

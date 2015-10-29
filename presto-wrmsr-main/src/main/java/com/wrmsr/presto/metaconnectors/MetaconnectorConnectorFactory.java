@@ -27,10 +27,10 @@ import com.wrmsr.presto.util.Configs;
 import io.airlift.bootstrap.Bootstrap;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Maps.newHashMap;
 
 public abstract class MetaconnectorConnectorFactory
         implements ConnectorFactory
@@ -83,7 +83,7 @@ public abstract class MetaconnectorConnectorFactory
             requiredConfiguration = ImmutableMap.of();
         }
         else {
-            requiredConfiguration = newHashMap(properties);
+            requiredConfiguration = new HashMap<>(properties);
             Map<String, String> targetProperties = Configs.stripSubconfig(requiredConfiguration, "target");
 
             connectorManager.createConnection(targetName, targetConnectorName, targetProperties);

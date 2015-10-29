@@ -34,11 +34,11 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
 
 public class Ec2InstanceTypeDetails
@@ -84,7 +84,7 @@ public class Ec2InstanceTypeDetails
                 ObjectMapper mapper = (ObjectMapper) jp.getCodec();
                 ObjectNode node = jp.getCodec().readTree(jp);
                 Iterator<Map.Entry<String, JsonNode>> it = node.fields();
-                Map<String, PlatformPricing> m = newHashMap();
+                Map<String, PlatformPricing> m = new HashMap<>();
                 while (it.hasNext()) {
                     Map.Entry<String, JsonNode> e = it.next();
                     JsonParser contentParser = mapper.treeAsTokens(e.getValue());

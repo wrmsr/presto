@@ -34,6 +34,7 @@ import com.wrmsr.presto.util.Configs;
 import io.airlift.bootstrap.Bootstrap;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -88,7 +89,7 @@ public class ExtendedJdbcConnectorFactory
             }
         }
 
-        private final Map<String, Object> extraProperties = newHashMap();
+        private final Map<String, Object> extraProperties = new HashMap<>();
 
         @JsonAnyGetter
         public Map<String, Object> getExtraProperties()

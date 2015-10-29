@@ -15,12 +15,11 @@ package com.wrmsr.presto.util;
 
 import com.google.common.base.Function;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
 
 public class Maps
 {
@@ -81,7 +80,7 @@ public class Maps
 
     public static <K, E> Map<K, E> buildMap(Iterator<E> items, Function<E, K> fn, MapPutter putter)
     {
-        Map<K, E> map = newHashMap();
+        Map<K, E> map = new HashMap<>();
         while (items.hasNext()) {
             E item = items.next();
             K key = fn.apply(item);
@@ -102,7 +101,7 @@ public class Maps
 
     public static <K, V> Map<K, V> buildMap(Iterator<Map.Entry<K, V>> entries, MapPutter putter)
     {
-        Map<K, V> map = newHashMap();
+        Map<K, V> map = new HashMap<>();
         mapPutAll(map, entries, putter);
         return map;
     }
@@ -119,13 +118,13 @@ public class Maps
 
     public static <K, E> Map<K, List<E>> buildMapToList(Iterator<E> items, Function<E, K> fn)
     {
-        Map<K, List<E>> map = newHashMap();
+        Map<K, List<E>> map = new HashMap<>();
         while (items.hasNext()) {
             E item = items.next();
             K key = fn.apply(item);
             List<E> list = map.get(key);
             if (list == null) {
-                list = newArrayList();
+                list = new ArrayList<>();
                 map.put(key, list);
             }
             list.add(item);
@@ -140,7 +139,7 @@ public class Maps
 
     public static <K, V> Map<K, V> mapMerge(Map<K, V>... maps)
     {
-        Map<K, V> out = newHashMap();
+        Map<K, V> out = new HashMap<>();
         for (Map<K, V> map : maps) {
             mapPutAll(out, map.entrySet());
         }

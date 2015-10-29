@@ -52,6 +52,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.intellij.lang.annotations.Language;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -62,7 +63,6 @@ import static com.facebook.presto.sql.QueryUtil.simpleQuery;
 import static com.facebook.presto.sql.QueryUtil.table;
 import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Locale.ENGLISH;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static org.testng.Assert.fail;
@@ -190,7 +190,7 @@ public class TestInsertRewriter
 
         LocalQueryRunner.MaterializedOutputFactory outputFactory = new LocalQueryRunner.MaterializedOutputFactory();
 
-        Kv<String, String> kv = new Kv.Synchronized<>(new Kv.MapImpl<>(newHashMap()));
+        Kv<String, String> kv = new Kv.Synchronized<>(new Kv.MapImpl<>(new HashMap<>()));
         kv.put("hi", "there");
         kv.get("hi");
 

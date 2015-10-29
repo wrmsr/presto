@@ -16,5 +16,17 @@ for PRJ in presto-parser presto-main presto-hive ; do
     JAR_PATH="$JAR_DIR/$PRJ-$VERSION-tests.jar"
     touch "$JAR_PATH"
 done
-"$MVN" -T 1C clean package install -Denforcer.skip=true -Dmaven.test.skip=true -Dmdep.skip=true -Dmdep.analyze.skip=true -DignoreNonCompile=true -Dlicense.skip=true -Dair.check.skip-all=true -e -Dair.check.skip-checkstyle=true -Dair.check.skip-license=true
+
+"$MVN" -T 1C clean package install -e \
+       -Denforcer.skip=true \
+       -Dmaven.test.skip=true \
+       -Dmdep.skip=true \
+       -Dmdep.analyze.skip=true \
+       -DignoreNonCompile=true \
+       -Dlicense.skip=true \
+       -Dair.check.skip-extended=true \
+       -Dair.check.skip-all=true \
+       -Dair.check.skip-checkstyle=true \
+       -Dair.check.skip-license=true
+
 "$MVN" -pl presto-wrmsr-launcher-builder exec:java -Denforcer.skip=true -Dmaven.test.skip=true -Dmdep.skip=true -Dmdep.analyze.skip=true -DignoreNonCompile=true -Dlicense.skip=true -Dair.check.skip-all=true -e -Dair.check.skip-checkstyle=true -Dair.check.skip-license=true

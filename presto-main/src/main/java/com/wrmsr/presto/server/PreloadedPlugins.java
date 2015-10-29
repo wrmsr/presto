@@ -49,6 +49,7 @@ import io.airlift.resolver.ArtifactResolver;
 
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -191,7 +192,7 @@ public class PreloadedPlugins
 
             final Set<Key<?>> overriddenKeys = Sets.newHashSet();
             final Map<Class<? extends Annotation>, ScopeBinding> overridesScopeAnnotations =
-                    Maps.newHashMap();
+                    new HashMap<>();
 
             // execute the overrides module, keeping track of which keys and scopes are bound
             new ModuleWriter(binder) {

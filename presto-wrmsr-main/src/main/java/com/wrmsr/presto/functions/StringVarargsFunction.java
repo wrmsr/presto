@@ -15,7 +15,8 @@ package com.wrmsr.presto.functions;
 
 import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
-import com.facebook.presto.metadata.ParametricScalar;
+import com.facebook.presto.metadata.FunctionType;
+import com.facebook.presto.metadata.ParametricFunction;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.TypeParameter;
 import com.facebook.presto.spi.type.Type;
@@ -37,7 +38,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.wrmsr.presto.util.Lists.listOf;
 
 public abstract class StringVarargsFunction
-        extends ParametricScalar
+        implements ParametricFunction
 {
     private final String functionName;
     private final String description;
@@ -75,7 +76,7 @@ public abstract class StringVarargsFunction
         }
         typeParameters.add(typeParameter("E"));
         argumentTypes.add("E");
-        signature = new Signature(functionName, typeParameters, functionReturnType, argumentTypes, true, false);
+        signature = new Signature(functionName, FunctionType.SCALAR, typeParameters, functionReturnType, argumentTypes, true);
 
         List<Class<?>> parameterTypes = newArrayList();
         for (Class<?> c : fixedMethodParametersClasses) {
@@ -136,8 +137,10 @@ public abstract class StringVarargsFunction
         return new FunctionInfo(
                 new Signature(
                         functionName,
+                        FunctionType.SCALAR,
                         parseTypeSignature(functionReturnType),
-                        argumentTypes),
+                        argumentTypes,
+                        true),
                 getDescription(),
                 isHidden(),
                 methodHandle,

@@ -15,7 +15,8 @@ package com.wrmsr.presto.functions;
 
 import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
-import com.facebook.presto.metadata.ParametricScalar;
+import com.facebook.presto.metadata.FunctionType;
+import com.facebook.presto.metadata.ParametricFunction;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.TypeParameter;
 import com.facebook.presto.spi.type.Type;
@@ -30,7 +31,7 @@ import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
 import static com.google.common.collect.Lists.newArrayList;
 
 public abstract class SimpleFunction
-        extends ParametricScalar
+        implements ParametricFunction
 {
     private final String functionName;
     private final String description;
@@ -63,7 +64,7 @@ public abstract class SimpleFunction
             typeParameters.add(comparableTypeParameter(s));
             argumentTypes.add(s);
         }
-        signature = new Signature(functionName, typeParameters, functionReturnType, argumentTypes, true, false);
+        signature = new Signature(functionName, FunctionType.SCALAR, typeParameters, functionReturnType, argumentTypes, false);
 
         methodHandle = Reflection.methodHandle(getClass(), methodName, (Class<?>[]) parameterTypes.toArray(new Class<?>[parameterTypes.size()]));
     }

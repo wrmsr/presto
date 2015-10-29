@@ -836,6 +836,7 @@
                                         <ignore />
                                     </action>
                                 </pluginExecution>
+                                <!--
                                 <pluginExecution>
                                     <pluginExecutionFilter>
                                         <groupId>org.gaul</groupId>
@@ -849,6 +850,7 @@
                                         <ignore />
                                     </action>
                                 </pluginExecution>
+                                -->
                             </pluginExecutions>
                         </lifecycleMappingMetadata>
                     </configuration>
@@ -857,6 +859,7 @@
         </pluginManagement>
 
         <plugins>
+            <!--
             <plugin>
                 <groupId>org.gaul</groupId>
                 <artifactId>modernizer-maven-plugin</artifactId>
@@ -874,6 +877,7 @@
                     </execution>
                 </executions>
             </plugin>
+            -->
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
