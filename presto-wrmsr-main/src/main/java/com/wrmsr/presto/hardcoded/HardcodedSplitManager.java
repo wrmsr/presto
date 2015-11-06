@@ -18,7 +18,7 @@ import com.facebook.presto.spi.ConnectorPartitionResult;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorSplitManager;
 import com.facebook.presto.spi.ConnectorTableHandle;
-import com.facebook.presto.spi.TupleDomain;
+import com.facebook.presto.spi.predicate.TupleDomain;
 
 public class HardcodedSplitManager
         implements ConnectorSplitManager

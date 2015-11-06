@@ -15,7 +15,7 @@ package com.wrmsr.presto.metaconnectors.partitioner;
 
 import com.facebook.presto.spi.ConnectorMetadata;
 import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.spi.TupleDomain;
+import com.facebook.presto.spi.predicate.TupleDomain;
 
 import java.util.List;
 

@@ -28,8 +28,9 @@ import com.facebook.presto.raptor.metadata.ShardManager;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Page;
-import com.facebook.presto.spi.TupleDomain;
 import com.facebook.presto.spi.block.Block;
+import com.facebook.presto.spi.predicate.NullableValue;
+import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.type.SqlDate;
 import com.facebook.presto.spi.type.SqlTimestamp;
 import com.facebook.presto.spi.type.SqlVarbinary;
@@ -281,8 +282,8 @@ public class TestOrcStorageManager
         }
 
         // tuple domain within the column range
-        tupleDomain = TupleDomain.withFixedValues(ImmutableMap.<RaptorColumnHandle, Comparable<?>>builder()
-                .put(new RaptorColumnHandle("test", "c1", 2, BIGINT), 124L)
+        tupleDomain = TupleDomain.fromFixedValues(ImmutableMap.<RaptorColumnHandle, NullableValue>builder()
+                .put(new RaptorColumnHandle("test", "c1", 2, BIGINT), NullableValue.of(BIGINT, 124L))
                 .build());
 
         try (ConnectorPageSource pageSource = manager.getPageSource(uuid, columnIds, columnTypes, tupleDomain, READER_ATTRIBUTES)) {
@@ -291,8 +292,8 @@ public class TestOrcStorageManager
         }
 
         // tuple domain outside the column range
-        tupleDomain = TupleDomain.withFixedValues(ImmutableMap.<RaptorColumnHandle, Comparable<?>>builder()
-                .put(new RaptorColumnHandle("test", "c1", 2, BIGINT), 122L)
+        tupleDomain = TupleDomain.fromFixedValues(ImmutableMap.<RaptorColumnHandle, NullableValue>builder()
+                .put(new RaptorColumnHandle("test", "c1", 2, BIGINT), NullableValue.of(BIGINT, 122L))
                 .build());
 
         try (ConnectorPageSource pageSource = manager.getPageSource(uuid, columnIds, columnTypes, tupleDomain, READER_ATTRIBUTES)) {

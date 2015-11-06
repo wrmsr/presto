@@ -14,12 +14,13 @@
 package com.wrmsr.presto.functions;
 
 import com.facebook.presto.Session;
-import com.facebook.presto.metadata.FunctionInfo;
+import com.facebook.presto.metadata.FunctionKind;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.ParametricScalar;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.Signature;
+import com.facebook.presto.metadata.SqlScalarFunction;
+import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
@@ -31,9 +32,9 @@ import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.analyzer.Field;
 import com.facebook.presto.sql.analyzer.QueryExplainer;
+import com.facebook.presto.sql.analyzer.RelationType;
 import com.facebook.presto.sql.analyzer.SemanticErrorCode;
 import com.facebook.presto.sql.analyzer.SemanticException;
-import com.facebook.presto.sql.analyzer.TupleDescriptor;
 import com.facebook.presto.sql.parser.ParsingException;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
@@ -62,10 +63,11 @@ import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
 import static java.util.Locale.ENGLISH;
 
 public class DefineStructForQueryFunction
-        extends ParametricScalar
+        extends SqlScalarFunction
 {
+    private static final String FUNCTION_NAME = "define_struct_for_query";
     private static final Signature SIGNATURE = new Signature(
-            "define_struct_for_query", ImmutableList.of(comparableTypeParameter("varchar")), StandardTypes.VARCHAR, ImmutableList.of(StandardTypes.VARCHAR, StandardTypes.VARCHAR), false, false);
+            FUNCTION_NAME, FunctionKind.SCALAR, ImmutableList.of(comparableTypeParameter("varchar")), StandardTypes.VARCHAR, ImmutableList.of(StandardTypes.VARCHAR, StandardTypes.VARCHAR), false);
     private static final MethodHandle METHOD_HANDLE = methodHandle(DefineStructForQueryFunction.class, "defineStructForQuery", DefineStructForQueryFunction.class, ConnectorSession.class, Slice.class, Slice.class);
 
     private final SqlParser sqlParser;
@@ -77,6 +79,7 @@ public class DefineStructForQueryFunction
 
     public DefineStructForQueryFunction(StructManager structManager, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig, Metadata metadata, AccessControl accessControl)
     {
+        super(FUNCTION_NAME, SIGNATURE.getTypeParameters(), "varchar", ImmutableList.of("varchar", "varchar"));
         this.structManager = structManager;
         this.sqlParser = checkNotNull(sqlParser);
         this.planOptimizers = checkNotNull(planOptimizers);
@@ -84,12 +87,6 @@ public class DefineStructForQueryFunction
         this.experimentalSyntaxEnabled = featuresConfig.isExperimentalSyntaxEnabled();
         this.metadata = metadata;
         this.accessControl = accessControl;
-    }
-
-    @Override
-    public Signature getSignature()
-    {
-        return SIGNATURE;
     }
 
     @Override
@@ -118,11 +115,13 @@ public class DefineStructForQueryFunction
     }
 
     @Override
-    public FunctionInfo specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
         checkArgument(arity == 2);
         checkArgument(types.size() == 1);
 
+        return new ScalarFunctionImplementation(false, ImmutableList.of(false, false), METHOD_HANDLE.bindTo(this), isDeterministic());
+        /*
         return new FunctionInfo(
                 new Signature(
                         "define_struct_for_query",
@@ -130,10 +129,11 @@ public class DefineStructForQueryFunction
                         ImmutableList.of(StandardTypes.VARCHAR, StandardTypes.VARCHAR)),
                 getDescription(),
                 isHidden(),
-                METHOD_HANDLE.bindTo(this),
+                ,
                 isDeterministic(),
                 true,
                 ImmutableList.of(false, false));
+        */
     }
 
     @Nullable
@@ -164,7 +164,7 @@ public class DefineStructForQueryFunction
         }
 
         Analysis analysis = analyzeStatement(statement, session);
-        TupleDescriptor tupleDescriptor;
+        RelationType tupleDescriptor;
 
         try {
             tupleDescriptor = analysis.getOutputDescriptor();

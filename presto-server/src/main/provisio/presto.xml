@@ -118,6 +118,12 @@
         </artifact>
     </artifactSet>
 
+    <artifactSet to="plugin/teradata-functions">
+        <artifact id="${project.groupId}:presto-teradata-functions:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
     <!--
     <artifactSet to="plugin/elasticsearch">
         <artifact id="com.wrmsr.presto:presto-wrmsr-elasticsearch:jar:${project.version}">

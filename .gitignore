@@ -27,4 +27,4 @@ derby.log
 *.pid
 metastore_db
 *.log
-
+*-local.yaml

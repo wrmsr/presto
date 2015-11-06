@@ -43,7 +43,6 @@ import com.wrmsr.presto.functions.CompressionFunctions;
 import com.wrmsr.presto.functions.DefineStructForQueryFunction;
 import com.wrmsr.presto.functions.DefineStructFunction;
 import com.wrmsr.presto.functions.GrokFunctions;
-import com.wrmsr.presto.functions.Hash;
 import com.wrmsr.presto.functions.PropertiesFunction;
 import com.wrmsr.presto.functions.PropertiesType;
 import com.wrmsr.presto.functions.SerializeFunction;
@@ -267,7 +266,7 @@ public class MainPlugin
                             .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata, accessControl))
                             .function(new PropertiesFunction(typeRegistry))
                                     //.function(new ConnectFunction())
-                            .function(Hash.HASH)
+                            // .function(Hash.HASH)
                             .getFunctions());
         }
     }

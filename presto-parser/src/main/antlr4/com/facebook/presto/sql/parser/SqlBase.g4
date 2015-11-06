@@ -225,10 +225,13 @@ primaryExpression
     | number                                                                         #numericLiteral
     | booleanValue                                                                   #booleanLiteral
     | STRING                                                                         #stringLiteral
+    | POSITION '(' valueExpression IN valueExpression ')'                            #position
     | '(' expression (',' expression)+ ')'                                           #rowConstructor
     | ROW '(' expression (',' expression)* ')'                                       #rowConstructor
     | qualifiedName '(' ASTERISK ')' over?                                           #functionCall
     | qualifiedName '(' (setQuantifier? expression (',' expression)*)? ')' over?     #functionCall
+    | identifier '->' expression                                                     #lambda
+    | '(' identifier (',' identifier)* ')' '->' expression                           #lambda
     | '(' query ')'                                                                  #subqueryExpression
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                         #searchedCase
@@ -246,7 +249,6 @@ primaryExpression
     | SUBSTRING '(' valueExpression FROM valueExpression (FOR valueExpression)? ')'  #substring
     | NORMALIZE '(' valueExpression (',' normalForm)? ')'                            #normalize
     | EXTRACT '(' identifier FROM valueExpression ')'                                #extract
-    | POSITION '(' valueExpression IN valueExpression ')'                            #position
     | '(' expression ')'                                                             #parenthesizedExpression
     ;
 

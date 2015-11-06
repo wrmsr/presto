@@ -14,7 +14,7 @@
 package com.wrmsr.presto.metaconnectors.partitioner;
 
 import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.spi.TupleDomain;
+import com.facebook.presto.spi.predicate.TupleDomain;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;

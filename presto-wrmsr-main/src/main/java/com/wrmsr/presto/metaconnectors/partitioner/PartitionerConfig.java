@@ -13,7 +13,7 @@
  */
 package com.wrmsr.presto.metaconnectors.partitioner;
 
-import com.facebook.presto.spi.Range;
+import com.facebook.presto.spi.predicate.Range;
 import io.airlift.configuration.Config;
 
 import javax.annotation.Nullable;

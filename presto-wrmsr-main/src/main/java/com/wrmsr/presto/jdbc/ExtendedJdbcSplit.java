@@ -15,7 +15,7 @@ package com.wrmsr.presto.jdbc;
 
 import com.facebook.presto.plugin.jdbc.JdbcSplit;
 import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.TupleDomain;
+import com.facebook.presto.spi.predicate.TupleDomain;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 

@@ -13,11 +13,12 @@
  */
 package com.wrmsr.presto.metaconnectors.partitioner;
 
-import com.facebook.presto.spi.Domain;
-import com.facebook.presto.spi.Range;
+import com.facebook.presto.spi.predicate.Domain;
+import com.facebook.presto.spi.predicate.Range;
 import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.spi.SortedRangeSet;
-import com.facebook.presto.spi.TupleDomain;
+import com.facebook.presto.spi.predicate.SortedRangeSet;
+import com.facebook.presto.spi.predicate.TupleDomain;
+import com.facebook.presto.spi.type.BigintType;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.ColumnDomain;
 import com.wrmsr.presto.util.ImmutableCollectors;
@@ -65,6 +66,16 @@ public interface Partitioner
         int base = (Integer) columnDomain.getMin();
         int step = ((Integer) columnDomain.getMax() - base) / numPartitions;
         // FIXME: alignment / remainder
-        return LongStream.range(0, numPartitions).boxed().map((i) -> new Partition(i.toString(), TupleDomain.withColumnDomains(ImmutableMap.of(column, Domain.create(SortedRangeSet.of(Range.range(i * step + base, true, (i + 1) * step + base, false)), false))))).collect(ImmutableCollectors.toImmutableList());
+        return LongStream.range(0, numPartitions).boxed()
+                .map((i) -> new Partition(
+                        i.toString(),
+                        TupleDomain.withColumnDomains(
+                                ImmutableMap.of(
+                                        column,
+                                        Domain.create(
+                                                SortedRangeSet.of(
+                                                        Range.range(BigintType.BIGINT, i * step + base, true, (i + 1) * step + base, false)),
+                                                false)))))
+                .collect(ImmutableCollectors.toImmutableList());
     }
 }

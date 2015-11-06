@@ -45,6 +45,7 @@ import com.facebook.presto.sql.tree.IntervalLiteral.Sign;
 import com.facebook.presto.sql.tree.Join;
 import com.facebook.presto.sql.tree.JoinCriteria;
 import com.facebook.presto.sql.tree.JoinOn;
+import com.facebook.presto.sql.tree.LambdaExpression;
 import com.facebook.presto.sql.tree.LogicalBinaryExpression;
 import com.facebook.presto.sql.tree.LongLiteral;
 import com.facebook.presto.sql.tree.NaturalJoin;
@@ -104,6 +105,21 @@ import static org.testng.Assert.fail;
 public class TestSqlParser
 {
     private static final SqlParser SQL_PARSER = new SqlParser();
+
+    @Test
+    public void testPosition()
+            throws Exception
+    {
+        assertExpression("position('a' in 'b')",
+                new FunctionCall(QualifiedName.of("strpos"), ImmutableList.of(
+                        new StringLiteral("b"),
+                        new StringLiteral("a"))));
+
+        assertExpression("position('a' in ('b'))",
+                new FunctionCall(QualifiedName.of("strpos"), ImmutableList.of(
+                        new StringLiteral("b"),
+                        new StringLiteral("a"))));
+    }
 
     @Test
     public void testPossibleExponentialBacktracking()
@@ -1002,6 +1018,22 @@ public class TestSqlParser
                                 new Table(QualifiedName.of("t")),
                                 new Unnest(ImmutableList.of(new QualifiedNameReference(QualifiedName.of("a"))), true),
                                 Optional.empty())));
+    }
+
+    @Test
+    public void testLambda()
+            throws Exception
+    {
+        assertExpression("x -> sin(x)",
+                new LambdaExpression(
+                        ImmutableList.of("x"),
+                        new FunctionCall(QualifiedName.of("sin"), ImmutableList.of(new QualifiedNameReference(QualifiedName.of("x"))))));
+        assertExpression("(x, y) -> mod(x, y)",
+                new LambdaExpression(
+                        ImmutableList.of("x", "y"),
+                        new FunctionCall(
+                                QualifiedName.of("mod"),
+                                ImmutableList.of(new QualifiedNameReference(QualifiedName.of("x")), new QualifiedNameReference(QualifiedName.of("y"))))));
     }
 
     @Test

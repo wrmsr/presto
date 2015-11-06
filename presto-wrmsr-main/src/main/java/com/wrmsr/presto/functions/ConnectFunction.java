@@ -13,17 +13,19 @@
  */
 package com.wrmsr.presto.functions;
 
-import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
-import com.facebook.presto.metadata.ParametricFunction;
 import com.facebook.presto.metadata.Signature;
+import com.facebook.presto.metadata.SqlScalarFunction;
+import com.facebook.presto.metadata.TypeParameter;
+import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 
+import java.util.List;
 import java.util.Map;
 
 public class ConnectFunction
-        implements ParametricFunction
+        extends SqlScalarFunction
 {
     /*
     private static final Signature SIGNATURE = new Signature(
@@ -36,7 +38,8 @@ public class ConnectFunction
     }
     */
 
-    @Override
+
+    /* @Override
     public Signature getSignature()
     {
         return null;
@@ -62,6 +65,36 @@ public class ConnectFunction
 
     @Override
     public FunctionInfo specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    {
+        return null;
+    }
+    */
+
+    public ConnectFunction(String name, List<TypeParameter> typeParameters, String returnType, List<String> argumentTypes)
+    {
+        super(name, typeParameters, returnType, argumentTypes);
+    }
+
+    @Override
+    public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    {
+        return null;
+    }
+
+    @Override
+    public boolean isHidden()
+    {
+        return false;
+    }
+
+    @Override
+    public boolean isDeterministic()
+    {
+        return false;
+    }
+
+    @Override
+    public String getDescription()
     {
         return null;
     }

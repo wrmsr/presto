@@ -13,10 +13,12 @@
  */
 package com.wrmsr.presto.functions;
 
-import com.facebook.presto.metadata.FunctionInfo;
+import com.facebook.presto.metadata.FunctionKind;
 import com.facebook.presto.metadata.FunctionRegistry;
-import com.facebook.presto.metadata.ParametricScalar;
 import com.facebook.presto.metadata.Signature;
+import com.facebook.presto.metadata.SqlFunction;
+import com.facebook.presto.metadata.SqlScalarFunction;
+import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
@@ -43,10 +45,13 @@ import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 // TODO: COMPILE.
 // FIXME LOLOL RECURSION LINKED LISTS
 public class SerializeFunction
-        extends ParametricScalar
+        extends SqlScalarFunction
 {
+
+
+    private static final String FUNCTION_NAME = "serialize";
     private static final Signature SIGNATURE = new Signature( // FIXME nullable
-            "serialize", ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"), false, false);
+            FUNCTION_NAME, FunctionKind.SCALAR, ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"), false);
     private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", SerializationContext.class, ConnectorSession.class, Object.class);
 
     private static class SerializationContext
@@ -68,16 +73,12 @@ public class SerializeFunction
 
     private final ThreadLocal<ConnectorSession> connectorSessionThreadLocal = new ThreadLocal<ConnectorSession>();
 
+
     public SerializeFunction(FunctionRegistry functionRegistry, StructManager structManager)
     {
+        super(FUNCTION_NAME, ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"));
         this.functionRegistry = functionRegistry;
         this.structManager = structManager;
-    }
-
-    @Override
-    public Signature getSignature()
-    {
-        return SIGNATURE;
     }
 
     @Override
@@ -99,7 +100,7 @@ public class SerializeFunction
     }
 
     @Override
-    public FunctionInfo specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
         checkArgument(types.size() == 1, "Cardinality expects only one argument");
         Type type = types.get("E");
@@ -115,7 +116,10 @@ public class SerializeFunction
         */
 
         // functionRegistry.resolveFunction(new QualifiedName("serialize"), List< TypeSignature > parameterTypes, false)
-        return new FunctionInfo(new Signature("serialize", parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature()), getDescription(), isHidden(), methodHandle, isDeterministic(), false, ImmutableList.of(true));
+
+        Signature sig = new Signature(FUNCTION_NAME, FunctionKind.SCALAR, parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature());
+        // return new ScalarFunctionImplementation(sig, getDescription(), isHidden(), methodHandle, isDeterministic(), false, ImmutableList.of(true));
+        return new ScalarFunctionImplementation(false, ImmutableList.of(false), METHOD_HANDLE, isDeterministic());
     }
 
     public static Slice serialize(SerializationContext serializationContext, ConnectorSession session, @Nullable Object object)

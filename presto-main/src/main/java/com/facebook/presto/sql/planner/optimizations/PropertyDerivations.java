@@ -21,6 +21,7 @@ import com.facebook.presto.spi.ConstantProperty;
 import com.facebook.presto.spi.GroupingProperty;
 import com.facebook.presto.spi.LocalProperty;
 import com.facebook.presto.spi.SortingProperty;
+import com.facebook.presto.spi.predicate.NullableValue;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.DomainTranslator;
@@ -59,6 +60,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import java.util.Collection;
@@ -69,6 +71,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.facebook.presto.spi.predicate.TupleDomain.extractFixedValues;
 import static com.facebook.presto.sql.analyzer.ExpressionAnalyzer.getExpressionTypes;
 import static com.facebook.presto.sql.planner.optimizations.ActualProperties.Global.coordinatorOnly;
 import static com.facebook.presto.sql.planner.optimizations.ActualProperties.Global.distributed;
@@ -80,6 +83,7 @@ import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableSet;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Maps.filterValues;
 import static java.util.stream.Collectors.toMap;
 
 class PropertyDerivations
@@ -141,6 +145,20 @@ class PropertyDerivations
             }
 
             ImmutableList.Builder<LocalProperty<Symbol>> localProperties = ImmutableList.builder();
+
+            // If the WindowNode has pre-partitioned inputs, then it will not change the order of those inputs at output,
+            // so we should just propagate those underlying local properties that guarantee the pre-partitioning.
+            // TODO: come up with a more general form of this operation for other streaming operators
+            if (!node.getPrePartitionedInputs().isEmpty()) {
+                GroupingProperty<Symbol> prePartitionedProperty = new GroupingProperty<>(node.getPrePartitionedInputs());
+                for (LocalProperty<Symbol> localProperty : properties.getLocalProperties()) {
+                    if (!prePartitionedProperty.isSimplifiedBy(localProperty)) {
+                        break;
+                    }
+                    localProperties.add(localProperty);
+                }
+            }
+
             if (!node.getPartitionBy().isEmpty()) {
                 localProperties.add(new GroupingProperty<>(node.getPartitionBy()));
             }
@@ -149,7 +167,7 @@ class PropertyDerivations
             }
 
             return ActualProperties.builderFrom(properties)
-                    .local(localProperties.build())
+                    .local(LocalProperties.normalizeAndPrune(localProperties.build()))
                     .build();
         }
 
@@ -252,12 +270,31 @@ class PropertyDerivations
             // TODO: include all equivalent columns in partitioning properties
             ActualProperties probeProperties = inputProperties.get(0);
             ActualProperties buildProperties = inputProperties.get(1);
-            return ActualProperties.builderFrom(probeProperties)
-                    .constants(ImmutableMap.<Symbol, Object>builder()
-                            .putAll(probeProperties.getConstants())
-                            .putAll(buildProperties.getConstants())
-                            .build())
-                    .build();
+
+            switch (node.getType()) {
+                case INNER:
+                    return ActualProperties.builderFrom(probeProperties)
+                            .constants(ImmutableMap.<Symbol, Object>builder()
+                                    .putAll(probeProperties.getConstants())
+                                    .putAll(buildProperties.getConstants())
+                                    .build())
+                            .build();
+                case LEFT:
+                    return ActualProperties.builderFrom(probeProperties)
+                            .constants(probeProperties.getConstants())
+                            .build();
+                case RIGHT:
+                    return ActualProperties.builder()
+                            .global(buildProperties)
+                            .constants(buildProperties.getConstants())
+                            .build();
+                case FULL:
+                    // We can't say anything about the partitioning scheme because any partition of
+                    // a hash-partitioned join can produce nulls in case of a lack of matches
+                    return probeProperties.isDistributed() ? ActualProperties.distributed() : ActualProperties.undistributed();
+                default:
+                    throw new UnsupportedOperationException("Unsupported join type: " + node.getType());
+            }
         }
 
         @Override
@@ -272,12 +309,22 @@ class PropertyDerivations
             // TODO: include all equivalent columns in partitioning properties
             ActualProperties probeProperties = inputProperties.get(0);
             ActualProperties indexProperties = inputProperties.get(1);
-            return ActualProperties.builderFrom(probeProperties)
-                    .constants(ImmutableMap.<Symbol, Object>builder()
-                            .putAll(probeProperties.getConstants())
-                            .putAll(indexProperties.getConstants())
-                            .build())
-                    .build();
+
+            switch (node.getType()) {
+                case INNER:
+                    return ActualProperties.builderFrom(probeProperties)
+                            .constants(ImmutableMap.<Symbol, Object>builder()
+                                    .putAll(probeProperties.getConstants())
+                                    .putAll(indexProperties.getConstants())
+                                    .build())
+                            .build();
+                case SOURCE_OUTER:
+                    return ActualProperties.builderFrom(probeProperties)
+                            .constants(probeProperties.getConstants())
+                            .build();
+                default:
+                    throw new UnsupportedOperationException("Unsupported join type: " + node.getType());
+            }
         }
 
         @Override
@@ -356,7 +403,8 @@ class PropertyDerivations
                     types);
 
             Map<Symbol, Object> constants = new HashMap<>(properties.getConstants());
-            constants.putAll(decomposedPredicate.getTupleDomain().extractFixedValues());
+            Map<Symbol, NullableValue> fixedValues = extractFixedValues(decomposedPredicate.getTupleDomain()).orElse(ImmutableMap.of());
+            constants.putAll(Maps.transformValues(filterValues(fixedValues, value -> !value.isNull()), NullableValue::getValue));
 
             return ActualProperties.builderFrom(properties)
                     .constants(constants)
@@ -450,7 +498,9 @@ class PropertyDerivations
             LocalProperties.extractLeadingConstants(layout.getLocalProperties()).stream()
                     .forEach(column -> constants.put(column, new Object())); // Use an arbitrary object value for property constants b/c we don't know its actual value
             // Do predicate constants after property constants so that we can override with known real predicate values (if they exist)
-            node.getCurrentConstraint().extractFixedValues().entrySet().stream()
+            extractFixedValues(node.getCurrentConstraint()).orElse(ImmutableMap.of())
+                    .entrySet().stream()
+                    .filter(entry -> !entry.getValue().isNull())
                     .forEach(entry -> constants.put(entry.getKey(), entry.getValue()));
 
             Map<Symbol, Object> symbolConstants = constants.entrySet().stream()

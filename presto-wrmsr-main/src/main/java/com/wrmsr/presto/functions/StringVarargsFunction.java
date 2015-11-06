@@ -13,15 +13,16 @@
  */
 package com.wrmsr.presto.functions;
 
-import com.facebook.presto.metadata.FunctionInfo;
+import com.facebook.presto.metadata.FunctionKind;
 import com.facebook.presto.metadata.FunctionRegistry;
-import com.facebook.presto.metadata.FunctionType;
-import com.facebook.presto.metadata.ParametricFunction;
 import com.facebook.presto.metadata.Signature;
+import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.metadata.TypeParameter;
+import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.type.FunctionType;
 import com.facebook.presto.util.Reflection;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
@@ -38,7 +39,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.wrmsr.presto.util.Lists.listOf;
 
 public abstract class StringVarargsFunction
-        implements ParametricFunction
+        extends SqlScalarFunction
 {
     private final String functionName;
     private final String description;
@@ -60,6 +61,7 @@ public abstract class StringVarargsFunction
             String methodName,
             List<Class<?>> fixedMethodParametersClasses)
     {
+        super(functionName, buildTypeParameters(fixedParameterTypes), functionReturnType, buildArgumentTypes(fixedParameterTypes));
         this.functionName = functionName;
         this.description = description;
         this.fixedParameterTypes = fixedParameterTypes;
@@ -68,15 +70,9 @@ public abstract class StringVarargsFunction
         this.methodName = methodName;
         this.fixedMethodParametersClasses = fixedMethodParametersClasses;
 
-        List<TypeParameter> typeParameters = newArrayList();
-        List<String> argumentTypes = newArrayList();
-        for (String s : fixedParameterTypes) {
-            typeParameters.add(comparableTypeParameter(s));
-            argumentTypes.add(s);
-        }
-        typeParameters.add(typeParameter("E"));
-        argumentTypes.add("E");
-        signature = new Signature(functionName, FunctionType.SCALAR, typeParameters, functionReturnType, argumentTypes, true);
+        List<TypeParameter> typeParameters = buildTypeParameters(fixedParameterTypes);
+        List<String> argumentTypes = buildArgumentTypes(fixedParameterTypes);
+        signature = new Signature(functionName, FunctionKind.SCALAR, typeParameters, functionReturnType, argumentTypes, true);
 
         List<Class<?>> parameterTypes = newArrayList();
         for (Class<?> c : fixedMethodParametersClasses) {
@@ -86,10 +82,24 @@ public abstract class StringVarargsFunction
         methodHandle = Reflection.methodHandle(getClass(), methodName, (Class<?>[]) parameterTypes.toArray(new Class<?>[parameterTypes.size()]));
     }
 
-    @Override
-    public Signature getSignature()
+    protected static List<TypeParameter> buildTypeParameters(List<String> fixedParameterTypes)
     {
-        return signature;
+        List<TypeParameter> typeParameters = newArrayList();
+        for (String s : fixedParameterTypes) {
+            typeParameters.add(comparableTypeParameter(s));
+        }
+        typeParameters.add(typeParameter("E"));
+        return typeParameters;
+    }
+
+    protected static List<String> buildArgumentTypes(List<String> fixedParameterTypes)
+    {
+        List<String> argumentTypes = newArrayList();
+        for (String s : fixedParameterTypes) {
+            argumentTypes.add(s);
+        }
+        argumentTypes.add("E");
+        return argumentTypes;
     }
 
     @Override
@@ -116,7 +126,7 @@ public abstract class StringVarargsFunction
     }
 
     @Override
-    public FunctionInfo specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
         Type type = types.get("E");
         checkArgument(type.getJavaType() == Slice.class);
@@ -134,10 +144,13 @@ public abstract class StringVarargsFunction
         argumentTypes.addAll(listOf(arity - fixedParameterTypes.size(), type.getTypeSignature()));
 
         MethodHandle methodHandle = bindMethodHandle().asVarargsCollector(Object[].class);
+        return new ScalarFunctionImplementation(false, listOf(arity, false), methodHandle, isDeterministic());
+
+        /*
         return new FunctionInfo(
                 new Signature(
                         functionName,
-                        FunctionType.SCALAR,
+                        FunctionKind.SCALAR,
                         parseTypeSignature(functionReturnType),
                         argumentTypes,
                         true),
@@ -147,5 +160,6 @@ public abstract class StringVarargsFunction
                 isDeterministic(),
                 true,
                 listOf(arity, true));
+        */
     }
 }
