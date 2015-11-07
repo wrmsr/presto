@@ -146,7 +146,7 @@ public class TestFFIPlugin
         // add the tpch catalog
         // local queries run directly against the generator
         localQueryRunner.createCatalog(
-                defaultSession.getCatalog(),
+                defaultSession.getCatalog().get(),
                 new TpchConnectorFactory(localQueryRunner.getNodeManager(), 1),
                 ImmutableMap.<String, String>of());
 

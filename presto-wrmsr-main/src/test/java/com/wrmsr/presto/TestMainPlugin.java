@@ -79,7 +79,7 @@ public class TestMainPlugin
        // add the tpch catalog
        // local queries run directly against the generator
        queryRunner.createCatalog(
-               defaultSession.getCatalog(),
+               defaultSession.getCatalog().get(),
                new TpchConnectorFactory(queryRunner.getNodeManager(), 1),
                ImmutableMap.<String, String>of());
        MainPlugin plugin = new MainPlugin();

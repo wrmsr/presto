@@ -185,6 +185,10 @@ public class MainPlugin
 
     public void installConfig(FileConfig fileConfig, StructManager structManager)
     {
+        for (Map.Entry<String, String> e : fileConfig.system.entrySet()) {
+            System.setProperty(e.getKey(), e.getValue());
+        }
+
         for (String plugin : fileConfig.plugins) {
             try {
                 pluginManager.loadPlugin(plugin);

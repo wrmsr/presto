@@ -266,7 +266,7 @@ public class PluginManager
         for (ScriptEngineProvider scriptEngineProvider : plugin.getServices(ScriptEngineProvider.class)) {
             log.info("Registering script engine provider %s", scriptEngineProvider.getName());
             scriptEngineProviders.put(scriptEngineProvider.getName(), scriptEngineProvider);
-	}
+        }
     }
 
     public static URLClassLoader buildClassLoader(ArtifactResolver resolver, String plugin)

@@ -129,20 +129,25 @@ public class TestInsertRewriter
 
         // valid view referencing table in same schema
         String viewData1 = JsonCodec.jsonCodec(ViewDefinition.class).toJson(
-                new ViewDefinition("select a from t1", "tpch", "default", ImmutableList.of(
-                        new ViewDefinition.ViewColumn("a", BIGINT))));
+                new ViewDefinition(
+                        "select a from t1",
+                        Optional.of("tpch"),
+                        Optional.of("default"),
+                        ImmutableList.of(new ViewDefinition.ViewColumn("a", BIGINT)),
+                        Optional.<String>empty()
+                ));
         metadata.createView(SESSION, new QualifiedTableName("tpch", "default", "v1"), viewData1, false);
 
         // stale view (different column type)
         String viewData2 = JsonCodec.jsonCodec(ViewDefinition.class).toJson(
-                new ViewDefinition("select a from t1", "tpch", "default", ImmutableList.of(
-                        new ViewDefinition.ViewColumn("a", VARCHAR))));
+                new ViewDefinition("select a from t1", Optional.of("tpch"), Optional.of("default"), ImmutableList.of(
+                        new ViewDefinition.ViewColumn("a", VARCHAR)), Optional.<String>empty()));
         metadata.createView(SESSION, new QualifiedTableName("tpch", "default", "v2"), viewData2, false);
 
         // view referencing table in different schema from itself and session
         String viewData3 = JsonCodec.jsonCodec(ViewDefinition.class).toJson(
-                new ViewDefinition("select a from t4", "c2", "s2", ImmutableList.of(
-                        new ViewDefinition.ViewColumn("a", BIGINT))));
+                new ViewDefinition("select a from t4", Optional.of("c2"), Optional.of("s2"), ImmutableList.of(
+                        new ViewDefinition.ViewColumn("a", BIGINT)), Optional.<String>empty()));
         metadata.createView(SESSION, new QualifiedTableName("c3", "s3", "v3"), viewData3, false);
 
         analyzer = new Analyzer(

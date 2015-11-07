@@ -26,7 +26,6 @@ import com.wrmsr.presto.launcher.util.ParentLastURLClassLoader;
 import io.airlift.airline.*;
 import io.airlift.resolver.ArtifactResolver;
 import jnr.posix.POSIX;
-import org.ots.dns.NameStore;
 import org.sonatype.aether.artifact.Artifact;
 
 import java.io.File;
@@ -34,7 +33,6 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Method;
-import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
