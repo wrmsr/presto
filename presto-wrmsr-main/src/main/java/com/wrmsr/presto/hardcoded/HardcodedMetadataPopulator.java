@@ -15,6 +15,7 @@ package com.wrmsr.presto.hardcoded;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.connector.ConnectorManager;
+import com.facebook.presto.execution.QueryId;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.ViewDefinition;
@@ -134,7 +135,8 @@ public class HardcodedMetadataPopulator
                     .setSource("system")
                     .setCatalog(name)
                     .setTimeZoneKey(UTC_KEY)
-                    .setLocale(ENGLISH);
+                    .setLocale(ENGLISH)
+                    .setQueryId(QueryId.valueOf("dummy"));
             if (schemaName != null) {
                 builder.setSchema(schemaName);
             }
