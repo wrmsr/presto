@@ -110,7 +110,7 @@ public class HardcodedMetadataPopulator
             }
         }
 
-        return new ViewDefinition(sql, session.getCatalog(), session.getSchema(), columns);
+        return new ViewDefinition(sql, session.getCatalog(), session.getSchema(), columns, Optional.<String>empty());
     }
 
     private class Context

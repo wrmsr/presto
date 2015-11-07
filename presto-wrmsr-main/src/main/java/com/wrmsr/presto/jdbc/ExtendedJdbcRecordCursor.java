@@ -25,6 +25,8 @@ import com.facebook.presto.spi.predicate.Range;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.predicate.SortedRangeSet;
 import com.facebook.presto.spi.predicate.TupleDomain;
+import com.facebook.presto.spi.predicate.ValueSet;
+import com.facebook.presto.spi.type.BigintType;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.wrmsr.presto.jdbc.util.Queries;
@@ -45,6 +47,7 @@ import java.util.stream.IntStream;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
 
 public class ExtendedJdbcRecordCursor
         extends JdbcRecordCursor
@@ -108,11 +111,14 @@ public class ExtendedJdbcRecordCursor
                 chunkPositionDomtain = TupleDomain.all();
             }
             else {
-                chunkPositionDomtain = TupleDomain.withColumnDomains(
-                        IntStream.range(0, clusteredColumnHandles.size()).boxed().map(i -> ImmutablePair.of(clusteredColumnHandles.get(i), Domain.create(SortedRangeSet.of(Range.greaterThan(
-                                chunkPositionValues.get(i)
-                        )), false)))
-                                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
+                Map<ColumnHandle, Domain> domain = newHashMap();
+                for (int i = 0; i < clusteredColumnHandles.size(); ++i) {
+                    JdbcColumnHandle k = clusteredColumnHandles.get(i);
+                    Range r = Range.greaterThan(BigintType.BIGINT, chunkPositionValues.get(i));
+                    Domain v = Domain.create(ValueSet.ofRanges(r), false);
+                    domain.put(k, v);
+                }
+                chunkPositionDomtain = TupleDomain.withColumnDomains(domain);
             }
 
             TupleDomain<ColumnHandle> chunkTupleDomain = split.getTupleDomain().intersect(chunkPositionDomtain);

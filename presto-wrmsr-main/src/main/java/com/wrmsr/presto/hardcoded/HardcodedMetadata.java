@@ -33,6 +33,7 @@ import io.airlift.slice.Slice;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -73,7 +74,8 @@ public class HardcodedMetadata
         if (schemaViews != null) {
             String view = schemaViews.get(prefix.getTableName());
             if (view != null) {
-                return ImmutableMap.of(new SchemaTableName(prefix.getSchemaName(), prefix.getTableName()), view);
+                SchemaTableName name = new SchemaTableName(prefix.getSchemaName(), prefix.getTableName());
+                return ImmutableMap.of(name, new ConnectorViewDefinition(name, Optional.<String>empty(), view));
             }
         }
         return emptyMap();
