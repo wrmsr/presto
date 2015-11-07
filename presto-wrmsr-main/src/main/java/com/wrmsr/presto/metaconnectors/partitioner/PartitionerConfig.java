@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.metaconnectors.partitioner;
 
-import com.facebook.presto.spi.predicate.Range;
 import io.airlift.configuration.Config;
 
 import javax.annotation.Nullable;
@@ -80,11 +79,6 @@ public class PartitionerConfig
         public int getMaxId()
         {
             return maxId;
-        }
-
-        public Range getRange()
-        {
-            return Range.range(minId, true, maxId, false);
         }
 
         @Override

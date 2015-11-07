@@ -65,7 +65,7 @@ public class PartitionerSplitManager
         ConnectorMetadata metadata = targetConnector.getMetadata();
         ConnectorTableMetadata tableMetadata = metadata.getTableMetadata(session, table);
         TupleDomain<String> stringTupleDomain = TupleDomain.all();
-        for (Map.Entry<ColumnHandle, Domain> e : tupleDomain.getDomains().entrySet()) {
+        for (Map.Entry<ColumnHandle, Domain> e : tupleDomain.getDomains().get().entrySet()) {
             ColumnMetadata columnMetadata = metadata.getColumnMetadata(session, table, e.getKey());
             stringTupleDomain = TupleDomain.columnWiseUnion(
                     stringTupleDomain,
@@ -78,7 +78,7 @@ public class PartitionerSplitManager
         for (Partitioner.Partition partition : partitions) {
             TupleDomain intersectedDomain = tupleDomain.intersect(
                     TupleDomain.withColumnDomains(
-                            partition.getTupleDomain().getDomains().entrySet().stream().collect(ImmutableCollectors.toImmutableMap(
+                            partition.getTupleDomain().getDomains().get().entrySet().stream().collect(ImmutableCollectors.toImmutableMap(
                                     e -> metadata.getColumnHandles(session, table).get(e.getKey()), e -> e.getValue()))));
 
             if (intersectedDomain.isNone()) {

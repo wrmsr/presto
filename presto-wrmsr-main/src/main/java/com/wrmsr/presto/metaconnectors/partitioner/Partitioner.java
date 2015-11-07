@@ -18,6 +18,7 @@ import com.facebook.presto.spi.predicate.Range;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.predicate.SortedRangeSet;
 import com.facebook.presto.spi.predicate.TupleDomain;
+import com.facebook.presto.spi.predicate.ValueSet;
 import com.facebook.presto.spi.type.BigintType;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.ColumnDomain;
@@ -73,9 +74,8 @@ public interface Partitioner
                                 ImmutableMap.of(
                                         column,
                                         Domain.create(
-                                                SortedRangeSet.of(
-                                                        Range.range(BigintType.BIGINT, i * step + base, true, (i + 1) * step + base, false)),
+                                                ValueSet.of(BigintType.BIGINT, i * step + base, (i + 1) * step + base),
                                                 false)))))
                 .collect(ImmutableCollectors.toImmutableList());
-    }
+     }
 }
