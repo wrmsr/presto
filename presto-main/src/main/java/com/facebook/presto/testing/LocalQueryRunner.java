@@ -435,7 +435,7 @@ public class LocalQueryRunner
         return createDrivers(session, statement, outputFactory, taskContext);
     }
 
-    public List<Driver> createDrivers(Session session, Statement statement , OutputFactory outputFactory, TaskContext taskContext)
+    public List<Driver> createDrivers(Session session, Statement statement, OutputFactory outputFactory, TaskContext taskContext)
     {
         PlanNodeIdAllocator idAllocator = new PlanNodeIdAllocator();
         FeaturesConfig featuresConfig = new FeaturesConfig()

@@ -15,6 +15,8 @@ package com.wrmsr.presto.reactor;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.block.BlockEncodingManager;
+import com.facebook.presto.execution.QueryId;
+import com.facebook.presto.index.IndexManager;
 import com.facebook.presto.metadata.*;
 import com.facebook.presto.operator.Driver;
 import com.facebook.presto.operator.TaskContext;
@@ -24,6 +26,7 @@ import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.split.SplitManager;
 import com.facebook.presto.sql.SqlFormatter;
@@ -31,9 +34,17 @@ import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.analyzer.Field;
+import com.facebook.presto.sql.analyzer.QueryExplainer;
 import com.facebook.presto.sql.analyzer.SemanticErrorCode;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.parser.SqlParser;
+import com.facebook.presto.sql.planner.LogicalPlanner;
+import com.facebook.presto.sql.planner.Plan;
+import com.facebook.presto.sql.planner.PlanFragmenter;
+import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
+import com.facebook.presto.sql.planner.PlanOptimizersFactory;
+import com.facebook.presto.sql.planner.PlanPrinter;
+import com.facebook.presto.sql.planner.SubPlan;
 import com.facebook.presto.sql.tree.AllColumns;
 import com.facebook.presto.sql.tree.Insert;
 import com.facebook.presto.sql.tree.QualifiedName;
@@ -42,6 +53,7 @@ import com.facebook.presto.sql.tree.QuerySpecification;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.sql.tree.Table;
 import com.facebook.presto.testing.LocalQueryRunner;
+import com.facebook.presto.testing.MaterializedResult;
 import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
@@ -52,6 +64,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.intellij.lang.annotations.Language;
 
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -76,6 +89,8 @@ public class TestInsertRewriter
             .setSchema("default")
             .setTimeZoneKey(UTC_KEY)
             .setLocale(ENGLISH)
+            .setQueryId(QueryId.valueOf("dummy"))
+            .setIdentity(new Identity("test", Optional.<Principal>empty()))
             .build();
 
     private static final SqlParser SQL_PARSER = new SqlParser();
@@ -157,6 +172,8 @@ public class TestInsertRewriter
                         .setSchema("default")
                         .setTimeZoneKey(UTC_KEY)
                         .setLocale(ENGLISH)
+                        .setQueryId(QueryId.valueOf("dummy"))
+                        .setIdentity(new Identity("test", Optional.<Principal>empty()))
                         .build(),
                 metadata,
                 SQL_PARSER,
@@ -195,12 +212,12 @@ public class TestInsertRewriter
 
         LocalQueryRunner.MaterializedOutputFactory outputFactory = new LocalQueryRunner.MaterializedOutputFactory();
 
-        Kv<String, String> kv = new Kv.Synchronized<>(new Kv.MapImpl<>(new HashMap<>()));
-        kv.put("hi", "there");
-        kv.get("hi");
-
         /*
         {
+            Kv<String, String> kv = new Kv.Synchronized<>(new Kv.MapImpl<>(new HashMap<>()));
+            kv.put("hi", "there");
+            kv.get("hi");
+
             TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
             List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), "select * from tpch.tiny.customer", outputFactory, taskContext);
 
@@ -222,7 +239,56 @@ public class TestInsertRewriter
 
         {
             TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
-            List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), "select * from tpch.tiny.\"orders\" as \"o\" inner join tpch.tiny.customer as \"c\" on \"o\".custkey = \"c\".custkey", outputFactory, taskContext);
+            @Language("SQL") String sql = "select * from tpch.tiny.\"orders\" as \"o\" inner join tpch.tiny.customer as \"c\" on \"o\".custkey = \"c\".custkey";
+
+            Statement statement = SQL_PARSER.createStatement(sql);
+            Analyzer analyzer = new Analyzer(
+                    lqr.getDefaultSession(),
+                    lqr.getMetadata(),
+                    SQL_PARSER,
+                    lqr.getAccessControl(),
+                    Optional.empty(),
+                    true);
+
+            Analysis analysis = analyzer.analyze(statement);
+            System.out.println(analysis);
+
+            // ----
+
+            PlanNodeIdAllocator idAllocator = new PlanNodeIdAllocator();
+            FeaturesConfig featuresConfig = new FeaturesConfig()
+                    .setExperimentalSyntaxEnabled(true)
+                    .setDistributedIndexJoinsEnabled(false)
+                    .setOptimizeHashGeneration(true);
+            PlanOptimizersFactory planOptimizersFactory = new PlanOptimizersFactory(
+                    lqr.getMetadata(),
+                    SQL_PARSER,
+                    new IndexManager(), // ?
+                    featuresConfig,
+                    true);
+
+            QueryExplainer queryExplainer = new QueryExplainer(
+                    planOptimizersFactory.get(),
+                    lqr.getMetadata(),
+                    lqr.getAccessControl(),
+                    SQL_PARSER,
+                    ImmutableMap.of(),
+                    featuresConfig.isExperimentalSyntaxEnabled());
+            analyzer = new Analyzer(lqr.getDefaultSession(), lqr.getMetadata(), SQL_PARSER, lqr.getAccessControl(), Optional.of(queryExplainer), featuresConfig.isExperimentalSyntaxEnabled());
+
+            analysis = analyzer.analyze(statement);
+            Plan plan = new LogicalPlanner(lqr.getDefaultSession(), planOptimizersFactory.get(), idAllocator, lqr.getMetadata()).plan(analysis);
+
+            System.out.println(PlanPrinter.textLogicalPlan(plan.getRoot(), plan.getTypes(), lqr.getMetadata(), lqr.getDefaultSession()));
+
+            SubPlan subplan = new PlanFragmenter().createSubPlans(plan);
+            if (!subplan.getChildren().isEmpty()) {
+                throw new AssertionError("Expected subplan to have no children");
+            }
+
+            // ---
+
+            List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), sql, outputFactory, taskContext);
 
             boolean done = false;
             while (!done) {
@@ -236,7 +302,8 @@ public class TestInsertRewriter
                 done = !processed;
             }
 
-            outputFactory.getMaterializingOperator().getMaterializedResult();
+            MaterializedResult res = outputFactory.getMaterializingOperator().getMaterializedResult();
+            System.out.println(res);
         }
     }
 
