@@ -74,7 +74,7 @@ public interface Partitioner
                                 ImmutableMap.of(
                                         column,
                                         Domain.create(
-                                                ValueSet.of(BigintType.BIGINT, i * step + base, (i + 1) * step + base),
+                                                ValueSet.ofRanges(Range.range(BigintType.BIGINT, i * step + base, true, (i + 1) * step + base, false)),
                                                 false)))))
                 .collect(ImmutableCollectors.toImmutableList());
      }
