@@ -119,7 +119,6 @@ OutputNode
 
 ProjectNode
 
-ValuesNode
 AggregationNode
 MarkDistinctNode
 FilterNode
@@ -140,6 +139,7 @@ IndexJoinNode
 
 TableScanNode
 IndexSourceNode
+ValuesNode
  - source
 
 UnnestNode
