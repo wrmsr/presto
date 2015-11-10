@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.reactor;
 
+
 import com.facebook.presto.Session;
 import com.facebook.presto.block.BlockEncodingManager;
 import com.facebook.presto.execution.QueryId;
@@ -45,6 +46,9 @@ import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.PlanOptimizersFactory;
 import com.facebook.presto.sql.planner.PlanPrinter;
 import com.facebook.presto.sql.planner.SubPlan;
+import com.facebook.presto.sql.planner.plan.PlanNode;
+import com.facebook.presto.sql.planner.plan.PlanVisitor;
+import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.AllColumns;
 import com.facebook.presto.sql.tree.Insert;
 import com.facebook.presto.sql.tree.QualifiedName;
@@ -80,6 +84,71 @@ import static java.util.Locale.ENGLISH;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static org.testng.Assert.fail;
 import static java.lang.String.format;
+
+/*
+OutputNode
+ProjectNode
+TableScanNode
+ValuesNode
+AggregationNode
+MarkDistinctNode
+FilterNode
+WindowNode
+RowNumberNode
+TopNRowNumberNode
+LimitNode
+DistinctLimitNode
+TopNNode
+SampleNode
+SortNode
+RemoteSourceNode
+JoinNode
+SemiJoinNode
+IndexJoinNode
+IndexSourceNode
+TableWriterNode
+DeleteNode
+MetadataDeleteNode
+TableCommitNode
+UnnestNode
+ExchangeNode
+UnionNode
+
+
+OutputNode
+
+ProjectNode
+
+ValuesNode
+AggregationNode
+MarkDistinctNode
+FilterNode
+WindowNode
+RowNumberNode
+TopNRowNumberNode
+LimitNode
+DistinctLimitNode
+TopNNode
+SampleNode
+SortNode
+RemoteSourceNode
+
+JoinNode
+SemiJoinNode
+IndexJoinNode
+ - implode
+
+TableScanNode
+IndexSourceNode
+ - source
+
+UnnestNode
+ - explode
+
+ExchangeNode
+
+UnionNode
+*/
 
 public class TestInsertRewriter
 {
@@ -239,7 +308,9 @@ public class TestInsertRewriter
 
         {
             TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
-            @Language("SQL") String sql = "select * from tpch.tiny.\"orders\" as \"o\" inner join tpch.tiny.customer as \"c\" on \"o\".custkey = \"c\".custkey";
+            @Language("SQL") String sql = "select * from tpch.tiny.\"orders\" as \"o\" " +
+                    "inner join tpch.tiny.customer as \"c1\" on \"o\".custkey = \"c1\".custkey " +
+                    "inner join tpch.tiny.customer as \"c2\" on \"o\".custkey = (\"c2\".custkey + 1)";
 
             Statement statement = SQL_PARSER.createStatement(sql);
             Analyzer analyzer = new Analyzer(
@@ -279,7 +350,26 @@ public class TestInsertRewriter
             analysis = analyzer.analyze(statement);
             Plan plan = new LogicalPlanner(lqr.getDefaultSession(), planOptimizersFactory.get(), idAllocator, lqr.getMetadata()).plan(analysis);
 
+            List<TableScanNode> tableScanNodes = newArrayList();
+            plan.getRoot().accept(new PlanVisitor<Void, Void>() {
+                @Override
+                protected Void visitPlan(PlanNode node, Void context)
+                {
+                    node.getSources().forEach(n -> n.accept(this, context));
+                    return null;
+                }
+
+                @Override
+                public Void visitTableScan(TableScanNode node, Void context)
+                {
+                    tableScanNodes.add(node);
+                    return null;
+                }
+            }, null);
+
             System.out.println(PlanPrinter.textLogicalPlan(plan.getRoot(), plan.getTypes(), lqr.getMetadata(), lqr.getDefaultSession()));
+
+
 
             SubPlan subplan = new PlanFragmenter().createSubPlans(plan);
             if (!subplan.getChildren().isEmpty()) {

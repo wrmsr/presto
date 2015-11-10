@@ -10,7 +10,7 @@ if [ -d ~/.m2/repository/com/facebook/presto ] ; then
     find ~/.m2/repository/com/facebook/presto -name '*.lastUpdated' -delete
 fi
 VERSION=$(egrep '<version>[0-9\.]+-SNAPSHOT</version>' pom.xml | head -n 1 | egrep -o '[0-9\.]+-SNAPSHOT')
-for PRJ in presto-parser presto-main presto-hive presto-base-jdbc ; do
+for PRJ in presto-spi presto-parser presto-main presto-hive presto-base-jdbc ; do
     JAR_DIR="$HOME/.m2/repository/com/facebook/presto/$PRJ/$VERSION"
     mkdir -p "$JAR_DIR"
     JAR_PATH="$JAR_DIR/$PRJ-$VERSION-tests.jar"

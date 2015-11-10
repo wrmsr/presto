@@ -989,6 +989,7 @@
                 </plugins>
             </build>
         </profile>
+        <!--
         <profile>
             <id>eclipse-compiler</id>
             <build>
@@ -1010,5 +1011,6 @@
                 </plugins>
             </build>
         </profile>
+        -->
     </profiles>
 </project>
