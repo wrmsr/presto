@@ -23,6 +23,8 @@ import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConfig;
+import com.wrmsr.presto.jdbc.h2.H2Client;
+import com.wrmsr.presto.jdbc.h2.H2ClientModule;
 import org.h2.Driver;
 
 import java.io.File;
@@ -32,7 +34,7 @@ import static io.airlift.configuration.ConfigBinder.configBinder;
 import static java.lang.String.format;
 
 class TestingH2JdbcModule
-        implements Module
+        extends H2ClientModule
 {
     @Override
     public void configure(Binder binder)
@@ -43,7 +45,7 @@ class TestingH2JdbcModule
     @Provides
     public JdbcClient provideJdbcClient(JdbcConnectorId id, BaseJdbcConfig config)
     {
-        return new ExtendedJdbcClient(id, config, new ExtendedJdbcConfig(), "\"", new Driver());
+        return new H2Client(id, config, new ExtendedJdbcConfig());
     }
 
     public static Map<String, String> createProperties()

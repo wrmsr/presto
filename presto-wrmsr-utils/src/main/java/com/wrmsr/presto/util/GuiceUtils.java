@@ -58,7 +58,6 @@ public class GuiceUtils
      */
     public interface OverriddenModuleBuilder
     {
-
         /**
          * See the EDSL example at {@link Modules#override(Module[]) override()}.
          */

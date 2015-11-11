@@ -106,6 +106,7 @@ import com.google.common.io.Files;
 import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
+import com.wrmsr.presto.util.GuiceUtils;
 import io.airlift.json.JsonCodec;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.BeforeMethod;
@@ -1089,7 +1090,6 @@ public class TestInsertRewriter
         File db = new File(tmp, "db");
         ExtendedJdbcConnectorFactory connectorFactory = new ExtendedJdbcConnectorFactory(
                 "test",
-
                 new TestingH2JdbcModule(),
                 TestingH2JdbcModule.createProperties(db),
                 ImmutableMap.of(),
