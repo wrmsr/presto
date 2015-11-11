@@ -23,6 +23,7 @@ import com.google.inject.Binder;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
+import com.wrmsr.presto.util.GuiceUtils;
 import io.airlift.bootstrap.Bootstrap;
 import io.airlift.log.Logger;
 import io.airlift.resolver.ArtifactResolver;
