@@ -103,6 +103,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
+import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
+import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
+import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
 import io.airlift.json.JsonCodec;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.BeforeMethod;
@@ -111,6 +114,8 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.security.Principal;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -122,6 +127,7 @@ import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
@@ -877,13 +883,16 @@ public class TestInsertRewriter
         }
     }
 
-    public static abstract class ConnectorHandler<T extends ConnectorFactory>
+    public static abstract class ConnectorHandler<CF extends ConnectorFactory, C extends Connector>
     {
-        private final Class<T> ConnectorFactoryClass;
+        private final Class<CF> connectorFactoryClass;
+        protected final C connector;
 
-        public ConnectorHandler(Class<T> connectorFactoryClass)
+        @SuppressWarnings({"unchecked"})
+        public ConnectorHandler(Class<CF> connectorFactoryClass, C connector)
         {
-            ConnectorFactoryClass = connectorFactoryClass;
+            this.connectorFactoryClass = connectorFactoryClass;
+            this.connector = (C) connector;
         }
 
         public abstract SchemaTableName getSchemaTableName(ConnectorTableHandle handle);
@@ -891,11 +900,16 @@ public class TestInsertRewriter
         public abstract List<String> getPrimaryKey(SchemaTableName schemaTableName);
     }
 
-    public static class JdbcConnectorHandler extends ConnectorHandler<JdbcConnectorFactory>
+    public static class ExtendedJdbcConnectorHandler extends ConnectorHandler<ExtendedJdbcConnectorFactory, ExtendedJdbcConnector>
     {
-        public JdbcConnectorHandler()
+        public ExtendedJdbcConnectorHandler(ExtendedJdbcConnector connector)
         {
-            super(JdbcConnectorFactory.class);
+            super(ExtendedJdbcConnectorFactory.class, connector);
+        }
+
+        public ExtendedJdbcClient getClient()
+        {
+            return (ExtendedJdbcClient) connector.getJdbcClient();
         }
 
         @Override
@@ -908,11 +922,27 @@ public class TestInsertRewriter
         @Override
         public List<String> getPrimaryKey(SchemaTableName schemaTableName)
         {
-            return null;
+            try {
+                try (Connection connection = getClient().getConnection()) {
+                    DatabaseMetaData metadata = connection.getMetaData();
+
+                    // FIXME postgres catalog support
+                    try (ResultSet resultSet = metadata.getPrimaryKeys(schemaTableName.getSchemaName(), schemaTableName.getSchemaName(), schemaTableName.getTableName())) {
+                        while (resultSet.next()) {
+                            System.out.println(resultSet);
+                        }
+                    }
+
+                    throw new UnsupportedOperationException();
+                }
+            }
+            catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
-    public static class TpchConnectorHandler extends ConnectorHandler<TpchConnectorFactory>
+    public static class TpchConnectorHandler extends ConnectorHandler<TpchConnectorFactory, Connector>
     {
         private final String defaultSchema;
 
@@ -922,11 +952,17 @@ public class TestInsertRewriter
 
         private static final Map<String, List<String>> tablePrimaryKeys = ImmutableMap.<String, List<String>>builder()
                 .put("customer", ImmutableList.of("custkey"))
+                .put("supplier", ImmutableList.of("suppkey"))
+                .put("part", ImmutableList.of("partkey"))
+                .put("nation", ImmutableList.of("nationkey"))
+                .put("region", ImmutableList.of("regionkey"))
+                .put("partsupp", ImmutableList.of("partkey", "suppkey"))
+                .put("orders", ImmutableList.of("orderkey"))
                 .build();
 
-        public TpchConnectorHandler(String defaultSchema)
+        public TpchConnectorHandler(Connector connector, String defaultSchema)
         {
-            super(TpchConnectorFactory.class);
+            super(TpchConnectorFactory.class, connector);
             checkArgument(schemas.contains(defaultSchema));
             this.defaultSchema = defaultSchema;
         }
