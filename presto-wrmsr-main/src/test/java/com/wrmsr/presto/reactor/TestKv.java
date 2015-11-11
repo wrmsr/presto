@@ -116,10 +116,10 @@ public class TestKv
 
         try (Connection connection = jdbcClient.getConnection()) {
             try (Statement stmt = connection.createStatement()) {
-                stmt.execute("insert into db.example.foo (text) values ('hi');");
+                stmt.execute("insert into db.example.foo (text) values ('hi1');");
             }
             try (Statement stmt = connection.createStatement()) {
-                stmt.execute("insert into \"DB\".\"EXAMPLE\".\"FOO\" (text) values ('hi');");
+                stmt.execute("insert into \"DB\".\"EXAMPLE\".\"FOO\" (text) values ('hi2');");
             }
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("select * from db.example.foo;");
@@ -169,14 +169,14 @@ public class TestKv
         RecordSink rs = connector.getRecordSinkProvider().getRecordSink(session, oth);
 
         rs.beginRecord(1);
-        rs.appendString("hi".getBytes());
+        rs.appendString("hi3".getBytes());
         rs.finishRecord();
 
         rs.commit();
 
         try (Connection connection = jdbcClient.getConnection()) {
             try (Statement stmt = connection.createStatement()) {
-                stmt.execute("select * from db.example.foo;");
+                stmt.execute("select * from DB.EXAMPLE.FOO;");
                 ResultSet rs2 = stmt.getResultSet();
                 while (rs2.next()) {
                     System.out.println(rs2.getString(1));

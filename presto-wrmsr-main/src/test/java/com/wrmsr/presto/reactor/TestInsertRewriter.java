@@ -13,18 +13,32 @@
  */
 package com.wrmsr.presto.reactor;
 
-
 import com.facebook.presto.Session;
 import com.facebook.presto.block.BlockEncodingManager;
 import com.facebook.presto.execution.QueryId;
 import com.facebook.presto.index.IndexManager;
-import com.facebook.presto.metadata.*;
+import com.facebook.presto.metadata.InMemoryNodeManager;
+import com.facebook.presto.metadata.MetadataManager;
+import com.facebook.presto.metadata.QualifiedTableName;
+import com.facebook.presto.metadata.SessionPropertyManager;
+import com.facebook.presto.metadata.TableMetadata;
+import com.facebook.presto.metadata.TablePropertyManager;
+import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.operator.Driver;
 import com.facebook.presto.operator.TaskContext;
+import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
+import com.facebook.presto.plugin.jdbc.JdbcConnector;
+import com.facebook.presto.plugin.jdbc.JdbcConnectorFactory;
+import com.facebook.presto.plugin.jdbc.JdbcMetadata;
+import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.security.AllowAllAccessControl;
 import com.facebook.presto.spi.ColumnMetadata;
+import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
+import com.facebook.presto.spi.ConnectorMetadata;
+import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.security.Identity;
@@ -36,8 +50,6 @@ import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.analyzer.Field;
 import com.facebook.presto.sql.analyzer.QueryExplainer;
-import com.facebook.presto.sql.analyzer.SemanticErrorCode;
-import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.LogicalPlanner;
 import com.facebook.presto.sql.planner.Plan;
@@ -46,10 +58,35 @@ import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.PlanOptimizersFactory;
 import com.facebook.presto.sql.planner.PlanPrinter;
 import com.facebook.presto.sql.planner.SubPlan;
+import com.facebook.presto.sql.planner.plan.AggregationNode;
+import com.facebook.presto.sql.planner.plan.DeleteNode;
+import com.facebook.presto.sql.planner.plan.DistinctLimitNode;
+import com.facebook.presto.sql.planner.plan.ExchangeNode;
+import com.facebook.presto.sql.planner.plan.FilterNode;
+import com.facebook.presto.sql.planner.plan.IndexJoinNode;
+import com.facebook.presto.sql.planner.plan.IndexSourceNode;
+import com.facebook.presto.sql.planner.plan.JoinNode;
+import com.facebook.presto.sql.planner.plan.LimitNode;
+import com.facebook.presto.sql.planner.plan.MarkDistinctNode;
+import com.facebook.presto.sql.planner.plan.MetadataDeleteNode;
+import com.facebook.presto.sql.planner.plan.OutputNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanVisitor;
+import com.facebook.presto.sql.planner.plan.ProjectNode;
+import com.facebook.presto.sql.planner.plan.RemoteSourceNode;
+import com.facebook.presto.sql.planner.plan.RowNumberNode;
+import com.facebook.presto.sql.planner.plan.SampleNode;
+import com.facebook.presto.sql.planner.plan.SemiJoinNode;
+import com.facebook.presto.sql.planner.plan.SortNode;
+import com.facebook.presto.sql.planner.plan.TableCommitNode;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
-import com.facebook.presto.sql.tree.AllColumns;
+import com.facebook.presto.sql.planner.plan.TableWriterNode;
+import com.facebook.presto.sql.planner.plan.TopNNode;
+import com.facebook.presto.sql.planner.plan.TopNRowNumberNode;
+import com.facebook.presto.sql.planner.plan.UnionNode;
+import com.facebook.presto.sql.planner.plan.UnnestNode;
+import com.facebook.presto.sql.planner.plan.ValuesNode;
+import com.facebook.presto.sql.planner.plan.WindowNode;
 import com.facebook.presto.sql.tree.Insert;
 import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.sql.tree.Query;
@@ -58,34 +95,59 @@ import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.sql.tree.Table;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.MaterializedResult;
+import com.facebook.presto.testing.TestingConnectorSession;
 import com.facebook.presto.tpch.TpchConnectorFactory;
+import com.facebook.presto.tpch.TpchTableHandle;
 import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.util.Kv;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.io.Files;
 import io.airlift.json.JsonCodec;
+import org.intellij.lang.annotations.Language;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-import org.intellij.lang.annotations.Language;
 
+import java.io.File;
 import java.security.Principal;
-import java.util.HashMap;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
-import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
-import static com.facebook.presto.sql.QueryUtil.selectList;
-import static com.facebook.presto.sql.QueryUtil.simpleQuery;
-import static com.facebook.presto.sql.QueryUtil.table;
-import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
-import static com.google.common.collect.Lists.newArrayList;
-import static java.util.Locale.ENGLISH;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
-import static org.testng.Assert.fail;
-import static java.lang.String.format;
+import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
+import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
+import static java.util.Locale.ENGLISH;
 
 /*
+
+
+                                    xxxxxxx
+                               x xxxxxxxxxxxxx x
+                            x     xxxxxxxxxxx     x
+                                   xxxxxxxxx
+                         x          xxxxxxx          x
+                                     xxxxx
+                        x             xxx             x
+                                       x
+                       xxxxxxxxxxxxxxx   xxxxxxxxxxxxxxx
+                        xxxxxxxxxxxxx     xxxxxxxxxxxxx
+                         xxxxxxxxxxx       xxxxxxxxxxx
+                          xxxxxxxxx         xxxxxxxxx
+                            xxxxxx           xxxxxx
+                              xxx             xxx
+                                  x         x
+                                       x
+
+
 OutputNode
 ProjectNode
 TableScanNode
@@ -165,6 +227,725 @@ public class TestInsertRewriter
     private static final SqlParser SQL_PARSER = new SqlParser();
 
     private Analyzer analyzer;
+
+    public static abstract class PlanNodeHandler<T extends PlanNode>
+    {
+        protected final T node;
+        protected final Optional<PlanNodeHandler> destination;
+
+        public PlanNodeHandler(T node, Optional<PlanNodeHandler> destination)
+        {
+            this.node = node;
+            this.destination = destination;
+        }
+
+        public T getNode()
+        {
+            return node;
+        }
+
+        public Optional<PlanNodeHandler> getDestination()
+        {
+            return destination;
+        }
+
+        public abstract boolean isBlocking();
+    }
+
+    public static abstract class SourcePlanNodeHandler<T extends PlanNode>
+            extends PlanNodeHandler<T>
+    {
+        public SourcePlanNodeHandler(T node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+            checkArgument(destination.isPresent());
+        }
+    }
+
+    public static class OutputNodeHandler
+            extends PlanNodeHandler<OutputNode>
+    {
+        public OutputNodeHandler(OutputNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+            checkArgument(!destination.isPresent());
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class ProjectNodeHandler
+            extends PlanNodeHandler<ProjectNode>
+    {
+        public ProjectNodeHandler(ProjectNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class TableScanNodeHandler
+            extends SourcePlanNodeHandler<TableScanNode>
+    {
+        public TableScanNodeHandler(TableScanNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class ValuesNodeHandler
+            extends PlanNodeHandler<ValuesNode>
+    {
+        public ValuesNodeHandler(ValuesNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class AggregationNodeHandler
+            extends PlanNodeHandler<AggregationNode>
+    {
+        public AggregationNodeHandler(AggregationNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return true;
+        }
+    }
+
+    public static class MarkDistinctNodeHandler
+            extends PlanNodeHandler<MarkDistinctNode>
+    {
+        public MarkDistinctNodeHandler(MarkDistinctNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class FilterNodeHandler
+            extends PlanNodeHandler<FilterNode>
+    {
+        public FilterNodeHandler(FilterNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    /*
+    public static class WindowNodeHandler
+            extends PlanNodeHandler<WindowNode>
+    {
+        public WindowNodeHandler(WindowNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class RowNumberNodeHandler
+            extends PlanNodeHandler<RowNumberNode>
+    {
+        public RowNumberNodeHandler(RowNumberNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    public static class TopNRowNumberNodeHandler
+            extends PlanNodeHandler<TopNRowNumberNode>
+    {
+        public TopNRowNumberNodeHandler(TopNRowNumberNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class LimitNodeHandler
+            extends PlanNodeHandler<LimitNode>
+    {
+        public LimitNodeHandler(LimitNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class DistinctLimitNodeHandler
+            extends PlanNodeHandler<DistinctLimitNode>
+    {
+        public DistinctLimitNodeHandler(DistinctLimitNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class TopNNodeHandler
+            extends PlanNodeHandler<TopNNode>
+    {
+        public TopNNodeHandler(TopNNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    /*
+    public static class SampleNodeHandler
+            extends PlanNodeHandler<SampleNode>
+    {
+        public SampleNodeHandler(SampleNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    public static class SortNodeHandler
+            extends PlanNodeHandler<SortNode>
+    {
+        public SortNodeHandler(SortNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    /*
+    public static class RemoteSourceNodeHandler
+            extends PlanNodeHandler<RemoteSourceNode>
+    {
+        public RemoteSourceNodeHandler(RemoteSourceNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    public static class JoinNodeHandler
+            extends PlanNodeHandler<JoinNode>
+    {
+        public JoinNodeHandler(JoinNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class SemiJoinNodeHandler
+            extends PlanNodeHandler<SemiJoinNode>
+    {
+        public SemiJoinNodeHandler(SemiJoinNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    /*
+    public static class IndexJoinNodeHandler
+            extends PlanNodeHandler<IndexJoinNode>
+    {
+        public IndexJoinNodeHandler(IndexJoinNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class IndexSourceNodeHandler
+            extends PlanNodeHandler<IndexSourceNode>
+    {
+        public IndexSourceNodeHandler(IndexSourceNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class TableWriterNodeHandler
+            extends PlanNodeHandler<TableWriterNode>
+    {
+        public TableWriterNodeHandler(TableWriterNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class DeleteNodeHandler
+            extends PlanNodeHandler<DeleteNode>
+    {
+        public DeleteNodeHandler(DeleteNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class MetadataDeleteNodeHandler
+            extends PlanNodeHandler<MetadataDeleteNode>
+    {
+        public MetadataDeleteNodeHandler(MetadataDeleteNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class TableCommitNodeHandler
+            extends PlanNodeHandler<TableCommitNode>
+    {
+        public TableCommitNodeHandler(TableCommitNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    public static class UnnestNodeHandler
+            extends PlanNodeHandler<UnnestNode>
+    {
+        public UnnestNodeHandler(UnnestNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    /*
+    public static class ExchangeNodeHandler
+            extends PlanNodeHandler<ExchangeNode>
+    {
+        public ExchangeNodeHandler(ExchangeNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    public static class UnionNodeHandler
+            extends PlanNodeHandler<UnionNode>
+    {
+        public UnionNodeHandler(UnionNode node, Optional<PlanNodeHandler> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static final class UnsupportedPlanNodeException
+        extends RuntimeException
+    {
+        private final PlanNode node;
+
+        public UnsupportedPlanNodeException(PlanNode node)
+        {
+            this.node = node;
+        }
+
+        @Override
+        public String toString()
+        {
+            return "UnsupportedPlanNodeException{" +
+                    "node=" + node +
+                    '}';
+        }
+    }
+
+    public static PlanNodeHandler handleNode(PlanNode node, Optional<PlanNodeHandler> destination)
+    {
+        if (node instanceof OutputNode) {
+            return new OutputNodeHandler((OutputNode) node, destination);
+        }
+        else if (node instanceof ProjectNode) {
+            return new ProjectNodeHandler((ProjectNode) node, destination);
+        }
+        else if (node instanceof TableScanNode) {
+            return new TableScanNodeHandler((TableScanNode) node, destination);
+        }
+        else if (node instanceof ValuesNode) {
+            return new ValuesNodeHandler((ValuesNode) node, destination);
+        }
+        else if (node instanceof AggregationNode) {
+            return new AggregationNodeHandler((AggregationNode) node, destination);
+        }
+        else if (node instanceof MarkDistinctNode) {
+            return new MarkDistinctNodeHandler((MarkDistinctNode) node, destination);
+        }
+        else if (node instanceof FilterNode) {
+            return new FilterNodeHandler((FilterNode) node, destination);
+        }
+//        else if (node instanceof WindowNode) {
+//            return new WindowNodeHandler((WindowNode) node, destination);
+//        }
+//        else if (node instanceof RowNumberNode) {
+//            return new RowNumberNodeHandler((RowNumberNode) node, destination);
+//        }
+        else if (node instanceof TopNRowNumberNode) {
+            return new TopNRowNumberNodeHandler((TopNRowNumberNode) node, destination);
+        }
+        else if (node instanceof LimitNode) {
+            return new LimitNodeHandler((LimitNode) node, destination);
+        }
+        else if (node instanceof DistinctLimitNode) {
+            return new DistinctLimitNodeHandler((DistinctLimitNode) node, destination);
+        }
+        else if (node instanceof TopNNode) {
+            return new TopNNodeHandler((TopNNode) node, destination);
+        }
+//        else if (node instanceof SampleNode) {
+//            return new SampleNodeHandler((SampleNode) node, destination);
+//        }
+        else if (node instanceof SortNode) {
+            return new SortNodeHandler((SortNode) node, destination);
+        }
+//        else if (node instanceof RemoteSourceNode) {
+//            return new RemoteSourceNodeHandler((RemoteSourceNode) node, destination);
+//        }
+        else if (node instanceof JoinNode) {
+            return new JoinNodeHandler((JoinNode) node, destination);
+        }
+        else if (node instanceof SemiJoinNode) {
+            return new SemiJoinNodeHandler((SemiJoinNode) node, destination);
+        }
+//        else if (node instanceof IndexJoinNode) {
+//            return new IndexJoinNodeHandler((IndexJoinNode) node, destination);
+//        }
+//        else if (node instanceof IndexSourceNode) {
+//            return new IndexSourceNodeHandler((IndexSourceNode) node, destination);
+//        }
+//        else if (node instanceof TableWriterNode) {
+//            return new TableWriterNodeHandler((TableWriterNode) node, destination);
+//        }
+//        else if (node instanceof DeleteNode) {
+//            return new DeleteNodeHandler((DeleteNode) node, destination);
+//        }
+//        else if (node instanceof MetadataDeleteNode) {
+//            return new MetadataDeleteNodeHandler((MetadataDeleteNode) node, destination);
+//        }
+//        else if (node instanceof TableCommitNode) {
+//            return new TableCommitNodeHandler((TableCommitNode) node, destination);
+//        }
+        else if (node instanceof UnnestNode) {
+            return new UnnestNodeHandler((UnnestNode) node, destination);
+        }
+//        else if (node instanceof ExchangeNode) {
+//            return new ExchangeNodeHandler((ExchangeNode) node, destination);
+//        }
+        else if (node instanceof UnionNode) {
+            return new UnionNodeHandler((UnionNode) node, destination);
+        }
+        else {
+            throw new UnsupportedPlanNodeException(node);
+        }
+    }
+
+    public static final class InvertedPlan
+    {
+        private final List<SourcePlanNodeHandler> sourceHandlers;
+        private final Map<PlanNode, PlanNodeHandler> handlers;
+
+        public InvertedPlan(List<SourcePlanNodeHandler> sourceHandlers, Map<PlanNode, PlanNodeHandler> handlers)
+        {
+            this.sourceHandlers = sourceHandlers;
+            this.handlers = handlers;
+        }
+
+        public List<SourcePlanNodeHandler> getSourceHandlers()
+        {
+            return sourceHandlers;
+        }
+
+        public Map<PlanNode, PlanNodeHandler> getHandlers()
+        {
+            return handlers;
+        }
+    }
+
+    public static class PlanInverter extends PlanVisitor<PlanInverter.Context, Void>
+    {
+        public static final class Context
+        {
+            private final List<SourcePlanNodeHandler> sourceHandlers;
+            private final Map<PlanNode, PlanNodeHandler> handlers;
+            private final Optional<PlanNodeHandler> destination;
+
+            public Context()
+            {
+                sourceHandlers = newArrayList();
+                handlers = newHashMap();
+                destination = Optional.empty();
+            }
+
+            public Context(Context parent, PlanNodeHandler destination)
+            {
+                this.sourceHandlers = parent.sourceHandlers;
+                this.handlers = parent.handlers;
+                this.destination = Optional.of(destination);
+            }
+
+            public Context branch(PlanNodeHandler destination)
+            {
+                return new Context(this, destination);
+            }
+        }
+
+        public InvertedPlan run(PlanNode root)
+        {
+            Context context = new Context();
+            visitPlan(root, context);
+            return new InvertedPlan(
+                    ImmutableList.copyOf(context.sourceHandlers),
+                    ImmutableMap.copyOf(context.handlers)
+            );
+        }
+
+        @Override
+        protected Void visitPlan(PlanNode node, Context context)
+        {
+            PlanNodeHandler handler = handleNode(node, context.destination);
+            checkState(!context.handlers.containsKey(node));
+            context.handlers.put(node, handler);
+            List<PlanNode> nodeSources = node.getSources();
+            if (!nodeSources.isEmpty()) {
+                for (PlanNode source : node.getSources()) {
+                    source.accept(this, context.branch(handler));
+                }
+            }
+            else {
+                checkState(handler instanceof SourcePlanNodeHandler);
+                context.sourceHandlers.add((SourcePlanNodeHandler) handler);
+            }
+            return null;
+        }
+    }
+
+    public static abstract class ConnectorHandler<T extends ConnectorFactory>
+    {
+        private final Class<T> ConnectorFactoryClass;
+
+        public ConnectorHandler(Class<T> connectorFactoryClass)
+        {
+            ConnectorFactoryClass = connectorFactoryClass;
+        }
+
+        public abstract SchemaTableName getSchemaTableName(ConnectorTableHandle handle);
+
+        public abstract List<String> getPrimaryKey(SchemaTableName schemaTableName);
+    }
+
+    public static class JdbcConnectorHandler extends ConnectorHandler<JdbcConnectorFactory>
+    {
+        public JdbcConnectorHandler()
+        {
+            super(JdbcConnectorFactory.class);
+        }
+
+        @Override
+        public SchemaTableName getSchemaTableName(ConnectorTableHandle handle)
+        {
+            checkArgument(handle instanceof JdbcTableHandle);
+            return ((JdbcTableHandle) handle).getSchemaTableName();
+        }
+
+        @Override
+        public List<String> getPrimaryKey(SchemaTableName schemaTableName)
+        {
+            return null;
+        }
+    }
+
+    public static class TpchConnectorHandler extends ConnectorHandler<TpchConnectorFactory>
+    {
+        private final String defaultSchema;
+
+        private static final Set<String> schemas = ImmutableSet.<String>builder()
+                .add("tiny")
+                .build();
+
+        private static final Map<String, List<String>> tablePrimaryKeys = ImmutableMap.<String, List<String>>builder()
+                .put("customer", ImmutableList.of("custkey"))
+                .build();
+
+        public TpchConnectorHandler(String defaultSchema)
+        {
+            super(TpchConnectorFactory.class);
+            checkArgument(schemas.contains(defaultSchema));
+            this.defaultSchema = defaultSchema;
+        }
+
+        @Override
+        public SchemaTableName getSchemaTableName(ConnectorTableHandle handle)
+        {
+            checkArgument(handle instanceof TpchTableHandle);
+            return new SchemaTableName(defaultSchema, ((TpchTableHandle) handle).getTableName());
+        }
+
+        @Override
+        public List<String> getPrimaryKey(SchemaTableName schemaTableName)
+        {
+            checkArgument(schemas.contains(schemaTableName.getSchemaName()));
+            checkArgument(tablePrimaryKeys.containsKey(schemaTableName.getTableName()));
+            return tablePrimaryKeys.get(schemaTableName.getTableName());
+        }
+    }
 
     @BeforeMethod(alwaysRun = true)
     public void setup()
@@ -259,6 +1040,41 @@ public class TestInsertRewriter
         InMemoryNodeManager nodeManager = localQueryRunner.getNodeManager();
         localQueryRunner.createCatalog("tpch", new TpchConnectorFactory(nodeManager, 1), ImmutableMap.<String, String>of());
 
+        final ConnectorSession session = new TestingConnectorSession(
+                "user",
+                UTC_KEY,
+                ENGLISH,
+                System.currentTimeMillis(),
+                ImmutableList.of(),
+                ImmutableMap.of());
+
+        File tmp = Files.createTempDir();
+        tmp.deleteOnExit();
+        File db = new File(tmp, "db");
+        JdbcConnectorFactory connectorFactory = new JdbcConnectorFactory(
+                "test",
+                new TestingH2JdbcModule(),
+                TestingH2JdbcModule.createProperties(db),
+                TestInsertRewriter.class.getClassLoader());
+
+        localQueryRunner.createCatalog("test", connectorFactory, ImmutableMap.<String, String>of());
+
+        Connector connector = connectorFactory.create("test", TestingH2JdbcModule.createProperties(db));
+        ConnectorMetadata metadata = connector.getMetadata();
+        JdbcMetadata jdbcMetadata = (JdbcMetadata) metadata;
+        BaseJdbcClient jdbcClient = (BaseJdbcClient) jdbcMetadata.getJdbcClient();
+        try {
+            try (Connection connection = jdbcClient.getConnection()) {
+                try (java.sql.Statement stmt = connection.createStatement()) {
+                    stmt.execute("CREATE SCHEMA test");
+                }
+                // connection.createStatement().execute("CREATE TABLE example.foo (id integer primary key)");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+
         // add raptor
         // ConnectorFactory raptorConnectorFactory = createRaptorConnectorFactory(TPCH_CACHE_DIR, nodeManager);
         // localQueryRunner.createCatalog("default", raptorConnectorFactory, ImmutableMap.<String, String>of());
@@ -274,7 +1090,8 @@ public class TestInsertRewriter
     }
 
     @Test
-    public void testOtherShit() throws Throwable
+    public void testOtherShit()
+            throws Throwable
     {
         LocalQueryRunner lqr = createLocalQueryRunner();
         // lqr.execute
@@ -308,9 +1125,14 @@ public class TestInsertRewriter
 
         {
             TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
-            @Language("SQL") String sql = "select * from tpch.tiny.\"orders\" as \"o\" " +
-                    "inner join tpch.tiny.customer as \"c1\" on \"o\".custkey = \"c1\".custkey " +
-                    "inner join tpch.tiny.customer as \"c2\" on \"o\".custkey = (\"c2\".custkey + 1)";
+            @Language("SQL") String sql =
+                    //  "select * from tpch.tiny.\"orders\" as \"o\" " +
+                    //  "inner join tpch.tiny.customer as \"c1\" on \"o\".custkey = \"c1\".custkey " +
+                    //  "inner join tpch.tiny.customer as \"c2\" on \"o\".custkey = (\"c2\".custkey + 1)";
+
+                    "create table test.test.foo as select o.custkey from tpch.tiny.\"orders\" as o where o.custkey in (select custkey from tpch.tiny.customer limit 10)";
+
+                    // "select custkey + 1 from tpch.tiny.\"orders\" as o where o.custkey in (1, 2, 3)";
 
             Statement statement = SQL_PARSER.createStatement(sql);
             Analyzer analyzer = new Analyzer(
@@ -350,26 +1172,9 @@ public class TestInsertRewriter
             analysis = analyzer.analyze(statement);
             Plan plan = new LogicalPlanner(lqr.getDefaultSession(), planOptimizersFactory.get(), idAllocator, lqr.getMetadata()).plan(analysis);
 
-            List<TableScanNode> tableScanNodes = newArrayList();
-            plan.getRoot().accept(new PlanVisitor<Void, Void>() {
-                @Override
-                protected Void visitPlan(PlanNode node, Void context)
-                {
-                    node.getSources().forEach(n -> n.accept(this, context));
-                    return null;
-                }
-
-                @Override
-                public Void visitTableScan(TableScanNode node, Void context)
-                {
-                    tableScanNodes.add(node);
-                    return null;
-                }
-            }, null);
+            InvertedPlan invertedPlan = new PlanInverter().run(plan.getRoot());
 
             System.out.println(PlanPrinter.textLogicalPlan(plan.getRoot(), plan.getTypes(), lqr.getMetadata(), lqr.getDefaultSession()));
-
-
 
             SubPlan subplan = new PlanFragmenter().createSubPlans(plan);
             if (!subplan.getChildren().isEmpty()) {
@@ -398,7 +1203,8 @@ public class TestInsertRewriter
     }
 
     @Test
-    public void testShit() throws Throwable
+    public void testShit()
+            throws Throwable
     {
         @Language("SQL") String queryStr = "select a, b from t1";
 
@@ -411,7 +1217,7 @@ public class TestInsertRewriter
         Field pk = analysis.getOutputDescriptor().getFieldByIndex(0);
         Query query = analysis.getQuery();
         QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-        Table table =  (Table) querySpecification.getFrom().get();
+        Table table = (Table) querySpecification.getFrom().get();
 
         Insert insert = new Insert(QualifiedName.of("t2"), query);
         String insertStr = SqlFormatter.formatSql(insert);
