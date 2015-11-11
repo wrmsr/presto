@@ -1087,10 +1087,12 @@ public class TestInsertRewriter
         File tmp = Files.createTempDir();
         tmp.deleteOnExit();
         File db = new File(tmp, "db");
-        JdbcConnectorFactory connectorFactory = new JdbcConnectorFactory(
+        ExtendedJdbcConnectorFactory connectorFactory = new ExtendedJdbcConnectorFactory(
                 "test",
+
                 new TestingH2JdbcModule(),
                 TestingH2JdbcModule.createProperties(db),
+                ImmutableMap.of(),
                 TestInsertRewriter.class.getClassLoader());
 
         localQueryRunner.createCatalog("test", connectorFactory, ImmutableMap.<String, String>of());

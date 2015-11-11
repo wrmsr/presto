@@ -216,6 +216,9 @@ public class Configs
     @SuppressWarnings({"unchecked"})
     protected static Map<String, Object> unpackHierarchical(HierarchicalConfiguration config)
     {
+        if (!config.getRoot().hasChildren()) {
+            return ImmutableMap.of();
+        }
         return (Map<String, Object>) unpackNode(config.getRootNode());
     }
 
