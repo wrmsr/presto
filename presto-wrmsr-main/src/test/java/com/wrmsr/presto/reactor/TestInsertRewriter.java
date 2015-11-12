@@ -188,7 +188,6 @@ OutputNode
 
 ProjectNode
 
-AggregationNode
 MarkDistinctNode
 FilterNode
 WindowNode
@@ -201,15 +200,25 @@ SampleNode
 SortNode
 RemoteSourceNode
 
+AggregationNode
+ - implode
+ pk -> gk
+ gk -> [pk -> data]
+  => row
+
 JoinNode
 SemiJoinNode
 IndexJoinNode
  - implode
+  pk -> jk
+  jk -> [pk -> data]
+   => row[]
 
 TableScanNode
 IndexSourceNode
 ValuesNode
  - source
+ src pk multiplied
 
 UnnestNode
  - explode
@@ -234,6 +243,11 @@ public class TestInsertRewriter
     private static final SqlParser SQL_PARSER = new SqlParser();
 
     private Analyzer analyzer;
+
+//    public static class ReactionNode
+//    {
+//        private final Plan plan;
+//    }
 
     public static abstract class PlanNodeHandler<T extends PlanNode>
     {
@@ -887,12 +901,14 @@ public class TestInsertRewriter
     public static abstract class ConnectorHandler<CF extends ConnectorFactory, C extends Connector>
     {
         private final Class<CF> connectorFactoryClass;
+        private final Class<C> connectorClass;
         protected final C connector;
 
         @SuppressWarnings({"unchecked"})
-        public ConnectorHandler(Class<CF> connectorFactoryClass, C connector)
+        public ConnectorHandler(Class<CF> connectorFactoryClass, Class<C> connectorClass, C connector)
         {
             this.connectorFactoryClass = connectorFactoryClass;
+            this.connectorClass = connectorClass;
             this.connector = (C) connector;
         }
 
@@ -905,7 +921,7 @@ public class TestInsertRewriter
     {
         public ExtendedJdbcConnectorHandler(ExtendedJdbcConnector connector)
         {
-            super(ExtendedJdbcConnectorFactory.class, connector);
+            super(ExtendedJdbcConnectorFactory.class, ExtendedJdbcConnector.class, connector);
         }
 
         public ExtendedJdbcClient getClient()
@@ -963,7 +979,7 @@ public class TestInsertRewriter
 
         public TpchConnectorHandler(Connector connector, String defaultSchema)
         {
-            super(TpchConnectorFactory.class, connector);
+            super(TpchConnectorFactory.class, Connector.class, connector);
             checkArgument(schemas.contains(defaultSchema));
             this.defaultSchema = defaultSchema;
         }
@@ -1105,6 +1121,7 @@ public class TestInsertRewriter
             try (Connection connection = jdbcClient.getConnection()) {
                 try (java.sql.Statement stmt = connection.createStatement()) {
                     stmt.execute("CREATE SCHEMA test");
+                    stmt.execute("CREATE TABLE test.foo (id integer primary key)");
                 }
                 // connection.createStatement().execute("CREATE TABLE example.foo (id integer primary key)");
             }
@@ -1168,7 +1185,11 @@ public class TestInsertRewriter
                     //  "inner join tpch.tiny.customer as \"c1\" on \"o\".custkey = \"c1\".custkey " +
                     //  "inner join tpch.tiny.customer as \"c2\" on \"o\".custkey = (\"c2\".custkey + 1)";
 
-                    "create table test.test.foo as select o.custkey from tpch.tiny.\"orders\" as o where o.custkey in (select custkey from tpch.tiny.customer limit 10)";
+                    "select o.custkey from tpch.tiny.\"orders\" as o where o.custkey in (select custkey from tpch.tiny.customer limit 10)";
+
+                    // "create table test.test.foo as select o.custkey from tpch.tiny.\"orders\" as o where o.custkey in (select custkey from tpch.tiny.customer limit 10)";
+
+                    // "insert into test.test.foo values (1)";
 
                     // "select custkey + 1 from tpch.tiny.\"orders\" as o where o.custkey in (1, 2, 3)";
 
@@ -1209,6 +1230,9 @@ public class TestInsertRewriter
 
             analysis = analyzer.analyze(statement);
             Plan plan = new LogicalPlanner(lqr.getDefaultSession(), planOptimizersFactory.get(), idAllocator, lqr.getMetadata()).plan(analysis);
+
+            Connector tpchConn = lqr.getConnectorManager().getConnectors().get("tpch");
+            List<String> pks = new TpchConnectorHandler(tpchConn, "tiny").getPrimaryKey(new SchemaTableName("tiny", "customer"));
 
             InvertedPlan invertedPlan = new PlanInverter().run(plan.getRoot());
 

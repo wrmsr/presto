@@ -15,8 +15,10 @@ package com.wrmsr.presto.jdbc;
 
 import com.facebook.presto.plugin.jdbc.JdbcConnector;
 import com.facebook.presto.plugin.jdbc.JdbcHandleResolver;
+import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.plugin.jdbc.JdbcModule;
 import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
+import com.facebook.presto.plugin.jdbc.JdbcRecordSinkProvider;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
@@ -147,6 +149,8 @@ public class ExtendedJdbcConnectorFactory
                 binder.bind(JdbcConnector.class).to(ExtendedJdbcConnector.class).in(Scopes.SINGLETON);
                 binder.bind(JdbcRecordSetProvider.class).to(ExtendedJdbcRecordSetProvider.class).in(Scopes.SINGLETON);
                 binder.bind(JdbcHandleResolver.class).to(ExtendedJdbcHandleResolver.class).in(Scopes.SINGLETON);
+                binder.bind(JdbcMetadata.class).to(ExtendedJdbcMetadata.class).in(Scopes.SINGLETON);
+                binder.bind(JdbcRecordSinkProvider.class).to(ExtendedJdbcRecordSinkProvider.class).in(Scopes.SINGLETON);
             }
         }));
     }

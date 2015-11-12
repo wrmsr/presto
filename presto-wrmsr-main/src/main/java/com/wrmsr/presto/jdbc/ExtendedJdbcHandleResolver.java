@@ -15,6 +15,7 @@ package com.wrmsr.presto.jdbc;
 
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.facebook.presto.plugin.jdbc.JdbcHandleResolver;
+import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorSplit;
 import com.google.inject.Inject;
 
@@ -32,4 +33,17 @@ public class ExtendedJdbcHandleResolver
     {
         return ExtendedJdbcSplit.class;
     }
+
+//    @Override
+//    public Class<? extends ConnectorInsertTableHandle> getInsertTableHandleClass()
+//    {
+//        return ExtendedJdbcInsertTableHandle.class;
+//    }
+//
+//    @Override
+//    public boolean canHandle(ConnectorInsertTableHandle tableHandle)
+//    {
+//        return (tableHandle instanceof ExtendedJdbcInsertTableHandle) &&
+//                ((ExtendedJdbcInsertTableHandle) tableHandle).getConnectorId().equals(getConnectorId());
+//    }
 }

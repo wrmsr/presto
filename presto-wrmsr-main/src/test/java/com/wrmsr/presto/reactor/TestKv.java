@@ -37,20 +37,26 @@ import com.facebook.presto.testing.TestingConnectorSession;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
+import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.testing.TestingConnectorSession.SESSION;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Maps.fromProperties;
+import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
 import static java.util.Locale.ENGLISH;
 
@@ -59,6 +65,149 @@ public class TestKv
     public interface ConnectorEventSource
     {
 
+    }
+
+    public interface Kv<K, V>
+    {
+        V get(K key);
+
+        void put(K key, V value);
+
+        void remove(K key);
+    }
+
+    public static class MapKv<K, V> implements Kv<K, V>
+    {
+        private final Map<K, V> map;
+
+        public MapKv(Map<K, V> map)
+        {
+            this.map = map;
+        }
+
+        public MapKv()
+        {
+            this(newHashMap());
+        }
+
+        @Override
+        public V get(K key)
+        {
+            return map.get(key);
+        }
+
+        @Override
+        public void put(K key, V value)
+        {
+            map.put(key, value);
+        }
+
+        @Override
+        public void remove(K key)
+        {
+            map.remove(key);
+        }
+    }
+
+    public interface ByteArrayKv extends Kv<byte[], byte[]>
+    {
+    }
+
+    public static class JdbcKv implements ByteArrayKv
+    {
+        private final Supplier<Connection> connectionSupplier;
+        private final String quote;
+        private final String catalog;
+        private final String schema;
+        private final String table;
+        private final String keyColumn;
+        private final String valueColumn;
+
+        private final String dst;
+        private final @Language("SQL") String putStmt;
+        private final @Language("SQL") String getStmt;
+        private final @Language("SQL") String deleteStmt;
+
+        public JdbcKv(Supplier<Connection> connectionSupplier, String quote, String catalog, String schema, String table, String keyColumn, String valueColumn)
+        {
+            this.connectionSupplier = connectionSupplier;
+            this.quote = quote;
+            this.catalog = catalog;
+            this.schema = schema;
+            this.table = table;
+            this.keyColumn = keyColumn;
+            this.valueColumn = valueColumn;
+
+            StringBuilder dst = new StringBuilder();
+            if (!isNullOrEmpty(catalog)) {
+                dst.append(quote(catalog)).append('.');
+            }
+            if (!isNullOrEmpty(schema)) {
+                dst.append(quote(schema)).append('.');
+            }
+            dst.append(quote(table));
+            this.dst = dst.toString();
+
+            putStmt = "merge into " + this.dst + " (" + quote(keyColumn) + ", " + quote(valueColumn) + ") values (?. ?)";
+            getStmt = "select " + quote(valueColumn) + " from " + this.dst + " where " + quote(keyColumn) + " = ?";
+            deleteStmt = "delete from " + this.dst + " where " + quote(keyColumn) + " = ?";
+        }
+
+        private String quote(String name)
+        {
+            name = name.replace(quote, quote + quote);
+            return quote + name + quote;
+        }
+
+        public void createTable()
+        {
+            @Language("SQL") String sql = "create table " + dst + " (" + quote(keyColumn) + " binary primary key, " + quote(valueColumn) + " binary)";
+
+            try {
+                try (Connection conn = connectionSupplier.get();
+                        Statement stmt = conn.createStatement()) {
+                    stmt.execute(sql);
+                    conn.commit();
+                }
+            }
+            catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+
+        @Override
+        public byte[] get(byte[] key)
+        {
+            try {
+                try (Connection conn = connectionSupplier.get();
+                        PreparedStatement stmt = conn.prepareStatement(getStmt)) {
+                    stmt.setBytes(1, key);
+                    try (ResultSet resultSet = stmt.executeQuery()) {
+                        if (resultSet.next()) {
+                            return resultSet.getBytes(1);
+                        } else {
+                            return null;
+                        }
+                    }
+                }
+            }
+            catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void put(byte[] key, byte[] value)
+        {
+
+        }
+
+        @Override
+        public void remove(byte[] key)
+        {
+
+        }
     }
 
     @Test

@@ -34,6 +34,11 @@ public class JdbcHandleResolver
         this.connectorId = requireNonNull(clientId, "clientId is null").toString();
     }
 
+    public String getConnectorId()
+    {
+        return connectorId;
+    }
+
     @Override
     public boolean canHandle(ConnectorTableHandle tableHandle)
     {
