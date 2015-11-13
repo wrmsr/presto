@@ -6,9 +6,12 @@ import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.RecordSink;
 
+import javax.inject.Inject;
+
 public class ExtendedJdbcRecordSinkProvider
     extends JdbcRecordSinkProvider
 {
+    @Inject
     public ExtendedJdbcRecordSinkProvider(JdbcClient jdbcClient)
     {
         super(jdbcClient);

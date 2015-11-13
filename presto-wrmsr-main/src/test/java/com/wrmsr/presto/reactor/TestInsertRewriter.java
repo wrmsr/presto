@@ -21,14 +21,13 @@ import com.facebook.presto.metadata.InMemoryNodeManager;
 import com.facebook.presto.metadata.MetadataManager;
 import com.facebook.presto.metadata.QualifiedTableName;
 import com.facebook.presto.metadata.SessionPropertyManager;
+import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.metadata.TableMetadata;
 import com.facebook.presto.metadata.TablePropertyManager;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.operator.Driver;
 import com.facebook.presto.operator.TaskContext;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcConnector;
-import com.facebook.presto.plugin.jdbc.JdbcConnectorFactory;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
 import com.facebook.presto.security.AccessControl;
@@ -59,34 +58,23 @@ import com.facebook.presto.sql.planner.PlanOptimizersFactory;
 import com.facebook.presto.sql.planner.PlanPrinter;
 import com.facebook.presto.sql.planner.SubPlan;
 import com.facebook.presto.sql.planner.plan.AggregationNode;
-import com.facebook.presto.sql.planner.plan.DeleteNode;
 import com.facebook.presto.sql.planner.plan.DistinctLimitNode;
-import com.facebook.presto.sql.planner.plan.ExchangeNode;
 import com.facebook.presto.sql.planner.plan.FilterNode;
-import com.facebook.presto.sql.planner.plan.IndexJoinNode;
-import com.facebook.presto.sql.planner.plan.IndexSourceNode;
 import com.facebook.presto.sql.planner.plan.JoinNode;
 import com.facebook.presto.sql.planner.plan.LimitNode;
 import com.facebook.presto.sql.planner.plan.MarkDistinctNode;
-import com.facebook.presto.sql.planner.plan.MetadataDeleteNode;
 import com.facebook.presto.sql.planner.plan.OutputNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanVisitor;
 import com.facebook.presto.sql.planner.plan.ProjectNode;
-import com.facebook.presto.sql.planner.plan.RemoteSourceNode;
-import com.facebook.presto.sql.planner.plan.RowNumberNode;
-import com.facebook.presto.sql.planner.plan.SampleNode;
 import com.facebook.presto.sql.planner.plan.SemiJoinNode;
 import com.facebook.presto.sql.planner.plan.SortNode;
-import com.facebook.presto.sql.planner.plan.TableCommitNode;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
-import com.facebook.presto.sql.planner.plan.TableWriterNode;
 import com.facebook.presto.sql.planner.plan.TopNNode;
 import com.facebook.presto.sql.planner.plan.TopNRowNumberNode;
 import com.facebook.presto.sql.planner.plan.UnionNode;
 import com.facebook.presto.sql.planner.plan.UnnestNode;
 import com.facebook.presto.sql.planner.plan.ValuesNode;
-import com.facebook.presto.sql.planner.plan.WindowNode;
 import com.facebook.presto.sql.tree.Insert;
 import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.sql.tree.Query;
@@ -106,13 +94,15 @@ import com.google.common.io.Files;
 import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
-import com.wrmsr.presto.util.GuiceUtils;
+import com.wrmsr.presto.util.Codecs;
+import com.wrmsr.presto.util.Kv;
 import io.airlift.json.JsonCodec;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.security.Principal;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -122,6 +112,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
@@ -249,6 +240,100 @@ public class TestInsertRewriter
 //        private final Plan plan;
 //    }
 
+    public static class Event
+    {
+        public enum Operation
+        {
+            INSERT,
+            UPDATE,
+            DELETE
+        }
+
+        private final Reactor source;
+        private final Operation operation;
+        private final Optional<Tuple> before;
+        private final Optional<Tuple> after;
+
+        public Event(Reactor source, Operation operation, Optional<Tuple> before, Optional<Tuple> after)
+        {
+            this.source = source;
+            this.operation = operation;
+            this.before = before;
+            this.after = after;
+        }
+
+        public Reactor getSource()
+        {
+            return source;
+        }
+
+        public Operation getOperation()
+        {
+            return operation;
+        }
+
+        public Optional<Tuple> getBefore()
+        {
+            return before;
+        }
+
+        public Optional<Tuple> getAfter()
+        {
+            return after;
+        }
+    }
+
+    public static class ReactorContext
+    {
+        private final Map<String, Connector> connectors;
+        private final Map<String, ConnectorSupport> connectorSupport;
+
+        public ReactorContext(Map<String, Connector> connectors, Map<String, ConnectorSupport> connectorSupport)
+        {
+            this.connectors = connectors;
+            this.connectorSupport = connectorSupport;
+        }
+
+        public Map<String, Connector> getConnectors()
+        {
+            return connectors;
+        }
+
+        public Map<String, ConnectorSupport> getConnectorSupport()
+        {
+            return connectorSupport;
+        }
+
+        public Kv<byte[], byte[]> getKv()
+        {
+            return new Kv.MapImpl<byte[], byte[]>(newHashMap());
+        }
+    }
+
+    public static abstract class Reactor
+    {
+        private final ReactorContext context;
+        private final Optional<Reactor> destination;
+
+        public Reactor(ReactorContext context, Optional<Reactor> destination)
+        {
+            this.context = context;
+            this.destination = destination;
+        }
+
+        public ReactorContext getContext()
+        {
+            return context;
+        }
+
+        public Optional<Reactor> getDestination()
+        {
+            return destination;
+        }
+
+        public abstract void react(Event event);
+    }
+
     public static abstract class PlanNodeHandler<T extends PlanNode>
     {
         protected final T node;
@@ -271,6 +356,8 @@ public class TestInsertRewriter
         }
 
         public abstract boolean isBlocking();
+
+        public abstract Reactor getReactor(ReactorContext context);
     }
 
     public static abstract class SourcePlanNodeHandler<T extends PlanNode>
@@ -297,6 +384,35 @@ public class TestInsertRewriter
         {
             return false;
         }
+
+        @Override
+        public Reactor getReactor(ReactorContext context)
+        {
+            return new ReactorImpl(context, context.getKv());
+        }
+
+        private class ReactorImpl extends Reactor
+        {
+            private final Kv<byte[], byte[]> kv;
+
+            public ReactorImpl(ReactorContext context, Kv<byte[], byte[]> kv)
+            {
+                super(context, Optional.<Reactor>empty());
+                this.kv = kv;
+            }
+
+            @Override
+            public void react(Event event)
+            {
+                ByteBuffer
+                switch (event.getOperation()) {
+                    case INSERT:
+                        kv.put(event.getAfter().get().getPk().get())
+                    case UPDATE:
+                    case DELETE:
+                }
+            }
+        }
     }
 
     public static class ProjectNodeHandler
@@ -311,6 +427,26 @@ public class TestInsertRewriter
         public boolean isBlocking()
         {
             return false;
+        }
+
+        @Override
+        public Reactor getReactor(ReactorContext context)
+        {
+            return new ReactorImpl(context, Optional.of(destination.get().getReactor(context)));
+        }
+
+        private class ReactorImpl extends Reactor
+        {
+            public ReactorImpl(ReactorContext context, Optional<Reactor> destination)
+            {
+                super(context, destination);
+            }
+
+            @Override
+            public void react(Event event)
+            {
+
+            }
         }
     }
 
@@ -327,8 +463,32 @@ public class TestInsertRewriter
         {
             return false;
         }
+
+        @Override
+        public Reactor getReactor(ReactorContext context)
+        {
+            TableHandle th = node.getTable();
+            ConnectorSupport cs = context.getConnectorSupport().get(th.getConnectorId());
+            SchemaTableName stn = cs.getSchemaTableName(th.getConnectorHandle());
+            List<String> pk = cs.getPrimaryKey(stn);
+            return new ReactorImpl(context, Optional.of(destination.get().getReactor(context)));
+        }
+
+        private class ReactorImpl extends Reactor
+        {
+            public ReactorImpl(ReactorContext context, Optional<Reactor> destination)
+            {
+                super(context, destination);
+            }
+
+            @Override
+            public void react(Event event)
+            {
+            }
+        }
     }
 
+    /*
     public static class ValuesNodeHandler
             extends PlanNodeHandler<ValuesNode>
     {
@@ -388,6 +548,7 @@ public class TestInsertRewriter
             return false;
         }
     }
+    */
 
     /*
     public static class WindowNodeHandler
@@ -423,6 +584,7 @@ public class TestInsertRewriter
     }
     */
 
+    /*
     public static class TopNRowNumberNodeHandler
             extends PlanNodeHandler<TopNRowNumberNode>
     {
@@ -482,6 +644,7 @@ public class TestInsertRewriter
             return false;
         }
     }
+    */
 
     /*
     public static class SampleNodeHandler
@@ -500,6 +663,7 @@ public class TestInsertRewriter
     }
     */
 
+    /*
     public static class SortNodeHandler
             extends PlanNodeHandler<SortNode>
     {
@@ -514,6 +678,7 @@ public class TestInsertRewriter
             return false;
         }
     }
+    */
 
     /*
     public static class RemoteSourceNodeHandler
@@ -532,6 +697,7 @@ public class TestInsertRewriter
     }
     */
 
+    /*
     public static class JoinNodeHandler
             extends PlanNodeHandler<JoinNode>
     {
@@ -544,6 +710,33 @@ public class TestInsertRewriter
         public boolean isBlocking()
         {
             return false;
+        }
+
+        @Override
+        public Reactor getReactor(ReactorContext context)
+        {
+            return new ReactorImpl(
+                    context.getKv(),
+                    context.getKv()
+            );
+        }
+
+        private class ReactorImpl extends Reactor
+        {
+            private final Kv<byte[], byte[]> pkJkKv;
+            private final Kv<byte[], byte[]> jkPkPayloadKv;
+
+            public ReactorImpl(Kv<byte[], byte[]> pkJkKv, Kv<byte[], byte[]> jkPkPayloadKv)
+            {
+                this.pkJkKv = pkJkKv;
+                this.jkPkPayloadKv = jkPkPayloadKv;
+            }
+
+            @Override
+            public void react(Event event)
+            {
+
+            }
         }
     }
 
@@ -561,6 +754,7 @@ public class TestInsertRewriter
             return false;
         }
     }
+    */
 
     /*
     public static class IndexJoinNodeHandler
@@ -664,6 +858,7 @@ public class TestInsertRewriter
     }
     */
 
+    /*
     public static class UnnestNodeHandler
             extends PlanNodeHandler<UnnestNode>
     {
@@ -678,6 +873,7 @@ public class TestInsertRewriter
             return false;
         }
     }
+    */
 
     /*
     public static class ExchangeNodeHandler
@@ -696,6 +892,7 @@ public class TestInsertRewriter
     }
     */
 
+    /*
     public static class UnionNodeHandler
             extends PlanNodeHandler<UnionNode>
     {
@@ -710,6 +907,7 @@ public class TestInsertRewriter
             return false;
         }
     }
+    */
 
     public static final class UnsupportedPlanNodeException
         extends RuntimeException
@@ -741,51 +939,51 @@ public class TestInsertRewriter
         else if (node instanceof TableScanNode) {
             return new TableScanNodeHandler((TableScanNode) node, destination);
         }
-        else if (node instanceof ValuesNode) {
-            return new ValuesNodeHandler((ValuesNode) node, destination);
-        }
-        else if (node instanceof AggregationNode) {
-            return new AggregationNodeHandler((AggregationNode) node, destination);
-        }
-        else if (node instanceof MarkDistinctNode) {
-            return new MarkDistinctNodeHandler((MarkDistinctNode) node, destination);
-        }
-        else if (node instanceof FilterNode) {
-            return new FilterNodeHandler((FilterNode) node, destination);
-        }
+//        else if (node instanceof ValuesNode) {
+//            return new ValuesNodeHandler((ValuesNode) node, destination);
+//        }
+//        else if (node instanceof AggregationNode) {
+//            return new AggregationNodeHandler((AggregationNode) node, destination);
+//        }
+//        else if (node instanceof MarkDistinctNode) {
+//            return new MarkDistinctNodeHandler((MarkDistinctNode) node, destination);
+//        }
+//        else if (node instanceof FilterNode) {
+//            return new FilterNodeHandler((FilterNode) node, destination);
+//        }
 //        else if (node instanceof WindowNode) {
 //            return new WindowNodeHandler((WindowNode) node, destination);
 //        }
 //        else if (node instanceof RowNumberNode) {
 //            return new RowNumberNodeHandler((RowNumberNode) node, destination);
 //        }
-        else if (node instanceof TopNRowNumberNode) {
-            return new TopNRowNumberNodeHandler((TopNRowNumberNode) node, destination);
-        }
-        else if (node instanceof LimitNode) {
-            return new LimitNodeHandler((LimitNode) node, destination);
-        }
-        else if (node instanceof DistinctLimitNode) {
-            return new DistinctLimitNodeHandler((DistinctLimitNode) node, destination);
-        }
-        else if (node instanceof TopNNode) {
-            return new TopNNodeHandler((TopNNode) node, destination);
-        }
+//        else if (node instanceof TopNRowNumberNode) {
+//            return new TopNRowNumberNodeHandler((TopNRowNumberNode) node, destination);
+//        }
+//        else if (node instanceof LimitNode) {
+//            return new LimitNodeHandler((LimitNode) node, destination);
+//        }
+//        else if (node instanceof DistinctLimitNode) {
+//            return new DistinctLimitNodeHandler((DistinctLimitNode) node, destination);
+//        }
+//        else if (node instanceof TopNNode) {
+//            return new TopNNodeHandler((TopNNode) node, destination);
+//        }
 //        else if (node instanceof SampleNode) {
 //            return new SampleNodeHandler((SampleNode) node, destination);
 //        }
-        else if (node instanceof SortNode) {
-            return new SortNodeHandler((SortNode) node, destination);
-        }
+//        else if (node instanceof SortNode) {
+//            return new SortNodeHandler((SortNode) node, destination);
+//        }
 //        else if (node instanceof RemoteSourceNode) {
 //            return new RemoteSourceNodeHandler((RemoteSourceNode) node, destination);
 //        }
-        else if (node instanceof JoinNode) {
-            return new JoinNodeHandler((JoinNode) node, destination);
-        }
-        else if (node instanceof SemiJoinNode) {
-            return new SemiJoinNodeHandler((SemiJoinNode) node, destination);
-        }
+//        else if (node instanceof JoinNode) {
+//            return new JoinNodeHandler((JoinNode) node, destination);
+//        }
+//        else if (node instanceof SemiJoinNode) {
+//            return new SemiJoinNodeHandler((SemiJoinNode) node, destination);
+//        }
 //        else if (node instanceof IndexJoinNode) {
 //            return new IndexJoinNodeHandler((IndexJoinNode) node, destination);
 //        }
@@ -804,15 +1002,15 @@ public class TestInsertRewriter
 //        else if (node instanceof TableCommitNode) {
 //            return new TableCommitNodeHandler((TableCommitNode) node, destination);
 //        }
-        else if (node instanceof UnnestNode) {
-            return new UnnestNodeHandler((UnnestNode) node, destination);
-        }
+//        else if (node instanceof UnnestNode) {
+//            return new UnnestNodeHandler((UnnestNode) node, destination);
+//        }
 //        else if (node instanceof ExchangeNode) {
 //            return new ExchangeNodeHandler((ExchangeNode) node, destination);
 //        }
-        else if (node instanceof UnionNode) {
-            return new UnionNodeHandler((UnionNode) node, destination);
-        }
+//        else if (node instanceof UnionNode) {
+//            return new UnionNodeHandler((UnionNode) node, destination);
+//        }
         else {
             throw new UnsupportedPlanNodeException(node);
         }
@@ -840,72 +1038,76 @@ public class TestInsertRewriter
         }
     }
 
-    public static class PlanInverter extends PlanVisitor<PlanInverter.Context, Void>
+    public static class PlanInverter
     {
-        public static final class Context
-        {
-            private final List<SourcePlanNodeHandler> sourceHandlers;
-            private final Map<PlanNode, PlanNodeHandler> handlers;
-            private final Optional<PlanNodeHandler> destination;
-
-            public Context()
-            {
-                sourceHandlers = newArrayList();
-                handlers = newHashMap();
-                destination = Optional.empty();
-            }
-
-            public Context(Context parent, PlanNodeHandler destination)
-            {
-                this.sourceHandlers = parent.sourceHandlers;
-                this.handlers = parent.handlers;
-                this.destination = Optional.of(destination);
-            }
-
-            public Context branch(PlanNodeHandler destination)
-            {
-                return new Context(this, destination);
-            }
-        }
-
         public InvertedPlan run(PlanNode root)
         {
-            Context context = new Context();
-            visitPlan(root, context);
+            VisitorContext context = new VisitorContext();
+            Visitor visitor = new Visitor();
+            visitor.visitPlan(root, context);
             return new InvertedPlan(
                     ImmutableList.copyOf(context.sourceHandlers),
                     ImmutableMap.copyOf(context.handlers)
             );
         }
 
-        @Override
-        protected Void visitPlan(PlanNode node, Context context)
+        private static final class VisitorContext
         {
-            PlanNodeHandler handler = handleNode(node, context.destination);
-            checkState(!context.handlers.containsKey(node));
-            context.handlers.put(node, handler);
-            List<PlanNode> nodeSources = node.getSources();
-            if (!nodeSources.isEmpty()) {
-                for (PlanNode source : node.getSources()) {
-                    source.accept(this, context.branch(handler));
+            private final List<SourcePlanNodeHandler> sourceHandlers;
+            private final Map<PlanNode, PlanNodeHandler> handlers;
+            private final Optional<PlanNodeHandler> destination;
+
+            public VisitorContext()
+            {
+                sourceHandlers = newArrayList();
+                handlers = newHashMap();
+                destination = Optional.empty();
+            }
+
+            public VisitorContext(VisitorContext parent, PlanNodeHandler destination)
+            {
+                this.sourceHandlers = parent.sourceHandlers;
+                this.handlers = parent.handlers;
+                this.destination = Optional.of(destination);
+            }
+
+            public VisitorContext branch(PlanNodeHandler destination)
+            {
+                return new VisitorContext(this, destination);
+            }
+        }
+
+        private class Visitor extends PlanVisitor<PlanInverter.VisitorContext, Void>
+        {
+            @Override
+            protected Void visitPlan(PlanNode node, VisitorContext context)
+            {
+                PlanNodeHandler handler = handleNode(node, context.destination);
+                checkState(!context.handlers.containsKey(node));
+                context.handlers.put(node, handler);
+                List<PlanNode> nodeSources = node.getSources();
+                if (!nodeSources.isEmpty()) {
+                    for (PlanNode source : node.getSources()) {
+                        source.accept(this, context.branch(handler));
+                    }
                 }
+                else {
+                    checkState(handler instanceof SourcePlanNodeHandler);
+                    context.sourceHandlers.add((SourcePlanNodeHandler) handler);
+                }
+                return null;
             }
-            else {
-                checkState(handler instanceof SourcePlanNodeHandler);
-                context.sourceHandlers.add((SourcePlanNodeHandler) handler);
-            }
-            return null;
         }
     }
 
-    public static abstract class ConnectorHandler<CF extends ConnectorFactory, C extends Connector>
+    public static abstract class ConnectorSupport<CF extends ConnectorFactory, C extends Connector>
     {
         private final Class<CF> connectorFactoryClass;
         private final Class<C> connectorClass;
         protected final C connector;
 
         @SuppressWarnings({"unchecked"})
-        public ConnectorHandler(Class<CF> connectorFactoryClass, Class<C> connectorClass, C connector)
+        public ConnectorSupport(Class<CF> connectorFactoryClass, Class<C> connectorClass, C connector)
         {
             this.connectorFactoryClass = connectorFactoryClass;
             this.connectorClass = connectorClass;
@@ -917,9 +1119,17 @@ public class TestInsertRewriter
         public abstract List<String> getPrimaryKey(SchemaTableName schemaTableName);
     }
 
-    public static class ExtendedJdbcConnectorHandler extends ConnectorHandler<ExtendedJdbcConnectorFactory, ExtendedJdbcConnector>
+//    public static class PkThreader extends SimplePlanRewriter<PkThreader.Context>
+//    {
+//        public static class Context
+//        {
+//
+//        }
+//    }
+
+    public static class ExtendedJdbcConnectorSupport extends ConnectorSupport<ExtendedJdbcConnectorFactory, ExtendedJdbcConnector>
     {
-        public ExtendedJdbcConnectorHandler(ExtendedJdbcConnector connector)
+        public ExtendedJdbcConnectorSupport(ExtendedJdbcConnector connector)
         {
             super(ExtendedJdbcConnectorFactory.class, ExtendedJdbcConnector.class, connector);
         }
@@ -959,7 +1169,7 @@ public class TestInsertRewriter
         }
     }
 
-    public static class TpchConnectorHandler extends ConnectorHandler<TpchConnectorFactory, Connector>
+    public static class TpchConnectorSupport extends ConnectorSupport<TpchConnectorFactory, Connector>
     {
         private final String defaultSchema;
 
@@ -977,7 +1187,7 @@ public class TestInsertRewriter
                 .put("orders", ImmutableList.of("orderkey"))
                 .build();
 
-        public TpchConnectorHandler(Connector connector, String defaultSchema)
+        public TpchConnectorSupport(Connector connector, String defaultSchema)
         {
             super(TpchConnectorFactory.class, Connector.class, connector);
             checkArgument(schemas.contains(defaultSchema));
@@ -1185,13 +1395,15 @@ public class TestInsertRewriter
                     //  "inner join tpch.tiny.customer as \"c1\" on \"o\".custkey = \"c1\".custkey " +
                     //  "inner join tpch.tiny.customer as \"c2\" on \"o\".custkey = (\"c2\".custkey + 1)";
 
-                    "select o.custkey from tpch.tiny.\"orders\" as o where o.custkey in (select custkey from tpch.tiny.customer limit 10)";
+                    // "select o.custkey from tpch.tiny.\"orders\" as o where o.custkey in (select custkey from tpch.tiny.customer limit 10)";
 
                     // "create table test.test.foo as select o.custkey from tpch.tiny.\"orders\" as o where o.custkey in (select custkey from tpch.tiny.customer limit 10)";
 
                     // "insert into test.test.foo values (1)";
 
                     // "select custkey + 1 from tpch.tiny.\"orders\" as o where o.custkey in (1, 2, 3)";
+
+                    "select custkey from tpch.tiny.\"customer\"";
 
             Statement statement = SQL_PARSER.createStatement(sql);
             Analyzer analyzer = new Analyzer(
@@ -1232,9 +1444,20 @@ public class TestInsertRewriter
             Plan plan = new LogicalPlanner(lqr.getDefaultSession(), planOptimizersFactory.get(), idAllocator, lqr.getMetadata()).plan(analysis);
 
             Connector tpchConn = lqr.getConnectorManager().getConnectors().get("tpch");
-            List<String> pks = new TpchConnectorHandler(tpchConn, "tiny").getPrimaryKey(new SchemaTableName("tiny", "customer"));
+            List<String> pks = new TpchConnectorSupport(tpchConn, "tiny").getPrimaryKey(new SchemaTableName("tiny", "customer"));
 
+            ReactorContext rc = new ReactorContext(
+                    lqr.getConnectorManager().getConnectors(),
+                    ImmutableMap.<String, ConnectorSupport>builder()
+                            .put("tpch", new TpchConnectorSupport(tpchConn, "tiny"))
+                            .build()
+            );
             InvertedPlan invertedPlan = new PlanInverter().run(plan.getRoot());
+            for (SourcePlanNodeHandler s : invertedPlan.getSourceHandlers()) {
+                Reactor r = s.getReactor(rc);
+                // rc.getConnectorSupport().get(s.getNode().)
+
+            }
 
             System.out.println(PlanPrinter.textLogicalPlan(plan.getRoot(), plan.getTypes(), lqr.getMetadata(), lqr.getDefaultSession()));
 

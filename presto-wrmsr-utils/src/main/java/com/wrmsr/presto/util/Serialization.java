@@ -33,10 +33,13 @@ import io.airlift.slice.Slice;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.IntStream;
+
+import static com.wrmsr.presto.util.Codecs.Codec;
 
 public class Serialization
 {
@@ -93,5 +96,32 @@ public class Serialization
         catch (JsonProcessingException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    public static <T> Codec<T, byte[]> codecFor(Supplier<ObjectMapper> mapper, Class<T> cls)
+    {
+        return new Codec<T, byte[]>() {
+            @Override
+            public T decode(byte[] data)
+            {
+                try {
+                    return mapper.get().readValue(data, cls);
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public byte[] encode(T data)
+            {
+                try {
+                    return mapper.get().writeValueAsBytes(data);
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
     }
 }

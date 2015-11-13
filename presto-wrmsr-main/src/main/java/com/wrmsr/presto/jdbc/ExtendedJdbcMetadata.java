@@ -23,12 +23,15 @@ import com.facebook.presto.spi.ConnectorTableHandle;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 
+import javax.inject.Inject;
+
 import java.util.Collection;
 import java.util.Optional;
 
 public class ExtendedJdbcMetadata
     extends JdbcMetadata
 {
+    @Inject
     public ExtendedJdbcMetadata(JdbcConnectorId connectorId, JdbcClient jdbcClient, JdbcMetadataConfig config)
     {
         super(connectorId, jdbcClient, config);

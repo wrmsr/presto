@@ -15,12 +15,16 @@ package com.wrmsr.presto.util;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.wrmsr.presto.util.Codecs.Codec;
+import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
+import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableSet;
 
 public interface Kv<K, V>
 {
@@ -309,6 +313,132 @@ public interface Kv<K, V>
         public boolean remove(K key)
         {
             return map.remove(key) != null;
+        }
+    }
+
+    class KeyCodec<KO, KI, V> implements Kv<KO, V>
+    {
+        private final Kv<KI, V> wrapped;
+        private final Codec<KO, KI> codec;
+
+        public KeyCodec(Kv<KI, V> wrapped, Codec<KO, KI> codec)
+        {
+            this.wrapped = wrapped;
+            this.codec = codec;
+        }
+
+        @Override
+        public Map<KO, V> getAll(Set<? extends KO> keys)
+        {
+            return wrapped.getAll(
+                    keys.stream().map(k -> codec.encode(k)).collect(toImmutableSet()))
+                    .entrySet().stream().map(e -> ImmutablePair.of(codec.decode(e.getKey()), e.getValue())).collect(toImmutableMap());
+        }
+
+        @Override
+        public Optional<V> get(KO key)
+        {
+            return wrapped.get(codec.encode(key));
+        }
+
+        @Override
+        public void putAll(Map<? extends KO, ? extends V> map)
+        {
+            wrapped.putAll(map.entrySet().stream().map(e -> ImmutablePair.of(codec.encode(e.getKey()), e.getValue())).collect(toImmutableMap()));
+        }
+
+        @Override
+        public void put(KO key, V value)
+        {
+            wrapped.put(codec.encode(key), value);
+        }
+
+        @Override
+        public Set<KO> removeAll(Set<? extends KO> keys)
+        {
+            return wrapped.removeAll(
+                    keys.stream().map(k -> codec.encode(k)).collect(toImmutableSet()))
+                    .stream().map(k -> codec.decode(k)).collect(toImmutableSet());
+        }
+
+        @Override
+        public boolean remove(KO key)
+        {
+            return wrapped.remove(codec.encode(key));
+        }
+
+        @Override
+        public Set<KO> containsKeys(Set<? extends KO> keys)
+        {
+            return wrapped.containsKeys(keys.stream().map(k -> codec.encode(k)).collect(toImmutableSet()))
+                    .stream().map(k -> codec.decode(k)).collect(toImmutableSet());
+        }
+
+        @Override
+        public boolean containsKey(KO key)
+        {
+            return wrapped.containsKey(codec.encode(key));
+        }
+    }
+
+    class ValueCodec<K, VO, VI> implements Kv<K, VO>
+    {
+        private final Kv<K, VI> wrapped;
+        private final Codec<VO, VI> codec;
+
+        public ValueCodec(Kv<K, VI> wrapped, Codec<VO, VI> codec)
+        {
+            this.wrapped = wrapped;
+            this.codec = codec;
+        }
+
+        @Override
+        public Map<K, VO> getAll(Set<? extends K> keys)
+        {
+            return wrapped.getAll(keys)
+                    .entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), codec.decode(e.getValue()))).collect(toImmutableMap());
+        }
+
+        @Override
+        public Optional<VO> get(K key)
+        {
+            return wrapped.get(key).map(v -> codec.decode(v));
+        }
+
+        @Override
+        public void putAll(Map<? extends K, ? extends VO> map)
+        {
+            wrapped.putAll(map.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), codec.encode(e.getValue()))).collect(toImmutableMap()));
+        }
+
+        @Override
+        public void put(K key, VO value)
+        {
+            wrapped.put(key, codec.encode(value));
+        }
+
+        @Override
+        public Set<K> removeAll(Set<? extends K> keys)
+        {
+            return wrapped.removeAll(keys);
+        }
+
+        @Override
+        public boolean remove(K key)
+        {
+            return wrapped.remove(key);
+        }
+
+        @Override
+        public Set<K> containsKeys(Set<? extends K> keys)
+        {
+            return wrapped.containsKeys(keys);
+        }
+
+        @Override
+        public boolean containsKey(K key)
+        {
+            return wrapped.containsKey(key);
         }
     }
 }

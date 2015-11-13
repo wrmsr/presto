@@ -37,6 +37,7 @@ import com.facebook.presto.testing.TestingConnectorSession;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
+import com.wrmsr.presto.util.Kv;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
@@ -48,6 +49,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Supplier;
 
@@ -67,53 +69,7 @@ public class TestKv
 
     }
 
-    public interface Kv<K, V>
-    {
-        V get(K key);
-
-        void put(K key, V value);
-
-        void remove(K key);
-    }
-
-    public static class MapKv<K, V> implements Kv<K, V>
-    {
-        private final Map<K, V> map;
-
-        public MapKv(Map<K, V> map)
-        {
-            this.map = map;
-        }
-
-        public MapKv()
-        {
-            this(newHashMap());
-        }
-
-        @Override
-        public V get(K key)
-        {
-            return map.get(key);
-        }
-
-        @Override
-        public void put(K key, V value)
-        {
-            map.put(key, value);
-        }
-
-        @Override
-        public void remove(K key)
-        {
-            map.remove(key);
-        }
-    }
-
-    public interface ByteArrayKv extends Kv<byte[], byte[]>
-    {
-    }
-
-    public static class JdbcKv implements ByteArrayKv
+    public static class JdbcKv implements Kv.Serial<byte[], byte[]>
     {
         private final Supplier<Connection> connectionSupplier;
         private final String quote;
@@ -176,6 +132,7 @@ public class TestKv
 
         }
 
+        /*
         @Override
         public byte[] get(byte[] key)
         {
@@ -207,6 +164,25 @@ public class TestKv
         public void remove(byte[] key)
         {
 
+        }
+        */
+
+        @Override
+        public Optional<byte[]> get(byte[] key)
+        {
+            return null;
+        }
+
+        @Override
+        public void put(byte[] key, byte[] value)
+        {
+
+        }
+
+        @Override
+        public boolean remove(byte[] key)
+        {
+            return false;
         }
     }
 
