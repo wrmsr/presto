@@ -18,6 +18,7 @@ import com.facebook.presto.block.BlockEncodingManager;
 import com.facebook.presto.execution.QueryId;
 import com.facebook.presto.index.IndexManager;
 import com.facebook.presto.metadata.InMemoryNodeManager;
+import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.MetadataManager;
 import com.facebook.presto.metadata.QualifiedTableName;
 import com.facebook.presto.metadata.SessionPropertyManager;
@@ -41,8 +42,16 @@ import com.facebook.presto.spi.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
+import com.facebook.presto.spi.InMemoryRecordSet;
 import com.facebook.presto.spi.RecordCursor;
+import com.facebook.presto.spi.RecordSet;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.block.Block;
+import com.facebook.presto.spi.block.BlockBuilder;
+import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.block.BlockEncoding;
+import com.facebook.presto.spi.block.BlockEncodingSerde;
+import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
@@ -106,7 +115,11 @@ import com.wrmsr.presto.util.ByteArrayWrapper;
 import com.wrmsr.presto.util.Codecs;
 import com.wrmsr.presto.util.Kv;
 import io.airlift.json.JsonCodec;
+import io.airlift.slice.BasicSliceInput;
+import io.airlift.slice.DynamicSliceOutput;
 import io.airlift.slice.Slice;
+import io.airlift.slice.SliceOutput;
+import io.airlift.slice.Slices;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.BeforeMethod;
@@ -120,6 +133,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -140,28 +154,27 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
 import static com.wrmsr.presto.util.Maps.invertMap;
-import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static java.util.Locale.ENGLISH;
 
 /*
 
 
-                                    xxxxxxx
-                               x xxxxxxxxxxxxx x
-                            x     xxxxxxxxxxx     x
-                                   xxxxxxxxx
-                         x          xxxxxxx          x
-                                     xxxxx
-                        x             xxx             x
-                                       x
-                       xxxxxxxxxxxxxxx   xxxxxxxxxxxxxxx
-                        xxxxxxxxxxxxx     xxxxxxxxxxxxx
-                         xxxxxxxxxxx       xxxxxxxxxxx
-                          xxxxxxxxx         xxxxxxxxx
-                            xxxxxx           xxxxxx
-                              xxx             xxx
-                                  x         x
-                                       x
+             xxxxxxx
+        x xxxxxxxxxxxxx x
+     x     xxxxxxxxxxx     x
+            xxxxxxxxx
+  x          xxxxxxx          x
+              xxxxx
+ x             xxx             x
+                x
+xxxxxxxxxxxxxxx   xxxxxxxxxxxxxxx
+ xxxxxxxxxxxxx     xxxxxxxxxxxxx
+  xxxxxxxxxxx       xxxxxxxxxxx
+   xxxxxxxxx         xxxxxxxxx
+     xxxxxx           xxxxxx
+       xxx             xxx
+           x         x
+                x
 
 
 
@@ -227,31 +240,16 @@ public class TestInsertRewriter
 
     public static class Layout
     {
-        private final List<String> names;
-        private final List<Type> types;
-        private final Optional<List<String>> pkNames;
+        protected final List<String> names;
+        protected final List<Type> types;
+        protected final Map<String, Integer> indices;
 
-        private final Map<String, Integer> indices;
-        private final List<Integer> pkIndices;
-        private final List<Integer> nonPkIndices;
-
-        public Layout(List<String> names, List<Type> types, Optional<List<String>> pkNames)
+        public Layout(List<String> names, List<Type> types)
         {
             checkArgument(names.size() == types.size());
             this.names = ImmutableList.copyOf(names);
             this.types = ImmutableList.copyOf(types);
-            this.pkNames = pkNames.map(ImmutableList::copyOf);
-
             indices = IntStream.range(0, names.size()).boxed().map(i -> ImmutablePair.of(names.get(i), i)).collect(toImmutableMap());
-            if (pkNames.isPresent()) {
-                pkIndices = pkNames.get().stream().map(indices::get).collect(toImmutableList());
-                Set<String> pkNameSet = ImmutableSet.copyOf(pkNames.get());
-                nonPkIndices = IntStream.range(0, names.size()).boxed().filter(i -> !pkNameSet.contains(names.get(i))).collect(toImmutableList());
-            }
-            else {
-                pkIndices = ImmutableList.of();
-                nonPkIndices = IntStream.range(0, names.size()).boxed().collect(toImmutableList());
-            }
         }
 
         public List<String> getNames()
@@ -264,26 +262,9 @@ public class TestInsertRewriter
             return types;
         }
 
-        public Optional<List<String>> getPkNames()
-        {
-            return pkNames;
-        }
-
         public Map<String, Integer> getIndices()
         {
             return indices;
-        }
-
-        public List<Integer> getPkIndices()
-        {
-            checkState(pkNames.isPresent());
-            return pkIndices;
-        }
-
-        public List<Integer> getNonPkIndices()
-        {
-            checkState(pkNames.isPresent());
-            return nonPkIndices;
         }
 
         public int get(String name)
@@ -295,6 +276,106 @@ public class TestInsertRewriter
         public String toString()
         {
             return "Layout{" +
+                    "names=" + names +
+                    ", types=" + types +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            Layout layout = (Layout) o;
+            return Objects.equals(names, layout.names) &&
+                    Objects.equals(types, layout.types);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(names, types);
+        }
+    }
+
+    public static class PkLayout extends Layout
+    {
+        private final List<String> pkNames;
+
+        protected final List<String> nonPkNames;
+        protected final List<Integer> pkIndices;
+        protected final List<Integer> nonPkIndices;
+        protected final List<Type> pkTypes;
+        protected final List<Type> nonPkTypes;
+
+        protected final Layout pk;
+        protected final Layout nonPk;
+
+        public PkLayout(List<String> names, List<Type> types, List<String> pkNames)
+        {
+            super(names, types);
+            checkArgument(names.size() == types.size());
+            this.pkNames = ImmutableList.copyOf(pkNames);
+
+            Set<String> pkNameSet = ImmutableSet.copyOf(pkNames);
+            nonPkNames = names.stream().filter(n -> !pkNameSet.contains(n)).collect(toImmutableList());
+            pkIndices = pkNames.stream().map(indices::get).collect(toImmutableList());
+            nonPkIndices = IntStream.range(0, names.size()).boxed().filter(i -> !pkNameSet.contains(names.get(i))).collect(toImmutableList());
+            pkTypes = pkIndices.stream().map(types::get).collect(toImmutableList());
+            nonPkTypes = nonPkIndices.stream().map(types::get).collect(toImmutableList());
+
+            pk = new Layout(pkNames, pkTypes);
+            nonPk = new Layout(nonPkNames, nonPkTypes);
+        }
+
+        public List<String> getPkNames()
+        {
+            return pkNames;
+        }
+
+        public List<String> getNonPkNames()
+        {
+            return nonPkNames;
+        }
+
+        public List<Integer> getPkIndices()
+        {
+            return pkIndices;
+        }
+
+        public List<Integer> getNonPkIndices()
+        {
+            return nonPkIndices;
+        }
+
+        public List<Type> getPkTypes()
+        {
+            return pkTypes;
+        }
+
+        public List<Type> getNonPkTypes()
+        {
+            return nonPkTypes;
+        }
+
+        public Layout getPk()
+        {
+            return pk;
+        }
+
+        public Layout getNonPk()
+        {
+            return nonPk;
+        }
+
+        @Override
+        public String toString()
+        {
+            return "PkLayout{" +
                     "names=" + names +
                     ", types=" + types +
                     ", pkNames=" + pkNames +
@@ -310,23 +391,24 @@ public class TestInsertRewriter
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            Layout layout = (Layout) o;
-            return Objects.equals(names, layout.names) &&
-                    Objects.equals(types, layout.types) &&
-                    Objects.equals(pkNames, layout.pkNames);
+            if (!super.equals(o)) {
+                return false;
+            }
+            PkLayout pkLayout = (PkLayout) o;
+            return Objects.equals(pkNames, pkLayout.pkNames);
         }
 
         @Override
         public int hashCode()
         {
-            return Objects.hash(names, types, pkNames);
+            return Objects.hash(super.hashCode(), pkNames);
         }
     }
 
-    public class Tuple
+    public static class Tuple
     {
-        private final Layout layout;
-        private final List<Object> values;
+        protected final Layout layout;
+        protected final List<Object> values;
 
         public Tuple(Layout layout, List<Object> values)
         {
@@ -342,16 +424,6 @@ public class TestInsertRewriter
         public List<Object> getValues()
         {
             return values;
-        }
-
-        public List<Object> getPkValues()
-        {
-            return layout.getPkIndices().stream().map(values::get).collect(toImmutableList());
-        }
-
-        public List<Object> getNonPkValues()
-        {
-            return layout.getNonPkIndices().stream().map(values::get).collect(toImmutableList());
         }
 
         @Override
@@ -382,81 +454,103 @@ public class TestInsertRewriter
         {
             return Objects.hash(layout, values);
         }
+
+        public RecordSet getRecordSet()
+        {
+            return new InMemoryRecordSet(layout.getTypes(), ImmutableList.of(values));
+        }
+
+        public RecordCursor getRecordCursor()
+        {
+            return getRecordSet().cursor();
+        }
+
+        public static Block toBlock(Layout layout, List<Object> values)
+        {
+            BlockBuilder b = new VariableWidthBlockBuilder(new BlockBuilderStatus(), 10000);
+            for (int i = 0; i < values.size(); ++i) {
+                b.write(layout.getTypes().get(i), values.get(i));
+            }
+            return b.build();
+        }
+
+        public static Slice toSlice(Layout layout, List<Object> values, BlockEncodingSerde blockEncodingSerde)
+        {
+            Block block = toBlock(layout, values);
+            SliceOutput output = new DynamicSliceOutput(64);
+            BlockEncoding encoding = block.getEncoding();
+            blockEncodingSerde.writeBlockEncoding(output, encoding);
+            encoding.writeBlock(output, block);
+            return output.slice();
+        }
+
+        public Block toBlock()
+        {
+            return toBlock(layout, values);
+        }
+
+        public Slice toSlice(BlockEncodingSerde blockEncodingSerde)
+        {
+            return toSlice(layout, values, blockEncodingSerde);
+        }
+
+        public byte[] toBytes(BlockEncodingSerde blockEncodingSerde)
+        {
+            return toSlice(blockEncodingSerde).getBytes();
+        }
+
+        public static Tuple fromBlock(Layout layout, Block block)
+        {
+            ImmutableList.Builder<Object> builder = ImmutableList.builder();
+            for (int i = 0; i < layout.getTypes().size(); ++i) {
+                builder.add(block.read(layout.getTypes().get(i), i));
+            }
+            return new Tuple(layout, builder.build());
+        }
+
+        public static Tuple fromSlice(Layout layout, Slice slice, BlockEncodingSerde blockEncodingSerde)
+        {
+            BasicSliceInput input = slice.getInput();
+            BlockEncoding blockEncoding = blockEncodingSerde.readBlockEncoding(input);
+            return fromBlock(layout, blockEncoding.readBlock(input));
+        }
+
+        public static Tuple fromBytes(Layout layout, byte[] bytes, BlockEncodingSerde blockEncodingSerde)
+        {
+            return fromSlice(layout, Slices.wrappedBuffer(bytes), blockEncodingSerde);
+        }
     }
 
-    public static class TupleRecordCursor implements RecordCursor
+    public static class PkTuple extends Tuple
     {
-        @Override
-        public long getTotalBytes()
+        public PkTuple(PkLayout layout, List<Object> values)
         {
-            return 0;
+            super(layout, values);
         }
 
-        @Override
-        public long getCompletedBytes()
+        public PkLayout getPkLayout()
         {
-            return 0;
+            return (PkLayout) layout;
         }
 
-        @Override
-        public long getReadTimeNanos()
+        public List<Object> getPkValues()
         {
-            return 0;
+            return getPkLayout().getPkIndices().stream().map(values::get).collect(toImmutableList());
         }
 
-        @Override
-        public Type getType(int field)
+        public List<Object> getNonPkValues()
         {
-            return null;
+            return getPkLayout().getNonPkIndices().stream().map(values::get).collect(toImmutableList());
         }
 
-        @Override
-        public boolean advanceNextPosition()
+        public Tuple getPk()
         {
-            return false;
+            return new Tuple(getPkLayout().getPk(), getPkValues());
         }
 
-        @Override
-        public boolean getBoolean(int field)
+        public Tuple getNonPk()
         {
-            return false;
-        }
-
-        @Override
-        public long getLong(int field)
-        {
-            return 0;
-        }
-
-        @Override
-        public double getDouble(int field)
-        {
-            return 0;
-        }
-
-        @Override
-        public Slice getSlice(int field)
-        {
-            eek
-            return null;
-        }
-
-        @Override
-        public Object getObject(int field)
-        {
-            return null;
-        }
-
-        @Override
-        public boolean isNull(int field)
-        {
-            return false;
-        }
-
-        @Override
-        public void close()
-        {
-
+            return new Tuple(getPkLayout().getNonPk(), getNonPkValues());
         }
     }
 
@@ -471,10 +565,10 @@ public class TestInsertRewriter
 
         private final Reactor source;
         private final Operation operation;
-        private final Optional<Tuple> before;
-        private final Optional<Tuple> after;
+        private final Optional<PkTuple> before;
+        private final Optional<PkTuple> after;
 
-        public Event(Reactor source, Operation operation, Optional<Tuple> before, Optional<Tuple> after)
+        public Event(Reactor source, Operation operation, Optional<PkTuple> before, Optional<PkTuple> after)
         {
             this.source = source;
             this.operation = operation;
@@ -505,12 +599,12 @@ public class TestInsertRewriter
             return operation;
         }
 
-        public Optional<Tuple> getBefore()
+        public Optional<PkTuple> getBefore()
         {
             return before;
         }
 
-        public Optional<Tuple> getAfter()
+        public Optional<PkTuple> getAfter()
         {
             return after;
         }
@@ -520,14 +614,16 @@ public class TestInsertRewriter
     {
         private final Plan plan;
         private final Analysis analysis;
+        private final Metadata metadata;
 
         private final Map<String, Connector> connectors;
         private final Map<String, ConnectorSupport> connectorSupport;
 
-        public ReactorContext(Plan plan, Analysis analysis, Map<String, Connector> connectors, Map<String, ConnectorSupport> connectorSupport)
+        public ReactorContext(Plan plan, Analysis analysis, Metadata metadata, Map<String, Connector> connectors, Map<String, ConnectorSupport> connectorSupport)
         {
             this.plan = plan;
             this.analysis = analysis;
+            this.metadata = metadata;
             this.connectors = connectors;
             this.connectorSupport = connectorSupport;
         }
@@ -540,6 +636,16 @@ public class TestInsertRewriter
         public Analysis getAnalysis()
         {
             return analysis;
+        }
+
+        public Metadata getMetadata()
+        {
+            return metadata;
+        }
+
+        public BlockEncodingSerde getBlockEncodingSerde()
+        {
+            return metadata.getBlockEncodingSerde();
         }
 
         public Map<String, Connector> getConnectors()
@@ -573,33 +679,18 @@ public class TestInsertRewriter
 
         public abstract void react(Event event);
 
-        protected static byte[] getKey(Tuple tuple)
-        {
-            checkArgument(tuple.getLayout().getPkNames().isPresent());
-            try {
-                return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getPkValues());
-            }
-            catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        protected static byte[] getValue(Tuple tuple)
-        {
-            try {
-                return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getNonPkValues());
-            }
-            catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        protected Layout nodeLayout(PlanNode node, Optional<List<String>> pks)
+        protected Layout nodeLayout(PlanNode node)
         {
             Map<Symbol, Type> typeMap = context.plan.getSymbolAllocator().getTypes();
             List<String> names = node.getOutputSymbols().stream().map(s -> s.getName()).collect(toImmutableList());
             List<Type> types = names.stream().map(n -> typeMap.get(new Symbol(n))).collect(toImmutableList());
-            return new Layout(names, types, pks);
+            return new Layout(names, types);
+        }
+
+        protected PkLayout nodeLayout(PlanNode node, List<String> pks)
+        {
+            Layout layout = nodeLayout(node);
+            return new PkLayout(layout.getNames(), layout.getTypes(), pks);
         }
 
         protected List<String> tablePkCols(TableHandle th)
@@ -648,29 +739,30 @@ public class TestInsertRewriter
         {
             super(node, context, destination);
             checkArgument(!destination.isPresent());
-            layout = nodeLayout(node, Optional.<List<String>>empty());
+            layout = nodeLayout(node);
             kv = context.getKv();
         }
 
         @Override
         public void react(Event event)
         {
+            BlockEncodingSerde bes = context.getBlockEncodingSerde();
             switch (event.getOperation()) {
                 case INSERT: {
-                    Tuple after = event.getAfter().get();
-                    kv.put(getKey(after), getValue(after));
+                    PkTuple after = event.getAfter().get();
+                    kv.put(after.getPk().toBytes(bes), after.getNonPk().toBytes(bes));
                     break;
                 }
                 case UPDATE: {
-                    Tuple before = event.getBefore().get();
-                    kv.remove(getKey(before));
-                    Tuple after = event.getAfter().get();
-                    kv.put(getKey(after), getValue(after));
+                    PkTuple before = event.getBefore().get();
+                    kv.remove(before.getPk().toBytes(bes));
+                    PkTuple after = event.getAfter().get();
+                    kv.put(after.getPk().toBytes(bes), after.getNonPk().toBytes(bes));
                     break;
                 }
                 case DELETE: {
-                    Tuple before = event.getBefore().get();
-                    kv.remove(getKey(before));
+                    PkTuple before = event.getBefore().get();
+                    kv.remove(before.toBytes(bes));
                     break;
                 }
             }
@@ -700,7 +792,7 @@ public class TestInsertRewriter
         public TableScanNodeReactor(TableScanNode node, ReactorContext context, Optional<Reactor> destination)
         {
             super(node, context, destination);
-            layout = nodeLayout(node, Optional.of(tablePks(node.getTable(), node.getAssignments())));
+            layout = nodeLayout(node, tablePks(node.getTable(), node.getAssignments()));
         }
 
         @Override
@@ -1191,6 +1283,7 @@ public class TestInsertRewriter
             ReactorContext rc = new ReactorContext(
                     plan,
                     analysis,
+                    lqr.getMetadata(),
                     lqr.getConnectorManager().getConnectors(),
                     ImmutableMap.<String, ConnectorSupport>builder()
                             .put("tpch", new TpchConnectorSupport(tpchConn, "tiny"))
@@ -1201,10 +1294,10 @@ public class TestInsertRewriter
                 Event e = new Event(
                         s,
                         Event.Operation.INSERT,
-                        Optional.<Tuple>empty(),
-                        Optional.<Tuple>of(
-                                new Tuple(
-                                        new Layout(ImmutableList.of("custkey"), ImmutableList.of(BIGINT), Optional.of(ImmutableList.of("custkey"))),
+                        Optional.<PkTuple>empty(),
+                        Optional.<PkTuple>of(
+                                new PkTuple(
+                                        new PkLayout(ImmutableList.of("custkey"), ImmutableList.of(BIGINT), ImmutableList.of("custkey")),
                                         ImmutableList.of(5)
                                 )));
                 s.react(e);
