@@ -2,8 +2,15 @@ package com.wrmsr.presto.util;
 
 import java.util.Arrays;
 
+import static com.wrmsr.presto.util.Codecs.Codec;
+
 public class ByteArrayWrapper
 {
+    public static final Codec<byte[], ByteArrayWrapper> CODEC = Codec.of(
+            ByteArrayWrapper::new,
+            ByteArrayWrapper::getData
+    );
+
     private final byte[] data;
 
     public ByteArrayWrapper(byte[] data)
@@ -12,6 +19,11 @@ public class ByteArrayWrapper
             throw new NullPointerException();
         }
         this.data = data;
+    }
+
+    public byte[] getData()
+    {
+        return data;
     }
 
     @Override

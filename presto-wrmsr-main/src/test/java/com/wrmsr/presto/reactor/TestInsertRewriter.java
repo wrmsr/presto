@@ -41,6 +41,7 @@ import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.security.Identity;
+import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.split.SplitManager;
 import com.facebook.presto.sql.SqlFormatter;
@@ -57,6 +58,8 @@ import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.PlanOptimizersFactory;
 import com.facebook.presto.sql.planner.PlanPrinter;
 import com.facebook.presto.sql.planner.SubPlan;
+import com.facebook.presto.sql.planner.Symbol;
+import com.facebook.presto.sql.planner.SymbolAllocator;
 import com.facebook.presto.sql.planner.plan.AggregationNode;
 import com.facebook.presto.sql.planner.plan.DistinctLimitNode;
 import com.facebook.presto.sql.planner.plan.FilterNode;
@@ -94,14 +97,17 @@ import com.google.common.io.Files;
 import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
+import com.wrmsr.presto.util.ByteArrayWrapper;
 import com.wrmsr.presto.util.Codecs;
 import com.wrmsr.presto.util.Kv;
 import io.airlift.json.JsonCodec;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.Principal;
 import java.sql.Connection;
@@ -113,6 +119,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
@@ -123,6 +130,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
+import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
+import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static java.util.Locale.ENGLISH;
 
 /*
@@ -240,6 +250,121 @@ public class TestInsertRewriter
 //        private final Plan plan;
 //    }
 
+    public static class Layout
+    {
+        private final List<String> names;
+        private final List<Type> types;
+        private final Optional<List<String>> pkNames;
+
+        private final Map<String, Integer> indices;
+        private final List<Integer> pkIndices;
+        private final List<Integer> nonPkIndices;
+
+        public Layout(List<String> names, List<Type> types, Optional<List<String>> pkNames)
+        {
+            checkArgument(names.size() == types.size());
+            this.names = ImmutableList.copyOf(names);
+            this.types = ImmutableList.copyOf(types);
+            this.pkNames = pkNames.map(ImmutableList::copyOf);
+
+            indices = IntStream.range(0, names.size()).boxed().map(i -> ImmutablePair.of(names.get(i), i)).collect(toImmutableMap());
+            if (pkNames.isPresent()) {
+                pkIndices = pkNames.get().stream().map(indices::get).collect(toImmutableList());
+                Set<String> pkNameSet = ImmutableSet.copyOf(pkNames.get());
+                nonPkIndices = IntStream.range(0, names.size()).boxed().filter(i -> !pkNameSet.contains(names.get(i))).collect(toImmutableList());
+            }
+            else {
+                pkIndices = ImmutableList.of();
+                nonPkIndices = IntStream.range(0, names.size()).boxed().collect(toImmutableList());
+            }
+        }
+
+        public List<String> getNames()
+        {
+            return names;
+        }
+
+        public List<Type> getTypes()
+        {
+            return types;
+        }
+
+        public Optional<List<String>> getPkNames()
+        {
+            return pkNames;
+        }
+
+        public Map<String, Integer> getIndices()
+        {
+            return indices;
+        }
+
+        public List<Integer> getPkIndices()
+        {
+            return pkIndices;
+        }
+
+        public List<Integer> getNonPkIndices()
+        {
+            return nonPkIndices;
+        }
+
+        public int get(String name)
+        {
+            return indices.get(name);
+        }
+
+        @Override
+        public String toString()
+        {
+            return "Layout{" +
+                    "names=" + names +
+                    ", pkNames=" + pkNames +
+                    '}';
+        }
+    }
+
+    public class Tuple
+    {
+        private final Layout layout;
+        private final List<Object> values;
+
+        public Tuple(Layout layout, List<Object> values)
+        {
+            this.layout = layout;
+            this.values = ImmutableList.copyOf(values);
+        }
+
+        public Layout getLayout()
+        {
+            return layout;
+        }
+
+        public List<Object> getValues()
+        {
+            return values;
+        }
+
+        public List<Object> getPkValues()
+        {
+            return layout.getPkIndices().stream().map(values::get).collect(toImmutableList());
+        }
+
+        public List<Object> getNonPkValues()
+        {
+            return layout.getNonPkIndices().stream().map(values::get).collect(toImmutableList());
+        }
+
+        @Override
+        public String toString()
+        {
+            return "Tuple{" +
+                    "layout=" + layout +
+                    ", values=" + values +
+                    '}';
+        }
+    }
+
     public static class Event
     {
         public enum Operation
@@ -306,7 +431,7 @@ public class TestInsertRewriter
 
         public Kv<byte[], byte[]> getKv()
         {
-            return new Kv.MapImpl<byte[], byte[]>(newHashMap());
+            return new Kv.KeyCodec<>(new Kv.MapImpl<>(newHashMap()), ByteArrayWrapper.CODEC);
         }
     }
 
@@ -373,10 +498,14 @@ public class TestInsertRewriter
     public static class OutputNodeHandler
             extends PlanNodeHandler<OutputNode>
     {
-        public OutputNodeHandler(OutputNode node, Optional<PlanNodeHandler> destination)
+        public OutputNodeHandler(OutputNode node, Optional<PlanNodeHandler> destination, SymbolAllocator symbolAllocator)
         {
             super(node, destination);
             checkArgument(!destination.isPresent());
+            Map<Symbol, Type> typeMap = symbolAllocator.getTypes();
+            List<String> names = node.getOutputSymbols().stream().map(s -> s.getName()).collect(toImmutableList());
+            List<Type> types = names.stream().map(typeMap::get).collect(toImmutableList());
+            new Layout(names, types, Optional.<List<String>>empty());
         }
 
         @Override
@@ -401,15 +530,47 @@ public class TestInsertRewriter
                 this.kv = kv;
             }
 
+            protected byte[] getKey(Tuple tuple)
+            {
+                try {
+                    return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getPkValues());
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            protected byte[] getValue(Tuple tuple)
+            {
+                try {
+                    return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getNonPkValues());
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
             @Override
             public void react(Event event)
             {
-                ByteBuffer
                 switch (event.getOperation()) {
-                    case INSERT:
-                        kv.put(event.getAfter().get().getPk().get())
-                    case UPDATE:
-                    case DELETE:
+                    case INSERT: {
+                        Tuple after = event.getAfter().get();
+                        kv.put(getKey(after), getValue(after));
+                        break;
+                    }
+                    case UPDATE: {
+                        Tuple before = event.getBefore().get();
+                        kv.remove(getKey(before));
+                        Tuple after = event.getAfter().get();
+                        kv.put(getKey(after), getValue(after));
+                        break;
+                    }
+                    case DELETE: {
+                        Tuple before = event.getBefore().get();
+                        kv.remove(getKey(before));
+                        break;
+                    }
                 }
             }
         }
@@ -928,17 +1089,90 @@ public class TestInsertRewriter
         }
     }
 
-    public static PlanNodeHandler handleNode(PlanNode node, Optional<PlanNodeHandler> destination)
+    public static final class InvertedPlan
     {
-        if (node instanceof OutputNode) {
-            return new OutputNodeHandler((OutputNode) node, destination);
+        private final List<SourcePlanNodeHandler> sourceHandlers;
+        private final Map<PlanNode, PlanNodeHandler> handlers;
+
+        public InvertedPlan(List<SourcePlanNodeHandler> sourceHandlers, Map<PlanNode, PlanNodeHandler> handlers)
+        {
+            this.sourceHandlers = sourceHandlers;
+            this.handlers = handlers;
         }
-        else if (node instanceof ProjectNode) {
-            return new ProjectNodeHandler((ProjectNode) node, destination);
+
+        public List<SourcePlanNodeHandler> getSourceHandlers()
+        {
+            return sourceHandlers;
         }
-        else if (node instanceof TableScanNode) {
-            return new TableScanNodeHandler((TableScanNode) node, destination);
+
+        public Map<PlanNode, PlanNodeHandler> getHandlers()
+        {
+            return handlers;
         }
+    }
+
+    public static class PlanInverter
+    {
+        public InvertedPlan run(Plan plan, Analysis analysis)
+        {
+            VisitorContext context = new VisitorContext(plan, analysis);
+            Visitor visitor = new Visitor();
+            visitor.visitPlan(plan.getRoot(), context);
+            return new InvertedPlan(
+                    ImmutableList.copyOf(context.sourceHandlers),
+                    ImmutableMap.copyOf(context.handlers)
+            );
+        }
+
+        private static final class VisitorContext
+        {
+            private final Plan plan;
+            private final Analysis analysis;
+
+            private final List<SourcePlanNodeHandler> sourceHandlers;
+            private final Map<PlanNode, PlanNodeHandler> handlers;
+            private final Optional<PlanNodeHandler> destination;
+
+            public VisitorContext(Plan plan, Analysis analysis)
+            {
+                this.plan = plan;
+                this.analysis = analysis;
+
+                sourceHandlers = newArrayList();
+                handlers = newHashMap();
+                destination = Optional.empty();
+            }
+
+            public VisitorContext(VisitorContext parent, PlanNodeHandler destination)
+            {
+                plan = parent.plan;
+                analysis = parent.analysis;
+
+                sourceHandlers = parent.sourceHandlers;
+                handlers = parent.handlers;
+                this.destination = Optional.of(destination);
+            }
+
+            public VisitorContext branch(PlanNodeHandler destination)
+            {
+                return new VisitorContext(this, destination);
+            }
+        }
+
+        private class Visitor extends PlanVisitor<PlanInverter.VisitorContext, Void>
+        {
+            private PlanNodeHandler handleNode(PlanNode node, VisitorContext context)
+            {
+                Optional<PlanNodeHandler> destination = context.destination;
+                if (node instanceof OutputNode) {
+                    return new OutputNodeHandler((OutputNode) node, destination, context.plan.getSymbolAllocator());
+                }
+                else if (node instanceof ProjectNode) {
+                    return new ProjectNodeHandler((ProjectNode) node, destination);
+                }
+                else if (node instanceof TableScanNode) {
+                    return new TableScanNodeHandler((TableScanNode) node, destination);
+                }
 //        else if (node instanceof ValuesNode) {
 //            return new ValuesNodeHandler((ValuesNode) node, destination);
 //        }
@@ -1011,78 +1245,15 @@ public class TestInsertRewriter
 //        else if (node instanceof UnionNode) {
 //            return new UnionNodeHandler((UnionNode) node, destination);
 //        }
-        else {
-            throw new UnsupportedPlanNodeException(node);
-        }
-    }
-
-    public static final class InvertedPlan
-    {
-        private final List<SourcePlanNodeHandler> sourceHandlers;
-        private final Map<PlanNode, PlanNodeHandler> handlers;
-
-        public InvertedPlan(List<SourcePlanNodeHandler> sourceHandlers, Map<PlanNode, PlanNodeHandler> handlers)
-        {
-            this.sourceHandlers = sourceHandlers;
-            this.handlers = handlers;
-        }
-
-        public List<SourcePlanNodeHandler> getSourceHandlers()
-        {
-            return sourceHandlers;
-        }
-
-        public Map<PlanNode, PlanNodeHandler> getHandlers()
-        {
-            return handlers;
-        }
-    }
-
-    public static class PlanInverter
-    {
-        public InvertedPlan run(PlanNode root)
-        {
-            VisitorContext context = new VisitorContext();
-            Visitor visitor = new Visitor();
-            visitor.visitPlan(root, context);
-            return new InvertedPlan(
-                    ImmutableList.copyOf(context.sourceHandlers),
-                    ImmutableMap.copyOf(context.handlers)
-            );
-        }
-
-        private static final class VisitorContext
-        {
-            private final List<SourcePlanNodeHandler> sourceHandlers;
-            private final Map<PlanNode, PlanNodeHandler> handlers;
-            private final Optional<PlanNodeHandler> destination;
-
-            public VisitorContext()
-            {
-                sourceHandlers = newArrayList();
-                handlers = newHashMap();
-                destination = Optional.empty();
+                else {
+                    throw new UnsupportedPlanNodeException(node);
+                }
             }
 
-            public VisitorContext(VisitorContext parent, PlanNodeHandler destination)
-            {
-                this.sourceHandlers = parent.sourceHandlers;
-                this.handlers = parent.handlers;
-                this.destination = Optional.of(destination);
-            }
-
-            public VisitorContext branch(PlanNodeHandler destination)
-            {
-                return new VisitorContext(this, destination);
-            }
-        }
-
-        private class Visitor extends PlanVisitor<PlanInverter.VisitorContext, Void>
-        {
             @Override
             protected Void visitPlan(PlanNode node, VisitorContext context)
             {
-                PlanNodeHandler handler = handleNode(node, context.destination);
+                PlanNodeHandler handler = handleNode(node, context);
                 checkState(!context.handlers.containsKey(node));
                 context.handlers.put(node, handler);
                 List<PlanNode> nodeSources = node.getSources();
@@ -1403,7 +1574,7 @@ public class TestInsertRewriter
 
                     // "select custkey + 1 from tpch.tiny.\"orders\" as o where o.custkey in (1, 2, 3)";
 
-                    "select custkey from tpch.tiny.\"customer\"";
+                    "select custkey + 1 from tpch.tiny.\"customer\"";
 
             Statement statement = SQL_PARSER.createStatement(sql);
             Analyzer analyzer = new Analyzer(
@@ -1452,7 +1623,7 @@ public class TestInsertRewriter
                             .put("tpch", new TpchConnectorSupport(tpchConn, "tiny"))
                             .build()
             );
-            InvertedPlan invertedPlan = new PlanInverter().run(plan.getRoot());
+            InvertedPlan invertedPlan = new PlanInverter().run(plan, analysis);
             for (SourcePlanNodeHandler s : invertedPlan.getSourceHandlers()) {
                 Reactor r = s.getReactor(rc);
                 // rc.getConnectorSupport().get(s.getNode().)

@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Optional;
 
+/*
 public final class Event
 {
     public enum Operation
@@ -103,3 +104,4 @@ public final class Event
                 '}';
     }
 }
+*/
