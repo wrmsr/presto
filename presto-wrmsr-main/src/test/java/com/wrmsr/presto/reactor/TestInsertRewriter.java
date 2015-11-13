@@ -63,6 +63,7 @@ import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.analyzer.Field;
 import com.facebook.presto.sql.analyzer.QueryExplainer;
 import com.facebook.presto.sql.parser.SqlParser;
+import com.facebook.presto.sql.planner.ExpressionInterpreter;
 import com.facebook.presto.sql.planner.LogicalPlanner;
 import com.facebook.presto.sql.planner.Plan;
 import com.facebook.presto.sql.planner.PlanFragmenter;
@@ -91,8 +92,10 @@ import com.facebook.presto.sql.planner.plan.TopNRowNumberNode;
 import com.facebook.presto.sql.planner.plan.UnionNode;
 import com.facebook.presto.sql.planner.plan.UnnestNode;
 import com.facebook.presto.sql.planner.plan.ValuesNode;
+import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.Insert;
 import com.facebook.presto.sql.tree.QualifiedName;
+import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.sql.tree.Query;
 import com.facebook.presto.sql.tree.QuerySpecification;
 import com.facebook.presto.sql.tree.Statement;
@@ -134,6 +137,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Base64;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -224,6 +228,14 @@ UnionNode
 
 public class TestInsertRewriter
 {
+    @Test
+    public void testWhatTheFuck() throws Throwable
+    {
+        QualifiedNameReference r = new QualifiedNameReference(new QualifiedName("wtf"));
+        Map<QualifiedNameReference, Integer> s = ImmutableMap.of(r, 1);
+        assert s.containsKey(r);
+
+    }
     public static final Session SESSION = Session.builder(new SessionPropertyManager())
             .setSource("test")
             .setCatalog("default")
@@ -494,6 +506,8 @@ public class TestInsertRewriter
             return toSlice(layout, values, blockEncodingSerde);
         }
 
+        // TODO: terse jackson serializer too for pk
+
         public byte[] toBytes(BlockEncodingSerde blockEncodingSerde)
         {
             return toSlice(blockEncodingSerde).getBytes();
@@ -614,15 +628,17 @@ public class TestInsertRewriter
     {
         private final Plan plan;
         private final Analysis analysis;
+        private final Session sesion;
         private final Metadata metadata;
 
         private final Map<String, Connector> connectors;
         private final Map<String, ConnectorSupport> connectorSupport;
 
-        public ReactorContext(Plan plan, Analysis analysis, Metadata metadata, Map<String, Connector> connectors, Map<String, ConnectorSupport> connectorSupport)
+        public ReactorContext(Plan plan, Analysis analysis, Session session, Metadata metadata, Map<String, Connector> connectors, Map<String, ConnectorSupport> connectorSupport)
         {
             this.plan = plan;
             this.analysis = analysis;
+            this.sesion = session;
             this.metadata = metadata;
             this.connectors = connectors;
             this.connectorSupport = connectorSupport;
@@ -636,6 +652,11 @@ public class TestInsertRewriter
         public Analysis getAnalysis()
         {
             return analysis;
+        }
+
+        public Session getSesion()
+        {
+            return sesion;
         }
 
         public Metadata getMetadata()
@@ -769,17 +790,133 @@ public class TestInsertRewriter
         }
     }
 
+    @FunctionalInterface
+    public interface SymbolIndexResolver
+    {
+        int getSymbolIndex(Symbol symbol);
+    }
+
+    public static class RecordCursorSymbolResolver implements RecordCursor, SymbolResolver
+    {
+        private final RecordCursor recordCursor;
+        private final SymbolIndexResolver symbolIndexResolver;
+
+        public RecordCursorSymbolResolver(RecordCursor recordCursor, SymbolIndexResolver symbolIndexResolver)
+        {
+            this.recordCursor = recordCursor;
+            this.symbolIndexResolver = symbolIndexResolver;
+        }
+
+        @Override
+        public Object getValue(Symbol symbol)
+        {
+            return getObject(symbolIndexResolver.getSymbolIndex(symbol));
+        }
+
+        @Override
+        public long getTotalBytes()
+        {
+            return recordCursor.getTotalBytes();
+        }
+
+        @Override
+        public long getCompletedBytes()
+        {
+            return recordCursor.getCompletedBytes();
+        }
+
+        @Override
+        public long getReadTimeNanos()
+        {
+            return recordCursor.getReadTimeNanos();
+        }
+
+        @Override
+        public Type getType(int field)
+        {
+            return recordCursor.getType(field);
+        }
+
+        @Override
+        public boolean advanceNextPosition()
+        {
+            return recordCursor.advanceNextPosition();
+        }
+
+        @Override
+        public boolean getBoolean(int field)
+        {
+            return recordCursor.getBoolean(field);
+        }
+
+        @Override
+        public long getLong(int field)
+        {
+            return recordCursor.getLong(field);
+        }
+
+        @Override
+        public double getDouble(int field)
+        {
+            return recordCursor.getDouble(field);
+        }
+
+        @Override
+        public Slice getSlice(int field)
+        {
+            return recordCursor.getSlice(field);
+        }
+
+        @Override
+        public Object getObject(int field)
+        {
+            return recordCursor.getObject(field);
+        }
+
+        @Override
+        public boolean isNull(int field)
+        {
+            return recordCursor.isNull(field);
+        }
+
+        @Override
+        public void close()
+        {
+            recordCursor.close();
+        }
+    }
+
     public static class ProjectNodeReactor
             extends InnerNodeReactor<ProjectNode>
     {
+        private final Map<Symbol, ExpressionInterpreter> expressionInterpreters;
+
         public ProjectNodeReactor(ProjectNode node, ReactorContext context, Optional<Reactor> destination)
         {
             super(node, context, destination);
+
+            expressionInterpreters = node.getAssignments().entrySet().stream()
+                    .map(e -> ImmutablePair.of(
+                            e.getKey(),
+                            ExpressionInterpreter.expressionInterpreter(
+                                    e.getValue(),
+                                    context.getMetadata(),
+                                    context.getSesion(),
+                                    context.getAnalysis().getTypes())))
+                    .collect(toImmutableMap());
         }
 
         @Override
         public void react(Event event)
         {
+            RecordCursor rc = new RecordCursorSymbolResolver(
+                    event.after.get().getRecordCursor(),
+                    s -> event.after.get().getLayout().get(s.getName()));
+            rc.advanceNextPosition();
+
+            for (Symbol s : expressionInterpreters.keySet()) {
+                expressionInterpreters.get(s).evaluate(rc);
+            }
             destination.get().react(event);
         }
     }
@@ -1283,6 +1420,7 @@ public class TestInsertRewriter
             ReactorContext rc = new ReactorContext(
                     plan,
                     analysis,
+                    lqr.getDefaultSession(),
                     lqr.getMetadata(),
                     lqr.getConnectorManager().getConnectors(),
                     ImmutableMap.<String, ConnectorSupport>builder()
