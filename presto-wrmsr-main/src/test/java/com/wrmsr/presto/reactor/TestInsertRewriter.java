@@ -268,11 +268,13 @@ public class TestInsertRewriter
 
         public List<Integer> getPkIndices()
         {
+            checkState(pkNames.isPresent());
             return pkIndices;
         }
 
         public List<Integer> getNonPkIndices()
         {
+            checkState(pkNames.isPresent());
             return nonPkIndices;
         }
 
@@ -431,6 +433,42 @@ public class TestInsertRewriter
         }
 
         public abstract void react(Event event);
+
+        protected static byte[] getKey(Tuple tuple)
+        {
+            checkArgument(tuple.getLayout().getPkNames().isPresent());
+            try {
+                return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getPkValues());
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        protected static byte[] getValue(Tuple tuple)
+        {
+            try {
+                return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getNonPkValues());
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        protected Layout nodeLayout(PlanNode node, Optional<List<String>> pks)
+        {
+            Map<Symbol, Type> typeMap = context.plan.getSymbolAllocator().getTypes();
+            List<String> names = node.getOutputSymbols().stream().map(s -> s.getName()).collect(toImmutableList());
+            List<Type> types = names.stream().map(typeMap::get).collect(toImmutableList());
+            new Layout(names, types, Optional.<List<String>>empty());
+        }
+
+        protected List<String> tablePks(TableHandle th)
+        {
+            ConnectorSupport cs = context.getConnectorSupport().get(th.getConnectorId());
+            SchemaTableName stn = cs.getSchemaTableName(th.getConnectorHandle());
+            return cs.getPrimaryKey(stn);
+        }
     }
 
     public static abstract class SourceReactor<T extends PlanNode>
@@ -443,42 +481,18 @@ public class TestInsertRewriter
         }
     }
 
-    public static class OutputNodeHandler
+    public static class OutputNodeReactor
             extends Reactor<OutputNode>
     {
+        private final Layout layout;
         private final Kv<byte[], byte[]> kv;
 
-        public OutputNodeHandler(OutputNode node, ReactorContext context, Optional<Reactor> destination)
+        public OutputNodeReactor(OutputNode node, ReactorContext context, Optional<Reactor> destination)
         {
             super(node, context, destination);
-
             checkArgument(!destination.isPresent());
-            Map<Symbol, Type> typeMap = context.plan.getSymbolAllocator().getTypes();
-            List<String> names = node.getOutputSymbols().stream().map(s -> s.getName()).collect(toImmutableList());
-            List<Type> types = names.stream().map(typeMap::get).collect(toImmutableList());
-            new Layout(names, types, Optional.<List<String>>empty());
-
+            layout = nodeLayout(node, Optional.<List<String>>empty());
             kv = context.getKv();
-        }
-
-        protected byte[] getKey(Tuple tuple)
-        {
-            try {
-                return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getPkValues());
-            }
-            catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        protected byte[] getValue(Tuple tuple)
-        {
-            try {
-                return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getNonPkValues());
-            }
-            catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
 
         @Override
@@ -506,10 +520,10 @@ public class TestInsertRewriter
         }
     }
 
-    public static class ProjectNodeHandler
+    public static class ProjectNodeReactor
             extends Reactor<ProjectNode>
     {
-        public ProjectNodeHandler(ProjectNode node, ReactorContext context, Optional<Reactor> destination)
+        public ProjectNodeReactor(ProjectNode node, ReactorContext context, Optional<Reactor> destination)
         {
             super(node, context, destination);
         }
@@ -521,22 +535,21 @@ public class TestInsertRewriter
         }
     }
 
-    public static class TableScanNodeHandler
+    public static class TableScanNodeReactor
             extends SourceReactor<TableScanNode>
     {
-        public TableScanNodeHandler(TableScanNode node, ReactorContext context, Optional<Reactor> destination)
+        private final Layout layout;
+
+        public TableScanNodeReactor(TableScanNode node, ReactorContext context, Optional<Reactor> destination)
         {
             super(node, context, destination);
+            checkArgument(!destination.isPresent());
+            layout = nodeLayout(node, Optional.of(tablePks(node.getTable())));
         }
 
         @Override
         public void react(Event event)
         {
-            TableHandle th = node.getTable();
-            ConnectorSupport cs = context.getConnectorSupport().get(th.getConnectorId());
-            SchemaTableName stn = cs.getSchemaTableName(th.getConnectorHandle());
-            List<String> pk = cs.getPrimaryKey(stn);
-            // return new ReactorImpl(context, Optional.of(destination.get().getReactor(context)));
         }
     }
 
@@ -561,23 +574,23 @@ public class TestInsertRewriter
 
     public static final class ReactorPlan
     {
-        private final List<SourceReactor> sourceHandlers;
-        private final Map<PlanNode, Reactor> handlers;
+        private final List<SourceReactor> sourceReactors;
+        private final Map<PlanNode, Reactor> reactors;
 
-        public ReactorPlan(List<SourceReactor> sourceHandlers, Map<PlanNode, Reactor> handlers)
+        public ReactorPlan(List<SourceReactor> sourceReactors, Map<PlanNode, Reactor> reactors)
         {
-            this.sourceHandlers = sourceHandlers;
-            this.handlers = handlers;
+            this.sourceReactors = sourceReactors;
+            this.reactors = reactors;
         }
 
-        public List<SourceReactor> getSourceHandlers()
+        public List<SourceReactor> getSourceReactors()
         {
-            return sourceHandlers;
+            return sourceReactors;
         }
 
-        public Map<PlanNode, Reactor> getHandlers()
+        public Map<PlanNode, Reactor> getReactors()
         {
-            return handlers;
+            return reactors;
         }
     }
 
@@ -590,7 +603,7 @@ public class TestInsertRewriter
             visitor.visitPlan(reactorContext.plan.getRoot(), context);
             return new ReactorPlan(
                     ImmutableList.copyOf(context.sourceHandlers),
-                    ImmutableMap.copyOf(context.handlers)
+                    ImmutableMap.copyOf(context.reactors)
             );
         }
 
@@ -599,7 +612,7 @@ public class TestInsertRewriter
             private final ReactorContext reactorContext;
 
             private final List<SourceReactor> sourceHandlers;
-            private final Map<PlanNode, Reactor> handlers;
+            private final Map<PlanNode, Reactor> reactors;
             private final Optional<Reactor> destination;
 
             public VisitorContext(ReactorContext reactorContext)
@@ -607,7 +620,7 @@ public class TestInsertRewriter
                 this.reactorContext = reactorContext;
 
                 sourceHandlers = newArrayList();
-                handlers = newHashMap();
+                reactors = newHashMap();
                 destination = Optional.empty();
             }
 
@@ -616,7 +629,7 @@ public class TestInsertRewriter
                 reactorContext = parent.reactorContext;
 
                 sourceHandlers = parent.sourceHandlers;
-                handlers = parent.handlers;
+                reactors = parent.reactors;
                 this.destination = Optional.of(destination);
             }
 
@@ -632,13 +645,13 @@ public class TestInsertRewriter
             {
                 Optional<Reactor> destination = context.destination;
                 if (node instanceof OutputNode) {
-                    return new OutputNodeHandler((OutputNode) node, context.reactorContext, destination);
+                    return new OutputNodeReactor((OutputNode) node, context.reactorContext, destination);
                 }
                 else if (node instanceof ProjectNode) {
-                    return new ProjectNodeHandler((ProjectNode) node, context.reactorContext, destination);
+                    return new ProjectNodeReactor((ProjectNode) node, context.reactorContext, destination);
                 }
                 else if (node instanceof TableScanNode) {
-                    return new TableScanNodeHandler((TableScanNode) node, context.reactorContext, destination);
+                    return new TableScanNodeReactor((TableScanNode) node, context.reactorContext, destination);
                 }
                 else {
                     throw new UnsupportedPlanNodeException(node);
@@ -648,18 +661,18 @@ public class TestInsertRewriter
             @Override
             protected Void visitPlan(PlanNode node, VisitorContext context)
             {
-                Reactor handler = handleNode(node, context);
-                checkState(!context.handlers.containsKey(node));
-                context.handlers.put(node, handler);
+                Reactor reactor = handleNode(node, context);
+                checkState(!context.reactors.containsKey(node));
+                context.reactors.put(node, reactor);
                 List<PlanNode> nodeSources = node.getSources();
                 if (!nodeSources.isEmpty()) {
                     for (PlanNode source : node.getSources()) {
-                        source.accept(this, context.branch(handler));
+                        source.accept(this, context.branch(reactor));
                     }
                 }
                 else {
-                    checkState(handler instanceof SourceReactor);
-                    context.sourceHandlers.add((SourceReactor) handler);
+                    checkState(reactor instanceof SourceReactor);
+                    context.sourceHandlers.add((SourceReactor) reactor);
                 }
                 return null;
             }
@@ -1013,7 +1026,7 @@ public class TestInsertRewriter
                             .build()
             );
             ReactorPlan rp = new ReactorPlanner().run(rc);
-            for (SourceReactor s : rp.getSourceHandlers()) {
+            for (SourceReactor s : rp.getSourceReactors()) {
                 s.react(null);
                 // rc.getConnectorSupport().get(s.getNode().)
 
