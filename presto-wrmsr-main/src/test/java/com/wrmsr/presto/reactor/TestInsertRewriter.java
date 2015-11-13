@@ -28,10 +28,12 @@ import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.operator.Driver;
 import com.facebook.presto.operator.TaskContext;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
+import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.security.AllowAllAccessControl;
+import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
@@ -87,6 +89,7 @@ import com.facebook.presto.sql.tree.Table;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.MaterializedResult;
 import com.facebook.presto.testing.TestingConnectorSession;
+import com.facebook.presto.tpch.TpchColumnHandle;
 import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.facebook.presto.tpch.TpchTableHandle;
 import com.facebook.presto.type.TypeRegistry;
@@ -132,6 +135,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
+import static com.wrmsr.presto.util.Maps.invertMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static java.util.Locale.ENGLISH;
 
@@ -288,6 +292,7 @@ public class TestInsertRewriter
         {
             return "Layout{" +
                     "names=" + names +
+                    ", types=" + types +
                     ", pkNames=" + pkNames +
                     '}';
         }
@@ -459,15 +464,23 @@ public class TestInsertRewriter
         {
             Map<Symbol, Type> typeMap = context.plan.getSymbolAllocator().getTypes();
             List<String> names = node.getOutputSymbols().stream().map(s -> s.getName()).collect(toImmutableList());
-            List<Type> types = names.stream().map(typeMap::get).collect(toImmutableList());
-            new Layout(names, types, Optional.<List<String>>empty());
+            List<Type> types = names.stream().map(n -> typeMap.get(new Symbol(n))).collect(toImmutableList());
+            return new Layout(names, types, pks);
         }
 
-        protected List<String> tablePks(TableHandle th)
+        protected List<String> tablePkCols(TableHandle th)
         {
             ConnectorSupport cs = context.getConnectorSupport().get(th.getConnectorId());
             SchemaTableName stn = cs.getSchemaTableName(th.getConnectorHandle());
             return cs.getPrimaryKey(stn);
+        }
+
+        protected List<String> tablePks(TableHandle th, Map<Symbol, ColumnHandle> assignments)
+        {
+            ConnectorSupport cs = context.connectorSupport.get(th.getConnectorId());
+            List<String> pkCols = tablePkCols(th);
+            Map<String, Symbol> m = assignments.entrySet().stream().map(e -> ImmutablePair.of(cs.getColumnName(e.getValue()), e.getKey())).collect(toImmutableMap());
+            return pkCols.stream().map(c -> m.get(c).getName()).collect(toImmutableList());
         }
     }
 
@@ -531,7 +544,6 @@ public class TestInsertRewriter
         @Override
         public void react(Event event)
         {
-
         }
     }
 
@@ -543,8 +555,7 @@ public class TestInsertRewriter
         public TableScanNodeReactor(TableScanNode node, ReactorContext context, Optional<Reactor> destination)
         {
             super(node, context, destination);
-            checkArgument(!destination.isPresent());
-            layout = nodeLayout(node, Optional.of(tablePks(node.getTable())));
+            layout = nodeLayout(node, Optional.of(tablePks(node.getTable(), node.getAssignments())));
         }
 
         @Override
@@ -696,6 +707,8 @@ public class TestInsertRewriter
         public abstract SchemaTableName getSchemaTableName(ConnectorTableHandle handle);
 
         public abstract List<String> getPrimaryKey(SchemaTableName schemaTableName);
+
+        public abstract String getColumnName(ColumnHandle columnHandle);
     }
 
     public static class ExtendedJdbcConnectorSupport extends ConnectorSupport<ExtendedJdbcConnectorFactory, ExtendedJdbcConnector>
@@ -738,6 +751,12 @@ public class TestInsertRewriter
                 throw new RuntimeException(e);
             }
         }
+
+        @Override
+        public String getColumnName(ColumnHandle columnHandle)
+        {
+            return ((JdbcColumnHandle) columnHandle).getColumnName();
+        }
     }
 
     public static class TpchConnectorSupport extends ConnectorSupport<TpchConnectorFactory, Connector>
@@ -778,6 +797,12 @@ public class TestInsertRewriter
             checkArgument(schemas.contains(schemaTableName.getSchemaName()));
             checkArgument(tablePrimaryKeys.containsKey(schemaTableName.getTableName()));
             return tablePrimaryKeys.get(schemaTableName.getTableName());
+        }
+
+        @Override
+        public String getColumnName(ColumnHandle columnHandle)
+        {
+            return ((TpchColumnHandle) columnHandle).getColumnName();
         }
     }
 

@@ -14,12 +14,15 @@
 package com.wrmsr.presto.util;
 
 import com.google.common.base.Function;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
 
 public class Maps
 {
@@ -144,5 +147,10 @@ public class Maps
             mapPutAll(out, map.entrySet());
         }
         return out;
+    }
+
+    public static <K, V> Map<V, K> invertMap(Map<K, V> map)
+    {
+        return map.entrySet().stream().map(e -> ImmutablePair.of(e.getValue(), e.getKey())).collect(toImmutableMap());
     }
 }
