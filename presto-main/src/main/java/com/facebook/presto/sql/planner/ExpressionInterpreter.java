@@ -86,6 +86,7 @@ import java.lang.invoke.MethodHandle;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -112,7 +113,7 @@ public class ExpressionInterpreter
     private final Metadata metadata;
     private final ConnectorSession session;
     private final boolean optimize;
-    private final IdentityHashMap<Expression, Type> expressionTypes;
+    private final Map<Expression, Type> expressionTypes;
 
     private final Visitor visitor;
 
@@ -121,6 +122,15 @@ public class ExpressionInterpreter
     private final IdentityHashMap<InListExpression, Set<?>> inListCache = new IdentityHashMap<>();
 
     public static ExpressionInterpreter expressionInterpreter(Expression expression, Metadata metadata, Session session, IdentityHashMap<Expression, Type> expressionTypes)
+    {
+        requireNonNull(expression, "expression is null");
+        requireNonNull(metadata, "metadata is null");
+        requireNonNull(session, "session is null");
+
+        return new ExpressionInterpreter(expression, metadata, session, expressionTypes, false);
+    }
+
+    public static ExpressionInterpreter expressionInterpreterUnsafe(Expression expression, Metadata metadata, Session session, Map<Expression, Type> expressionTypes)
     {
         requireNonNull(expression, "expression is null");
         requireNonNull(metadata, "metadata is null");
@@ -158,7 +168,7 @@ public class ExpressionInterpreter
         return evaluateConstantExpression(expression, coercions, metadata, session, columnReferences);
     }
 
-    public static Object evaluateConstantExpression(Expression expression, IdentityHashMap<Expression, Type> coercions, Metadata metadata, Session session, Set<Expression> columnReferences)
+    public static Object evaluateConstantExpression(Expression expression, Map<Expression, Type> coercions, Metadata metadata, Session session, Set<Expression> columnReferences)
     {
         requireNonNull(columnReferences, "columnReferences is null");
 
@@ -222,7 +232,7 @@ public class ExpressionInterpreter
         return result;
     }
 
-    private ExpressionInterpreter(Expression expression, Metadata metadata, Session session, IdentityHashMap<Expression, Type> expressionTypes, boolean optimize)
+    private ExpressionInterpreter(Expression expression, Metadata metadata, Session session, Map<Expression, Type> expressionTypes, boolean optimize)
     {
         this.expression = expression;
         this.metadata = metadata;

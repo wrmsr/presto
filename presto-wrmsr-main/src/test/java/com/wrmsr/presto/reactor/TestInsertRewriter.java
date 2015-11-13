@@ -895,14 +895,15 @@ public class TestInsertRewriter
         {
             super(node, context, destination);
 
+            Map<Expression, Type> expressionTypes = ImmutableMap.copyOf(context.getAnalysis().getTypes());
             expressionInterpreters = node.getAssignments().entrySet().stream()
                     .map(e -> ImmutablePair.of(
                             e.getKey(),
-                            ExpressionInterpreter.expressionInterpreter(
+                            ExpressionInterpreter.expressionInterpreterUnsafe(
                                     e.getValue(),
                                     context.getMetadata(),
                                     context.getSesion(),
-                                    context.getAnalysis().getTypes())))
+                                    expressionTypes)))
                     .collect(toImmutableMap());
         }
 
