@@ -1,0 +1,548 @@
+OutputNode
+ProjectNode
+TableScanNode
+ValuesNode
+AggregationNode
+MarkDistinctNode
+FilterNode
+WindowNode
+RowNumberNode
+TopNRowNumberNode
+LimitNode
+DistinctLimitNode
+TopNNode
+SampleNode
+SortNode
+RemoteSourceNode
+JoinNode
+SemiJoinNode
+IndexJoinNode
+IndexSourceNode
+TableWriterNode
+DeleteNode
+MetadataDeleteNode
+TableCommitNode
+UnnestNode
+ExchangeNode
+UnionNode
+
+
+    /*
+    public static abstract class Reactor
+    {
+        private final ReactorContext context;
+        private final Optional<Reactor> destination;
+
+        public Reactor(ReactorContext context, Optional<Reactor> destination)
+        {
+            this.context = context;
+            this.destination = destination;
+        }
+
+        public ReactorContext getContext()
+        {
+            return context;
+        }
+
+        public Optional<Reactor> getDestination()
+        {
+            return destination;
+        }
+
+        public abstract void react(Event event);
+    }
+    */
+
+    /*
+    public static class ValuesNodeHandler
+            extends Reactor<ValuesNode>
+    {
+        public ValuesNodeHandler(ValuesNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class AggregationNodeHandler
+            extends Reactor<AggregationNode>
+    {
+        public AggregationNodeHandler(AggregationNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return true;
+        }
+    }
+
+    public static class MarkDistinctNodeHandler
+            extends Reactor<MarkDistinctNode>
+    {
+        public MarkDistinctNodeHandler(MarkDistinctNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class FilterNodeHandler
+            extends Reactor<FilterNode>
+    {
+        public FilterNodeHandler(FilterNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class WindowNodeHandler
+            extends Reactor<WindowNode>
+    {
+        public WindowNodeHandler(WindowNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class RowNumberNodeHandler
+            extends Reactor<RowNumberNode>
+    {
+        public RowNumberNodeHandler(RowNumberNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class TopNRowNumberNodeHandler
+            extends Reactor<TopNRowNumberNode>
+    {
+        public TopNRowNumberNodeHandler(TopNRowNumberNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class LimitNodeHandler
+            extends Reactor<LimitNode>
+    {
+        public LimitNodeHandler(LimitNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class DistinctLimitNodeHandler
+            extends Reactor<DistinctLimitNode>
+    {
+        public DistinctLimitNodeHandler(DistinctLimitNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+
+    public static class TopNNodeHandler
+            extends Reactor<TopNNode>
+    {
+        public TopNNodeHandler(TopNNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class SampleNodeHandler
+            extends Reactor<SampleNode>
+    {
+        public SampleNodeHandler(SampleNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class SortNodeHandler
+            extends Reactor<SortNode>
+    {
+        public SortNodeHandler(SortNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class RemoteSourceNodeHandler
+            extends Reactor<RemoteSourceNode>
+    {
+        public RemoteSourceNodeHandler(RemoteSourceNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class JoinNodeHandler
+            extends Reactor<JoinNode>
+    {
+        public JoinNodeHandler(JoinNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+
+        @Override
+        public Reactor getReactor(ReactorContext context)
+        {
+            return new ReactorImpl(
+                    context.getKv(),
+                    context.getKv()
+            );
+        }
+
+        private class ReactorImpl extends Reactor
+        {
+            private final Kv<byte[], byte[]> pkJkKv;
+            private final Kv<byte[], byte[]> jkPkPayloadKv;
+
+            public ReactorImpl(Kv<byte[], byte[]> pkJkKv, Kv<byte[], byte[]> jkPkPayloadKv)
+            {
+                this.pkJkKv = pkJkKv;
+                this.jkPkPayloadKv = jkPkPayloadKv;
+            }
+
+            @Override
+            public void react(Event event)
+            {
+
+            }
+        }
+    }
+
+    public static class SemiJoinNodeHandler
+            extends Reactor<SemiJoinNode>
+    {
+        public SemiJoinNodeHandler(SemiJoinNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class IndexJoinNodeHandler
+            extends Reactor<IndexJoinNode>
+    {
+        public IndexJoinNodeHandler(IndexJoinNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class IndexSourceNodeHandler
+            extends Reactor<IndexSourceNode>
+    {
+        public IndexSourceNodeHandler(IndexSourceNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class TableWriterNodeHandler
+            extends Reactor<TableWriterNode>
+    {
+        public TableWriterNodeHandler(TableWriterNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class DeleteNodeHandler
+            extends Reactor<DeleteNode>
+    {
+        public DeleteNodeHandler(DeleteNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class MetadataDeleteNodeHandler
+            extends Reactor<MetadataDeleteNode>
+    {
+        public MetadataDeleteNodeHandler(MetadataDeleteNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class TableCommitNodeHandler
+            extends Reactor<TableCommitNode>
+    {
+        public TableCommitNodeHandler(TableCommitNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class UnnestNodeHandler
+            extends Reactor<UnnestNode>
+    {
+        public UnnestNodeHandler(UnnestNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class ExchangeNodeHandler
+            extends Reactor<ExchangeNode>
+    {
+        public ExchangeNodeHandler(ExchangeNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+    /*
+    public static class UnionNodeHandler
+            extends Reactor<UnionNode>
+    {
+        public UnionNodeHandler(UnionNode node, Optional<Reactor> destination)
+        {
+            super(node, destination);
+        }
+
+        @Override
+        public boolean isBlocking()
+        {
+            return false;
+        }
+    }
+    */
+
+//        else if (node instanceof ValuesNode) {
+//            return new ValuesNodeHandler((ValuesNode) node, destination);
+//        }
+//        else if (node instanceof AggregationNode) {
+//            return new AggregationNodeHandler((AggregationNode) node, destination);
+//        }
+//        else if (node instanceof MarkDistinctNode) {
+//            return new MarkDistinctNodeHandler((MarkDistinctNode) node, destination);
+//        }
+//        else if (node instanceof FilterNode) {
+//            return new FilterNodeHandler((FilterNode) node, destination);
+//        }
+//        else if (node instanceof WindowNode) {
+//            return new WindowNodeHandler((WindowNode) node, destination);
+//        }
+//        else if (node instanceof RowNumberNode) {
+//            return new RowNumberNodeHandler((RowNumberNode) node, destination);
+//        }
+//        else if (node instanceof TopNRowNumberNode) {
+//            return new TopNRowNumberNodeHandler((TopNRowNumberNode) node, destination);
+//        }
+//        else if (node instanceof LimitNode) {
+//            return new LimitNodeHandler((LimitNode) node, destination);
+//        }
+//        else if (node instanceof DistinctLimitNode) {
+//            return new DistinctLimitNodeHandler((DistinctLimitNode) node, destination);
+//        }
+//        else if (node instanceof TopNNode) {
+//            return new TopNNodeHandler((TopNNode) node, destination);
+//        }
+//        else if (node instanceof SampleNode) {
+//            return new SampleNodeHandler((SampleNode) node, destination);
+//        }
+//        else if (node instanceof SortNode) {
+//            return new SortNodeHandler((SortNode) node, destination);
+//        }
+//        else if (node instanceof RemoteSourceNode) {
+//            return new RemoteSourceNodeHandler((RemoteSourceNode) node, destination);
+//        }
+//        else if (node instanceof JoinNode) {
+//            return new JoinNodeHandler((JoinNode) node, destination);
+//        }
+//        else if (node instanceof SemiJoinNode) {
+//            return new SemiJoinNodeHandler((SemiJoinNode) node, destination);
+//        }
+//        else if (node instanceof IndexJoinNode) {
+//            return new IndexJoinNodeHandler((IndexJoinNode) node, destination);
+//        }
+//        else if (node instanceof IndexSourceNode) {
+//            return new IndexSourceNodeHandler((IndexSourceNode) node, destination);
+//        }
+//        else if (node instanceof TableWriterNode) {
+//            return new TableWriterNodeHandler((TableWriterNode) node, destination);
+//        }
+//        else if (node instanceof DeleteNode) {
+//            return new DeleteNodeHandler((DeleteNode) node, destination);
+//        }
+//        else if (node instanceof MetadataDeleteNode) {
+//            return new MetadataDeleteNodeHandler((MetadataDeleteNode) node, destination);
+//        }
+//        else if (node instanceof TableCommitNode) {
+//            return new TableCommitNodeHandler((TableCommitNode) node, destination);
+//        }
+//        else if (node instanceof UnnestNode) {
+//            return new UnnestNodeHandler((UnnestNode) node, destination);
+//        }
+//        else if (node instanceof ExchangeNode) {
+//            return new ExchangeNodeHandler((ExchangeNode) node, destination);
+//        }
+//        else if (node instanceof UnionNode) {
+//            return new UnionNodeHandler((UnionNode) node, destination);
+//        }

@@ -156,34 +156,6 @@ import static java.util.Locale.ENGLISH;
                                        x
 
 
-OutputNode
-ProjectNode
-TableScanNode
-ValuesNode
-AggregationNode
-MarkDistinctNode
-FilterNode
-WindowNode
-RowNumberNode
-TopNRowNumberNode
-LimitNode
-DistinctLimitNode
-TopNNode
-SampleNode
-SortNode
-RemoteSourceNode
-JoinNode
-SemiJoinNode
-IndexJoinNode
-IndexSourceNode
-TableWriterNode
-DeleteNode
-MetadataDeleteNode
-TableCommitNode
-UnnestNode
-ExchangeNode
-UnionNode
-
 
 OutputNode
 
@@ -244,11 +216,6 @@ public class TestInsertRewriter
     private static final SqlParser SQL_PARSER = new SqlParser();
 
     private Analyzer analyzer;
-
-//    public static class ReactionNode
-//    {
-//        private final Plan plan;
-//    }
 
     public static class Layout
     {
@@ -410,13 +377,28 @@ public class TestInsertRewriter
 
     public static class ReactorContext
     {
+        private final Plan plan;
+        private final Analysis analysis;
+
         private final Map<String, Connector> connectors;
         private final Map<String, ConnectorSupport> connectorSupport;
 
-        public ReactorContext(Map<String, Connector> connectors, Map<String, ConnectorSupport> connectorSupport)
+        public ReactorContext(Plan plan, Analysis analysis, Map<String, Connector> connectors, Map<String, ConnectorSupport> connectorSupport)
         {
+            this.plan = plan;
+            this.analysis = analysis;
             this.connectors = connectors;
             this.connectorSupport = connectorSupport;
+        }
+
+        public Plan getPlan()
+        {
+            return plan;
+        }
+
+        public Analysis getAnalysis()
+        {
+            return analysis;
         }
 
         public Map<String, Connector> getConnectors()
@@ -435,640 +417,128 @@ public class TestInsertRewriter
         }
     }
 
-    public static abstract class Reactor
+    public static abstract class Reactor<T extends PlanNode>
     {
-        private final ReactorContext context;
-        private final Optional<Reactor> destination;
+        protected final T node;
+        protected final ReactorContext context;
+        protected final Optional<Reactor> destination;
 
-        public Reactor(ReactorContext context, Optional<Reactor> destination)
+        public Reactor(T node, ReactorContext context, Optional<Reactor> destination)
         {
+            this.node = node;
             this.context = context;
             this.destination = destination;
-        }
-
-        public ReactorContext getContext()
-        {
-            return context;
-        }
-
-        public Optional<Reactor> getDestination()
-        {
-            return destination;
         }
 
         public abstract void react(Event event);
     }
 
-    public static abstract class PlanNodeHandler<T extends PlanNode>
+    public static abstract class SourceReactor<T extends PlanNode>
+            extends Reactor<T>
     {
-        protected final T node;
-        protected final Optional<PlanNodeHandler> destination;
-
-        public PlanNodeHandler(T node, Optional<PlanNodeHandler> destination)
+        public SourceReactor(T node, ReactorContext context, Optional<Reactor> destination)
         {
-            this.node = node;
-            this.destination = destination;
-        }
-
-        public T getNode()
-        {
-            return node;
-        }
-
-        public Optional<PlanNodeHandler> getDestination()
-        {
-            return destination;
-        }
-
-        public abstract boolean isBlocking();
-
-        public abstract Reactor getReactor(ReactorContext context);
-    }
-
-    public static abstract class SourcePlanNodeHandler<T extends PlanNode>
-            extends PlanNodeHandler<T>
-    {
-        public SourcePlanNodeHandler(T node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
+            super(node, context, destination);
             checkArgument(destination.isPresent());
         }
     }
 
     public static class OutputNodeHandler
-            extends PlanNodeHandler<OutputNode>
+            extends Reactor<OutputNode>
     {
-        public OutputNodeHandler(OutputNode node, Optional<PlanNodeHandler> destination, SymbolAllocator symbolAllocator)
+        private final Kv<byte[], byte[]> kv;
+
+        public OutputNodeHandler(OutputNode node, ReactorContext context, Optional<Reactor> destination)
         {
-            super(node, destination);
+            super(node, context, destination);
+
             checkArgument(!destination.isPresent());
-            Map<Symbol, Type> typeMap = symbolAllocator.getTypes();
+            Map<Symbol, Type> typeMap = context.plan.getSymbolAllocator().getTypes();
             List<String> names = node.getOutputSymbols().stream().map(s -> s.getName()).collect(toImmutableList());
             List<Type> types = names.stream().map(typeMap::get).collect(toImmutableList());
             new Layout(names, types, Optional.<List<String>>empty());
+
+            kv = context.getKv();
+        }
+
+        protected byte[] getKey(Tuple tuple)
+        {
+            try {
+                return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getPkValues());
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        protected byte[] getValue(Tuple tuple)
+        {
+            try {
+                return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getNonPkValues());
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         @Override
-        public boolean isBlocking()
+        public void react(Event event)
         {
-            return false;
-        }
-
-        @Override
-        public Reactor getReactor(ReactorContext context)
-        {
-            return new ReactorImpl(context, context.getKv());
-        }
-
-        private class ReactorImpl extends Reactor
-        {
-            private final Kv<byte[], byte[]> kv;
-
-            public ReactorImpl(ReactorContext context, Kv<byte[], byte[]> kv)
-            {
-                super(context, Optional.<Reactor>empty());
-                this.kv = kv;
-            }
-
-            protected byte[] getKey(Tuple tuple)
-            {
-                try {
-                    return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getPkValues());
+            switch (event.getOperation()) {
+                case INSERT: {
+                    Tuple after = event.getAfter().get();
+                    kv.put(getKey(after), getValue(after));
+                    break;
                 }
-                catch (IOException e) {
-                    throw new RuntimeException(e);
+                case UPDATE: {
+                    Tuple before = event.getBefore().get();
+                    kv.remove(getKey(before));
+                    Tuple after = event.getAfter().get();
+                    kv.put(getKey(after), getValue(after));
+                    break;
                 }
-            }
-
-            protected byte[] getValue(Tuple tuple)
-            {
-                try {
-                    return OBJECT_MAPPER.get().writeValueAsBytes(tuple.getNonPkValues());
-                }
-                catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public void react(Event event)
-            {
-                switch (event.getOperation()) {
-                    case INSERT: {
-                        Tuple after = event.getAfter().get();
-                        kv.put(getKey(after), getValue(after));
-                        break;
-                    }
-                    case UPDATE: {
-                        Tuple before = event.getBefore().get();
-                        kv.remove(getKey(before));
-                        Tuple after = event.getAfter().get();
-                        kv.put(getKey(after), getValue(after));
-                        break;
-                    }
-                    case DELETE: {
-                        Tuple before = event.getBefore().get();
-                        kv.remove(getKey(before));
-                        break;
-                    }
+                case DELETE: {
+                    Tuple before = event.getBefore().get();
+                    kv.remove(getKey(before));
+                    break;
                 }
             }
         }
     }
 
     public static class ProjectNodeHandler
-            extends PlanNodeHandler<ProjectNode>
+            extends Reactor<ProjectNode>
     {
-        public ProjectNodeHandler(ProjectNode node, Optional<PlanNodeHandler> destination)
+        public ProjectNodeHandler(ProjectNode node, ReactorContext context, Optional<Reactor> destination)
         {
-            super(node, destination);
+            super(node, context, destination);
         }
 
         @Override
-        public boolean isBlocking()
+        public void react(Event event)
         {
-            return false;
-        }
 
-        @Override
-        public Reactor getReactor(ReactorContext context)
-        {
-            return new ReactorImpl(context, Optional.of(destination.get().getReactor(context)));
-        }
-
-        private class ReactorImpl extends Reactor
-        {
-            public ReactorImpl(ReactorContext context, Optional<Reactor> destination)
-            {
-                super(context, destination);
-            }
-
-            @Override
-            public void react(Event event)
-            {
-
-            }
         }
     }
 
     public static class TableScanNodeHandler
-            extends SourcePlanNodeHandler<TableScanNode>
+            extends SourceReactor<TableScanNode>
     {
-        public TableScanNodeHandler(TableScanNode node, Optional<PlanNodeHandler> destination)
+        public TableScanNodeHandler(TableScanNode node, ReactorContext context, Optional<Reactor> destination)
         {
-            super(node, destination);
+            super(node, context, destination);
         }
 
         @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-
-        @Override
-        public Reactor getReactor(ReactorContext context)
+        public void react(Event event)
         {
             TableHandle th = node.getTable();
             ConnectorSupport cs = context.getConnectorSupport().get(th.getConnectorId());
             SchemaTableName stn = cs.getSchemaTableName(th.getConnectorHandle());
             List<String> pk = cs.getPrimaryKey(stn);
-            return new ReactorImpl(context, Optional.of(destination.get().getReactor(context)));
-        }
-
-        private class ReactorImpl extends Reactor
-        {
-            public ReactorImpl(ReactorContext context, Optional<Reactor> destination)
-            {
-                super(context, destination);
-            }
-
-            @Override
-            public void react(Event event)
-            {
-            }
+            // return new ReactorImpl(context, Optional.of(destination.get().getReactor(context)));
         }
     }
-
-    /*
-    public static class ValuesNodeHandler
-            extends PlanNodeHandler<ValuesNode>
-    {
-        public ValuesNodeHandler(ValuesNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-
-    public static class AggregationNodeHandler
-            extends PlanNodeHandler<AggregationNode>
-    {
-        public AggregationNodeHandler(AggregationNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return true;
-        }
-    }
-
-    public static class MarkDistinctNodeHandler
-            extends PlanNodeHandler<MarkDistinctNode>
-    {
-        public MarkDistinctNodeHandler(MarkDistinctNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-
-    public static class FilterNodeHandler
-            extends PlanNodeHandler<FilterNode>
-    {
-        public FilterNodeHandler(FilterNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class WindowNodeHandler
-            extends PlanNodeHandler<WindowNode>
-    {
-        public WindowNodeHandler(WindowNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class RowNumberNodeHandler
-            extends PlanNodeHandler<RowNumberNode>
-    {
-        public RowNumberNodeHandler(RowNumberNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class TopNRowNumberNodeHandler
-            extends PlanNodeHandler<TopNRowNumberNode>
-    {
-        public TopNRowNumberNodeHandler(TopNRowNumberNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-
-    public static class LimitNodeHandler
-            extends PlanNodeHandler<LimitNode>
-    {
-        public LimitNodeHandler(LimitNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-
-    public static class DistinctLimitNodeHandler
-            extends PlanNodeHandler<DistinctLimitNode>
-    {
-        public DistinctLimitNodeHandler(DistinctLimitNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-
-    public static class TopNNodeHandler
-            extends PlanNodeHandler<TopNNode>
-    {
-        public TopNNodeHandler(TopNNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class SampleNodeHandler
-            extends PlanNodeHandler<SampleNode>
-    {
-        public SampleNodeHandler(SampleNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class SortNodeHandler
-            extends PlanNodeHandler<SortNode>
-    {
-        public SortNodeHandler(SortNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class RemoteSourceNodeHandler
-            extends PlanNodeHandler<RemoteSourceNode>
-    {
-        public RemoteSourceNodeHandler(RemoteSourceNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class JoinNodeHandler
-            extends PlanNodeHandler<JoinNode>
-    {
-        public JoinNodeHandler(JoinNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-
-        @Override
-        public Reactor getReactor(ReactorContext context)
-        {
-            return new ReactorImpl(
-                    context.getKv(),
-                    context.getKv()
-            );
-        }
-
-        private class ReactorImpl extends Reactor
-        {
-            private final Kv<byte[], byte[]> pkJkKv;
-            private final Kv<byte[], byte[]> jkPkPayloadKv;
-
-            public ReactorImpl(Kv<byte[], byte[]> pkJkKv, Kv<byte[], byte[]> jkPkPayloadKv)
-            {
-                this.pkJkKv = pkJkKv;
-                this.jkPkPayloadKv = jkPkPayloadKv;
-            }
-
-            @Override
-            public void react(Event event)
-            {
-
-            }
-        }
-    }
-
-    public static class SemiJoinNodeHandler
-            extends PlanNodeHandler<SemiJoinNode>
-    {
-        public SemiJoinNodeHandler(SemiJoinNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class IndexJoinNodeHandler
-            extends PlanNodeHandler<IndexJoinNode>
-    {
-        public IndexJoinNodeHandler(IndexJoinNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class IndexSourceNodeHandler
-            extends PlanNodeHandler<IndexSourceNode>
-    {
-        public IndexSourceNodeHandler(IndexSourceNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class TableWriterNodeHandler
-            extends PlanNodeHandler<TableWriterNode>
-    {
-        public TableWriterNodeHandler(TableWriterNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class DeleteNodeHandler
-            extends PlanNodeHandler<DeleteNode>
-    {
-        public DeleteNodeHandler(DeleteNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class MetadataDeleteNodeHandler
-            extends PlanNodeHandler<MetadataDeleteNode>
-    {
-        public MetadataDeleteNodeHandler(MetadataDeleteNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class TableCommitNodeHandler
-            extends PlanNodeHandler<TableCommitNode>
-    {
-        public TableCommitNodeHandler(TableCommitNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class UnnestNodeHandler
-            extends PlanNodeHandler<UnnestNode>
-    {
-        public UnnestNodeHandler(UnnestNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class ExchangeNodeHandler
-            extends PlanNodeHandler<ExchangeNode>
-    {
-        public ExchangeNodeHandler(ExchangeNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
-
-    /*
-    public static class UnionNodeHandler
-            extends PlanNodeHandler<UnionNode>
-    {
-        public UnionNodeHandler(UnionNode node, Optional<PlanNodeHandler> destination)
-        {
-            super(node, destination);
-        }
-
-        @Override
-        public boolean isBlocking()
-        {
-            return false;
-        }
-    }
-    */
 
     public static final class UnsupportedPlanNodeException
         extends RuntimeException
@@ -1089,36 +559,36 @@ public class TestInsertRewriter
         }
     }
 
-    public static final class InvertedPlan
+    public static final class ReactorPlan
     {
-        private final List<SourcePlanNodeHandler> sourceHandlers;
-        private final Map<PlanNode, PlanNodeHandler> handlers;
+        private final List<SourceReactor> sourceHandlers;
+        private final Map<PlanNode, Reactor> handlers;
 
-        public InvertedPlan(List<SourcePlanNodeHandler> sourceHandlers, Map<PlanNode, PlanNodeHandler> handlers)
+        public ReactorPlan(List<SourceReactor> sourceHandlers, Map<PlanNode, Reactor> handlers)
         {
             this.sourceHandlers = sourceHandlers;
             this.handlers = handlers;
         }
 
-        public List<SourcePlanNodeHandler> getSourceHandlers()
+        public List<SourceReactor> getSourceHandlers()
         {
             return sourceHandlers;
         }
 
-        public Map<PlanNode, PlanNodeHandler> getHandlers()
+        public Map<PlanNode, Reactor> getHandlers()
         {
             return handlers;
         }
     }
 
-    public static class PlanInverter
+    public static class ReactorPlanner
     {
-        public InvertedPlan run(Plan plan, Analysis analysis)
+        public ReactorPlan run(ReactorContext reactorContext)
         {
-            VisitorContext context = new VisitorContext(plan, analysis);
+            VisitorContext context = new VisitorContext(reactorContext);
             Visitor visitor = new Visitor();
-            visitor.visitPlan(plan.getRoot(), context);
-            return new InvertedPlan(
+            visitor.visitPlan(reactorContext.plan.getRoot(), context);
+            return new ReactorPlan(
                     ImmutableList.copyOf(context.sourceHandlers),
                     ImmutableMap.copyOf(context.handlers)
             );
@@ -1126,125 +596,50 @@ public class TestInsertRewriter
 
         private static final class VisitorContext
         {
-            private final Plan plan;
-            private final Analysis analysis;
+            private final ReactorContext reactorContext;
 
-            private final List<SourcePlanNodeHandler> sourceHandlers;
-            private final Map<PlanNode, PlanNodeHandler> handlers;
-            private final Optional<PlanNodeHandler> destination;
+            private final List<SourceReactor> sourceHandlers;
+            private final Map<PlanNode, Reactor> handlers;
+            private final Optional<Reactor> destination;
 
-            public VisitorContext(Plan plan, Analysis analysis)
+            public VisitorContext(ReactorContext reactorContext)
             {
-                this.plan = plan;
-                this.analysis = analysis;
+                this.reactorContext = reactorContext;
 
                 sourceHandlers = newArrayList();
                 handlers = newHashMap();
                 destination = Optional.empty();
             }
 
-            public VisitorContext(VisitorContext parent, PlanNodeHandler destination)
+            public VisitorContext(VisitorContext parent, Reactor destination)
             {
-                plan = parent.plan;
-                analysis = parent.analysis;
+                reactorContext = parent.reactorContext;
 
                 sourceHandlers = parent.sourceHandlers;
                 handlers = parent.handlers;
                 this.destination = Optional.of(destination);
             }
 
-            public VisitorContext branch(PlanNodeHandler destination)
+            public VisitorContext branch(Reactor destination)
             {
                 return new VisitorContext(this, destination);
             }
         }
 
-        private class Visitor extends PlanVisitor<PlanInverter.VisitorContext, Void>
+        private class Visitor extends PlanVisitor<ReactorPlanner.VisitorContext, Void>
         {
-            private PlanNodeHandler handleNode(PlanNode node, VisitorContext context)
+            private Reactor handleNode(PlanNode node, VisitorContext context)
             {
-                Optional<PlanNodeHandler> destination = context.destination;
+                Optional<Reactor> destination = context.destination;
                 if (node instanceof OutputNode) {
-                    return new OutputNodeHandler((OutputNode) node, destination, context.plan.getSymbolAllocator());
+                    return new OutputNodeHandler((OutputNode) node, context.reactorContext, destination);
                 }
                 else if (node instanceof ProjectNode) {
-                    return new ProjectNodeHandler((ProjectNode) node, destination);
+                    return new ProjectNodeHandler((ProjectNode) node, context.reactorContext, destination);
                 }
                 else if (node instanceof TableScanNode) {
-                    return new TableScanNodeHandler((TableScanNode) node, destination);
+                    return new TableScanNodeHandler((TableScanNode) node, context.reactorContext, destination);
                 }
-//        else if (node instanceof ValuesNode) {
-//            return new ValuesNodeHandler((ValuesNode) node, destination);
-//        }
-//        else if (node instanceof AggregationNode) {
-//            return new AggregationNodeHandler((AggregationNode) node, destination);
-//        }
-//        else if (node instanceof MarkDistinctNode) {
-//            return new MarkDistinctNodeHandler((MarkDistinctNode) node, destination);
-//        }
-//        else if (node instanceof FilterNode) {
-//            return new FilterNodeHandler((FilterNode) node, destination);
-//        }
-//        else if (node instanceof WindowNode) {
-//            return new WindowNodeHandler((WindowNode) node, destination);
-//        }
-//        else if (node instanceof RowNumberNode) {
-//            return new RowNumberNodeHandler((RowNumberNode) node, destination);
-//        }
-//        else if (node instanceof TopNRowNumberNode) {
-//            return new TopNRowNumberNodeHandler((TopNRowNumberNode) node, destination);
-//        }
-//        else if (node instanceof LimitNode) {
-//            return new LimitNodeHandler((LimitNode) node, destination);
-//        }
-//        else if (node instanceof DistinctLimitNode) {
-//            return new DistinctLimitNodeHandler((DistinctLimitNode) node, destination);
-//        }
-//        else if (node instanceof TopNNode) {
-//            return new TopNNodeHandler((TopNNode) node, destination);
-//        }
-//        else if (node instanceof SampleNode) {
-//            return new SampleNodeHandler((SampleNode) node, destination);
-//        }
-//        else if (node instanceof SortNode) {
-//            return new SortNodeHandler((SortNode) node, destination);
-//        }
-//        else if (node instanceof RemoteSourceNode) {
-//            return new RemoteSourceNodeHandler((RemoteSourceNode) node, destination);
-//        }
-//        else if (node instanceof JoinNode) {
-//            return new JoinNodeHandler((JoinNode) node, destination);
-//        }
-//        else if (node instanceof SemiJoinNode) {
-//            return new SemiJoinNodeHandler((SemiJoinNode) node, destination);
-//        }
-//        else if (node instanceof IndexJoinNode) {
-//            return new IndexJoinNodeHandler((IndexJoinNode) node, destination);
-//        }
-//        else if (node instanceof IndexSourceNode) {
-//            return new IndexSourceNodeHandler((IndexSourceNode) node, destination);
-//        }
-//        else if (node instanceof TableWriterNode) {
-//            return new TableWriterNodeHandler((TableWriterNode) node, destination);
-//        }
-//        else if (node instanceof DeleteNode) {
-//            return new DeleteNodeHandler((DeleteNode) node, destination);
-//        }
-//        else if (node instanceof MetadataDeleteNode) {
-//            return new MetadataDeleteNodeHandler((MetadataDeleteNode) node, destination);
-//        }
-//        else if (node instanceof TableCommitNode) {
-//            return new TableCommitNodeHandler((TableCommitNode) node, destination);
-//        }
-//        else if (node instanceof UnnestNode) {
-//            return new UnnestNodeHandler((UnnestNode) node, destination);
-//        }
-//        else if (node instanceof ExchangeNode) {
-//            return new ExchangeNodeHandler((ExchangeNode) node, destination);
-//        }
-//        else if (node instanceof UnionNode) {
-//            return new UnionNodeHandler((UnionNode) node, destination);
-//        }
                 else {
                     throw new UnsupportedPlanNodeException(node);
                 }
@@ -1253,7 +648,7 @@ public class TestInsertRewriter
             @Override
             protected Void visitPlan(PlanNode node, VisitorContext context)
             {
-                PlanNodeHandler handler = handleNode(node, context);
+                Reactor handler = handleNode(node, context);
                 checkState(!context.handlers.containsKey(node));
                 context.handlers.put(node, handler);
                 List<PlanNode> nodeSources = node.getSources();
@@ -1263,8 +658,8 @@ public class TestInsertRewriter
                     }
                 }
                 else {
-                    checkState(handler instanceof SourcePlanNodeHandler);
-                    context.sourceHandlers.add((SourcePlanNodeHandler) handler);
+                    checkState(handler instanceof SourceReactor);
+                    context.sourceHandlers.add((SourceReactor) handler);
                 }
                 return null;
             }
@@ -1289,14 +684,6 @@ public class TestInsertRewriter
 
         public abstract List<String> getPrimaryKey(SchemaTableName schemaTableName);
     }
-
-//    public static class PkThreader extends SimplePlanRewriter<PkThreader.Context>
-//    {
-//        public static class Context
-//        {
-//
-//        }
-//    }
 
     public static class ExtendedJdbcConnectorSupport extends ConnectorSupport<ExtendedJdbcConnectorFactory, ExtendedJdbcConnector>
     {
@@ -1618,14 +1005,16 @@ public class TestInsertRewriter
             List<String> pks = new TpchConnectorSupport(tpchConn, "tiny").getPrimaryKey(new SchemaTableName("tiny", "customer"));
 
             ReactorContext rc = new ReactorContext(
+                    plan,
+                    analysis,
                     lqr.getConnectorManager().getConnectors(),
                     ImmutableMap.<String, ConnectorSupport>builder()
                             .put("tpch", new TpchConnectorSupport(tpchConn, "tiny"))
                             .build()
             );
-            InvertedPlan invertedPlan = new PlanInverter().run(plan, analysis);
-            for (SourcePlanNodeHandler s : invertedPlan.getSourceHandlers()) {
-                Reactor r = s.getReactor(rc);
+            ReactorPlan rp = new ReactorPlanner().run(rc);
+            for (SourceReactor s : rp.getSourceHandlers()) {
+                s.react(null);
                 // rc.getConnectorSupport().get(s.getNode().)
 
             }
