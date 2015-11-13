@@ -732,14 +732,14 @@ public class TestInsertRewriter
     public static class OutputNodeReactor
             extends Reactor<OutputNode>
     {
-        private final Layout layout;
+        // private final Layout layout;
         private final Kv<byte[], byte[]> kv;
 
         public OutputNodeReactor(OutputNode node, ReactorContext context, Optional<Reactor> destination)
         {
             super(node, context, destination);
             checkArgument(!destination.isPresent());
-            layout = nodeLayout(node);
+            // layout = nodeLayout(node);
             kv = context.getKv();
         }
 
