@@ -41,6 +41,7 @@ import com.facebook.presto.spi.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
+import com.facebook.presto.spi.RecordCursor;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.Type;
@@ -62,6 +63,7 @@ import com.facebook.presto.sql.planner.PlanPrinter;
 import com.facebook.presto.sql.planner.SubPlan;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
+import com.facebook.presto.sql.planner.SymbolResolver;
 import com.facebook.presto.sql.planner.plan.AggregationNode;
 import com.facebook.presto.sql.planner.plan.DistinctLimitNode;
 import com.facebook.presto.sql.planner.plan.FilterNode;
@@ -104,6 +106,7 @@ import com.wrmsr.presto.util.ByteArrayWrapper;
 import com.wrmsr.presto.util.Codecs;
 import com.wrmsr.presto.util.Kv;
 import io.airlift.json.JsonCodec;
+import io.airlift.slice.Slice;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.BeforeMethod;
@@ -119,6 +122,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -296,6 +300,27 @@ public class TestInsertRewriter
                     ", pkNames=" + pkNames +
                     '}';
         }
+
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            Layout layout = (Layout) o;
+            return Objects.equals(names, layout.names) &&
+                    Objects.equals(types, layout.types) &&
+                    Objects.equals(pkNames, layout.pkNames);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(names, types, pkNames);
+        }
     }
 
     public class Tuple
@@ -337,6 +362,102 @@ public class TestInsertRewriter
                     ", values=" + values +
                     '}';
         }
+
+        @Override
+        public boolean equals(Object o)
+        {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            Tuple tuple = (Tuple) o;
+            return Objects.equals(layout, tuple.layout) &&
+                    Objects.equals(values, tuple.values);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(layout, values);
+        }
+    }
+
+    public static class TupleRecordCursor implements RecordCursor
+    {
+        @Override
+        public long getTotalBytes()
+        {
+            return 0;
+        }
+
+        @Override
+        public long getCompletedBytes()
+        {
+            return 0;
+        }
+
+        @Override
+        public long getReadTimeNanos()
+        {
+            return 0;
+        }
+
+        @Override
+        public Type getType(int field)
+        {
+            return null;
+        }
+
+        @Override
+        public boolean advanceNextPosition()
+        {
+            return false;
+        }
+
+        @Override
+        public boolean getBoolean(int field)
+        {
+            return false;
+        }
+
+        @Override
+        public long getLong(int field)
+        {
+            return 0;
+        }
+
+        @Override
+        public double getDouble(int field)
+        {
+            return 0;
+        }
+
+        @Override
+        public Slice getSlice(int field)
+        {
+            eek
+            return null;
+        }
+
+        @Override
+        public Object getObject(int field)
+        {
+            return null;
+        }
+
+        @Override
+        public boolean isNull(int field)
+        {
+            return false;
+        }
+
+        @Override
+        public void close()
+        {
+
+        }
     }
 
     public static class Event
@@ -359,6 +480,19 @@ public class TestInsertRewriter
             this.operation = operation;
             this.before = before;
             this.after = after;
+        }
+
+        public Event(Event parent, Reactor source)
+        {
+            this.source = source;
+            operation = parent.operation;
+            before = parent.before;
+            after = parent.after;
+        }
+
+        public Event branch(Reactor source)
+        {
+            return new Event(this, source);
         }
 
         public Reactor getSource()
@@ -484,10 +618,20 @@ public class TestInsertRewriter
         }
     }
 
-    public static abstract class SourceReactor<T extends PlanNode>
+    public static abstract class InputNodeReactor<T extends PlanNode>
             extends Reactor<T>
     {
-        public SourceReactor(T node, ReactorContext context, Optional<Reactor> destination)
+        public InputNodeReactor(T node, ReactorContext context, Optional<Reactor> destination)
+        {
+            super(node, context, destination);
+            checkArgument(destination.isPresent());
+        }
+    }
+
+    public static abstract class InnerNodeReactor<T extends PlanNode>
+            extends Reactor<T>
+    {
+        public InnerNodeReactor(T node, ReactorContext context, Optional<Reactor> destination)
         {
             super(node, context, destination);
             checkArgument(destination.isPresent());
@@ -534,7 +678,7 @@ public class TestInsertRewriter
     }
 
     public static class ProjectNodeReactor
-            extends Reactor<ProjectNode>
+            extends InnerNodeReactor<ProjectNode>
     {
         public ProjectNodeReactor(ProjectNode node, ReactorContext context, Optional<Reactor> destination)
         {
@@ -544,11 +688,12 @@ public class TestInsertRewriter
         @Override
         public void react(Event event)
         {
+            destination.get().react(event);
         }
     }
 
     public static class TableScanNodeReactor
-            extends SourceReactor<TableScanNode>
+            extends InputNodeReactor<TableScanNode>
     {
         private final Layout layout;
 
@@ -561,6 +706,7 @@ public class TestInsertRewriter
         @Override
         public void react(Event event)
         {
+            destination.get().react(event);
         }
     }
 
@@ -585,16 +731,16 @@ public class TestInsertRewriter
 
     public static final class ReactorPlan
     {
-        private final List<SourceReactor> sourceReactors;
+        private final List<InputNodeReactor> sourceReactors;
         private final Map<PlanNode, Reactor> reactors;
 
-        public ReactorPlan(List<SourceReactor> sourceReactors, Map<PlanNode, Reactor> reactors)
+        public ReactorPlan(List<InputNodeReactor> sourceReactors, Map<PlanNode, Reactor> reactors)
         {
             this.sourceReactors = sourceReactors;
             this.reactors = reactors;
         }
 
-        public List<SourceReactor> getSourceReactors()
+        public List<InputNodeReactor> getInputNodeReactors()
         {
             return sourceReactors;
         }
@@ -622,7 +768,7 @@ public class TestInsertRewriter
         {
             private final ReactorContext reactorContext;
 
-            private final List<SourceReactor> sourceHandlers;
+            private final List<InputNodeReactor> sourceHandlers;
             private final Map<PlanNode, Reactor> reactors;
             private final Optional<Reactor> destination;
 
@@ -682,8 +828,8 @@ public class TestInsertRewriter
                     }
                 }
                 else {
-                    checkState(reactor instanceof SourceReactor);
-                    context.sourceHandlers.add((SourceReactor) reactor);
+                    checkState(reactor instanceof InputNodeReactor);
+                    context.sourceHandlers.add((InputNodeReactor) reactor);
                 }
                 return null;
             }
@@ -1051,8 +1197,17 @@ public class TestInsertRewriter
                             .build()
             );
             ReactorPlan rp = new ReactorPlanner().run(rc);
-            for (SourceReactor s : rp.getSourceReactors()) {
-                s.react(null);
+            for (InputNodeReactor s : rp.getInputNodeReactors()) {
+                Event e = new Event(
+                        s,
+                        Event.Operation.INSERT,
+                        Optional.<Tuple>empty(),
+                        Optional.<Tuple>of(
+                                new Tuple(
+                                        new Layout(ImmutableList.of("custkey"), ImmutableList.of(BIGINT), Optional.of(ImmutableList.of("custkey"))),
+                                        ImmutableList.of(5)
+                                )));
+                s.react(e);
                 // rc.getConnectorSupport().get(s.getNode().)
 
             }
