@@ -14,34 +14,10 @@
 package com.wrmsr.presto.reactor;
 
 import com.facebook.presto.Session;
-import com.facebook.presto.block.BlockEncodingManager;
-import com.facebook.presto.execution.QueryId;
-import com.facebook.presto.index.IndexManager;
-import com.facebook.presto.metadata.InMemoryNodeManager;
 import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.MetadataManager;
-import com.facebook.presto.metadata.QualifiedTableName;
-import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.TableHandle;
-import com.facebook.presto.metadata.TableMetadata;
-import com.facebook.presto.metadata.TablePropertyManager;
-import com.facebook.presto.metadata.ViewDefinition;
-import com.facebook.presto.operator.Driver;
-import com.facebook.presto.operator.TaskContext;
-import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
-import com.facebook.presto.plugin.jdbc.JdbcMetadata;
-import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
-import com.facebook.presto.security.AccessControl;
-import com.facebook.presto.security.AllowAllAccessControl;
 import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
-import com.facebook.presto.spi.ConnectorFactory;
-import com.facebook.presto.spi.ConnectorMetadata;
-import com.facebook.presto.spi.ConnectorSession;
-import com.facebook.presto.spi.ConnectorTableHandle;
-import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.InMemoryRecordSet;
 import com.facebook.presto.spi.RecordCursor;
 import com.facebook.presto.spi.RecordSet;
@@ -52,72 +28,25 @@ import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.BlockEncoding;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
-import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.spi.type.TypeManager;
-import com.facebook.presto.split.SplitManager;
-import com.facebook.presto.sql.SqlFormatter;
 import com.facebook.presto.sql.analyzer.Analysis;
-import com.facebook.presto.sql.analyzer.Analyzer;
-import com.facebook.presto.sql.analyzer.FeaturesConfig;
-import com.facebook.presto.sql.analyzer.Field;
-import com.facebook.presto.sql.analyzer.QueryExplainer;
-import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.ExpressionInterpreter;
-import com.facebook.presto.sql.planner.LogicalPlanner;
 import com.facebook.presto.sql.planner.Plan;
-import com.facebook.presto.sql.planner.PlanFragmenter;
-import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
-import com.facebook.presto.sql.planner.PlanOptimizersFactory;
-import com.facebook.presto.sql.planner.PlanPrinter;
-import com.facebook.presto.sql.planner.SubPlan;
 import com.facebook.presto.sql.planner.Symbol;
-import com.facebook.presto.sql.planner.SymbolAllocator;
 import com.facebook.presto.sql.planner.SymbolResolver;
-import com.facebook.presto.sql.planner.plan.AggregationNode;
-import com.facebook.presto.sql.planner.plan.DistinctLimitNode;
-import com.facebook.presto.sql.planner.plan.FilterNode;
 import com.facebook.presto.sql.planner.plan.JoinNode;
-import com.facebook.presto.sql.planner.plan.LimitNode;
-import com.facebook.presto.sql.planner.plan.MarkDistinctNode;
 import com.facebook.presto.sql.planner.plan.OutputNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
+import com.facebook.presto.sql.planner.plan.PlanNodeId;
 import com.facebook.presto.sql.planner.plan.PlanVisitor;
 import com.facebook.presto.sql.planner.plan.ProjectNode;
-import com.facebook.presto.sql.planner.plan.SemiJoinNode;
-import com.facebook.presto.sql.planner.plan.SortNode;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
-import com.facebook.presto.sql.planner.plan.TopNNode;
-import com.facebook.presto.sql.planner.plan.TopNRowNumberNode;
-import com.facebook.presto.sql.planner.plan.UnionNode;
-import com.facebook.presto.sql.planner.plan.UnnestNode;
-import com.facebook.presto.sql.planner.plan.ValuesNode;
 import com.facebook.presto.sql.tree.Expression;
-import com.facebook.presto.sql.tree.Insert;
-import com.facebook.presto.sql.tree.QualifiedName;
-import com.facebook.presto.sql.tree.QualifiedNameReference;
-import com.facebook.presto.sql.tree.Query;
-import com.facebook.presto.sql.tree.QuerySpecification;
-import com.facebook.presto.sql.tree.Statement;
-import com.facebook.presto.sql.tree.Table;
-import com.facebook.presto.testing.LocalQueryRunner;
-import com.facebook.presto.testing.MaterializedResult;
-import com.facebook.presto.testing.TestingConnectorSession;
-import com.facebook.presto.tpch.TpchColumnHandle;
-import com.facebook.presto.tpch.TpchConnectorFactory;
-import com.facebook.presto.tpch.TpchTableHandle;
-import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.Files;
-import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
-import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
-import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
 import com.wrmsr.presto.util.ByteArrayWrapper;
-import com.wrmsr.presto.util.Codecs;
 import com.wrmsr.presto.util.Kv;
-import io.airlift.json.JsonCodec;
 import io.airlift.slice.BasicSliceInput;
 import io.airlift.slice.DynamicSliceOutput;
 import io.airlift.slice.Slice;
@@ -125,40 +54,23 @@ import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.intellij.lang.annotations.Language;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.security.Principal;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Base64;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
-import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
-import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
-import static com.wrmsr.presto.util.Maps.invertMap;
-import static java.util.Locale.ENGLISH;
 
 /*
 
@@ -228,27 +140,7 @@ UnionNode
 
 public class TestInsertRewriter
 {
-    @Test
-    public void testWhatTheFuck() throws Throwable
-    {
-        QualifiedNameReference r = new QualifiedNameReference(new QualifiedName("wtf"));
-        Map<QualifiedNameReference, Integer> s = ImmutableMap.of(r, 1);
-        assert s.containsKey(r);
-
-    }
-    public static final Session SESSION = Session.builder(new SessionPropertyManager())
-            .setSource("test")
-            .setCatalog("default")
-            .setSchema("default")
-            .setTimeZoneKey(UTC_KEY)
-            .setLocale(ENGLISH)
-            .setQueryId(QueryId.valueOf("dummy"))
-            .setIdentity(new Identity("test", Optional.<Principal>empty()))
-            .build();
-
-    private static final SqlParser SQL_PARSER = new SqlParser();
-
-    private Analyzer analyzer;
+    private final TestHelper helper = new TestHelper();
 
     public static class Layout
     {
@@ -314,7 +206,8 @@ public class TestInsertRewriter
         }
     }
 
-    public static class PkLayout extends Layout
+    public static class PkLayout
+            extends Layout
     {
         private final List<String> pkNames;
 
@@ -535,7 +428,8 @@ public class TestInsertRewriter
         }
     }
 
-    public static class PkTuple extends Tuple
+    public static class PkTuple
+            extends Tuple
     {
         public PkTuple(PkLayout layout, List<Object> values)
         {
@@ -634,6 +528,8 @@ public class TestInsertRewriter
         private final Map<String, Connector> connectors;
         private final Map<String, ConnectorSupport> connectorSupport;
 
+        private final Map<PlanNodeId, Reactor> reactors;
+
         public ReactorContext(Plan plan, Analysis analysis, Session session, Metadata metadata, Map<String, Connector> connectors, Map<String, ConnectorSupport> connectorSupport)
         {
             this.plan = plan;
@@ -642,6 +538,7 @@ public class TestInsertRewriter
             this.metadata = metadata;
             this.connectors = connectors;
             this.connectorSupport = connectorSupport;
+            reactors = newHashMap();
         }
 
         public Plan getPlan()
@@ -677,6 +574,16 @@ public class TestInsertRewriter
         public Map<String, ConnectorSupport> getConnectorSupport()
         {
             return connectorSupport;
+        }
+
+        public Map<PlanNodeId, Reactor> getReactors()
+        {
+            return reactors;
+        }
+
+        public List<InputNodeReactor> getInputReactors()
+        {
+            return reactors.values().stream().filter(InputNodeReactor.class::isInstance).map(InputNodeReactor.class::cast).collect(toImmutableList());
         }
 
         public Kv<byte[], byte[]> getKv()
@@ -728,6 +635,18 @@ public class TestInsertRewriter
             Map<String, Symbol> m = assignments.entrySet().stream().map(e -> ImmutablePair.of(cs.getColumnName(e.getValue()), e.getKey())).collect(toImmutableMap());
             return pkCols.stream().map(c -> m.get(c).getName()).collect(toImmutableList());
         }
+
+        public List<Reactor> getSources()
+        {
+            return node.getSources().stream().map(n -> context.reactors.get(n.getId())).collect(toImmutableList());
+        }
+
+        public Reactor getSource()
+        {
+            List<Reactor> sources = getSources();
+            checkState(sources.size() == 1);
+            return sources.get(0);
+        }
     }
 
     public static abstract class InputNodeReactor<T extends PlanNode>
@@ -761,8 +680,7 @@ public class TestInsertRewriter
             super(node, context, destination);
             checkArgument(!destination.isPresent());
             // layout = nodeLayout(node);
-            kv = context.getKv();
-        }
+            kv = context.getKv(); }
 
         @Override
         public void react(Event event)
@@ -796,7 +714,8 @@ public class TestInsertRewriter
         int getSymbolIndex(Symbol symbol);
     }
 
-    public static class RecordCursorSymbolResolver implements RecordCursor, SymbolResolver
+    public static class RecordCursorSymbolResolver
+            implements RecordCursor, SymbolResolver
     {
         private final RecordCursor recordCursor;
         private final SymbolIndexResolver symbolIndexResolver;
@@ -899,6 +818,7 @@ public class TestInsertRewriter
             expressionInterpreters = node.getAssignments().entrySet().stream()
                     .map(e -> ImmutablePair.of(
                             e.getKey(),
+                            // FIXME: duplicate names?
                             ExpressionInterpreter.expressionInterpreterUnsafe(
                                     e.getValue(),
                                     context.getMetadata(),
@@ -940,8 +860,24 @@ public class TestInsertRewriter
         }
     }
 
+    public static class JoinNodeReactor
+            extends InnerNodeReactor<JoinNode>
+    {
+        public JoinNodeReactor(JoinNode node, ReactorContext context, Optional<Reactor> destination)
+        {
+            super(node, context, destination);
+            // pkl + pkr + (jk - hashes)
+        }
+
+        @Override
+        public void react(Event event)
+        {
+
+        }
+    }
+
     public static final class UnsupportedPlanNodeException
-        extends RuntimeException
+            extends RuntimeException
     {
         private final PlanNode node;
 
@@ -959,55 +895,29 @@ public class TestInsertRewriter
         }
     }
 
-    public static final class ReactorPlan
-    {
-        private final List<InputNodeReactor> sourceReactors;
-        private final Map<PlanNode, Reactor> reactors;
-
-        public ReactorPlan(List<InputNodeReactor> sourceReactors, Map<PlanNode, Reactor> reactors)
-        {
-            this.sourceReactors = sourceReactors;
-            this.reactors = reactors;
-        }
-
-        public List<InputNodeReactor> getInputNodeReactors()
-        {
-            return sourceReactors;
-        }
-
-        public Map<PlanNode, Reactor> getReactors()
-        {
-            return reactors;
-        }
-    }
-
     public static class ReactorPlanner
     {
-        public ReactorPlan run(ReactorContext reactorContext)
+        public ReactorContext run(ReactorContext reactorContext)
         {
+            // FIXME make sure no indices used as they have no event sources .. or make them some
             VisitorContext context = new VisitorContext(reactorContext);
             Visitor visitor = new Visitor();
             visitor.visitPlan(reactorContext.plan.getRoot(), context);
-            return new ReactorPlan(
-                    ImmutableList.copyOf(context.sourceHandlers),
-                    ImmutableMap.copyOf(context.reactors)
-            );
+            return reactorContext;
         }
 
         private static final class VisitorContext
         {
             private final ReactorContext reactorContext;
 
-            private final List<InputNodeReactor> sourceHandlers;
-            private final Map<PlanNode, Reactor> reactors;
+            private final List<InputNodeReactor> inputReactors;
             private final Optional<Reactor> destination;
 
             public VisitorContext(ReactorContext reactorContext)
             {
                 this.reactorContext = reactorContext;
 
-                sourceHandlers = newArrayList();
-                reactors = newHashMap();
+                inputReactors = newArrayList();
                 destination = Optional.empty();
             }
 
@@ -1015,8 +925,7 @@ public class TestInsertRewriter
             {
                 reactorContext = parent.reactorContext;
 
-                sourceHandlers = parent.sourceHandlers;
-                reactors = parent.reactors;
+                inputReactors = parent.inputReactors;
                 this.destination = Optional.of(destination);
             }
 
@@ -1026,7 +935,8 @@ public class TestInsertRewriter
             }
         }
 
-        private class Visitor extends PlanVisitor<ReactorPlanner.VisitorContext, Void>
+        private class Visitor
+                extends PlanVisitor<ReactorPlanner.VisitorContext, Void>
         {
             private Reactor handleNode(PlanNode node, VisitorContext context)
             {
@@ -1040,6 +950,9 @@ public class TestInsertRewriter
                 else if (node instanceof TableScanNode) {
                     return new TableScanNodeReactor((TableScanNode) node, context.reactorContext, destination);
                 }
+                else if (node instanceof JoinNode) {
+                    return new JoinNodeReactor((JoinNode) node, context.reactorContext, destination);
+                }
                 else {
                     throw new UnsupportedPlanNodeException(node);
                 }
@@ -1049,8 +962,8 @@ public class TestInsertRewriter
             protected Void visitPlan(PlanNode node, VisitorContext context)
             {
                 Reactor reactor = handleNode(node, context);
-                checkState(!context.reactors.containsKey(node));
-                context.reactors.put(node, reactor);
+                checkState(!context.reactorContext.reactors.containsKey(node.getId()));
+                context.reactorContext.reactors.put(node.getId(), reactor);
                 List<PlanNode> nodeSources = node.getSources();
                 if (!nodeSources.isEmpty()) {
                     for (PlanNode source : node.getSources()) {
@@ -1059,462 +972,62 @@ public class TestInsertRewriter
                 }
                 else {
                     checkState(reactor instanceof InputNodeReactor);
-                    context.sourceHandlers.add((InputNodeReactor) reactor);
+                    context.inputReactors.add((InputNodeReactor) reactor);
                 }
                 return null;
             }
         }
     }
 
-    public static abstract class ConnectorSupport<CF extends ConnectorFactory, C extends Connector>
-    {
-        private final Class<CF> connectorFactoryClass;
-        private final Class<C> connectorClass;
-        protected final C connector;
-
-        @SuppressWarnings({"unchecked"})
-        public ConnectorSupport(Class<CF> connectorFactoryClass, Class<C> connectorClass, C connector)
-        {
-            this.connectorFactoryClass = connectorFactoryClass;
-            this.connectorClass = connectorClass;
-            this.connector = (C) connector;
-        }
-
-        public abstract SchemaTableName getSchemaTableName(ConnectorTableHandle handle);
-
-        public abstract List<String> getPrimaryKey(SchemaTableName schemaTableName);
-
-        public abstract String getColumnName(ColumnHandle columnHandle);
-    }
-
-    public static class ExtendedJdbcConnectorSupport extends ConnectorSupport<ExtendedJdbcConnectorFactory, ExtendedJdbcConnector>
-    {
-        public ExtendedJdbcConnectorSupport(ExtendedJdbcConnector connector)
-        {
-            super(ExtendedJdbcConnectorFactory.class, ExtendedJdbcConnector.class, connector);
-        }
-
-        public ExtendedJdbcClient getClient()
-        {
-            return (ExtendedJdbcClient) connector.getJdbcClient();
-        }
-
-        @Override
-        public SchemaTableName getSchemaTableName(ConnectorTableHandle handle)
-        {
-            checkArgument(handle instanceof JdbcTableHandle);
-            return ((JdbcTableHandle) handle).getSchemaTableName();
-        }
-
-        @Override
-        public List<String> getPrimaryKey(SchemaTableName schemaTableName)
-        {
-            try {
-                try (Connection connection = getClient().getConnection()) {
-                    DatabaseMetaData metadata = connection.getMetaData();
-
-                    // FIXME postgres catalog support
-                    try (ResultSet resultSet = metadata.getPrimaryKeys(schemaTableName.getSchemaName(), schemaTableName.getSchemaName(), schemaTableName.getTableName())) {
-                        while (resultSet.next()) {
-                            System.out.println(resultSet);
-                        }
-                    }
-
-                    throw new UnsupportedOperationException();
-                }
-            }
-            catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public String getColumnName(ColumnHandle columnHandle)
-        {
-            return ((JdbcColumnHandle) columnHandle).getColumnName();
-        }
-    }
-
-    public static class TpchConnectorSupport extends ConnectorSupport<TpchConnectorFactory, Connector>
-    {
-        private final String defaultSchema;
-
-        private static final Set<String> schemas = ImmutableSet.<String>builder()
-                .add("tiny")
-                .build();
-
-        private static final Map<String, List<String>> tablePrimaryKeys = ImmutableMap.<String, List<String>>builder()
-                .put("customer", ImmutableList.of("custkey"))
-                .put("supplier", ImmutableList.of("suppkey"))
-                .put("part", ImmutableList.of("partkey"))
-                .put("nation", ImmutableList.of("nationkey"))
-                .put("region", ImmutableList.of("regionkey"))
-                .put("partsupp", ImmutableList.of("partkey", "suppkey"))
-                .put("orders", ImmutableList.of("orderkey"))
-                .build();
-
-        public TpchConnectorSupport(Connector connector, String defaultSchema)
-        {
-            super(TpchConnectorFactory.class, Connector.class, connector);
-            checkArgument(schemas.contains(defaultSchema));
-            this.defaultSchema = defaultSchema;
-        }
-
-        @Override
-        public SchemaTableName getSchemaTableName(ConnectorTableHandle handle)
-        {
-            checkArgument(handle instanceof TpchTableHandle);
-            return new SchemaTableName(defaultSchema, ((TpchTableHandle) handle).getTableName());
-        }
-
-        @Override
-        public List<String> getPrimaryKey(SchemaTableName schemaTableName)
-        {
-            checkArgument(schemas.contains(schemaTableName.getSchemaName()));
-            checkArgument(tablePrimaryKeys.containsKey(schemaTableName.getTableName()));
-            return tablePrimaryKeys.get(schemaTableName.getTableName());
-        }
-
-        @Override
-        public String getColumnName(ColumnHandle columnHandle)
-        {
-            return ((TpchColumnHandle) columnHandle).getColumnName();
-        }
-    }
-
-    @BeforeMethod(alwaysRun = true)
-    public void setup()
-            throws Exception
-    {
-        TypeManager typeManager = new TypeRegistry();
-        MetadataManager metadata = new MetadataManager(new FeaturesConfig().setExperimentalSyntaxEnabled(true), typeManager, new SplitManager(), new BlockEncodingManager(typeManager), new SessionPropertyManager(), new TablePropertyManager());
-        metadata.addConnectorMetadata("tpch", "tpch", new TestingMetadata());
-        metadata.addConnectorMetadata("c2", "c2", new TestingMetadata());
-        metadata.addConnectorMetadata("c3", "c3", new TestingMetadata());
-        AccessControl accessControl = new AllowAllAccessControl();
-
-        SchemaTableName table1 = new SchemaTableName("default", "t1");
-        metadata.createTable(SESSION, "tpch", new TableMetadata("tpch", new ConnectorTableMetadata(table1,
-                ImmutableList.<ColumnMetadata>of(
-                        new ColumnMetadata("a", BIGINT, false),
-                        new ColumnMetadata("b", BIGINT, false),
-                        new ColumnMetadata("c", BIGINT, false),
-                        new ColumnMetadata("d", BIGINT, false)))));
-
-        SchemaTableName table2 = new SchemaTableName("default", "t2");
-        metadata.createTable(SESSION, "tpch", new TableMetadata("tpch", new ConnectorTableMetadata(table2,
-                ImmutableList.<ColumnMetadata>of(
-                        new ColumnMetadata("a", BIGINT, false),
-                        new ColumnMetadata("b", BIGINT, false)))));
-
-        SchemaTableName table3 = new SchemaTableName("default", "t3");
-        metadata.createTable(SESSION, "tpch", new TableMetadata("tpch", new ConnectorTableMetadata(table3,
-                ImmutableList.<ColumnMetadata>of(
-                        new ColumnMetadata("a", BIGINT, false),
-                        new ColumnMetadata("b", BIGINT, false),
-                        new ColumnMetadata("x", BIGINT, false, null, true)))));
-
-        // table in different catalog
-        SchemaTableName table4 = new SchemaTableName("s2", "t4");
-        metadata.createTable(SESSION, "c2", new TableMetadata("tpch", new ConnectorTableMetadata(table4,
-                ImmutableList.<ColumnMetadata>of(
-                        new ColumnMetadata("a", BIGINT, false)))));
-
-        // table with a hidden column
-        SchemaTableName table5 = new SchemaTableName("default", "t5");
-        metadata.createTable(SESSION, "tpch", new TableMetadata("tpch", new ConnectorTableMetadata(table5,
-                ImmutableList.<ColumnMetadata>of(
-                        new ColumnMetadata("a", BIGINT, false),
-                        new ColumnMetadata("b", BIGINT, false, null, true)))));
-
-        // valid view referencing table in same schema
-        String viewData1 = JsonCodec.jsonCodec(ViewDefinition.class).toJson(
-                new ViewDefinition(
-                        "select a from t1",
-                        Optional.of("tpch"),
-                        Optional.of("default"),
-                        ImmutableList.of(new ViewDefinition.ViewColumn("a", BIGINT)),
-                        Optional.<String>empty()
-                ));
-        metadata.createView(SESSION, new QualifiedTableName("tpch", "default", "v1"), viewData1, false);
-
-        // stale view (different column type)
-        String viewData2 = JsonCodec.jsonCodec(ViewDefinition.class).toJson(
-                new ViewDefinition("select a from t1", Optional.of("tpch"), Optional.of("default"), ImmutableList.of(
-                        new ViewDefinition.ViewColumn("a", VARCHAR)), Optional.<String>empty()));
-        metadata.createView(SESSION, new QualifiedTableName("tpch", "default", "v2"), viewData2, false);
-
-        // view referencing table in different schema from itself and session
-        String viewData3 = JsonCodec.jsonCodec(ViewDefinition.class).toJson(
-                new ViewDefinition("select a from t4", Optional.of("c2"), Optional.of("s2"), ImmutableList.of(
-                        new ViewDefinition.ViewColumn("a", BIGINT)), Optional.<String>empty()));
-        metadata.createView(SESSION, new QualifiedTableName("c3", "s3", "v3"), viewData3, false);
-
-        analyzer = new Analyzer(
-                Session.builder(new SessionPropertyManager())
-                        .setSource("test")
-                        .setCatalog("tpch")
-                        .setSchema("default")
-                        .setTimeZoneKey(UTC_KEY)
-                        .setLocale(ENGLISH)
-                        .setQueryId(QueryId.valueOf("dummy"))
-                        .setIdentity(new Identity("test", Optional.<Principal>empty()))
-                        .build(),
-                metadata,
-                SQL_PARSER,
-                accessControl,
-                Optional.empty(),
-                true);
-    }
-
-    public static LocalQueryRunner createLocalQueryRunner()
-    {
-        LocalQueryRunner localQueryRunner = new LocalQueryRunner(SESSION);
-
-        // add tpch
-        InMemoryNodeManager nodeManager = localQueryRunner.getNodeManager();
-        localQueryRunner.createCatalog("tpch", new TpchConnectorFactory(nodeManager, 1), ImmutableMap.<String, String>of());
-
-        final ConnectorSession session = new TestingConnectorSession(
-                "user",
-                UTC_KEY,
-                ENGLISH,
-                System.currentTimeMillis(),
-                ImmutableList.of(),
-                ImmutableMap.of());
-
-        File tmp = Files.createTempDir();
-        tmp.deleteOnExit();
-        File db = new File(tmp, "db");
-        ExtendedJdbcConnectorFactory connectorFactory = new ExtendedJdbcConnectorFactory(
-                "test",
-                new TestingH2JdbcModule(),
-                TestingH2JdbcModule.createProperties(db),
-                ImmutableMap.of(),
-                TestInsertRewriter.class.getClassLoader());
-
-        localQueryRunner.createCatalog("test", connectorFactory, ImmutableMap.<String, String>of());
-
-        Connector connector = connectorFactory.create("test", TestingH2JdbcModule.createProperties(db));
-        ConnectorMetadata metadata = connector.getMetadata();
-        JdbcMetadata jdbcMetadata = (JdbcMetadata) metadata;
-        BaseJdbcClient jdbcClient = (BaseJdbcClient) jdbcMetadata.getJdbcClient();
-        try {
-            try (Connection connection = jdbcClient.getConnection()) {
-                try (java.sql.Statement stmt = connection.createStatement()) {
-                    stmt.execute("CREATE SCHEMA test");
-                    stmt.execute("CREATE TABLE test.foo (id integer primary key)");
-                }
-                // connection.createStatement().execute("CREATE TABLE example.foo (id integer primary key)");
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-
-        // add raptor
-        // ConnectorFactory raptorConnectorFactory = createRaptorConnectorFactory(TPCH_CACHE_DIR, nodeManager);
-        // localQueryRunner.createCatalog("default", raptorConnectorFactory, ImmutableMap.<String, String>of());
-
-        // Metadata metadata = localQueryRunner.getMetadata();
-        // if (!metadata.getTableHandle(session, new QualifiedTableName("default", "default", "orders")).isPresent()) {
-        //     localQueryRunner.execute("CREATE TABLE orders AS SELECT * FROM tpch.sf1.orders");
-        // }
-        // if (!metadata.getTableHandle(session, new QualifiedTableName("default", "default", "lineitem")).isPresent()) {
-        //     localQueryRunner.execute("CREATE TABLE lineitem AS SELECT * FROM tpch.sf1.lineitem");
-        // }
-        return localQueryRunner;
-    }
-
     @Test
     public void testOtherShit()
             throws Throwable
     {
-        LocalQueryRunner lqr = createLocalQueryRunner();
-        // lqr.execute
+        @Language("SQL") String sql =
+                //  "select * from tpch.tiny.\"orders\" as \"o\" " +
+                //  "inner join tpch.tiny.customer as \"c1\" on \"o\".custkey = \"c1\".custkey " +
+                //  "inner join tpch.tiny.customer as \"c2\" on \"o\".custkey = (\"c2\".custkey + 1)";
 
-        LocalQueryRunner.MaterializedOutputFactory outputFactory = new LocalQueryRunner.MaterializedOutputFactory();
+                // "select o.custkey from tpch.tiny.\"orders\" as o where o.custkey in (select custkey from tpch.tiny.customer limit 10)";
 
-        /*
-        {
-            Kv<String, String> kv = new Kv.Synchronized<>(new Kv.MapImpl<>(new HashMap<>()));
-            kv.put("hi", "there");
-            kv.get("hi");
+                // "create table test.test.foo as select o.custkey from tpch.tiny.\"orders\" as o where o.custkey in (select custkey from tpch.tiny.customer limit 10)";
 
-            TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
-            List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), "select * from tpch.tiny.customer", outputFactory, taskContext);
+                // "insert into test.test.foo values (1)";
 
-            boolean done = false;
-            while (!done) {
-                boolean processed = false;
-                for (Driver driver : drivers) {
-                    if (!driver.isFinished()) {
-                        driver.process();
-                        processed = true;
-                    }
-                }
-                done = !processed;
-            }
+                // "select custkey + 1 from tpch.tiny.\"orders\" as o where o.custkey in (1, 2, 3)";
 
-            outputFactory.getMaterializingOperator().getMaterializedResult();
-        }
-        */
+                // "select custkey + 1 \"custkey\", \"name\" from tpch.tiny.\"customer\"";
 
-        {
-            TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
-            @Language("SQL") String sql =
-                    //  "select * from tpch.tiny.\"orders\" as \"o\" " +
-                    //  "inner join tpch.tiny.customer as \"c1\" on \"o\".custkey = \"c1\".custkey " +
-                    //  "inner join tpch.tiny.customer as \"c2\" on \"o\".custkey = (\"c2\".custkey + 1)";
+                "select * from tpch.tiny.\"orders\" as \"o\" " +
+                "inner join tpch.tiny.customer as \"c\" on \"o\".custkey = \"c\".custkey ";
 
-                    // "select o.custkey from tpch.tiny.\"orders\" as o where o.custkey in (select custkey from tpch.tiny.customer limit 10)";
+        TestHelper.PlannedQuery pq = helper.plan(sql);
 
-                    // "create table test.test.foo as select o.custkey from tpch.tiny.\"orders\" as o where o.custkey in (select custkey from tpch.tiny.customer limit 10)";
+        ReactorContext rc = new ReactorPlanner().run(
+                new ReactorContext(
+                        pq.plan,
+                        pq.analysis,
+                        pq.lqr.getDefaultSession(),
+                        pq.lqr.getMetadata(),
+                        pq.lqr.getConnectorManager().getConnectors(),
+                        pq.connectorSupport
+                )
+        );
 
-                    // "insert into test.test.foo values (1)";
-
-                    // "select custkey + 1 from tpch.tiny.\"orders\" as o where o.custkey in (1, 2, 3)";
-
-                    "select custkey + 1 from tpch.tiny.\"customer\"";
-
-            Statement statement = SQL_PARSER.createStatement(sql);
-            Analyzer analyzer = new Analyzer(
-                    lqr.getDefaultSession(),
-                    lqr.getMetadata(),
-                    SQL_PARSER,
-                    lqr.getAccessControl(),
-                    Optional.empty(),
-                    true);
-
-            Analysis analysis = analyzer.analyze(statement);
-            System.out.println(analysis);
-
-            // ----
-
-            PlanNodeIdAllocator idAllocator = new PlanNodeIdAllocator();
-            FeaturesConfig featuresConfig = new FeaturesConfig()
-                    .setExperimentalSyntaxEnabled(true)
-                    .setDistributedIndexJoinsEnabled(false)
-                    .setOptimizeHashGeneration(true);
-            PlanOptimizersFactory planOptimizersFactory = new PlanOptimizersFactory(
-                    lqr.getMetadata(),
-                    SQL_PARSER,
-                    new IndexManager(), // ?
-                    featuresConfig,
-                    true);
-
-            QueryExplainer queryExplainer = new QueryExplainer(
-                    planOptimizersFactory.get(),
-                    lqr.getMetadata(),
-                    lqr.getAccessControl(),
-                    SQL_PARSER,
-                    ImmutableMap.of(),
-                    featuresConfig.isExperimentalSyntaxEnabled());
-            analyzer = new Analyzer(lqr.getDefaultSession(), lqr.getMetadata(), SQL_PARSER, lqr.getAccessControl(), Optional.of(queryExplainer), featuresConfig.isExperimentalSyntaxEnabled());
-
-            analysis = analyzer.analyze(statement);
-            Plan plan = new LogicalPlanner(lqr.getDefaultSession(), planOptimizersFactory.get(), idAllocator, lqr.getMetadata()).plan(analysis);
-
-            Connector tpchConn = lqr.getConnectorManager().getConnectors().get("tpch");
-            List<String> pks = new TpchConnectorSupport(tpchConn, "tiny").getPrimaryKey(new SchemaTableName("tiny", "customer"));
-
-            ReactorContext rc = new ReactorContext(
-                    plan,
-                    analysis,
-                    lqr.getDefaultSession(),
-                    lqr.getMetadata(),
-                    lqr.getConnectorManager().getConnectors(),
-                    ImmutableMap.<String, ConnectorSupport>builder()
-                            .put("tpch", new TpchConnectorSupport(tpchConn, "tiny"))
-                            .build()
+        for (InputNodeReactor s : rc.getInputReactors()) {
+            Event e = new Event(
+                    s,
+                    Event.Operation.INSERT,
+                    Optional.<PkTuple>empty(),
+                    Optional.<PkTuple>of(
+                            new PkTuple(
+                                    new PkLayout(ImmutableList.of("custkey", "name"), ImmutableList.of(BIGINT, VARCHAR), ImmutableList.of("custkey")),
+                                    ImmutableList.of(5, "phil")
+                            )
+                    )
             );
-            ReactorPlan rp = new ReactorPlanner().run(rc);
-            for (InputNodeReactor s : rp.getInputNodeReactors()) {
-                Event e = new Event(
-                        s,
-                        Event.Operation.INSERT,
-                        Optional.<PkTuple>empty(),
-                        Optional.<PkTuple>of(
-                                new PkTuple(
-                                        new PkLayout(ImmutableList.of("custkey"), ImmutableList.of(BIGINT), ImmutableList.of("custkey")),
-                                        ImmutableList.of(5)
-                                )));
-                s.react(e);
-                // rc.getConnectorSupport().get(s.getNode().)
 
-            }
-
-            System.out.println(PlanPrinter.textLogicalPlan(plan.getRoot(), plan.getTypes(), lqr.getMetadata(), lqr.getDefaultSession()));
-
-            SubPlan subplan = new PlanFragmenter().createSubPlans(plan);
-            if (!subplan.getChildren().isEmpty()) {
-                throw new AssertionError("Expected subplan to have no children");
-            }
-
-            // ---
-
-            List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), sql, outputFactory, taskContext);
-
-            boolean done = false;
-            while (!done) {
-                boolean processed = false;
-                for (Driver driver : drivers) {
-                    if (!driver.isFinished()) {
-                        driver.process();
-                        processed = true;
-                    }
-                }
-                done = !processed;
-            }
-
-            MaterializedResult res = outputFactory.getMaterializingOperator().getMaterializedResult();
-            System.out.println(res);
+            s.react(e);
         }
-    }
-
-    @Test
-    public void testShit()
-            throws Throwable
-    {
-        @Language("SQL") String queryStr = "select a, b from t1";
-
-        Statement statement = SQL_PARSER.createStatement(queryStr);
-        Analysis analysis = analyzer.analyze(statement);
-
-        InsertRewriter rewriter = new InsertRewriter(analysis);
-        rewriter.process(statement, null);
-
-        Field pk = analysis.getOutputDescriptor().getFieldByIndex(0);
-        Query query = analysis.getQuery();
-        QuerySpecification querySpecification = (QuerySpecification) query.getQueryBody();
-        Table table = (Table) querySpecification.getFrom().get();
-
-        Insert insert = new Insert(QualifiedName.of("t2"), query);
-        String insertStr = SqlFormatter.formatSql(insert);
-        System.out.println(insertStr);
-
-        Analysis insertAnalysis = analyzer.analyze(insert);
-
-        LocalQueryRunner lqr = createLocalQueryRunner();
-        // lqr.execute
-
-        LocalQueryRunner.MaterializedOutputFactory outputFactory = new LocalQueryRunner.MaterializedOutputFactory();
-
-        TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
-        List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), insert, outputFactory, taskContext);
-
-        boolean done = false;
-        while (!done) {
-            boolean processed = false;
-            for (Driver driver : drivers) {
-                if (!driver.isFinished()) {
-                    driver.process();
-                    processed = true;
-                }
-            }
-            done = !processed;
-        }
-
-        outputFactory.getMaterializingOperator().getMaterializedResult();
     }
 }
