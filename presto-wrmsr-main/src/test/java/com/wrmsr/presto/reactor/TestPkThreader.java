@@ -13,9 +13,14 @@
  */
 package com.wrmsr.presto.reactor;
 
-import com.facebook.presto.sql.planner.Plan;
+import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
+import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.SimplePlanRewriter;
+import com.facebook.presto.sql.planner.plan.TableScanNode;
 import org.testng.annotations.Test;
+
+import java.util.List;
+import java.util.Map;
 
 public class TestPkThreader
 {
@@ -23,9 +28,26 @@ public class TestPkThreader
 
     public static class PkThreader extends SimplePlanRewriter<PkThreader.Context>
     {
+        private final PlanNodeIdAllocator idAllocator;
+        private final Map<String, ConnectorSupport> connectorSupport;
+
+        public PkThreader(PlanNodeIdAllocator idAllocator, Map<String, ConnectorSupport> connectorSupport)
+        {
+            this.idAllocator = idAllocator;
+            this.connectorSupport = connectorSupport;
+        }
+
         public static class Context
         {
 
+        }
+
+        @Override
+        public PlanNode visitTableScan(TableScanNode node, RewriteContext<Context> context)
+        {
+            ConnectorSupport cs = connectorSupport.get(node.getTable().getConnectorId());
+            List<String> pks = cs.getPrimaryKey(cs.getSchemaTableName(node.getTable().getConnectorHandle()))
+            return super.visitTableScan(node, context);
         }
     }
 
@@ -34,5 +56,11 @@ public class TestPkThreader
             throws Throwable
     {
         TestHelper.PlannedQuery pq = helper.plan("select name from tpch.tiny.customer");
+        PkThreader.Context ctx = new PkThreader.Context();
+        PkThreader r = new PkThreader(
+                pq.idAllocator,
+                pq.connectorSupport
+        );
+        SimplePlanRewriter.rewriteWith(r, pq.plan.getRoot(), ctx);
     }
 }
