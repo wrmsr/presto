@@ -23,12 +23,16 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
+import com.facebook.presto.sql.planner.plan.FilterNode;
 import com.facebook.presto.sql.planner.plan.OutputNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanNodeId;
 import com.facebook.presto.sql.planner.plan.PlanVisitor;
+import com.facebook.presto.sql.planner.plan.ProjectNode;
 import com.facebook.presto.sql.planner.plan.SimplePlanRewriter;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
+import com.facebook.presto.sql.tree.Expression;
+import com.facebook.presto.sql.tree.QualifiedNameReference;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.testng.annotations.Test;
 
@@ -39,8 +43,11 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
+import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableSet;
+import static jersey.repackaged.com.google.common.collect.Lists.asList;
 import static jersey.repackaged.com.google.common.collect.Lists.newArrayList;
 
 public class TestPkThreader
@@ -76,6 +83,44 @@ public class TestPkThreader
         protected PlanNode visitPlan(PlanNode node, Context context)
         {
             throw new UnsupportedPlanNodeException(node);
+        }
+
+        @Override
+        public PlanNode visitProject(ProjectNode node, Context context)
+        {
+            PlanNode newSource = node.getSource().accept(this, context);
+            List<Symbol> pkSyms = context.nodePkSyms.get(newSource.getId());
+
+            Set<QualifiedNameReference> pkQnrs = pkSyms.stream().map(Symbol::toQualifiedNameReference).collect(toImmutableSet());
+            Set<Symbol> identityAssignments = node.getAssignments().entrySet().stream().filter(e -> pkQnrs.contains(e.getValue())).map(Map.Entry::getKey).collect(toImmutableSet());
+
+            Map<Symbol, Expression> newAssignments = newHashMap(node.getAssignments());
+            for (Symbol pkSym : pkSyms) {
+                if (!identityAssignments.contains(pkSym)) {
+                    newAssignments.put(pkSym, pkSym.toQualifiedNameReference());
+                }
+            }
+
+            ProjectNode newNode = new ProjectNode(
+                node.getId(),
+                newSource,
+                newAssignments);
+            context.nodePkSyms.put(newNode.getId(), pkSyms);
+            return newNode;
+        }
+
+        @Override
+        public PlanNode visitFilter(FilterNode node, Context context)
+        {
+            PlanNode newSource = node.getSource().accept(this, context);
+            List<Symbol> pkSyms = context.nodePkSyms.get(newSource.getId());
+
+            FilterNode newNode = new FilterNode(
+                    node.getId(),
+                    node.getSource(),
+                    node.getPredicate());
+            context.nodePkSyms.put(newNode.getId(), pkSyms);
+            return newNode;
         }
 
         @Override
@@ -122,7 +167,6 @@ public class TestPkThreader
             List<String> pkCols = cs.getPrimaryKey(stn);
             Map<String, Symbol> colSyms = node.getAssignments().entrySet().stream().map(e -> ImmutablePair.of(cs.getColumnName(e.getValue()), e.getKey())).collect(toImmutableMap());
 
-
             Map<Symbol, ColumnHandle> newAssignments = new HashMap<>(node.getAssignments());
             List<Symbol> newOutputSymbols = new ArrayList<>(node.getOutputSymbols());
             List<Symbol> pkSyms = new ArrayList<>();
@@ -159,7 +203,7 @@ public class TestPkThreader
     public void testThing()
             throws Throwable
     {
-        TestHelper.PlannedQuery pq = helper.plan("select name from tpch.tiny.customer");
+        TestHelper.PlannedQuery pq = helper.plan("select name from tpch.tiny.customer where acctbal > 100");
         PkThreader.Context ctx = new PkThreader.Context();
         PkThreader r = new PkThreader(
                 pq.idAllocator,
