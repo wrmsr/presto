@@ -160,7 +160,6 @@ public class TestPkThreader
             PlanNode newSource = node.getSource().accept(this, context);
             List<Symbol> pkSyms = context.nodePkSyms.get(newSource.getId());
 
-            Set<String> columnNameSet = newHashSet(node.getColumnNames());
             Set<Symbol> outputSymbolSet = newHashSet(node.getOutputSymbols());
 
             List<String> newColumnNames = new ArrayList<>(node.getColumnNames());
