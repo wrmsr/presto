@@ -20,12 +20,13 @@ import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.sql.planner.Plan;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
+import com.facebook.presto.sql.planner.plan.OutputNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanNodeId;
+import com.facebook.presto.sql.planner.plan.PlanVisitor;
 import com.facebook.presto.sql.planner.plan.SimplePlanRewriter;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -33,19 +34,20 @@ import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Sets.newHashSet;
 import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
+import static jersey.repackaged.com.google.common.collect.Lists.newArrayList;
 
 public class TestPkThreader
 {
     public final TestHelper helper = new TestHelper();
 
-    public static class PkThreader extends SimplePlanRewriter<PkThreader.Context>
+    public static class PkThreader extends PlanVisitor<PkThreader.Context, PlanNode>
     {
         private final PlanNodeIdAllocator idAllocator;
         private final SymbolAllocator symbolAllocator;
@@ -71,9 +73,45 @@ public class TestPkThreader
         }
 
         @Override
-        public PlanNode visitTableScan(TableScanNode node, RewriteContext<Context> context)
+        protected PlanNode visitPlan(PlanNode node, Context context)
         {
-            // FIXME filter extraction
+            throw new UnsupportedPlanNodeException(node);
+        }
+
+        @Override
+        public PlanNode visitOutput(OutputNode node, Context context)
+        {
+            PlanNode newSource = node.getSource().accept(this, context);
+            List<Symbol> pkSyms = context.nodePkSyms.get(newSource.getId());
+
+            Set<String> columnNameSet = newHashSet(node.getColumnNames());
+            Set<Symbol> outputSymbolSet = newHashSet(node.getOutputSymbols());
+
+            List<String> newColumnNames = new ArrayList<>(node.getColumnNames());
+            List<Symbol> newOutputSymbols = newArrayList(node.getOutputSymbols());
+
+            for (Symbol pkSym : pkSyms) {
+                if (!outputSymbolSet.contains(pkSym)) {
+                    String pkCol = pkSym.getName();
+                    checkState(!newColumnNames.contains(pkCol));
+                    newColumnNames.add(pkCol);
+                    newOutputSymbols.add(pkSym);
+                }
+            }
+
+            OutputNode newNode = new OutputNode(
+                    node.getId(),
+                    newSource,
+                    newColumnNames,
+                    newOutputSymbols);
+            context.nodePkSyms.put(newNode.getId(), pkSyms);
+            return newNode;
+        }
+
+        @Override
+        public PlanNode visitTableScan(TableScanNode node, Context context)
+        {
+            // FIXME (optional?) filter extraction - we (may?) only get deltas
             ConnectorSupport cs = connectorSupport.get(node.getTable().getConnectorId());
             Connector c = cs.getConnector();
             ConnectorSession csess = session.toConnectorSession();
@@ -83,6 +121,7 @@ public class TestPkThreader
 
             List<String> pkCols = cs.getPrimaryKey(stn);
             Map<String, Symbol> colSyms = node.getAssignments().entrySet().stream().map(e -> ImmutablePair.of(cs.getColumnName(e.getValue()), e.getKey())).collect(toImmutableMap());
+
 
             Map<Symbol, ColumnHandle> newAssignments = new HashMap<>(node.getAssignments());
             List<Symbol> newOutputSymbols = new ArrayList<>(node.getOutputSymbols());
@@ -110,9 +149,8 @@ public class TestPkThreader
                     newAssignments,
                     node.getLayout(),
                     node.getCurrentConstraint(),
-                    node.getOriginalConstraint()
-            );
-            context.get().nodePkSyms.put(newNode.getId(), pkSyms);
+                    node.getOriginalConstraint());
+            context.nodePkSyms.put(newNode.getId(), pkSyms);
             return newNode;
         }
     }
@@ -129,7 +167,7 @@ public class TestPkThreader
                 pq.session,
                 pq.connectorSupport
         );
-        PlanNode newRoot = SimplePlanRewriter.rewriteWith(r, pq.plan.getRoot(), ctx);
+        PlanNode newRoot = pq.plan.getRoot().accept(r, ctx);
         System.out.println(newRoot);
         System.out.println(ctx);
     }
