@@ -24,6 +24,7 @@ import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
 import com.facebook.presto.sql.planner.plan.FilterNode;
+import com.facebook.presto.sql.planner.plan.JoinNode;
 import com.facebook.presto.sql.planner.plan.OutputNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanNodeId;
@@ -33,6 +34,7 @@ import com.facebook.presto.sql.planner.plan.SimplePlanRewriter;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.testng.annotations.Test;
 
@@ -71,6 +73,7 @@ public class TestPkThreader
 
         public static class Context
         {
+            // FIXME Set<Symbol> ?
             private final Map<PlanNodeId, List<Symbol>> nodePkSyms;
 
             public Context()
@@ -119,6 +122,34 @@ public class TestPkThreader
                     node.getId(),
                     node.getSource(),
                     node.getPredicate());
+            context.nodePkSyms.put(newNode.getId(), pkSyms);
+            return newNode;
+        }
+
+        @Override
+        public PlanNode visitJoin(JoinNode node, Context context)
+        {
+            PlanNode newLeft = node.getLeft().accept(this, context);
+            List<Symbol> leftPkSyms = context.nodePkSyms.get(newLeft.getId());
+
+            PlanNode newRight = node.getRight().accept(this, context);
+            List<Symbol> rightPkSyms = context.nodePkSyms.get(newRight.getId());
+
+            List<Symbol> pkSyms = ImmutableList.<Symbol>builder()
+                    .addAll(leftPkSyms)
+                    .addAll(rightPkSyms)
+                    .build();
+            checkState(pkSyms.size() == newHashSet(pkSyms).size());
+
+            JoinNode newNode = new JoinNode(
+                    node.getId(),
+                    node.getType(),
+                    newLeft,
+                    newRight,
+                    node.getCriteria(),
+                    node.getLeftHashSymbol(),
+                    node.getRightHashSymbol()
+            );
             context.nodePkSyms.put(newNode.getId(), pkSyms);
             return newNode;
         }
@@ -203,7 +234,7 @@ public class TestPkThreader
     public void testThing()
             throws Throwable
     {
-        TestHelper.PlannedQuery pq = helper.plan("select name from tpch.tiny.customer where acctbal > 100");
+        TestHelper.PlannedQuery pq = helper.plan("select customer.name, nation.name from tpch.tiny.customer inner join tpch.tiny.nation on customer.nationkey = nation.nationkey where acctbal > 100");
         PkThreader.Context ctx = new PkThreader.Context();
         PkThreader r = new PkThreader(
                 pq.idAllocator,
