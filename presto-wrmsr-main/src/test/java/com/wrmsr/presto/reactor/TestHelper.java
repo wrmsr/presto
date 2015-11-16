@@ -119,6 +119,7 @@ public class TestHelper
     {
         public final Statement statement;
         public final LocalQueryRunner lqr;
+        public final Session session;
         public final PlanNodeIdAllocator idAllocator;
         public final FeaturesConfig featuresConfig;
         public final PlanOptimizersFactory planOptimizersFactory;
@@ -135,6 +136,8 @@ public class TestHelper
         {
             statement = sqlParser.createStatement(sql);
             lqr = createLocalQueryRunner();
+
+            session = lqr.getDefaultSession();
 
             idAllocator = new PlanNodeIdAllocator();
 
@@ -159,7 +162,7 @@ public class TestHelper
                     featuresConfig.isExperimentalSyntaxEnabled());
 
             analyzer = new Analyzer(
-                    lqr.getDefaultSession(),
+                    session,
                     lqr.getMetadata(),
                     sqlParser,
                     lqr.getAccessControl(),
@@ -169,7 +172,7 @@ public class TestHelper
             analysis = analyzer.analyze(statement);
 
             planner = new LogicalPlanner(
-                    lqr.getDefaultSession(),
+                    session,
                     planOptimizersFactory.get(),
                     idAllocator,
                     lqr.getMetadata()

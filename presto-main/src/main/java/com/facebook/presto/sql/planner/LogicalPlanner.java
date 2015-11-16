@@ -73,6 +73,11 @@ public class LogicalPlanner
         this.metadata = metadata;
     }
 
+    public SymbolAllocator getSymbolAllocator()
+    {
+        return symbolAllocator;
+    }
+
     public Plan plan(Analysis analysis)
     {
         RelationPlan plan;

@@ -19,6 +19,11 @@ public abstract class ConnectorSupport<C extends Connector>
         this.connector = connector;
     }
 
+    public C getConnector()
+    {
+        return connector;
+    }
+
     public abstract SchemaTableName getSchemaTableName(ConnectorTableHandle handle);
 
     public abstract List<String> getPrimaryKey(SchemaTableName schemaTableName);
