@@ -46,7 +46,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.util.ByteArrayWrapper;
-import com.wrmsr.presto.util.collect.fuuu;
+import com.wrmsr.presto.util.collect.SimpleMap;
 import io.airlift.slice.BasicSliceInput;
 import io.airlift.slice.DynamicSliceOutput;
 import io.airlift.slice.Slice;
@@ -586,9 +586,9 @@ public class TestInsertRewriter
             return reactors.values().stream().filter(InputNodeReactor.class::isInstance).map(InputNodeReactor.class::cast).collect(toImmutableList());
         }
 
-        public fuuu<byte[], byte[]> getKv()
+        public SimpleMap<byte[], byte[]> getKv()
         {
-            return new fuuu.KeyCodec<>(new fuuu.MapImpl<>(newHashMap()), ByteArrayWrapper.CODEC);
+            return new SimpleMap.KeyCodec<>(new SimpleMap.FromMap<>(newHashMap()), ByteArrayWrapper.CODEC);
         }
     }
 
@@ -673,7 +673,7 @@ public class TestInsertRewriter
             extends Reactor<OutputNode>
     {
         // private final Layout layout;
-        private final fuuu<byte[], byte[]> SImpleMap;
+        private final SimpleMap<byte[], byte[]> SImpleMap;
 
         public OutputNodeReactor(OutputNode node, ReactorContext context, Optional<Reactor> destination)
         {

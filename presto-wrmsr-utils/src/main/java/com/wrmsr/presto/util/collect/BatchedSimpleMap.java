@@ -14,20 +14,51 @@
 package com.wrmsr.presto.util.collect;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.util.Codecs;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.google.common.collect.Sets.newHashSet;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableSet;
 
 public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
 {
-    abstract class BatchOperation<K, V>
+    abstract class BatchOperation<K, V> implements Map.Entry<K, V>
     {
         protected final K key;
+        protected final V value;
 
-        public BatchOperation(K key)
+        public BatchOperation(K key, V value)
         {
             this.key = key;
+            this.value = value;
+        }
+
+        @Override
+        public K getKey()
+        {
+            return key;
+        }
+
+        @Override
+        public V getValue()
+        {
+            return null;
+        }
+
+        @Override
+        public V setValue(V value)
+        {
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -35,7 +66,7 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
     {
         public GetBatchOperation(K key)
         {
-            super(key);
+            super(key, null);
         }
     }
 
@@ -43,18 +74,20 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
     {
         public ContainsKeyBatchOperation(K key)
         {
-            super(key);
+            super(key, null);
         }
     }
 
     final class PutBatchOperation<K, V> extends BatchOperation<K, V>
     {
-        protected final V value;
-
         public PutBatchOperation(K key, V value)
         {
-            super(key);
-            this.value = value;
+            super(key, value);
+        }
+
+        public PutBatchOperation(Map.Entry<K, V> entry)
+        {
+            super(entry.getKey(), entry.getValue());
         }
     }
 
@@ -62,11 +95,11 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
     {
         public RemoveBatchOperation(K key)
         {
-            super(key);
+            super(key, null);
         }
     }
 
-    abstract class BatchResult<K, V>
+    abstract class BatchResult<K, V> implements Map.Entry<K, V>
     {
         protected final K key;
         protected final V value;
@@ -90,6 +123,12 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         public boolean isPresent()
         {
             return value != null;
+        }
+
+        @Override
+        public V setValue(V value)
+        {
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -187,25 +226,239 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
 
     List<BatchResult<K, V>> batch(List<BatchOperation<K, V>> operations);
 
-    default <K, V> getAll(List<? extends K> keys)
+    default Map<K, V> getAll(List<? extends K> keys)
     {
-        BatchBuilder<K, V> batchBuilder = batchBuilder();
-        keys.forEach();
-
+        BatchBuilder<K, V> builder = batchBuilder();
+        keys.forEach(builder::get);
+        return batch(builder.build()).stream().collect(toImmutableMap());
     }
 
     default Set<K> containsKeys(Set<? extends K> keys)
     {
-
+        BatchBuilder<K, V> builder = batchBuilder();
+        keys.forEach(builder::containsKey);
+        ImmutableSet.Builder<K> ret = ImmutableSet.builder();
+        batch(builder.build()).stream().map(ContainsKeyBatchResult.class::cast).filter(ContainsKeyBatchResult::isPresent).forEach(k -> ret.add((K) k));
+        return ret.build();
     }
 
     default void putAll(Map<? extends K, ? extends V> map)
     {
-
+        BatchBuilder<K, V> builder = batchBuilder();
+        map.forEach(builder::put);
+        batch(builder.build());
     }
 
     default void removeAll(Set<? extends K> keys)
     {
+        BatchBuilder<K, V> builder = batchBuilder();
+        keys.forEach(builder::remove);
+        batch(builder.build());
+    }
 
+    @Override
+    default V get(K key)
+    {
+        return batch(ImmutableList.of(new GetBatchOperation<>(key))).get(0).getValue();
+    }
+
+    @Override
+    default void put(K key, V value)
+    {
+        batch(ImmutableList.of(new PutBatchOperation<>(key, value)));
+    }
+
+    @Override
+    default void remove(K key)
+    {
+        batch(ImmutableList.of(new RemoveBatchOperation<>(key)));
+    }
+
+    final class FromSimpleMap<K, V> implements BatchedSimpleMap<K, V>
+    {
+        private final SimpleMap<K, V> target;
+
+        public FromSimpleMap(SimpleMap<K, V> target)
+        {
+            this.target = target;
+        }
+
+        @Override
+        public List<BatchResult<K, V>> batch(List<BatchOperation<K, V>> batchOperations)
+        {
+            return batchOperations.stream().map(o -> {
+                if (o instanceof GetBatchOperation) {
+                    return new GetBatchResult<>(o.getKey(), target.get(o.getKey()));
+                }
+                else if (o instanceof ContainsKeyBatchOperation) {
+                    return new ContainsKeyBatchResult<>(o.getKey(), target.containsKey(o.getKey()));
+                }
+                else if (o instanceof PutBatchOperation) {
+                    target.put(o.getKey(), ((PutBatchOperation<K, V>) o).getValue());
+                    return new PutBatchResult<>(o.getKey());
+                }
+                else if (o instanceof RemoveBatchOperation) {
+                    target.remove(o.getKey());
+                    return new RemoveBatchResult<>(o.getKey());
+                }
+                else {
+                    throw new UnsupportedOperationException();
+                }
+            }).map(r -> (BatchResult<K, V>) r).collect(toImmutableList());
+        }
+    }
+
+    class KeyCodec<KO, KI, V> extends SimpleMap.KeyCodec<KO, KI, V> implements BatchedSimpleMap<KO, V>
+    {
+        public KeyCodec(BatchedSimpleMap<KI, V> wrapped, Codecs.Codec<KO, KI> codec)
+        {
+            super(wrapped, codec);
+        }
+
+        private BatchedSimpleMap<KI, V> getWrapped()
+        {
+            return (BatchedSimpleMap<KI, V>) wrapped;
+        }
+
+        @Override
+        public List<BatchResult<KO, V>> batch(List<BatchOperation<KO, V>> batchOperations)
+        {
+            List<BatchOperation<KI, V>> batchOperationsI = batchOperations.stream().map(o -> {
+                if (o instanceof GetBatchOperation) {
+                    return new GetBatchOperation<>(codec.encode(o.getKey()));
+                }
+                else if (o instanceof ContainsKeyBatchOperation) {
+                    return new ContainsKeyBatchOperation<>(codec.encode(o.getKey()));
+                }
+                else if (o instanceof PutBatchOperation) {
+                    return new PutBatchOperation<>(codec.encode(o.getKey()), o.getValue());
+                }
+                else if (o instanceof RemoveBatchOperation) {
+                    return new RemoveBatchOperation<>(codec.encode(o.getKey()));
+                }
+                else {
+                    throw new UnsupportedOperationException();
+                }
+            }).map(o -> (BatchOperation<KI, V>) o).collect(toImmutableList());
+            List<BatchResult<KI, V>> batchResultsI = getWrapped().batch(batchOperationsI);
+            return batchResultsI.stream().map(r -> {
+                if (r instanceof GetBatchResult) {
+                    return new GetBatchResult<>(codec.decode(r.getKey()), r.getValue());
+                }
+                else if (r instanceof ContainsKeyBatchResult) {
+                    return new ContainsKeyBatchResult<>(codec.decode(r.getKey()), r.isPresent());
+                }
+                else if (r instanceof PutBatchResult) {
+                    return new PutBatchResult<>(codec.decode(r.getKey()));
+                }
+                else if (r instanceof RemoveBatchResult) {
+                    return new RemoveBatchResult<>(codec.decode(r.getKey()));
+                }
+                else {
+                    throw new UnsupportedOperationException();
+                }
+            }).map(r -> (BatchResult<KO, V>) r).collect(toImmutableList());
+        }
+
+        @Override
+        public Map<KO, V> getAll(List<? extends KO> keys)
+        {
+            return getWrapped().getAll(keys.stream().map(codec::encode).collect(ImmutableCollectors.toImmutableList())).entrySet().stream().map(e -> ImmutablePair.of(codec.decode(e.getKey()), e.getValue())).collect(ImmutableCollectors.toImmutableMap());
+        }
+
+        @Override
+        public void putAll(Map<? extends KO, ? extends V> map)
+        {
+            getWrapped().putAll(map.entrySet().stream().map(e -> ImmutablePair.of(codec.encode(e.getKey()), e.getValue())).collect(ImmutableCollectors.toImmutableMap()));
+        }
+
+        @Override
+        public void removeAll(Set<? extends KO> keys)
+        {
+            getWrapped().removeAll(keys.stream().map(codec::encode).collect(ImmutableCollectors.toImmutableSet()));
+        }
+
+        @Override
+        public Set<KO> containsKeys(Set<? extends KO> keys)
+        {
+            return getWrapped().containsKeys(keys.stream().map(codec::encode).collect(ImmutableCollectors.toImmutableSet())).stream().map(codec::decode).collect(ImmutableCollectors.toImmutableSet());
+        }
+    }
+
+    class ValueCodec<K, VO, VI> extends SimpleMap.ValueCodec<K, VO, VI> implements BatchedSimpleMap<K, VO>
+    {
+        public ValueCodec(BatchedSimpleMap<K, VI> wrapped, Codecs.Codec<VO, VI> codec)
+        {
+            super(wrapped, codec);
+        }
+
+        private BatchedSimpleMap<K, VI> getWrapped()
+        {
+            return (BatchedSimpleMap<K, VI>) wrapped;
+        }
+
+        @Override
+        public List<BatchResult<K, VO>> batch(List<BatchOperation<K, VO>> batchOperations)
+        {
+            List<BatchOperation<K, VI>> batchOperationsI = batchOperations.stream().map(o -> {
+                if (o instanceof GetBatchOperation) {
+                    return new GetBatchOperation<>(o.getKey());
+                }
+                else if (o instanceof ContainsKeyBatchOperation) {
+                    return new ContainsKeyBatchOperation<>(o.getKey());
+                }
+                else if (o instanceof PutBatchOperation) {
+                    return new PutBatchOperation<>(o.getKey(), codec.encode(o.getValue()));
+                }
+                else if (o instanceof RemoveBatchOperation) {
+                    return new RemoveBatchOperation<>(o.getKey());
+                }
+                else {
+                    throw new UnsupportedOperationException();
+                }
+            }).map(o -> (BatchOperation<K, VI>) o).collect(toImmutableList());
+            List<BatchResult<K, VI>> batchResultsI = getWrapped().batch(batchOperationsI);
+            return batchResultsI.stream().map(r -> {
+                if (r instanceof GetBatchResult) {
+                    return new GetBatchResult<>(r.getKey(), codec.decode(r.getValue()));
+                }
+                else if (r instanceof ContainsKeyBatchResult) {
+                    return new ContainsKeyBatchResult<>(r.getKey(), r.isPresent());
+                }
+                else if (r instanceof PutBatchResult) {
+                    return new PutBatchResult<>(r.getKey());
+                }
+                else if (r instanceof RemoveBatchResult) {
+                    return new RemoveBatchResult<>(r.getKey());
+                }
+                else {
+                    throw new UnsupportedOperationException();
+                }
+            }).map(r -> (BatchResult<K, VO>) r).collect(toImmutableList());
+        }
+
+        @Override
+        public Map<K, VO> getAll(List<? extends K> keys)
+        {
+            return getWrapped().getAll(keys).entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), codec.decode(e.getValue()))).collect(ImmutableCollectors.toImmutableMap());
+        }
+
+        @Override
+        public void putAll(Map<? extends K, ? extends VO> map)
+        {
+            getWrapped().putAll(map.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), codec.encode(e.getValue()))).collect(ImmutableCollectors.toImmutableMap()));
+        }
+
+        @Override
+        public void removeAll(Set<? extends K> keys)
+        {
+            getWrapped().removeAll(keys);
+        }
+
+        @Override
+        public Set<K> containsKeys(Set<? extends K> keys)
+        {
+            return getWrapped().containsKeys(keys);
+        }
     }
 }

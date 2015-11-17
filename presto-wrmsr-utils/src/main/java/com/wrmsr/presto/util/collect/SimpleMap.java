@@ -13,6 +13,9 @@
  */
 package com.wrmsr.presto.util.collect;
 
+import com.wrmsr.presto.util.Codecs;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -310,6 +313,84 @@ public interface SimpleMap<K, V>
         public Set<Entry<K, V>> entrySet()
         {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    class KeyCodec<KO, KI, V> implements SimpleMap<KO, V>
+    {
+        protected final SimpleMap<KI, V> wrapped;
+        protected final Codecs.Codec<KO, KI> codec;
+
+        public KeyCodec(SimpleMap<KI, V> wrapped, Codecs.Codec<KO, KI> codec)
+        {
+            this.wrapped = wrapped;
+            this.codec = codec;
+        }
+
+        @Override
+        public V get(KO key)
+        {
+            return wrapped.get(codec.encode(key));
+        }
+
+        @Override
+        public void put(KO key, V value)
+        {
+            wrapped.put(codec.encode(key), value);
+        }
+
+        @Override
+        public void remove(KO key)
+        {
+            wrapped.remove(codec.encode(key));
+        }
+
+        @Override
+        public boolean containsKey(KO key)
+        {
+            return wrapped.containsKey(codec.encode(key));
+        }
+    }
+
+    class ValueCodec<K, VO, VI> implements SimpleMap<K, VO>
+    {
+        protected final SimpleMap<K, VI> wrapped;
+        protected final Codecs.Codec<VO, VI> codec;
+
+        public ValueCodec(SimpleMap<K, VI> wrapped, Codecs.Codec<VO, VI> codec)
+        {
+            this.wrapped = wrapped;
+            this.codec = codec;
+        }
+
+        @Override
+        public VO get(K key)
+        {
+            VI v = wrapped.get(key);
+            if (v != null) {
+                return codec.decode(v);
+            }
+            else {
+                return null;
+            }
+        }
+
+        @Override
+        public boolean containsKey(K key)
+        {
+            return wrapped.containsKey(key);
+        }
+
+        @Override
+        public void put(K key, VO value)
+        {
+            wrapped.put(key, codec.encode(value));
+        }
+
+        @Override
+        public void remove(K key)
+        {
+            wrapped.remove(key);
         }
     }
 }
