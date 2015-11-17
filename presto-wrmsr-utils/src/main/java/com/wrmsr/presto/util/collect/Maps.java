@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.util;
+package com.wrmsr.presto.util.collect;
 
 import com.google.common.base.Function;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -22,7 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public class Maps
 {
@@ -151,6 +151,6 @@ public class Maps
 
     public static <K, V> Map<V, K> invertMap(Map<K, V> map)
     {
-        return map.entrySet().stream().map(e -> ImmutablePair.of(e.getValue(), e.getKey())).collect(toImmutableMap());
+        return map.entrySet().stream().map(e -> ImmutablePair.of(e.getValue(), e.getKey())).collect(ImmutableCollectors.toImmutableMap());
     }
 }

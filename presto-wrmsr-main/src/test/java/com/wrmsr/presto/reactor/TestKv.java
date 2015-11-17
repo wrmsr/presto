@@ -13,19 +13,13 @@
  */
 package com.wrmsr.presto.reactor;
 
-import com.facebook.presto.Session;
-import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorFactory;
-import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
-import com.facebook.presto.plugin.jdbc.JdbcMetadataConfig;
 import com.facebook.presto.plugin.jdbc.JdbcOutputTableHandle;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
-import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
 import com.facebook.presto.spi.ConnectorSession;
@@ -37,13 +31,12 @@ import com.facebook.presto.testing.TestingConnectorSession;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-import com.wrmsr.presto.util.Kv;
+import com.wrmsr.presto.util.collect.Kv;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -51,7 +44,6 @@ import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -60,11 +52,10 @@ import java.util.function.Supplier;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
-import static com.facebook.presto.testing.TestingConnectorSession.SESSION;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Maps.fromProperties;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.util.Locale.ENGLISH;
 
 public class TestKv

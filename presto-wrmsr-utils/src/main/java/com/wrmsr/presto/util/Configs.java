@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.*;
 import com.google.common.collect.Lists;
+import com.wrmsr.presto.util.collect.ImmutableCollectors;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationMap;
 import org.apache.commons.configuration.HierarchicalConfiguration;

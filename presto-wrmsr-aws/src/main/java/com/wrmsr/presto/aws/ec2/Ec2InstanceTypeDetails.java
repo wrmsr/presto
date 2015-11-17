@@ -39,7 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public class Ec2InstanceTypeDetails
 {

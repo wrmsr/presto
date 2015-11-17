@@ -22,7 +22,6 @@ import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.TypeSignature;
-import com.facebook.presto.type.FunctionType;
 import com.facebook.presto.util.Reflection;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
@@ -36,7 +35,7 @@ import static com.facebook.presto.metadata.Signature.typeParameter;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.wrmsr.presto.util.Lists.listOf;
+import static com.wrmsr.presto.util.collect.Lists.listOf;
 
 public abstract class StringVarargsFunction
         extends SqlScalarFunction

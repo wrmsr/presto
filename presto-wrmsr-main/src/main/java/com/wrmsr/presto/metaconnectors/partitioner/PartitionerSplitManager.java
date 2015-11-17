@@ -32,7 +32,7 @@ import com.facebook.presto.spi.predicate.TupleDomain;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.util.ImmutableCollectors;
+import com.wrmsr.presto.util.collect.ImmutableCollectors;
 
 import java.util.Collections;
 import java.util.List;

@@ -46,7 +46,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.util.ByteArrayWrapper;
-import com.wrmsr.presto.util.Kv;
+import com.wrmsr.presto.util.collect.Kv;
 import io.airlift.slice.BasicSliceInput;
 import io.airlift.slice.DynamicSliceOutput;
 import io.airlift.slice.Slice;
@@ -69,8 +69,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 /*
 

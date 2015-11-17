@@ -34,7 +34,6 @@ import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanNodeId;
 import com.facebook.presto.sql.planner.plan.PlanVisitor;
 import com.facebook.presto.sql.planner.plan.ProjectNode;
-import com.facebook.presto.sql.planner.plan.SimplePlanRewriter;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
@@ -51,8 +50,8 @@ import java.util.Set;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableSet;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableSet;
 import static jersey.repackaged.com.google.common.collect.Lists.asList;
 import static jersey.repackaged.com.google.common.collect.Lists.newArrayList;
 

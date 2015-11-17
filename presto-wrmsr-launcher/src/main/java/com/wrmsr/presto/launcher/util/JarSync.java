@@ -53,7 +53,7 @@ import java.util.zip.ZipFile;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public class JarSync
 {

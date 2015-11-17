@@ -45,7 +45,7 @@ import java.util.zip.ZipFile;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toMap;
 

@@ -33,7 +33,7 @@ import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.util.ImmutableCollectors;
+import com.wrmsr.presto.util.collect.ImmutableCollectors;
 import io.airlift.json.JsonCodec;
 
 import javax.annotation.Nullable;

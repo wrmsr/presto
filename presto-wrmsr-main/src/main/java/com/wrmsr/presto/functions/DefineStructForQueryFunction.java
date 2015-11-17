@@ -59,7 +59,7 @@ import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.util.Locale.ENGLISH;
 
 public class DefineStructForQueryFunction

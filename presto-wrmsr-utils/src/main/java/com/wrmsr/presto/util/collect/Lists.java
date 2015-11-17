@@ -11,12 +11,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.util;
+package com.wrmsr.presto.util.collect;
 
 import java.util.List;
 import java.util.stream.IntStream;
-
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableList;
 
 public class Lists
 {
@@ -26,6 +24,6 @@ public class Lists
 
     public static <E> List<E> listOf(int size, E value)
     {
-        return IntStream.range(0, size).boxed().map(i -> value).collect(toImmutableList());
+        return IntStream.range(0, size).boxed().map(i -> value).collect(ImmutableCollectors.toImmutableList());
     }
 }

@@ -44,7 +44,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.wrmsr.presto.util.Maps.mapMerge;
+import static com.wrmsr.presto.util.collect.Maps.mapMerge;
 
 public class ExtendedJdbcConnectorFactory
         implements ConnectorFactory

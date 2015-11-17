@@ -16,7 +16,7 @@ package com.wrmsr.presto.jdbc.util;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import com.wrmsr.presto.util.CaseInsensitiveMap;
+import com.wrmsr.presto.util.collect.CaseInsensitiveMap;
 import com.wrmsr.presto.util.ColumnDomain;
 
 import java.io.IOException;

@@ -24,7 +24,7 @@ import com.google.inject.Binder;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.wrmsr.presto.util.Configs;
-import com.wrmsr.presto.util.ImmutableCollectors;
+import com.wrmsr.presto.util.collect.ImmutableCollectors;
 import io.airlift.bootstrap.Bootstrap;
 
 import java.util.List;

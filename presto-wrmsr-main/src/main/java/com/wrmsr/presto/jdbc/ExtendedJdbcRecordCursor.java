@@ -23,14 +23,13 @@ import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.predicate.Domain;
 import com.facebook.presto.spi.predicate.Range;
 import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.spi.predicate.SortedRangeSet;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.predicate.ValueSet;
 import com.facebook.presto.spi.type.BigintType;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.wrmsr.presto.jdbc.util.Queries;
-import com.wrmsr.presto.util.ImmutableCollectors;
+import com.wrmsr.presto.util.collect.ImmutableCollectors;
 import io.airlift.log.Logger;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 

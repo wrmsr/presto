@@ -16,13 +16,12 @@ package com.wrmsr.presto.metaconnectors.partitioner;
 import com.facebook.presto.spi.predicate.Domain;
 import com.facebook.presto.spi.predicate.Range;
 import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.spi.predicate.SortedRangeSet;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.predicate.ValueSet;
 import com.facebook.presto.spi.type.BigintType;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.ColumnDomain;
-import com.wrmsr.presto.util.ImmutableCollectors;
+import com.wrmsr.presto.util.collect.ImmutableCollectors;
 
 import java.util.LinkedHashMap;
 import java.util.List;

@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.util;
+package com.wrmsr.presto.util.collect;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -23,8 +23,7 @@ import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.Codecs.Codec;
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableMap;
-import static com.wrmsr.presto.util.ImmutableCollectors.toImmutableSet;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public interface Kv<K, V>
 {
@@ -331,8 +330,8 @@ public interface Kv<K, V>
         public Map<KO, V> getAll(Set<? extends KO> keys)
         {
             return wrapped.getAll(
-                    keys.stream().map(k -> codec.encode(k)).collect(toImmutableSet()))
-                    .entrySet().stream().map(e -> ImmutablePair.of(codec.decode(e.getKey()), e.getValue())).collect(toImmutableMap());
+                    keys.stream().map(k -> codec.encode(k)).collect(ImmutableCollectors.toImmutableSet()))
+                    .entrySet().stream().map(e -> ImmutablePair.of(codec.decode(e.getKey()), e.getValue())).collect(ImmutableCollectors.toImmutableMap());
         }
 
         @Override
@@ -344,7 +343,7 @@ public interface Kv<K, V>
         @Override
         public void putAll(Map<? extends KO, ? extends V> map)
         {
-            wrapped.putAll(map.entrySet().stream().map(e -> ImmutablePair.of(codec.encode(e.getKey()), e.getValue())).collect(toImmutableMap()));
+            wrapped.putAll(map.entrySet().stream().map(e -> ImmutablePair.of(codec.encode(e.getKey()), e.getValue())).collect(ImmutableCollectors.toImmutableMap()));
         }
 
         @Override
@@ -357,8 +356,8 @@ public interface Kv<K, V>
         public Set<KO> removeAll(Set<? extends KO> keys)
         {
             return wrapped.removeAll(
-                    keys.stream().map(k -> codec.encode(k)).collect(toImmutableSet()))
-                    .stream().map(k -> codec.decode(k)).collect(toImmutableSet());
+                    keys.stream().map(k -> codec.encode(k)).collect(ImmutableCollectors.toImmutableSet()))
+                    .stream().map(k -> codec.decode(k)).collect(ImmutableCollectors.toImmutableSet());
         }
 
         @Override
@@ -370,8 +369,8 @@ public interface Kv<K, V>
         @Override
         public Set<KO> containsKeys(Set<? extends KO> keys)
         {
-            return wrapped.containsKeys(keys.stream().map(k -> codec.encode(k)).collect(toImmutableSet()))
-                    .stream().map(k -> codec.decode(k)).collect(toImmutableSet());
+            return wrapped.containsKeys(keys.stream().map(k -> codec.encode(k)).collect(ImmutableCollectors.toImmutableSet()))
+                    .stream().map(k -> codec.decode(k)).collect(ImmutableCollectors.toImmutableSet());
         }
 
         @Override
@@ -396,7 +395,7 @@ public interface Kv<K, V>
         public Map<K, VO> getAll(Set<? extends K> keys)
         {
             return wrapped.getAll(keys)
-                    .entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), codec.decode(e.getValue()))).collect(toImmutableMap());
+                    .entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), codec.decode(e.getValue()))).collect(ImmutableCollectors.toImmutableMap());
         }
 
         @Override
@@ -408,7 +407,7 @@ public interface Kv<K, V>
         @Override
         public void putAll(Map<? extends K, ? extends VO> map)
         {
-            wrapped.putAll(map.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), codec.encode(e.getValue()))).collect(toImmutableMap()));
+            wrapped.putAll(map.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), codec.encode(e.getValue()))).collect(ImmutableCollectors.toImmutableMap()));
         }
 
         @Override
