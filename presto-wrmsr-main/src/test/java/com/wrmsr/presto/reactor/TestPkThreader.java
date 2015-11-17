@@ -36,6 +36,7 @@ import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
+import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.planner.plan.AggregationNode;
 import com.facebook.presto.sql.planner.plan.FilterNode;
 import com.facebook.presto.sql.planner.plan.JoinNode;
@@ -121,15 +122,19 @@ public class TestPkThreader
         private final SymbolAllocator symbolAllocator;
         private final Session session;
         private final Metadata metadata;
+        private final List<PlanOptimizer> planOptimizers;
+        private final Map<Expression, Type> types;
         private final Map<String, ConnectorSupport> connectorSupport;
         private final IntermediateStorageProvider intermediateStorageProvider;
 
-        public PkThreader(PlanNodeIdAllocator idAllocator, SymbolAllocator symbolAllocator, Session session, Metadata metadata, Map<String, ConnectorSupport> connectorSupport, IntermediateStorageProvider intermediateStorageProvider)
+        public PkThreader(PlanNodeIdAllocator idAllocator, SymbolAllocator symbolAllocator, Session session, Metadata metadata, List<PlanOptimizer> planOptimizers, Map<Expression, Type> types, Map<String, ConnectorSupport> connectorSupport, IntermediateStorageProvider intermediateStorageProvider)
         {
             this.idAllocator = idAllocator;
             this.symbolAllocator = symbolAllocator;
             this.session = session;
             this.metadata = metadata;
+            this.planOptimizers = planOptimizers;
+            this.types = types;
             this.connectorSupport = connectorSupport;
             this.intermediateStorageProvider = intermediateStorageProvider;
         }
@@ -298,7 +303,7 @@ public class TestPkThreader
             Context backingContext = new Context();
             PlanNode backingSource = node.getSource().accept(this, backingContext);
             context.children.add(backingContext);
-            List<Symbol> backingPkSyms = backingContext.nodePkSyms.get(backingSource.getId());
+            List<Symbol> pkSyms = backingContext.nodePkSyms.get(backingSource.getId());
 
             /*
             AggregationNode newNode = new AggregationNode(
@@ -320,19 +325,45 @@ public class TestPkThreader
             Function<List<Symbol>, List<IntermediateStorageProvider.Column>> toIspCols = ss ->
                     ss.stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
 
+            TableHandle indexTableHandle = intermediateStorageProvider.getIntermediateStorage(
+                    String.format("%s_index", node.getId().toString()),
+                    toIspCols.apply(pkSyms),
+                    toIspCols.apply(gkSyms));
+            ConnectorSupport indexTableConnectorSupport = connectorSupport.get(indexTableHandle.getConnectorId());
+            Connector indexTableConnector = indexTableConnectorSupport.getConnector();
+            Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
+
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_data", node.getId().toString()),
                     toIspCols.apply(gkSyms),
                     toIspCols.apply(nonGkSyms));
-
-            TableMetadata dataTableMetadata = metadata.getTableMetadata(session, dataTableHandle);
             ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
             Connector dataTableConnector = dataTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());
 
-            Map<Symbol, ColumnHandle> newAssignments = node.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, dataTableColumnHandles.get(s.getName()))).collect(toImmutableMap());
+            List<Symbol> gkPkSyms = Stream.concat(gkSyms.stream(), pkSyms.stream()).collect(toImmutableList());
+            PlanNode indexQueryRoot = new OutputNode(
+                    idAllocator.getNextId(),
+                    new ProjectNode(
+                            idAllocator.getNextId(),
+                            backingSource,
+                            gkPkSyms.stream().map(s -> ImmutablePair.of(s, (Expression) s.toQualifiedNameReference())).collect(toImmutableMap())),
+                    gkPkSyms.stream().map(Symbol::getName).collect(toImmutableList()),
+                    gkPkSyms);
 
-            TupleDomain<ColumnHandle> newCurrentConstraint = TupleDomain.all();
+            for (PlanOptimizer planOptimizer : planOptimizers) {
+                indexQueryRoot = planOptimizer.optimize(
+                        indexQueryRoot,
+                        session,
+                        types,
+                        symbolAllocator,
+                        idAllocator);
+            }
+
+            // PlanNode dataQueryRoot = new OutputNode(
+            // );
+
+            Map<Symbol, ColumnHandle> newAssignments = node.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, dataTableColumnHandles.get(s.getName()))).collect(toImmutableMap());
 
             TableScanNode newNode = new TableScanNode(
                 idAllocator.getNextId(),
@@ -340,7 +371,7 @@ public class TestPkThreader
                 node.getOutputSymbols(),
                 newAssignments,
                 Optional.<TableLayoutHandle>empty(),
-                newCurrentConstraint,
+                TupleDomain.all(),
                 null);
             context.nodePkSyms.put(newNode.getId(), gkSyms);
             return newNode;
@@ -407,9 +438,12 @@ public class TestPkThreader
                 pq.planner.getSymbolAllocator(),
                 pq.session,
                 pq.lqr.getMetadata(),
+                pq.planOptimizers,
+                pq.analysis.getTypes(),
                 pq.connectorSupport,
                 isp);
 
+        pq.planner
         PlanNode newRoot = pq.plan.getRoot().accept(r, ctx);
         System.out.println(newRoot);
         System.out.println(ctx);

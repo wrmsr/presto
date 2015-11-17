@@ -33,6 +33,7 @@ import com.facebook.presto.sql.planner.LogicalPlanner;
 import com.facebook.presto.sql.planner.Plan;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.PlanOptimizersFactory;
+import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.TestingConnectorSession;
@@ -48,6 +49,7 @@ import java.io.File;
 import java.security.Principal;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -127,6 +129,7 @@ public class TestHelper
         public final QueryExplainer queryExplainer;
         public final Analyzer analyzer;
         public final Analysis analysis;
+        public final List<PlanOptimizer> planOptimizers;
         public final LogicalPlanner planner;
         public final Plan plan;
 
@@ -172,9 +175,11 @@ public class TestHelper
 
             analysis = analyzer.analyze(statement);
 
+            planOptimizers = planOptimizersFactory.get();
+
             planner = new LogicalPlanner(
                     session,
-                    planOptimizersFactory.get(),
+                    planOptimizers,
                     idAllocator,
                     lqr.getMetadata()
             );
