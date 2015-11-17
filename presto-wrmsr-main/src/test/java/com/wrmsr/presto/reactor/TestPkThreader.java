@@ -28,6 +28,7 @@ import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.Symbol;
@@ -48,13 +49,23 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
+import java.math.BigDecimal;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
@@ -286,7 +297,8 @@ public class TestPkThreader
             Set<Symbol> gkSymSet = newHashSet(gkSyms);
             List<Symbol> nonGkSyms = node.getOutputSymbols().stream().filter(s -> !gkSymSet.contains(s)).collect(toImmutableList());
 
-            Function<List<Symbol>, List<IntermediateStorageProvider.Column>> toIspCols = ss -> ss.stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
+            Function<List<Symbol>, List<IntermediateStorageProvider.Column>> toIspCols = ss ->
+                    ss.stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
 
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_data", node.getId().toString()),
@@ -337,8 +349,28 @@ public class TestPkThreader
         TestHelper.PlannedQuery pq = helper.plan(stmt);
         PkThreader.Context ctx = new PkThreader.Context();
 
-        IntermediateStorageProvider isp = (s, cs) -> {
-            int x = 5;
+        Function<Type, String> formatSqlCol = t -> {
+            if (t instanceof BigintType) {
+                return "bigint";
+            }
+            else {
+                throw new UnsupportedOperationException();
+            }
+        };
+
+        IntermediateStorageProvider isp = (n, gkcs, ngkcs) -> {
+            StringBuilder sql = new StringBuilder();
+            sql.append("create table " + n + " (");
+            sql.append(Stream.concat(gkcs.stream(), ngkcs.stream())
+                    .map(c -> String.format("'%s' %s", c.getName(), formatSqlCol.apply(c.getType())))
+                    .collect(Collectors.joining(", ")));
+
+            sql.append(", primary key (");
+            sql.append(gkcs.stream().map(c -> c.getName()).collect(Collectors.joining(", ")));
+            sql.append(")");
+
+            sql.append(");");
+            System.out.println(sql.toString());
             return null;
         };
 
