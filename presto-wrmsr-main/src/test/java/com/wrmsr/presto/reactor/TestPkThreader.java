@@ -94,7 +94,7 @@ public class TestPkThreader
             }
         }
 
-        TableHandle getIntermediateStorage(String name, List<Column> columns);
+        TableHandle getIntermediateStorage(String name, List<Column> pkColumns, List<Column> nonPkColumns);
     }
 
     public static class PkThreader extends PlanVisitor<PkThreader.Context, PlanNode>
@@ -118,12 +118,13 @@ public class TestPkThreader
 
         public static class Context
         {
-            // FIXME Set<Symbol> ?
             private final Map<PlanNodeId, List<Symbol>> nodePkSyms;
+            private final List<Context> children;
 
             public Context()
             {
-                nodePkSyms = new HashMap<>();
+                nodePkSyms = newHashMap();
+                children = newArrayList();
             }
         }
 
@@ -207,7 +208,7 @@ public class TestPkThreader
 
             Set<Symbol> outputSymbolSet = newHashSet(node.getOutputSymbols());
 
-            List<String> newColumnNames = new ArrayList<>(node.getColumnNames());
+            List<String> newColumnNames = newArrayList(node.getColumnNames());
             List<Symbol> newOutputSymbols = newArrayList(node.getOutputSymbols());
 
             for (Symbol pkSym : pkSyms) {
@@ -242,9 +243,9 @@ public class TestPkThreader
             List<String> pkCols = cs.getPrimaryKey(stn);
             Map<String, Symbol> colSyms = node.getAssignments().entrySet().stream().map(e -> ImmutablePair.of(cs.getColumnName(e.getValue()), e.getKey())).collect(toImmutableMap());
 
-            Map<Symbol, ColumnHandle> newAssignments = new HashMap<>(node.getAssignments());
-            List<Symbol> newOutputSymbols = new ArrayList<>(node.getOutputSymbols());
-            List<Symbol> pkSyms = new ArrayList<>();
+            Map<Symbol, ColumnHandle> newAssignments = newHashMap(node.getAssignments());
+            List<Symbol> newOutputSymbols = newArrayList(node.getOutputSymbols());
+            List<Symbol> pkSyms = newArrayList();
 
             for (String pkCol : pkCols) {
                 if (colSyms.containsKey(pkCol)) {
@@ -276,12 +277,22 @@ public class TestPkThreader
         @Override
         public PlanNode visitAggregation(AggregationNode node, Context context)
         {
-            PlanNode backingSource = node.getSource().accept(this, context);
-            List<Symbol> backingPkSyms = context.nodePkSyms.get(backingSource.getId());
+            Context backingContext = new Context();
+            PlanNode backingSource = node.getSource().accept(this, backingContext);
+            context.children.add(backingContext);
+            List<Symbol> backingPkSyms = backingContext.nodePkSyms.get(backingSource.getId());
+
+            List<Symbol> gkSyms = node.getGroupBy();
+            Set<Symbol> gkSymSet = newHashSet(gkSyms);
+            List<Symbol> nonGkSyms = node.getOutputSymbols().stream().filter(s -> !gkSymSet.contains(s)).collect(toImmutableList());
+
+            Function<List<Symbol>, List<IntermediateStorageProvider.Column>> toIspCols = ss -> ss.stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
 
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_data", node.getId().toString()),
-                    node.getOutputSymbols().stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList()));
+                    toIspCols.apply(gkSyms),
+                    toIspCols.apply(nonGkSyms));
+
             TableMetadata dataTableMetadata = metadata.getTableMetadata(session, dataTableHandle);
             ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
             Connector dataTableConnector = dataTableConnectorSupport.getConnector();
@@ -326,13 +337,18 @@ public class TestPkThreader
         TestHelper.PlannedQuery pq = helper.plan(stmt);
         PkThreader.Context ctx = new PkThreader.Context();
 
+        IntermediateStorageProvider isp = (s, cs) -> {
+            int x = 5;
+            return null;
+        };
+
         PkThreader r = new PkThreader(
                 pq.idAllocator,
                 pq.planner.getSymbolAllocator(),
                 pq.session,
                 pq.lqr.getMetadata(),
                 pq.connectorSupport,
-                (s, cs) -> null);
+                isp);
 
         PlanNode newRoot = pq.plan.getRoot().accept(r, ctx);
         System.out.println(newRoot);
