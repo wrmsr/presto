@@ -24,7 +24,10 @@ public interface SimpleMap<K, V>
 {
     V get(K key);
 
-    boolean containsKey(K key);
+    default boolean containsKey(K key)
+    {
+        return get(key) != null;
+    }
 
     void put(K key, V value);
 
@@ -136,6 +139,12 @@ public interface SimpleMap<K, V>
             }
             return target.containsKey(k);
         }
+
+        @Override
+        public void putAll(Map<? extends K, ? extends V> m)
+        {
+            m.entrySet().stream().forEach(e -> put(e.getKey(), e.getValue()));
+        }
     }
 
     class RestrictedToMap<K, V> extends AbstractToMap<K, V>
@@ -158,37 +167,7 @@ public interface SimpleMap<K, V>
         }
 
         @Override
-        public boolean containsKey(Object key)
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public boolean containsValue(Object value)
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public V get(Object key)
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public V put(K key, V value)
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public V remove(Object key)
-        {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void putAll(Map<? extends K, ? extends V> m)
         {
             throw new UnsupportedOperationException();
         }
@@ -279,6 +258,56 @@ public interface SimpleMap<K, V>
 
         @Override
         public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction)
+        {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    class UnrestrictedToMap<K, V> extends AbstractToMap<K, V>
+    {
+        public UnrestrictedToMap(SimpleMap<K, V> target, boolean keyCastsThrow, boolean getForReturns)
+        {
+            super(target, keyCastsThrow, getForReturns);
+        }
+
+        @Override
+        public int size()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isEmpty()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean containsValue(Object value)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void clear()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Set<K> keySet()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Collection<V> values()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Set<Entry<K, V>> entrySet()
         {
             throw new UnsupportedOperationException();
         }
