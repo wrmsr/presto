@@ -31,7 +31,7 @@ import com.facebook.presto.testing.TestingConnectorSession;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-import com.wrmsr.presto.util.collect.fuuu;
+import com.wrmsr.presto.util.collect.SimpleMap;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
@@ -141,7 +141,7 @@ public class TestKv
     }
 
     public static class JdbcSImpleMap
-            implements fuuu.Serial<byte[], byte[]>
+            implements SimpleMap<byte[], byte[]>
     {
         private final Supplier<Connection> connectionSupplier;
         private final String quote;
@@ -240,7 +240,7 @@ public class TestKv
         */
 
         @Override
-        public Optional<byte[]> get(byte[] key)
+        public byte[] get(byte[] key)
         {
             return null;
         }
@@ -252,9 +252,9 @@ public class TestKv
         }
 
         @Override
-        public boolean remove(byte[] key)
+        public void remove(byte[] key)
         {
-            return false;
+
         }
     }
 
