@@ -30,6 +30,7 @@ import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
@@ -299,6 +300,19 @@ public class TestPkThreader
             context.children.add(backingContext);
             List<Symbol> backingPkSyms = backingContext.nodePkSyms.get(backingSource.getId());
 
+            /*
+            AggregationNode newNode = new AggregationNode(
+                    node.getId(),
+                    node.getSource(),
+                    node.getGroupBy(),
+                    node.getAggregations(),
+                    node.getFunctions(),
+                    node.getMasks()
+                    node.getSampleWeight(),
+                    node.getConfidence());
+            return newNode;
+            */
+
             List<Symbol> gkSyms = node.getGroupBy();
             Set<Symbol> gkSymSet = newHashSet(gkSyms);
             List<Symbol> nonGkSyms = node.getOutputSymbols().stream().filter(s -> !gkSymSet.contains(s)).collect(toImmutableList());
@@ -318,28 +332,18 @@ public class TestPkThreader
 
             Map<Symbol, ColumnHandle> newAssignments = node.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, dataTableColumnHandles.get(s.getName()))).collect(toImmutableMap());
 
-            /*
+            TupleDomain<ColumnHandle> newCurrentConstraint = TupleDomain.all();
+
             TableScanNode newNode = new TableScanNode(
                 idAllocator.getNextId(),
                 dataTableHandle,
                 node.getOutputSymbols(),
                 newAssignments,
                 Optional.<TableLayoutHandle>empty(),
-                TupleDomain<ColumnHandle> currentConstraint,
-                null)
-
-            AggregationNode newNode = new AggregationNode(
-                    node.getId(),
-                    node.getSource(),
-                    node.getGroupBy(),
-                    node.getAggregations(),
-                    node.getFunctions(),
-                    node.getMasks()
-                    node.getSampleWeight(),
-                    node.getConfidence());
+                newCurrentConstraint,
+                null);
+            context.nodePkSyms.put(newNode.getId(), gkSyms);
             return newNode;
-            */
-            throw new UnsupportedOperationException();
         }
     }
 

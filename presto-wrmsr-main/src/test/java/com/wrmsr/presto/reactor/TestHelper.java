@@ -40,6 +40,7 @@ import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
+import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
 import org.intellij.lang.annotations.Language;
 
@@ -184,6 +185,7 @@ public class TestHelper
 
             connectorSupport = ImmutableMap.<String, ConnectorSupport>builder()
                    .put("tpch", new TpchConnectorSupport(connectors.get("tpch"), "tiny"))
+                    .put("test", new ExtendedJdbcConnectorSupport((ExtendedJdbcConnector) connectors.get("test")))
                    .build();
         }
     }
