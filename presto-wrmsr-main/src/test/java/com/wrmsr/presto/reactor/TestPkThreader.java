@@ -22,6 +22,8 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.metadata.TableLayoutHandle;
 import com.facebook.presto.metadata.TableMetadata;
+import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
+import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
@@ -49,10 +51,14 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.Connection;
 import java.sql.Date;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -359,10 +365,13 @@ public class TestPkThreader
         };
 
         IntermediateStorageProvider isp = (n, gkcs, ngkcs) -> {
+            String schemaName = "example";
+            String tableName = "isp_" + n;
+
             StringBuilder sql = new StringBuilder();
-            sql.append("create table " + n + " (");
+            sql.append("create table `" + schemaName + "`.`" + tableName + "` (");
             sql.append(Stream.concat(gkcs.stream(), ngkcs.stream())
-                    .map(c -> String.format("'%s' %s", c.getName(), formatSqlCol.apply(c.getType())))
+                    .map(c -> String.format("`%s` %s", c.getName(), formatSqlCol.apply(c.getType())))
                     .collect(Collectors.joining(", ")));
 
             sql.append(", primary key (");
@@ -370,8 +379,23 @@ public class TestPkThreader
             sql.append(")");
 
             sql.append(");");
-            System.out.println(sql.toString());
-            return null;
+
+            String connectorId = "test";
+            JdbcMetadata jdbcMetadata = (JdbcMetadata) pq.connectors.get(connectorId).getMetadata();
+            BaseJdbcClient jdbcClient = (BaseJdbcClient) jdbcMetadata.getJdbcClient();
+            try {
+                try (Connection sqlConn = jdbcClient.getConnection()) {
+                    try (Statement sqlStmt = sqlConn.createStatement()) {
+                        sqlStmt.execute("create schema `" + schemaName + "`;");
+                        sqlStmt.execute(sql.toString());
+                    }
+                }
+            }
+            catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+
+            return new TableHandle(connectorId, jdbcMetadata.getTableHandle(pq.session.toConnectorSession(), new SchemaTableName(schemaName, tableName)));
         };
 
         PkThreader r = new PkThreader(
