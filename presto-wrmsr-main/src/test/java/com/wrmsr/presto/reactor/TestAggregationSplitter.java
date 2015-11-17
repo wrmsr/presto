@@ -22,8 +22,9 @@ KVConnector?
 
 strats:
  - two maps:
-  pk -> jk
-  jk -> [pk]
+  pk -> gk
+  gk -> [pk -> data]
+   omfg guava table -> cassandra wide rows fucking do this
 
 
 
@@ -37,12 +38,11 @@ public class TestAggregationSplitter
 {
     public final TestHelper helper = new TestHelper();
 
-    public static class AggregationSplitter extends PlanVisitor<AggregationSplitter.Context, PlanNode>
+    public static class AggregationSplitter
     {
-        public static class Context
-        {
+        // private
 
-        }
+
     }
 
     @Test

@@ -12,6 +12,10 @@
  * limitations under the License.
  */
 package com.wrmsr.presto.reactor;
+/*
+n-way join plz, no hash opt
+ - just manually add lol
+*/
 
 import com.facebook.presto.Session;
 import com.facebook.presto.spi.ColumnHandle;
