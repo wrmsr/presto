@@ -21,54 +21,128 @@ import java.util.Set;
 
 public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
 {
-    abstract class Operation<K, V>
+    abstract class BatchOperation<K, V>
     {
         protected final K key;
 
-        public Operation(K key)
+        public BatchOperation(K key)
         {
             this.key = key;
         }
     }
 
-    final class Get<K, V> extends Operation<K, V>
+    final class GetBatchOperation<K, V> extends BatchOperation<K, V>
     {
-        public Get(K key)
+        public GetBatchOperation(K key)
         {
             super(key);
         }
     }
 
-    final class ContainsKey<K, V> extends Operation<K, V>
+    final class ContainsKeyBatchOperation<K, V> extends BatchOperation<K, V>
     {
-        public ContainsKey(K key)
+        public ContainsKeyBatchOperation(K key)
         {
             super(key);
         }
     }
 
-    final class Put<K, V> extends Operation<K, V>
+    final class PutBatchOperation<K, V> extends BatchOperation<K, V>
     {
         protected final V value;
 
-        public Put(K key, V value)
+        public PutBatchOperation(K key, V value)
         {
             super(key);
             this.value = value;
         }
     }
 
-    final class Remove<K, V> extends Operation<K, V>
+    final class RemoveBatchOperation<K, V> extends BatchOperation<K, V>
     {
-        public Remove(K key)
+        public RemoveBatchOperation(K key)
         {
             super(key);
         }
     }
 
+    abstract class BatchResult<K, V>
+    {
+        protected final K key;
+        protected final V value;
+
+        public BatchResult(K key, V value)
+        {
+            this.key = key;
+            this.value = value;
+        }
+
+        public K getKey()
+        {
+            return key;
+        }
+
+        public V getValue()
+        {
+            return value;
+        }
+
+        public boolean isPresent()
+        {
+            return value != null;
+        }
+    }
+
+    final class GetBatchResult<K, V> extends BatchResult<K, V>
+    {
+        public GetBatchResult(K key, V value)
+        {
+            super(key, value);
+        }
+    }
+
+    final class ContainsKeyBatchResult<K, V> extends BatchResult<K, V>
+    {
+        protected final boolean isPresent;
+
+        public ContainsKeyBatchResult(K key, boolean isPresent)
+        {
+            super(key, null);
+            this.isPresent = isPresent;
+        }
+
+        @Override
+        public V getValue()
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isPresent()
+        {
+            return isPresent;
+        }
+    }
+
+    final class PutBatchResult<K, V> extends BatchResult<K, V>
+    {
+        public PutBatchResult(K key)
+        {
+            super(key, null);
+        }
+    }
+
+    final class RemoveBatchResult<K, V> extends BatchResult<K, V>
+    {
+        public RemoveBatchResult(K key)
+        {
+            super(key, null);
+        }
+    }
+
     final class BatchBuilder<K, V>
     {
-        private final ImmutableList.Builder<Operation<K, V>> builder;
+        private final ImmutableList.Builder<BatchOperation<K, V>> builder;
 
         public BatchBuilder()
         {
@@ -77,39 +151,46 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
 
         public BatchBuilder<K, V> get(K key)
         {
-            builder.add(new Get<>(key));
+            builder.add(new GetBatchOperation<>(key));
             return this;
 
         }
 
         public BatchBuilder<K, V> containsKey(K key)
         {
-            builder.add(new ContainsKey<>(key));
+            builder.add(new ContainsKeyBatchOperation<>(key));
             return this;
         }
 
         public BatchBuilder<K, V> put(K key, V value)
         {
-            builder.add(new Put<>(key, value));
+            builder.add(new PutBatchOperation<>(key, value));
             return this;
         }
 
         public BatchBuilder<K, V> remove(K key)
         {
-            builder.add(new Remove<>(key));
+            builder.add(new RemoveBatchOperation<>(key));
             return this;
         }
 
-        public List<Operation<K, V>> build()
+        public List<BatchOperation<K, V>> build()
         {
             return builder.build();
         }
     }
 
-    List<Object> batch(List<Operation<K, V>> operations);
-
-    default Map<K, V> getAll(Set<? extends K> keys)
+    static <K, V> BatchBuilder<K, V> batchBuilder()
     {
+        return new BatchBuilder<>();
+    }
+
+    List<BatchResult<K, V>> batch(List<BatchOperation<K, V>> operations);
+
+    default <K, V> getAll(List<? extends K> keys)
+    {
+        BatchBuilder<K, V> batchBuilder = batchBuilder();
+        keys.forEach();
 
     }
 
