@@ -69,6 +69,7 @@ public class TestPkThreader
 {
     public final TestHelper helper = new TestHelper();
 
+    @FunctionalInterface
     public interface IntermediateStorageProvider
     {
         final class Column
@@ -104,9 +105,8 @@ public class TestPkThreader
         private final Metadata metadata;
         private final Map<String, ConnectorSupport> connectorSupport;
         private final IntermediateStorageProvider intermediateStorageProvider;
-        private final Map<Symbol, Type> symbolTypes;
 
-        public PkThreader(PlanNodeIdAllocator idAllocator, SymbolAllocator symbolAllocator, Session session, Metadata metadata, Map<String, ConnectorSupport> connectorSupport, IntermediateStorageProvider intermediateStorageProvider, Map<Symbol, Type> symbolTypes)
+        public PkThreader(PlanNodeIdAllocator idAllocator, SymbolAllocator symbolAllocator, Session session, Metadata metadata, Map<String, ConnectorSupport> connectorSupport, IntermediateStorageProvider intermediateStorageProvider)
         {
             this.idAllocator = idAllocator;
             this.symbolAllocator = symbolAllocator;
@@ -114,7 +114,6 @@ public class TestPkThreader
             this.metadata = metadata;
             this.connectorSupport = connectorSupport;
             this.intermediateStorageProvider = intermediateStorageProvider;
-            this.symbolTypes = symbolTypes;
         }
 
         public static class Context
@@ -282,7 +281,7 @@ public class TestPkThreader
 
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_data", node.getId().toString()),
-                    node.getOutputSymbols().stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolTypes.get(s))).collect(toImmutableList()));
+                    node.getOutputSymbols().stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList()));
             TableMetadata dataTableMetadata = metadata.getTableMetadata(session, dataTableHandle);
             ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
             Connector dataTableConnector = dataTableConnectorSupport.getConnector();
@@ -298,7 +297,7 @@ public class TestPkThreader
                 newAssignments,
                 Optional.<TableLayoutHandle>empty(),
                 TupleDomain<ColumnHandle> currentConstraint,
-                node.ge)
+                null)
 
             AggregationNode newNode = new AggregationNode(
                     node.getId(),
@@ -331,8 +330,9 @@ public class TestPkThreader
                 pq.idAllocator,
                 pq.planner.getSymbolAllocator(),
                 pq.session,
-                pq.connectorSupport
-        );
+                pq.lqr.getMetadata(),
+                pq.connectorSupport,
+                (s, cs) -> null);
 
         PlanNode newRoot = pq.plan.getRoot().accept(r, ctx);
         System.out.println(newRoot);
