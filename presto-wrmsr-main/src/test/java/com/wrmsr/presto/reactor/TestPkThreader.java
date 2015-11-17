@@ -18,15 +18,21 @@ n-way join plz, no hash opt
 */
 
 import com.facebook.presto.Session;
+import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.metadata.TableHandle;
+import com.facebook.presto.metadata.TableLayoutHandle;
+import com.facebook.presto.metadata.TableMetadata;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
+import com.facebook.presto.sql.planner.plan.AggregationNode;
 import com.facebook.presto.sql.planner.plan.FilterNode;
 import com.facebook.presto.sql.planner.plan.JoinNode;
 import com.facebook.presto.sql.planner.plan.OutputNode;
@@ -39,17 +45,21 @@ import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableSet;
 import static jersey.repackaged.com.google.common.collect.Lists.asList;
@@ -59,19 +69,52 @@ public class TestPkThreader
 {
     public final TestHelper helper = new TestHelper();
 
+    public interface IntermediateStorageProvider
+    {
+        final class Column
+        {
+            private final String name;
+            private final Type type;
+
+            public Column(String name, Type type)
+            {
+                this.name = name;
+                this.type = type;
+            }
+
+            public String getName()
+            {
+                return name;
+            }
+
+            public Type getType()
+            {
+                return type;
+            }
+        }
+
+        TableHandle getIntermediateStorage(String name, List<Column> columns);
+    }
+
     public static class PkThreader extends PlanVisitor<PkThreader.Context, PlanNode>
     {
         private final PlanNodeIdAllocator idAllocator;
         private final SymbolAllocator symbolAllocator;
         private final Session session;
+        private final Metadata metadata;
         private final Map<String, ConnectorSupport> connectorSupport;
+        private final IntermediateStorageProvider intermediateStorageProvider;
+        private final Map<Symbol, Type> symbolTypes;
 
-        public PkThreader(PlanNodeIdAllocator idAllocator, SymbolAllocator symbolAllocator, Session session, Map<String, ConnectorSupport> connectorSupport)
+        public PkThreader(PlanNodeIdAllocator idAllocator, SymbolAllocator symbolAllocator, Session session, Metadata metadata, Map<String, ConnectorSupport> connectorSupport, IntermediateStorageProvider intermediateStorageProvider, Map<Symbol, Type> symbolTypes)
         {
             this.idAllocator = idAllocator;
             this.symbolAllocator = symbolAllocator;
             this.session = session;
+            this.metadata = metadata;
             this.connectorSupport = connectorSupport;
+            this.intermediateStorageProvider = intermediateStorageProvider;
+            this.symbolTypes = symbolTypes;
         }
 
         public static class Context
@@ -230,20 +273,67 @@ public class TestPkThreader
             context.nodePkSyms.put(newNode.getId(), pkSyms);
             return newNode;
         }
+
+        @Override
+        public PlanNode visitAggregation(AggregationNode node, Context context)
+        {
+            PlanNode backingSource = node.getSource().accept(this, context);
+            List<Symbol> backingPkSyms = context.nodePkSyms.get(backingSource.getId());
+
+            TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
+                    String.format("%s_data", node.getId().toString()),
+                    node.getOutputSymbols().stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolTypes.get(s))).collect(toImmutableList()));
+            TableMetadata dataTableMetadata = metadata.getTableMetadata(session, dataTableHandle);
+            ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
+            Connector dataTableConnector = dataTableConnectorSupport.getConnector();
+            Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());
+
+            Map<Symbol, ColumnHandle> newAssignments = node.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, dataTableColumnHandles.get(s.getName()))).collect(toImmutableMap());
+
+            /*
+            TableScanNode newNode = new TableScanNode(
+                idAllocator.getNextId(),
+                dataTableHandle,
+                node.getOutputSymbols(),
+                newAssignments,
+                Optional.<TableLayoutHandle>empty(),
+                TupleDomain<ColumnHandle> currentConstraint,
+                node.ge)
+
+            AggregationNode newNode = new AggregationNode(
+                    node.getId(),
+                    node.getSource(),
+                    node.getGroupBy(),
+                    node.getAggregations(),
+                    node.getFunctions(),
+                    node.getMasks()
+                    node.getSampleWeight(),
+                    node.getConfidence());
+            return newNode;
+            */
+            throw new UnsupportedOperationException();
+        }
     }
 
     @Test
     public void testThing()
             throws Throwable
     {
-        TestHelper.PlannedQuery pq = helper.plan("select customer.name, nation.name from tpch.tiny.customer inner join tpch.tiny.nation on customer.nationkey = nation.nationkey where acctbal > 100");
+        @Language("SQL") String stmt =
+                // "select customer.name, nation.name from tpch.tiny.customer inner join tpch.tiny.nation on customer.nationkey = nation.nationkey where acctbal > 100"
+                "select nationkey, count(*) c from tpch.tiny.nation group by nationkey"
+                ;
+
+        TestHelper.PlannedQuery pq = helper.plan(stmt);
         PkThreader.Context ctx = new PkThreader.Context();
+
         PkThreader r = new PkThreader(
                 pq.idAllocator,
                 pq.planner.getSymbolAllocator(),
                 pq.session,
                 pq.connectorSupport
         );
+
         PlanNode newRoot = pq.plan.getRoot().accept(r, ctx);
         System.out.println(newRoot);
         System.out.println(ctx);
