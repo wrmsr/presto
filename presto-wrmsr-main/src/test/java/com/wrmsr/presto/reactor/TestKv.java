@@ -31,7 +31,7 @@ import com.facebook.presto.testing.TestingConnectorSession;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-import com.wrmsr.presto.util.collect.Kv;
+import com.wrmsr.presto.util.collect.fuuu;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
@@ -140,7 +140,8 @@ public class TestKv
         }
     }
 
-    public static class JdbcKv implements Kv.Serial<byte[], byte[]>
+    public static class JdbcSImpleMap
+            implements fuuu.Serial<byte[], byte[]>
     {
         private final Supplier<Connection> connectionSupplier;
         private final String quote;
@@ -155,7 +156,7 @@ public class TestKv
         private final @Language("SQL") String getStmt;
         private final @Language("SQL") String deleteStmt;
 
-        public JdbcKv(Supplier<Connection> connectionSupplier, String quote, String catalog, String schema, String table, String keyColumn, String valueColumn)
+        public JdbcSImpleMap(Supplier<Connection> connectionSupplier, String quote, String catalog, String schema, String table, String keyColumn, String valueColumn)
         {
             this.connectionSupplier = connectionSupplier;
             this.quote = quote;

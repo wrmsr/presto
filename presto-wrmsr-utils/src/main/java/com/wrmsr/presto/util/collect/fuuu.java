@@ -25,7 +25,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.Codecs.Codec;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
-public interface Kv<K, V>
+public interface fuuu<K, V>
 {
     Map<K, V> getAll(Set<? extends K> keys);
 
@@ -49,7 +49,7 @@ public interface Kv<K, V>
 
     boolean remove(K key);
 
-    interface Serial<K, V> extends Kv<K, V>
+    interface Serial<K, V> extends fuuu<K, V>
     {
         default Map<K, V> getAll(Set<? extends K> keys)
         {
@@ -93,7 +93,7 @@ public interface Kv<K, V>
         }
     }
 
-    interface Batched<K, V> extends Kv<K, V>
+    interface Batched<K, V> extends fuuu<K, V>
     {
         default Optional<V> get(K key)
         {
@@ -137,11 +137,11 @@ public interface Kv<K, V>
         }
     }
 
-    class Wrapper<K, V> implements Kv<K, V>
+    class Wrapper<K, V> implements fuuu<K, V>
     {
-        private final Kv<K, V> wrapped;
+        private final fuuu<K, V> wrapped;
 
-        public Wrapper(Kv<K, V> wrapped)
+        public Wrapper(fuuu<K, V> wrapped)
         {
             this.wrapped = wrapped;
         }
@@ -199,13 +199,13 @@ public interface Kv<K, V>
     {
         private final Object lock;
 
-        public Synchronized(Kv<K, V> wrapped, Object lock)
+        public Synchronized(fuuu<K, V> wrapped, Object lock)
         {
             super(wrapped);
             this.lock = lock;
         }
 
-        public Synchronized(Kv<K, V> wrapped)
+        public Synchronized(fuuu<K, V> wrapped)
         {
             this(wrapped, wrapped);
         }
@@ -315,12 +315,12 @@ public interface Kv<K, V>
         }
     }
 
-    class KeyCodec<KO, KI, V> implements Kv<KO, V>
+    class KeyCodec<KO, KI, V> implements fuuu<KO, V>
     {
-        private final Kv<KI, V> wrapped;
+        private final fuuu<KI, V> wrapped;
         private final Codec<KO, KI> codec;
 
-        public KeyCodec(Kv<KI, V> wrapped, Codec<KO, KI> codec)
+        public KeyCodec(fuuu<KI, V> wrapped, Codec<KO, KI> codec)
         {
             this.wrapped = wrapped;
             this.codec = codec;
@@ -380,12 +380,12 @@ public interface Kv<K, V>
         }
     }
 
-    class ValueCodec<K, VO, VI> implements Kv<K, VO>
+    class ValueCodec<K, VO, VI> implements fuuu<K, VO>
     {
-        private final Kv<K, VI> wrapped;
+        private final fuuu<K, VI> wrapped;
         private final Codec<VO, VI> codec;
 
-        public ValueCodec(Kv<K, VI> wrapped, Codec<VO, VI> codec)
+        public ValueCodec(fuuu<K, VI> wrapped, Codec<VO, VI> codec)
         {
             this.wrapped = wrapped;
             this.codec = codec;

@@ -46,7 +46,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.util.ByteArrayWrapper;
-import com.wrmsr.presto.util.collect.Kv;
+import com.wrmsr.presto.util.collect.fuuu;
 import io.airlift.slice.BasicSliceInput;
 import io.airlift.slice.DynamicSliceOutput;
 import io.airlift.slice.Slice;
@@ -586,9 +586,9 @@ public class TestInsertRewriter
             return reactors.values().stream().filter(InputNodeReactor.class::isInstance).map(InputNodeReactor.class::cast).collect(toImmutableList());
         }
 
-        public Kv<byte[], byte[]> getKv()
+        public fuuu<byte[], byte[]> getKv()
         {
-            return new Kv.KeyCodec<>(new Kv.MapImpl<>(newHashMap()), ByteArrayWrapper.CODEC);
+            return new fuuu.KeyCodec<>(new fuuu.MapImpl<>(newHashMap()), ByteArrayWrapper.CODEC);
         }
     }
 
@@ -673,14 +673,14 @@ public class TestInsertRewriter
             extends Reactor<OutputNode>
     {
         // private final Layout layout;
-        private final Kv<byte[], byte[]> kv;
+        private final fuuu<byte[], byte[]> SImpleMap;
 
         public OutputNodeReactor(OutputNode node, ReactorContext context, Optional<Reactor> destination)
         {
             super(node, context, destination);
             checkArgument(!destination.isPresent());
             // layout = nodeLayout(node);
-            kv = context.getKv(); }
+            SImpleMap = context.getKv(); }
 
         @Override
         public void react(Event event)
@@ -689,19 +689,19 @@ public class TestInsertRewriter
             switch (event.getOperation()) {
                 case INSERT: {
                     PkTuple after = event.getAfter().get();
-                    kv.put(after.getPk().toBytes(bes), after.getNonPk().toBytes(bes));
+                    SImpleMap.put(after.getPk().toBytes(bes), after.getNonPk().toBytes(bes));
                     break;
                 }
                 case UPDATE: {
                     PkTuple before = event.getBefore().get();
-                    kv.remove(before.getPk().toBytes(bes));
+                    SImpleMap.remove(before.getPk().toBytes(bes));
                     PkTuple after = event.getAfter().get();
-                    kv.put(after.getPk().toBytes(bes), after.getNonPk().toBytes(bes));
+                    SImpleMap.put(after.getPk().toBytes(bes), after.getNonPk().toBytes(bes));
                     break;
                 }
                 case DELETE: {
                     PkTuple before = event.getBefore().get();
-                    kv.remove(before.toBytes(bes));
+                    SImpleMap.remove(before.toBytes(bes));
                     break;
                 }
             }
