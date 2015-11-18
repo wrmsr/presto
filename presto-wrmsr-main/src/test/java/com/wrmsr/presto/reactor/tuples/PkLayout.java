@@ -67,7 +67,7 @@ public class PkLayout<N>
     }
 
     @Override
-    public <T> Layout<T> reKey(Function<N, T> fn)
+    public <T> PkLayout<T> mapNames(Function<N, T> fn)
     {
         return new PkLayout<>(names.stream().map(fn::apply).collect(toImmutableList()), types, pkNames.stream().map(fn::apply).collect(toImmutableList()));
     }

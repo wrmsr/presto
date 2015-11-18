@@ -97,7 +97,7 @@ public class Layout<N>
         this(fields.stream().map(Field::getName).collect(toImmutableList()), fields.stream().map(Field::getType).collect(toImmutableList()));
     }
 
-    public <T> Layout<T> reKey(Function<N, T> fn)
+    public <T> Layout<T> mapNames(Function<N, T> fn)
     {
         return new Layout<>(names.stream().map(fn::apply).collect(toImmutableList()), types);
     }
@@ -110,6 +110,11 @@ public class Layout<N>
     public boolean isEmpty()
     {
         return names.isEmpty();
+    }
+
+    public boolean containsName(N name)
+    {
+        return indices.containsKey(name);
     }
 
     public List<N> getNames()

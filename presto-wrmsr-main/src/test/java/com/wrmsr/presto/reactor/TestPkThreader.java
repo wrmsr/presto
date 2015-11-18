@@ -158,7 +158,7 @@ public class TestPkThreader
         }
 
         private static final String dataColumnName = "__data__";
-        private static final Layout.Field dataField = new Layout.Field<>(dataColumnName, VarbinaryType.VARBINARY);
+        private static final Layout.Field<String> dataField = new Layout.Field<>(dataColumnName, VarbinaryType.VARBINARY);
 
         public Context newContext()
         {
@@ -212,31 +212,30 @@ public class TestPkThreader
         public PlanNode visitJoin(JoinNode node, Context context)
         {
             PlanNode newLeft = node.getLeft().accept(this, context);
-            List<Symbol> leftPkSyms = context.nodePkSyms.get(newLeft.getId());
-            Set<Symbol> leftPkSymSet = newHashSet(leftPkSyms);
-            List<Symbol> leftNkSyms = newLeft.getOutputSymbols().stream().filter(s -> !leftPkSymSet.contains(s)).collect(toImmutableList());
+            PkLayout<Symbol> leftLayout = context.getNodeLayout(newLeft);
 
             PlanNode newRight = node.getRight().accept(this, context);
-            List<Symbol> rightPkSyms = context.nodePkSyms.get(newRight.getId());
-            Set<Symbol> rightPkSymSet = newHashSet(rightPkSyms);
-            List<Symbol> rightNkSyms = newLeft.getOutputSymbols().stream().filter(s -> !leftPkSymSet.contains(s)).collect(toImmutableList());
+            PkLayout<Symbol> rightLayout = context.getNodeLayout(newRight);
 
             List<JoinNode.EquiJoinClause> nonHashClauses = node.getCriteria().stream()
                     .filter(c -> !(node.getLeftHashSymbol().isPresent() && c.getLeft().equals(node.getLeftHashSymbol().get())))
                     .filter(c -> !(node.getRightHashSymbol().isPresent() && c.getRight().equals(node.getRightHashSymbol().get())))
                     .collect(toImmutableList());
+
+            /*
             List<Symbol> leftJkSyms = nonHashClauses.stream()
                     .map(JoinNode.EquiJoinClause::getLeft)
-                    .filter(s -> !leftPkSymSet.contains(s))
+                    .filter(s -> !leftLayout.getPk().containsName(s))
                     .collect(toImmutableList());
             List<Symbol> rightJkSyms = nonHashClauses.stream()
                     .map(JoinNode.EquiJoinClause::getRight)
-                    .filter(s -> !rightPkSymSet.contains(s))
+                    .filter(s -> !rightLayout.getPk().containsName(s))
                     .collect(toImmutableList());
+            */
 
             List<Symbol> pkSyms = ImmutableList.<Symbol>builder()
-                    .addAll(leftPkSyms)
-                    .addAll(rightPkSyms)
+                    .addAll(leftLayout.getPkNames())
+                    .addAll(rightLayout.getPkNames())
                     .build();
             checkState(pkSyms.size() == newHashSet(pkSyms).size());
 
@@ -261,15 +260,13 @@ public class TestPkThreader
             // lpk -> [rpk]
             TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left_index", node.getId().toString()),
-                    new PkLayout(
-                            toFields(leftPkSyms),
+                    new PkLayout<>(
+                            leftLayout.getPk().mapNames(Symbol::getName).getFields(),
                             ImmutableList.of(dataField)));
 
             TableHandle leftDataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left_data", node.getId().toString()),
-                    new PkLayout(
-                            toFields(leftPkSyms),
-                            ImmutableList.of(dataField)));
+                    leftLayout.mapNames(Symbol::getName));
 
             return newNode;
         }
