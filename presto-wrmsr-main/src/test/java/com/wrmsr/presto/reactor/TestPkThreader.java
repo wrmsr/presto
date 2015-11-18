@@ -13,17 +13,23 @@
  */
 package com.wrmsr.presto.reactor;
 /*
+TODO optional whole-table buffering
+
 n-way join plz, no hash opt
  - just manually add lol
+
+drop tablescan predis, need it all
+ - predicate pushup lols
+
+ List<List<PlanNodeId>> populationPlanStages
+ Map<ImmutablePair<ConnectorId, SchemaTableName>, List<PlanNodeId>> reactionPlanLists
 */
 
-import com.beust.jcommander.internal.Sets;
 import com.facebook.presto.Session;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.metadata.TableLayoutHandle;
-import com.facebook.presto.metadata.TableMetadata;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.spi.ColumnHandle;
@@ -52,28 +58,19 @@ import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.sql.Blob;
-import java.sql.Clob;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -87,7 +84,6 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableSet;
-import static jersey.repackaged.com.google.common.collect.Lists.asList;
 import static jersey.repackaged.com.google.common.collect.Lists.newArrayList;
 
 public class TestPkThreader
@@ -122,7 +118,8 @@ public class TestPkThreader
         TableHandle getIntermediateStorage(String name, List<Column> pkColumns, List<Column> nonPkColumns);
     }
 
-    public static class PkThreader extends PlanVisitor<PkThreader.Context, PlanNode>
+    public static class PkThreader
+            extends PlanVisitor<PkThreader.Context, PlanNode>
     {
         private final PlanNodeIdAllocator idAllocator;
         private final SymbolAllocator symbolAllocator;
@@ -180,9 +177,9 @@ public class TestPkThreader
             }
 
             ProjectNode newNode = new ProjectNode(
-                node.getId(),
-                newSource,
-                newAssignments);
+                    node.getId(),
+                    newSource,
+                    newAssignments);
             context.nodePkSyms.put(newNode.getId(), pkSyms);
             return newNode;
         }
@@ -206,29 +203,24 @@ public class TestPkThreader
         {
             PlanNode newLeft = node.getLeft().accept(this, context);
             List<Symbol> leftPkSyms = context.nodePkSyms.get(newLeft.getId());
+            Set<Symbol> leftPkSymSet = newHashSet(leftPkSyms);
 
             PlanNode newRight = node.getRight().accept(this, context);
             List<Symbol> rightPkSyms = context.nodePkSyms.get(newRight.getId());
+            Set<Symbol> rightPkSymSet = newHashSet(rightPkSyms);
 
-            // List<Symbol> jkSyms =
-
-            // lpk -> [rpk]
-            TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
-                    String.format("%s_left_index", node.getId().toString()),
-                    toIspCols(leftPkSyms),
-                    toIspCols(rightPkSyms));
-            ConnectorSupport leftIndexTableConnectorSupport = connectorSupport.get(leftIndexTableHandle.getConnectorId());
-            Connector leftIndexTableConnector = leftIndexTableConnectorSupport.getConnector();
-            Map<String, ColumnHandle> leftIndexTableColumnHandles = leftIndexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), leftIndexTableHandle.getConnectorHandle());
-
-            // rpk -> [lpk]
-            TableHandle rightIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
-                    String.format("%s_right_index", node.getId().toString()),
-                    toIspCols(rightPkSyms),
-                    toIspCols(leftPkSyms));
-            ConnectorSupport rightIndexTableConnectorSupport = connectorSupport.get(rightIndexTableHandle.getConnectorId());
-            Connector rightIndexTableConnector = rightIndexTableConnectorSupport.getConnector();
-            Map<String, ColumnHandle> rightIndexTableColumnHandles = rightIndexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), rightIndexTableHandle.getConnectorHandle());
+            List<JoinNode.EquiJoinClause> nonHashClauses = node.getCriteria().stream()
+                    .filter(c -> !(node.getLeftHashSymbol().isPresent() && c.getLeft().equals(node.getLeftHashSymbol().get())))
+                    .filter(c -> !(node.getRightHashSymbol().isPresent() && c.getRight().equals(node.getRightHashSymbol().get())))
+                    .collect(toImmutableList());
+            List<Symbol> leftJkSyms = nonHashClauses.stream()
+                    .map(JoinNode.EquiJoinClause::getLeft)
+                    .filter(s -> !leftPkSymSet.contains(s))
+                    .collect(toImmutableList());
+            List<Symbol> rightJkSyms = nonHashClauses.stream()
+                    .map(JoinNode.EquiJoinClause::getRight)
+                    .filter(s -> !rightPkSymSet.contains(s))
+                    .collect(toImmutableList());
 
             List<Symbol> pkSyms = ImmutableList.<Symbol>builder()
                     .addAll(leftPkSyms)
@@ -246,6 +238,36 @@ public class TestPkThreader
                     node.getRightHashSymbol()
             );
             context.nodePkSyms.put(newNode.getId(), pkSyms);
+
+            PlanNode indexQuery = new OutputNode(
+                    idAllocator.getNextId(),
+                    newNode,
+                    pkSyms.stream().map(Symbol::getName).collect(toImmutableList()),
+                    pkSyms);
+            indexQuery = optimize(indexQuery);
+
+            if (!rightJkSyms.isEmpty()) {
+                // lpk -> [rpk]
+                TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
+                        String.format("%s_left_index", node.getId().toString()),
+                        toIspCols(leftPkSyms),
+                        toIspCols(rightJkSyms));
+                ConnectorSupport leftIndexTableConnectorSupport = connectorSupport.get(leftIndexTableHandle.getConnectorId());
+                Connector leftIndexTableConnector = leftIndexTableConnectorSupport.getConnector();
+                Map<String, ColumnHandle> leftIndexTableColumnHandles = leftIndexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), leftIndexTableHandle.getConnectorHandle());
+            }
+
+            if (!leftJkSyms.isEmpty()) {
+                // rpk -> [lpk]
+                TableHandle rightIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
+                        String.format("%s_right_index", node.getId().toString()),
+                        toIspCols(rightPkSyms),
+                        toIspCols(leftJkSyms));
+                ConnectorSupport rightIndexTableConnectorSupport = connectorSupport.get(rightIndexTableHandle.getConnectorId());
+                Connector rightIndexTableConnector = rightIndexTableConnectorSupport.getConnector();
+                Map<String, ColumnHandle> rightIndexTableColumnHandles = rightIndexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), rightIndexTableHandle.getConnectorHandle());
+            }
+
             return newNode;
         }
 
@@ -379,7 +401,7 @@ public class TestPkThreader
             Connector indexTableConnector = indexTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
 
-            // TODO log(n) recombine, wide rows
+            // TODO optional log(n) recombine, wide rows, special-case reversible combiners (count, sum, array, map)
             String dataColumnName = "__data__";
 
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
@@ -428,13 +450,13 @@ public class TestPkThreader
             Map<Symbol, ColumnHandle> newAssignments = node.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, dataTableColumnHandles.get(s.getName()))).collect(toImmutableMap());
 
             TableScanNode newNode = new TableScanNode(
-                idAllocator.getNextId(),
-                dataTableHandle,
-                node.getOutputSymbols(),
-                newAssignments,
-                Optional.<TableLayoutHandle>empty(),
-                TupleDomain.all(),
-                null);
+                    idAllocator.getNextId(),
+                    dataTableHandle,
+                    node.getOutputSymbols(),
+                    newAssignments,
+                    Optional.<TableLayoutHandle>empty(),
+                    TupleDomain.all(),
+                    null);
             context.nodePkSyms.put(newNode.getId(), gkSyms);
             return newNode;
         }
@@ -446,7 +468,10 @@ public class TestPkThreader
     {
         @Language("SQL") String stmt =
                 // "select customer.name, nation.name from tpch.tiny.customer inner join tpch.tiny.nation on customer.nationkey = nation.nationkey where acctbal > 100"
-                "select nationkey, count(*) c from tpch.tiny.customer where acctbal > 10 group by nationkey"
+                // "select nationkey, count(*) c from tpch.tiny.customer where acctbal > 10 group by nationkey"
+
+                "select name, customer_names from tpch.tiny.nation inner join (select nationkey, sum(length(customer.name)) customer_names from tpch.tiny.customer where acctbal > 10 group by nationkey) customers on nation.nationkey = customers.nationkey"
+
                 ;
 
         TestHelper.PlannedQuery pq = helper.plan(stmt);
@@ -517,5 +542,26 @@ public class TestPkThreader
         PlanNode newRoot = pq.plan.getRoot().accept(r, ctx);
         System.out.println(newRoot);
         System.out.println(ctx);
+
+        /*
+        LocalQueryRunner.MaterializedOutputFactory outputFactory = new LocalQueryRunner.MaterializedOutputFactory();
+
+        TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
+        List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), insert, outputFactory, taskContext);
+
+        boolean done = false;
+        while (!done) {
+            boolean processed = false;
+            for (Driver driver : drivers) {
+                if (!driver.isFinished()) {
+                    driver.process();
+                    processed = true;
+                }
+            }
+            done = !processed;
+        }
+
+        outputFactory.getMaterializingOperator().getMaterializedResult();
+        */
     }
 }
