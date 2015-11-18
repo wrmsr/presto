@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.reactor;
+package com.wrmsr.presto.reactor.tuples;
 
 import com.facebook.presto.spi.InMemoryRecordSet;
 import com.facebook.presto.spi.RecordCursor;
@@ -32,18 +32,18 @@ import io.airlift.slice.Slices;
 import java.util.List;
 import java.util.Objects;
 
-public class TableTuple
+public class Tuple<N>
 {
-    protected final TableTupleLayout layout;
+    protected final Layout<N> layout;
     protected final List<Object> values;
 
-    public TableTuple(TableTupleLayout layout, List<Object> values)
+    public Tuple(Layout layout, List<Object> values)
     {
         this.layout = layout;
         this.values = ImmutableList.copyOf(values);
     }
 
-    public TableTupleLayout getLayout()
+    public Layout getLayout()
     {
         return layout;
     }
@@ -71,7 +71,7 @@ public class TableTuple
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        TableTuple tuple = (TableTuple) o;
+        Tuple tuple = (Tuple) o;
         return Objects.equals(layout, tuple.layout) &&
                 Objects.equals(values, tuple.values);
     }
@@ -92,7 +92,7 @@ public class TableTuple
         return getRecordSet().cursor();
     }
 
-    public static Block toBlock(TableTupleLayout layout, List<Object> values)
+    public static <N> Block toBlock(Layout<N> layout, List<Object> values)
     {
         BlockBuilder b = new VariableWidthBlockBuilder(new BlockBuilderStatus(), 10000);
         for (int i = 0; i < values.size(); ++i) {
@@ -101,7 +101,7 @@ public class TableTuple
         return b.build();
     }
 
-    public static Slice toSlice(TableTupleLayout layout, List<Object> values, BlockEncodingSerde blockEncodingSerde)
+    public static <N> Slice toSlice(Layout<N> layout, List<Object> values, BlockEncodingSerde blockEncodingSerde)
     {
         Block block = toBlock(layout, values);
         SliceOutput output = new DynamicSliceOutput(64);
@@ -128,23 +128,23 @@ public class TableTuple
         return toSlice(blockEncodingSerde).getBytes();
     }
 
-    public static TableTuple fromBlock(TableTupleLayout layout, Block block)
+    public static <N> Tuple<N> fromBlock(Layout<N> layout, Block block)
     {
         ImmutableList.Builder<Object> builder = ImmutableList.builder();
         for (int i = 0; i < layout.getTypes().size(); ++i) {
             builder.add(block.read(layout.getTypes().get(i), i));
         }
-        return new TableTuple(layout, builder.build());
+        return new Tuple<>(layout, builder.build());
     }
 
-    public static TableTuple fromSlice(TableTupleLayout layout, Slice slice, BlockEncodingSerde blockEncodingSerde)
+    public static <N> Tuple<N> fromSlice(Layout<N> layout, Slice slice, BlockEncodingSerde blockEncodingSerde)
     {
         BasicSliceInput input = slice.getInput();
         BlockEncoding blockEncoding = blockEncodingSerde.readBlockEncoding(input);
         return fromBlock(layout, blockEncoding.readBlock(input));
     }
 
-    public static TableTuple fromBytes(TableTupleLayout layout, byte[] bytes, BlockEncodingSerde blockEncodingSerde)
+    public static <N> Tuple<N> fromBytes(Layout<N> layout, byte[] bytes, BlockEncodingSerde blockEncodingSerde)
     {
         return fromSlice(layout, Slices.wrappedBuffer(bytes), blockEncodingSerde);
     }

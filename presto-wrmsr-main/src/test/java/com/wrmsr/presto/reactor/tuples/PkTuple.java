@@ -11,23 +11,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.reactor;
+package com.wrmsr.presto.reactor.tuples;
 
 import java.util.List;
 
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
-public class PkTableTuple
-        extends TableTuple
+public class PkTuple<N>
+        extends Tuple<N>
 {
-    public PkTableTuple(PkTableTupleLayout layout, List<Object> values)
+    public PkTuple(PkLayout<N> layout, List<Object> values)
     {
         super(layout, values);
     }
 
-    public PkTableTupleLayout getPkLayout()
+    public PkLayout<N> getPkLayout()
     {
-        return (PkTableTupleLayout) layout;
+        return (PkLayout<N>) layout;
     }
 
     public List<Object> getPkValues()
@@ -40,13 +40,13 @@ public class PkTableTuple
         return getPkLayout().getNkIndices().stream().map(values::get).collect(toImmutableList());
     }
 
-    public TableTuple getPk()
+    public Tuple<N> getPk()
     {
-        return new TableTuple(getPkLayout().getPk(), getPkValues());
+        return new Tuple<>(getPkLayout().getPk(), getPkValues());
     }
 
-    public TableTuple getNk()
+    public Tuple<N> getNk()
     {
-        return new TableTuple(getPkLayout().getNk(), getNkValues());
+        return new Tuple<>(getPkLayout().getNk(), getNkValues());
     }
 }

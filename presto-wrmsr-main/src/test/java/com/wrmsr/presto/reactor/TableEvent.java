@@ -13,6 +13,8 @@
  */
 package com.wrmsr.presto.reactor;
 
+import com.wrmsr.presto.reactor.tuples.PkTuple;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,26 +29,26 @@ public class TableEvent
         DELETE
     }
 
-    public static TableEvent insert(PkTableTuple after)
+    public static TableEvent insert(PkTuple after)
     {
-        return new TableEvent(Operation.INSERT, Optional.<PkTableTuple>empty(), Optional.of(after));
+        return new TableEvent(Operation.INSERT, Optional.<PkTuple>empty(), Optional.of(after));
     }
 
-    public static TableEvent update(PkTableTuple before, PkTableTuple after)
+    public static TableEvent update(PkTuple before, PkTuple after)
     {
         return new TableEvent(Operation.UPDATE, Optional.of(before), Optional.of(after));
     }
 
-    public static TableEvent delete(PkTableTuple before)
+    public static TableEvent delete(PkTuple before)
     {
-        return new TableEvent(Operation.INSERT, Optional.of(before), Optional.<PkTableTuple>empty());
+        return new TableEvent(Operation.INSERT, Optional.of(before), Optional.<PkTuple>empty());
     }
 
     protected final Operation operation;
-    protected final Optional<PkTableTuple> before;
-    protected final Optional<PkTableTuple> after;
+    protected final Optional<PkTuple> before;
+    protected final Optional<PkTuple> after;
 
-    public TableEvent(Operation operation, Optional<PkTableTuple> before, Optional<PkTableTuple> after)
+    public TableEvent(Operation operation, Optional<PkTuple> before, Optional<PkTuple> after)
     {
         switch (operation) {
             case INSERT: {
@@ -78,12 +80,12 @@ public class TableEvent
         return operation;
     }
 
-    public Optional<PkTableTuple> getBefore()
+    public Optional<PkTuple> getBefore()
     {
         return before;
     }
 
-    public Optional<PkTableTuple> getAfter()
+    public Optional<PkTuple> getAfter()
     {
         return after;
     }

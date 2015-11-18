@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.reactor;
+package com.wrmsr.presto.reactor.tuples;
 
 import com.facebook.presto.spi.type.Type;
 import com.google.common.collect.ImmutableList;
@@ -26,38 +26,38 @@ import java.util.stream.Stream;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
-public class PkTableTupleLayout
-        extends TableTupleLayout
+public class PkLayout<N>
+        extends Layout<N>
 {
-    protected final List<String> pkNames;
+    protected final List<N> pkNames;
 
-    protected final List<String> nkNames;
+    protected final List<N> nkNames;
     protected final List<Integer> pkIndices;
     protected final List<Integer> nkIndices;
     protected final List<Type> pkTypes;
     protected final List<Type> nkTypes;
 
-    protected final TableTupleLayout pk;
-    protected final TableTupleLayout nk;
+    protected final Layout<N> pk;
+    protected final Layout<N> nk;
 
-    public PkTableTupleLayout(List<String> names, List<Type> types, List<String> pkNames)
+    public PkLayout(List<N> names, List<Type> types, List<N> pkNames)
     {
         super(names, types);
         checkArgument(names.size() == types.size());
         this.pkNames = ImmutableList.copyOf(pkNames);
 
-        Set<String> pkNameSet = ImmutableSet.copyOf(pkNames);
+        Set<N> pkNameSet = ImmutableSet.copyOf(pkNames);
         nkNames = names.stream().filter(n -> !pkNameSet.contains(n)).collect(toImmutableList());
         pkIndices = pkNames.stream().map(indices::get).collect(toImmutableList());
         nkIndices = IntStream.range(0, names.size()).boxed().filter(i -> !pkNameSet.contains(names.get(i))).collect(toImmutableList());
         pkTypes = pkIndices.stream().map(types::get).collect(toImmutableList());
         nkTypes = nkIndices.stream().map(types::get).collect(toImmutableList());
 
-        pk = new TableTupleLayout(pkNames, pkTypes);
-        nk = new TableTupleLayout(nkNames, nkTypes);
+        pk = new Layout<>(pkNames, pkTypes);
+        nk = new Layout<>(nkNames, nkTypes);
     }
 
-    public PkTableTupleLayout(List<Field> pkFields, List<Field> nkFields)
+    public PkLayout(List<Field<N>> pkFields, List<Field<N>> nkFields)
     {
         this(
                 Stream.concat(pkFields.stream(), nkFields.stream()).map(Field::getName).collect(toImmutableList()),
@@ -65,12 +65,12 @@ public class PkTableTupleLayout
                 pkFields.stream().map(Field::getName).collect(toImmutableList()));
     }
 
-    public List<String> getPkNames()
+    public List<N> getPkNames()
     {
         return pkNames;
     }
 
-    public List<String> getNkNames()
+    public List<N> getNkNames()
     {
         return nkNames;
     }
@@ -95,12 +95,12 @@ public class PkTableTupleLayout
         return nkTypes;
     }
 
-    public TableTupleLayout getPk()
+    public Layout<N> getPk()
     {
         return pk;
     }
 
-    public TableTupleLayout getNk()
+    public Layout<N> getNk()
     {
         return nk;
     }
@@ -127,7 +127,7 @@ public class PkTableTupleLayout
         if (!super.equals(o)) {
             return false;
         }
-        PkTableTupleLayout pkLayout = (PkTableTupleLayout) o;
+        PkLayout pkLayout = (PkLayout) o;
         return Objects.equals(pkNames, pkLayout.pkNames);
     }
 

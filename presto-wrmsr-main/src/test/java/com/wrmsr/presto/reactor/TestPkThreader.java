@@ -64,33 +64,29 @@ import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.planner.plan.AggregationNode;
-import com.facebook.presto.sql.planner.plan.ChildReplacer;
 import com.facebook.presto.sql.planner.plan.FilterNode;
 import com.facebook.presto.sql.planner.plan.JoinNode;
 import com.facebook.presto.sql.planner.plan.OutputNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanNodeId;
-import com.facebook.presto.sql.planner.plan.PlanRewriter;
 import com.facebook.presto.sql.planner.plan.PlanVisitor;
 import com.facebook.presto.sql.planner.plan.ProjectNode;
-import com.facebook.presto.sql.planner.plan.SimplePlanRewriter;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.reactor.tuples.Layout;
+import com.wrmsr.presto.reactor.tuples.PkLayout;
 import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -113,7 +109,7 @@ public class TestPkThreader
     @FunctionalInterface
     public interface IntermediateStorageProvider
     {
-        TableHandle getIntermediateStorage(String name, PkTableTupleLayout layout);
+        TableHandle getIntermediateStorage(String name, PkLayout<String> layout);
     }
 
     public static class PkThreader
@@ -153,7 +149,7 @@ public class TestPkThreader
         }
 
         private static final String dataColumnName = "__data__";
-        private static final TableTupleLayout.Field dataField = new TableTupleLayout.Field(dataColumnName, VarbinaryType.VARBINARY);
+        private static final Layout.Field dataField = new Layout.Field(dataColumnName, VarbinaryType.VARBINARY);
 
         protected PlanNode visitPlan(PlanNode node, Context context)
         {
@@ -251,13 +247,13 @@ public class TestPkThreader
             // lpk -> [rpk]
             TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left_index", node.getId().toString()),
-                    new PkTableTupleLayout(
+                    new PkLayout(
                             toFields(leftPkSyms),
                             ImmutableList.of(dataField)));
 
             TableHandle leftDataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left_data", node.getId().toString()),
-                    new PkTableTupleLayout(
+                    new PkLayout(
                             toFields(leftPkSyms),
                             ImmutableList.of(dataField)));
 
@@ -352,9 +348,9 @@ public class TestPkThreader
             return planNode;
         }
 
-        private List<TableTupleLayout.Field> toFields(List<Symbol> ss)
+        private List<Layout.Field> toFields(List<Symbol> ss)
         {
-            return ss.stream().map(s -> new TableTupleLayout.Field(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
+            return ss.stream().map(s -> new Layout.Field(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
         }
 
         @Override
@@ -389,7 +385,7 @@ public class TestPkThreader
             // FIXME optimize away if gk is pk
             TableHandle indexTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_index", node.getId().toString()),
-                    new PkTableTupleLayout(
+                    new PkLayout(
                             toFields(pkSyms),
                             toFields(nonPkGkSyms)));
             ConnectorSupport indexTableConnectorSupport = connectorSupport.get(indexTableHandle.getConnectorId());
@@ -399,9 +395,9 @@ public class TestPkThreader
             // TODO optional log(n) recombine, wide rows, special-case reversible combiners (count, sum, array, map)
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_data", node.getId().toString()),
-                    new PkTableTupleLayout(
+                    new PkLayout(
                             toFields(gkSyms),
-                            Stream.concat(toFields(nonGkSyms).stream(), Stream.of(new TableTupleLayout.Field(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList())));
+                            Stream.concat(toFields(nonGkSyms).stream(), Stream.of(new Layout.Field(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList())));
             ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
             Connector dataTableConnector = dataTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());

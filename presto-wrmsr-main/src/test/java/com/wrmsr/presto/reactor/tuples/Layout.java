@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.reactor;
+package com.wrmsr.presto.reactor.tuples;
 
 import com.facebook.presto.spi.type.Type;
 import com.google.common.collect.ImmutableList;
@@ -26,20 +26,20 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
-public class TableTupleLayout
+public class Layout<N>
 {
-    public static class Field
+    public static class Field<N>
     {
-        protected final String name;
+        protected final N name;
         protected final Type type;
 
-        public Field(String name, Type type)
+        public Field(N name, Type type)
         {
             this.name = name;
             this.type = type;
         }
 
-        public String getName()
+        public N getName()
         {
             return name;
         }
@@ -79,11 +79,11 @@ public class TableTupleLayout
         }
     }
 
-    protected final List<String> names;
+    protected final List<N> names;
     protected final List<Type> types;
-    protected final Map<String, Integer> indices;
+    protected final Map<N, Integer> indices;
 
-    public TableTupleLayout(List<String> names, List<Type> types)
+    public Layout(List<N> names, List<Type> types)
     {
         checkArgument(names.size() == types.size());
         this.names = ImmutableList.copyOf(names);
@@ -91,7 +91,7 @@ public class TableTupleLayout
         indices = IntStream.range(0, names.size()).boxed().map(i -> ImmutablePair.of(names.get(i), i)).collect(toImmutableMap());
     }
 
-    public TableTupleLayout(List<Field> fields)
+    public Layout(List<Field<N>> fields)
     {
         this(fields.stream().map(Field::getName).collect(toImmutableList()), fields.stream().map(Field::getType).collect(toImmutableList()));
     }
@@ -106,7 +106,7 @@ public class TableTupleLayout
         return names.isEmpty();
     }
 
-    public List<String> getNames()
+    public List<N> getNames()
     {
         return names;
     }
@@ -116,17 +116,17 @@ public class TableTupleLayout
         return types;
     }
 
-    public List<Field> getFields()
+    public List<Field<N>> getFields()
     {
-        return IntStream.range(0, names.size()).boxed().map(i -> new Field(names.get(i), types.get(i))).collect(toImmutableList());
+        return IntStream.range(0, names.size()).boxed().map(i -> new Field<>(names.get(i), types.get(i))).collect(toImmutableList());
     }
 
-    public Map<String, Integer> getIndices()
+    public Map<N, Integer> getIndices()
     {
         return indices;
     }
 
-    public int get(String name)
+    public int get(N name)
     {
         return indices.get(name);
     }
@@ -149,7 +149,7 @@ public class TableTupleLayout
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        TableTupleLayout layout = (TableTupleLayout) o;
+        Layout layout = (Layout) o;
         return Objects.equals(names, layout.names) &&
                 Objects.equals(types, layout.types);
     }
