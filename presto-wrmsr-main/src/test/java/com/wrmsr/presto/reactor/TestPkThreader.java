@@ -212,6 +212,7 @@ public class TestPkThreader
 
             // List<Symbol> jkSyms =
 
+            // lpk -> [rpk]
             TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left_index", node.getId().toString()),
                     toIspCols(leftPkSyms),
@@ -220,6 +221,7 @@ public class TestPkThreader
             Connector leftIndexTableConnector = leftIndexTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> leftIndexTableColumnHandles = leftIndexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), leftIndexTableHandle.getConnectorHandle());
 
+            // rpk -> [lpk]
             TableHandle rightIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_right_index", node.getId().toString()),
                     toIspCols(rightPkSyms),
