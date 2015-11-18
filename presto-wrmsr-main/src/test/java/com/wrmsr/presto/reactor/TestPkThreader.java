@@ -13,7 +13,22 @@
  */
 package com.wrmsr.presto.reactor;
 /*
+k's:
+ primary
+ secondary
+ non
+ join
+ group
+
 TODO optional whole-table buffering
+
+split whenever out-pk != in-pk
+CANNOT select from TableScans
+events include pre-pk and FULL postimage
+ - could be driven by post-deltas with TableScan buf
+
+TODO pk+sk isp tables, wide-rows - split tbls up
+ - interim just use fuckin __data__ blobz
 
 n-way join plz, no hash opt
  - just manually add lol
@@ -249,29 +264,23 @@ public class TestPkThreader
                     pkSyms);
             indexPopulationQuery = optimize(indexPopulationQuery);
 
-            urggh
+            // lpk -> [rpk]
+            TableHandle leftTableHandle = intermediateStorageProvider.getIntermediateStorage(
+                    String.format("%s_left", node.getId().toString()),
+                    toIspCols(leftPkSyms),
+                    toIspCols(rightPkSyms));
+            ConnectorSupport leftTableConnectorSupport = connectorSupport.get(leftTableHandle.getConnectorId());
+            Connector leftTableConnector = leftTableConnectorSupport.getConnector();
+            Map<String, ColumnHandle> leftTableColumnHandles = leftTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), leftTableHandle.getConnectorHandle());
 
-            if (!rightJkSyms.isEmpty()) {
-                // lpk -> [rpk]
-                TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
-                        String.format("%s_left_index", node.getId().toString()),
-                        toIspCols(leftPkSyms),
-                        toIspCols(rightJkSyms));
-                ConnectorSupport leftIndexTableConnectorSupport = connectorSupport.get(leftIndexTableHandle.getConnectorId());
-                Connector leftIndexTableConnector = leftIndexTableConnectorSupport.getConnector();
-                Map<String, ColumnHandle> leftIndexTableColumnHandles = leftIndexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), leftIndexTableHandle.getConnectorHandle());
-            }
-
-            if (!leftJkSyms.isEmpty()) {
-                // rpk -> [lpk]
-                TableHandle rightIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
-                        String.format("%s_right_index", node.getId().toString()),
-                        toIspCols(rightPkSyms),
-                        toIspCols(leftJkSyms));
-                ConnectorSupport rightIndexTableConnectorSupport = connectorSupport.get(rightIndexTableHandle.getConnectorId());
-                Connector rightIndexTableConnector = rightIndexTableConnectorSupport.getConnector();
-                Map<String, ColumnHandle> rightIndexTableColumnHandles = rightIndexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), rightIndexTableHandle.getConnectorHandle());
-            }
+            // rpk -> [lpk]
+            TableHandle rightTableHandle = intermediateStorageProvider.getIntermediateStorage(
+                    String.format("%s_right", node.getId().toString()),
+                    toIspCols(rightPkSyms),
+                    toIspCols(leftPkSyms));
+            ConnectorSupport rightTableConnectorSupport = connectorSupport.get(rightTableHandle.getConnectorId());
+            Connector rightTableConnector = rightTableConnectorSupport.getConnector();
+            Map<String, ColumnHandle> rightTableColumnHandles = rightTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), rightTableHandle.getConnectorHandle());
 
             return newNode;
         }
