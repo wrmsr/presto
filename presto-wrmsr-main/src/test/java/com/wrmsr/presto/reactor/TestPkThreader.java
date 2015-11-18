@@ -152,7 +152,9 @@ public class TestPkThreader
             }
         }
 
-        @Override
+        private static final String dataColumnName = "__data__";
+        private static final TableTupleLayout.Field dataField = new TableTupleLayout.Field(dataColumnName, VarbinaryType.VARBINARY);
+
         protected PlanNode visitPlan(PlanNode node, Context context)
         {
             throw new UnsupportedPlanNodeException(node);
@@ -202,10 +204,12 @@ public class TestPkThreader
             PlanNode newLeft = node.getLeft().accept(this, context);
             List<Symbol> leftPkSyms = context.nodePkSyms.get(newLeft.getId());
             Set<Symbol> leftPkSymSet = newHashSet(leftPkSyms);
+            List<Symbol> leftNkSyms = newLeft.getOutputSymbols().stream().filter(s -> !leftPkSymSet.contains(s)).collect(toImmutableList());
 
             PlanNode newRight = node.getRight().accept(this, context);
             List<Symbol> rightPkSyms = context.nodePkSyms.get(newRight.getId());
             Set<Symbol> rightPkSymSet = newHashSet(rightPkSyms);
+            List<Symbol> rightNkSyms = newLeft.getOutputSymbols().stream().filter(s -> !leftPkSymSet.contains(s)).collect(toImmutableList());
 
             List<JoinNode.EquiJoinClause> nonHashClauses = node.getCriteria().stream()
                     .filter(c -> !(node.getLeftHashSymbol().isPresent() && c.getLeft().equals(node.getLeftHashSymbol().get())))
@@ -245,24 +249,17 @@ public class TestPkThreader
             indexPopulationQuery = optimize(indexPopulationQuery);
 
             // lpk -> [rpk]
-            TableHandle leftTableHandle = intermediateStorageProvider.getIntermediateStorage(
-                    String.format("%s_left", node.getId().toString()),
+            TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
+                    String.format("%s_left_index", node.getId().toString()),
                     new PkTableTupleLayout(
                             toFields(leftPkSyms),
-                            toFields(rightPkSyms)));
-            ConnectorSupport leftTableConnectorSupport = connectorSupport.get(leftTableHandle.getConnectorId());
-            Connector leftTableConnector = leftTableConnectorSupport.getConnector();
-            Map<String, ColumnHandle> leftTableColumnHandles = leftTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), leftTableHandle.getConnectorHandle());
+                            ImmutableList.of(dataField)));
 
-            // rpk -> [lpk]
-            TableHandle rightTableHandle = intermediateStorageProvider.getIntermediateStorage(
-                    String.format("%s_right", node.getId().toString()),
+            TableHandle leftDataTableHandle = intermediateStorageProvider.getIntermediateStorage(
+                    String.format("%s_left_data", node.getId().toString()),
                     new PkTableTupleLayout(
-                            toFields(rightPkSyms),
-                            toFields(leftPkSyms)));
-            ConnectorSupport rightTableConnectorSupport = connectorSupport.get(rightTableHandle.getConnectorId());
-            Connector rightTableConnector = rightTableConnectorSupport.getConnector();
-            Map<String, ColumnHandle> rightTableColumnHandles = rightTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), rightTableHandle.getConnectorHandle());
+                            toFields(leftPkSyms),
+                            ImmutableList.of(dataField)));
 
             return newNode;
         }
@@ -306,6 +303,7 @@ public class TestPkThreader
             SchemaTableName stn = cs.getSchemaTableName(node.getTable().getConnectorHandle());
             ConnectorTableHandle th = c.getMetadata().getTableHandle(csess, stn);
             Map<String, ColumnHandle> chs = c.getMetadata().getColumnHandles(csess, th);
+            // PkTableTupleLayout l = cs.getTableTupleLayout(stn);
 
             List<String> pkCols = cs.getPrimaryKey(stn);
             Map<String, Symbol> colSyms = node.getAssignments().entrySet().stream().map(e -> ImmutablePair.of(cs.getColumnName(e.getValue()), e.getKey())).collect(toImmutableMap());
@@ -399,8 +397,6 @@ public class TestPkThreader
             Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
 
             // TODO optional log(n) recombine, wide rows, special-case reversible combiners (count, sum, array, map)
-            String dataColumnName = "__data__";
-
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_data", node.getId().toString()),
                     new PkTableTupleLayout(

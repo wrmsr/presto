@@ -1,10 +1,12 @@
 package com.wrmsr.presto.reactor;
 
+import com.facebook.presto.Session;
 import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.type.Type;
 import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
@@ -20,9 +22,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class ExtendedJdbcConnectorSupport
         extends ConnectorSupport<ExtendedJdbcConnector>
 {
-    public ExtendedJdbcConnectorSupport(ExtendedJdbcConnector connector)
+    public ExtendedJdbcConnectorSupport(Session session, ExtendedJdbcConnector connector)
     {
-        super(connector);
+        super(session, connector);
     }
 
     public ExtendedJdbcClient getClient()
@@ -63,5 +65,11 @@ public class ExtendedJdbcConnectorSupport
     public String getColumnName(ColumnHandle columnHandle)
     {
         return ((JdbcColumnHandle) columnHandle).getColumnName();
+    }
+
+    @Override
+    public Type getColumnType(ColumnHandle columnHandle)
+    {
+        return ((JdbcColumnHandle) columnHandle).getColumnType();
     }
 }

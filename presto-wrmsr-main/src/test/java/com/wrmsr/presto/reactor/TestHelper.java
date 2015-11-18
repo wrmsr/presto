@@ -94,7 +94,7 @@ public class TestHelper
                 new TestingH2JdbcModule(),
                 TestingH2JdbcModule.createProperties(db),
                 ImmutableMap.of(),
-                TestInsertRewriter.class.getClassLoader());
+                TestHelper.class.getClassLoader());
 
         localQueryRunner.createCatalog("test", connectorFactory, ImmutableMap.<String, String>of());
 
@@ -189,8 +189,8 @@ public class TestHelper
             connectors = lqr.getConnectorManager().getConnectors();
 
             connectorSupport = ImmutableMap.<String, ConnectorSupport>builder()
-                   .put("tpch", new TpchConnectorSupport(connectors.get("tpch"), "tiny"))
-                    .put("test", new ExtendedJdbcConnectorSupport((ExtendedJdbcConnector) connectors.get("test")))
+                   .put("tpch", new TpchConnectorSupport(session, connectors.get("tpch"), "tiny"))
+                    .put("test", new ExtendedJdbcConnectorSupport(session, (ExtendedJdbcConnector) connectors.get("test")))
                    .build();
         }
     }

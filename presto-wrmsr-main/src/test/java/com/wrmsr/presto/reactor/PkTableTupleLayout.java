@@ -63,7 +63,6 @@ public class PkTableTupleLayout
                 Stream.concat(pkFields.stream(), nkFields.stream()).map(Field::getName).collect(toImmutableList()),
                 Stream.concat(pkFields.stream(), nkFields.stream()).map(Field::getType).collect(toImmutableList()),
                 pkFields.stream().map(Field::getName).collect(toImmutableList()));
-
     }
 
     public List<String> getPkNames()
