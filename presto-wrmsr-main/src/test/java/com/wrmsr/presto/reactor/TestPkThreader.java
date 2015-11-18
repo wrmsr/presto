@@ -17,6 +17,7 @@ n-way join plz, no hash opt
  - just manually add lol
 */
 
+import com.beust.jcommander.internal.Sets;
 import com.facebook.presto.Session;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.TableHandle;
@@ -75,6 +76,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
@@ -123,11 +125,11 @@ public class TestPkThreader
         private final Session session;
         private final Metadata metadata;
         private final List<PlanOptimizer> planOptimizers;
-        private final Map<Expression, Type> types;
+        private final Map<Symbol, Type> types;
         private final Map<String, ConnectorSupport> connectorSupport;
         private final IntermediateStorageProvider intermediateStorageProvider;
 
-        public PkThreader(PlanNodeIdAllocator idAllocator, SymbolAllocator symbolAllocator, Session session, Metadata metadata, List<PlanOptimizer> planOptimizers, Map<Expression, Type> types, Map<String, ConnectorSupport> connectorSupport, IntermediateStorageProvider intermediateStorageProvider)
+        public PkThreader(PlanNodeIdAllocator idAllocator, SymbolAllocator symbolAllocator, Session session, Metadata metadata, List<PlanOptimizer> planOptimizers, Map<Symbol, Type> types, Map<String, ConnectorSupport> connectorSupport, IntermediateStorageProvider intermediateStorageProvider)
         {
             this.idAllocator = idAllocator;
             this.symbolAllocator = symbolAllocator;
@@ -304,6 +306,8 @@ public class TestPkThreader
             PlanNode backingSource = node.getSource().accept(this, backingContext);
             context.children.add(backingContext);
             List<Symbol> pkSyms = backingContext.nodePkSyms.get(backingSource.getId());
+            Set<Symbol> pkSymSet = newHashSet(pkSyms);
+            checkState(pkSymSet.size() == pkSyms.size());
 
             /*
             AggregationNode newNode = new AggregationNode(
@@ -321,14 +325,17 @@ public class TestPkThreader
             List<Symbol> gkSyms = node.getGroupBy();
             Set<Symbol> gkSymSet = newHashSet(gkSyms);
             List<Symbol> nonGkSyms = node.getOutputSymbols().stream().filter(s -> !gkSymSet.contains(s)).collect(toImmutableList());
+            List<Symbol> nonGkPkSyms = pkSyms.stream().filter(s -> !gkSymSet.contains(s)).collect(toImmutableList());
+            List<Symbol> nonPkGkSyms = gkSyms.stream().filter(s -> !pkSymSet.contains(s)).collect(toImmutableList());
 
             Function<List<Symbol>, List<IntermediateStorageProvider.Column>> toIspCols = ss ->
                     ss.stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
 
+            // FIXME optimize away if gk is pk
             TableHandle indexTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_index", node.getId().toString()),
                     toIspCols.apply(pkSyms),
-                    toIspCols.apply(gkSyms));
+                    toIspCols.apply(nonPkGkSyms));
             ConnectorSupport indexTableConnectorSupport = connectorSupport.get(indexTableHandle.getConnectorId());
             Connector indexTableConnector = indexTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
@@ -341,7 +348,7 @@ public class TestPkThreader
             Connector dataTableConnector = dataTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());
 
-            List<Symbol> gkPkSyms = Stream.concat(gkSyms.stream(), pkSyms.stream()).collect(toImmutableList());
+            List<Symbol> gkPkSyms = Stream.concat(gkSyms.stream(), nonGkPkSyms.stream()).collect(toImmutableList());
             PlanNode indexQueryRoot = new OutputNode(
                     idAllocator.getNextId(),
                     new ProjectNode(
@@ -400,6 +407,8 @@ public class TestPkThreader
         };
 
         IntermediateStorageProvider isp = (n, gkcs, ngkcs) -> {
+            checkArgument(Stream.concat(gkcs.stream(), ngkcs.stream()).collect(toImmutableSet()).size() == gkcs.size() + ngkcs.size());
+
             String schemaName = "example";
             String tableName = "isp_" + n;
 
@@ -421,7 +430,11 @@ public class TestPkThreader
             try {
                 try (Connection sqlConn = jdbcClient.getConnection()) {
                     try (Statement sqlStmt = sqlConn.createStatement()) {
-                        sqlStmt.execute("create schema `" + schemaName + "`;");
+                        try {
+                            sqlStmt.execute("create schema `" + schemaName + "`;");
+                        }
+                        catch (SQLException e) {
+                        }
                         sqlStmt.execute(sql.toString());
                     }
                 }
@@ -439,11 +452,10 @@ public class TestPkThreader
                 pq.session,
                 pq.lqr.getMetadata(),
                 pq.planOptimizers,
-                pq.analysis.getTypes(),
+                pq.plan.getTypes(),
                 pq.connectorSupport,
                 isp);
 
-        pq.planner
         PlanNode newRoot = pq.plan.getRoot().accept(r, ctx);
         System.out.println(newRoot);
         System.out.println(ctx);
