@@ -47,13 +47,16 @@ import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.planner.plan.AggregationNode;
+import com.facebook.presto.sql.planner.plan.ChildReplacer;
 import com.facebook.presto.sql.planner.plan.FilterNode;
 import com.facebook.presto.sql.planner.plan.JoinNode;
 import com.facebook.presto.sql.planner.plan.OutputNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanNodeId;
+import com.facebook.presto.sql.planner.plan.PlanRewriter;
 import com.facebook.presto.sql.planner.plan.PlanVisitor;
 import com.facebook.presto.sql.planner.plan.ProjectNode;
+import com.facebook.presto.sql.planner.plan.SimplePlanRewriter;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
@@ -239,12 +242,14 @@ public class TestPkThreader
             );
             context.nodePkSyms.put(newNode.getId(), pkSyms);
 
-            PlanNode indexQuery = new OutputNode(
+            PlanNode indexPopulationQuery = new OutputNode(
                     idAllocator.getNextId(),
                     newNode,
                     pkSyms.stream().map(Symbol::getName).collect(toImmutableList()),
                     pkSyms);
-            indexQuery = optimize(indexQuery);
+            indexPopulationQuery = optimize(indexPopulationQuery);
+
+            urggh
 
             if (!rightJkSyms.isEmpty()) {
                 // lpk -> [rpk]
@@ -467,10 +472,12 @@ public class TestPkThreader
             throws Throwable
     {
         @Language("SQL") String stmt =
-                // "select customer.name, nation.name from tpch.tiny.customer inner join tpch.tiny.nation on customer.nationkey = nation.nationkey where acctbal > 100"
+
+                "select customer.name, nation.name from tpch.tiny.customer inner join tpch.tiny.nation on customer.nationkey = nation.nationkey where acctbal > 100"
+
                 // "select nationkey, count(*) c from tpch.tiny.customer where acctbal > 10 group by nationkey"
 
-                "select name, customer_names from tpch.tiny.nation inner join (select nationkey, sum(length(customer.name)) customer_names from tpch.tiny.customer where acctbal > 10 group by nationkey) customers on nation.nationkey = customers.nationkey"
+                // "select name, customer_names from tpch.tiny.nation inner join (select nationkey, sum(length(customer.name)) customer_names from tpch.tiny.customer where acctbal > 10 group by nationkey) customers on nation.nationkey = customers.nationkey"
 
                 ;
 
