@@ -53,6 +53,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 
@@ -141,7 +142,13 @@ public class RawStorageManager
     }
 
     @Override
-    public StoragePageSink createStoragePageSink(List<Long> columnIds, List<Type> columnTypes)
+    public ConnectorPageSource getPageSource(UUID shardUuid, List<Long> columnIds, List<Type> columnTypes, TupleDomain<RaptorColumnHandle> effectivePredicate, ReaderAttributes readerAttributes, OptionalLong transactionId)
+    {
+        return null;
+    }
+
+    @Override
+    public StoragePageSink createStoragePageSink(long transactionId, List<Long> columnIds, List<Type> columnTypes)
     {
         checkArgument(columnTypes.size() == 1 && columnTypes.get(0) instanceof VarbinaryType);
         return new RawStoragePageSink(columnIds.get(0), columnTypes.get(0));
