@@ -233,6 +233,7 @@ public abstract class AbstractTestHiveClient
     protected SchemaTableName tablePartitionSchemaChangeNonCanonical;
 
     protected SchemaTableName temporaryCreateTable;
+    protected SchemaTableName temporaryCreateRollbackTable;
     protected SchemaTableName temporaryCreateSampledTable;
     protected SchemaTableName temporaryCreateEmptyTable;
     protected SchemaTableName temporaryInsertTable;
@@ -264,7 +265,6 @@ public abstract class AbstractTestHiveClient
     protected HdfsEnvironment hdfsEnvironment;
     protected LocationService locationService;
 
-    protected TypeManager typeManager;
     protected ConnectorMetadata metadata;
     protected HiveMetastore metastoreClient;
     protected ConnectorSplitManager splitManager;
@@ -309,6 +309,7 @@ public abstract class AbstractTestHiveClient
         tablePartitionSchemaChangeNonCanonical = new SchemaTableName(database, "presto_test_partition_schema_change_non_canonical");
 
         temporaryCreateTable = new SchemaTableName(database, "tmp_presto_test_create_" + randomName());
+        temporaryCreateRollbackTable = new SchemaTableName(database, "tmp_presto_test_create_" + randomName());
         temporaryCreateSampledTable = new SchemaTableName(database, "tmp_presto_test_create_" + randomName());
         temporaryCreateEmptyTable = new SchemaTableName(database, "tmp_presto_test_create_" + randomName());
         temporaryInsertTable = new SchemaTableName(database, "tmp_presto_test_insert_" + randomName());
@@ -436,7 +437,7 @@ public abstract class AbstractTestHiveClient
 
         hdfsEnvironment = new HdfsEnvironment(hdfsConfiguration, hiveClientConfig);
         locationService = new HiveLocationService(metastoreClient, hdfsEnvironment);
-        typeManager = new TypeRegistry();
+        TypeManager typeManager = new TypeRegistry();
         JsonCodec<PartitionUpdate> partitionUpdateCodec = JsonCodec.jsonCodec(PartitionUpdate.class);
         metadata = new HiveMetadata(
                 connectorId,
@@ -1300,7 +1301,7 @@ public abstract class AbstractTestHiveClient
             ConnectorSession session = newSession();
 
             // begin creating the table
-            ConnectorTableMetadata tableMetadata = new ConnectorTableMetadata(temporaryCreateTable, CREATE_TABLE_COLUMNS, createTableProperties(RCBINARY), session.getUser());
+            ConnectorTableMetadata tableMetadata = new ConnectorTableMetadata(temporaryCreateRollbackTable, CREATE_TABLE_COLUMNS, createTableProperties(RCBINARY), session.getUser());
 
             ConnectorOutputTableHandle outputHandle = metadata.beginCreateTable(session, tableMetadata);
 
@@ -1319,10 +1320,10 @@ public abstract class AbstractTestHiveClient
             assertTrue(listAllDataFiles(outputHandle).isEmpty());
 
             // verify table is not in the metastore
-            assertNull(metadata.getTableHandle(session, temporaryCreateTable));
+            assertNull(metadata.getTableHandle(session, temporaryCreateRollbackTable));
         }
         finally {
-            dropTable(temporaryCreateTable);
+            dropTable(temporaryCreateRollbackTable);
         }
     }
 
@@ -1988,7 +1989,7 @@ public abstract class AbstractTestHiveClient
         // delete ds=2015-07-03
         session = newSession();
         TupleDomain<ColumnHandle> tupleDomain = TupleDomain.fromFixedValues(ImmutableMap.of(dsColumnHandle, NullableValue.of(VARCHAR, utf8Slice("2015-07-03"))));
-        Constraint<ColumnHandle> constraint = new Constraint<>(tupleDomain, convertToPredicate(typeManager, tupleDomain));
+        Constraint<ColumnHandle> constraint = new Constraint<>(tupleDomain, convertToPredicate(tupleDomain));
         List<ConnectorTableLayoutResult> tableLayoutResults = metadata.getTableLayouts(session, tableHandle, constraint, Optional.empty());
         ConnectorTableLayoutHandle tableLayoutHandle = Iterables.getOnlyElement(tableLayoutResults).getTableLayout().getHandle();
         metadata.metadataDelete(session, tableHandle, tableLayoutHandle);
@@ -2004,7 +2005,7 @@ public abstract class AbstractTestHiveClient
         session = newSession();
         TupleDomain<ColumnHandle> tupleDomain2 = TupleDomain.withColumnDomains(
                 ImmutableMap.of(dsColumnHandle, Domain.create(ValueSet.ofRanges(Range.range(VARCHAR, utf8Slice("2015-07-01"), true, utf8Slice("2015-07-02"), true)), false)));
-        Constraint<ColumnHandle> constraint2 = new Constraint<>(tupleDomain2, convertToPredicate(typeManager, tupleDomain2));
+        Constraint<ColumnHandle> constraint2 = new Constraint<>(tupleDomain2, convertToPredicate(tupleDomain2));
         List<ConnectorTableLayoutResult> tableLayoutResults2 = metadata.getTableLayouts(session, tableHandle, constraint2, Optional.empty());
         ConnectorTableLayoutHandle tableLayoutHandle2 = Iterables.getOnlyElement(tableLayoutResults2).getTableLayout().getHandle();
         metadata.metadataDelete(session, tableHandle, tableLayoutHandle2);

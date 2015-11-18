@@ -26,7 +26,6 @@ import com.facebook.presto.spi.TableNotFoundException;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.type.Type;
 import com.google.common.base.Joiner;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -50,6 +49,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
+import static com.facebook.presto.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_FOUND;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
@@ -150,7 +150,7 @@ public class BaseJdbcClient
             return schemaNames.build();
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -171,7 +171,7 @@ public class BaseJdbcClient
             }
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -207,7 +207,7 @@ public class BaseJdbcClient
             }
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -237,7 +237,7 @@ public class BaseJdbcClient
             }
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -354,7 +354,7 @@ public class BaseJdbcClient
                     fromProperties(connectionProperties));
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -371,7 +371,7 @@ public class BaseJdbcClient
             execute(connection, sql.toString());
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -386,7 +386,7 @@ public class BaseJdbcClient
             execute(connection, sql.toString());
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 

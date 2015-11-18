@@ -13,9 +13,9 @@
  */
 package com.facebook.presto.plugin.jdbc;
 
+import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.RecordSink;
 import com.facebook.presto.spi.type.Type;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 import org.joda.time.DateTimeZone;
@@ -27,10 +27,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.SQLNonTransientException;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.facebook.presto.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
+import static com.facebook.presto.plugin.jdbc.JdbcErrorCode.JDBC_NON_TRANSIENT_ERROR;
 import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -53,14 +56,14 @@ public class JdbcRecordSink
             connection.setAutoCommit(false);
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
 
         try {
             statement = connection.prepareStatement(jdbcClient.buildInsertSql(handle));
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
 
         fieldCount = handle.getColumnNames().size();
@@ -93,7 +96,7 @@ public class JdbcRecordSink
             }
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -104,7 +107,7 @@ public class JdbcRecordSink
             statement.setObject(next(), null);
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -115,7 +118,7 @@ public class JdbcRecordSink
             statement.setBoolean(next(), value);
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -134,7 +137,7 @@ public class JdbcRecordSink
             }
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -145,7 +148,7 @@ public class JdbcRecordSink
             statement.setDouble(next(), value);
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -156,7 +159,7 @@ public class JdbcRecordSink
             statement.setString(next(), new String(value, UTF_8));
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
@@ -176,8 +179,11 @@ public class JdbcRecordSink
                 connection.commit();
             }
         }
+        catch (SQLNonTransientException e) {
+            throw new PrestoException(JDBC_NON_TRANSIENT_ERROR, e);
+        }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
         // the committer does not need any additional info
         return ImmutableList.of();
@@ -193,7 +199,7 @@ public class JdbcRecordSink
             connection.rollback();
         }
         catch (SQLException e) {
-            throw Throwables.propagate(e);
+            throw new PrestoException(JDBC_ERROR, e);
         }
     }
 
