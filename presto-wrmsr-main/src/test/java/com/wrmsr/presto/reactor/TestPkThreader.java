@@ -34,6 +34,7 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
@@ -340,10 +341,13 @@ public class TestPkThreader
             Connector indexTableConnector = indexTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
 
+            // TODO log(n) recombine
+            String dataColumnName = "__data__";
+
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_data", node.getId().toString()),
                     toIspCols.apply(gkSyms),
-                    toIspCols.apply(nonGkSyms));
+                    Stream.concat(toIspCols.apply(nonGkSyms).stream(), Stream.of(new IntermediateStorageProvider.Column(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList()));
             ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
             Connector dataTableConnector = dataTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());
@@ -400,6 +404,9 @@ public class TestPkThreader
         Function<Type, String> formatSqlCol = t -> {
             if (t instanceof BigintType) {
                 return "bigint";
+            }
+            if (t instanceof VarbinaryType) {
+                return "varbinary";
             }
             else {
                 throw new UnsupportedOperationException();
