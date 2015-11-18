@@ -546,3 +546,251 @@ UnionNode
 //        else if (node instanceof UnionNode) {
 //            return new UnionNodeHandler((UnionNode) node, destination);
 //        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+diff --git a/presto-wrmsr-main/src/test/java/com/wrmsr/presto/reactor/TestPkThreader.java b/presto-wrmsr-main/src/test/java/com/wrmsr/presto/reactor/TestPkThreader.java
+index 3fc8638..fe9947c 100644
+--- a/presto-wrmsr-main/src/test/java/com/wrmsr/presto/reactor/TestPkThreader.java
++++ b/presto-wrmsr-main/src/test/java/com/wrmsr/presto/reactor/TestPkThreader.java
+@@ -40,6 +40,7 @@ import com.facebook.presto.spi.ConnectorTableHandle;
+ import com.facebook.presto.spi.SchemaTableName;
+ import com.facebook.presto.spi.predicate.TupleDomain;
+ import com.facebook.presto.spi.type.BigintType;
++import com.facebook.presto.spi.type.BooleanType;
+ import com.facebook.presto.spi.type.Type;
+ import com.facebook.presto.spi.type.VarbinaryType;
+ import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
+@@ -58,10 +59,13 @@ import com.facebook.presto.sql.planner.plan.PlanVisitor;
+ import com.facebook.presto.sql.planner.plan.ProjectNode;
+ import com.facebook.presto.sql.planner.plan.SimplePlanRewriter;
+ import com.facebook.presto.sql.planner.plan.TableScanNode;
++import com.facebook.presto.sql.tree.BooleanLiteral;
+ import com.facebook.presto.sql.tree.Expression;
+ import com.facebook.presto.sql.tree.FunctionCall;
++import com.facebook.presto.sql.tree.LogicalBinaryExpression;
+ import com.facebook.presto.sql.tree.QualifiedNameReference;
+ import com.google.common.collect.ImmutableList;
++import com.google.common.collect.ImmutableMap;
+ import org.apache.commons.lang3.tuple.ImmutablePair;
+ import org.apache.commons.lang3.tuple.Pair;
+ import org.intellij.lang.annotations.Language;
+@@ -148,11 +152,13 @@ public class TestPkThreader
+         public static class Context
+         {
+             private final Map<PlanNodeId, List<Symbol>> nodePkSyms;
++            private final Map<PlanNodeId, List<Symbol>> nodePresentSyms;
+             private final List<Context> children;
+
+             public Context()
+             {
+                 nodePkSyms = newHashMap();
++                nodePresentSyms = newHashMap();
+                 children = newArrayList();
+             }
+         }
+@@ -163,11 +169,24 @@ public class TestPkThreader
+             throw new UnsupportedPlanNodeException(node);
+         }
+
++        private static Expression andExprs(List<Expression> exprs)
++        {
++            checkArgument(!exprs.isEmpty());
++            Expression expr = exprs.get(0);
++            for (int i = 1; i < exprs.size(); ++i){
++                expr = new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND, expr, exprs.get(1));
++            }
++            return expr;
++        }
++
+         @Override
+         public PlanNode visitProject(ProjectNode node, Context context)
+         {
+             PlanNode newSource = node.getSource().accept(this, context);
+             List<Symbol> pkSyms = context.nodePkSyms.get(newSource.getId());
++            checkState(!pkSyms.isEmpty());
++            List<Symbol> presentSyms = context.nodePresentSyms.get(newSource.getId());
++            checkState(!presentSyms.isEmpty());
+
+             Set<QualifiedNameReference> pkQnrs = pkSyms.stream().map(Symbol::toQualifiedNameReference).collect(toImmutableSet());
+             Set<Symbol> identityAssignments = node.getAssignments().entrySet().stream().filter(e -> pkQnrs.contains(e.getValue())).map(Map.Entry::getKey).collect(toImmutableSet());
+@@ -179,11 +198,22 @@ public class TestPkThreader
+                 }
+             }
+
+-            ProjectNode newNode = new ProjectNode(
++            Symbol newPresentSym;
++            if (presentSyms.size() == 1) {
++                newPresentSym = presentSyms.get(0);
++            }
++            else {
++                newPresentSym = symbolAllocator.newSymbol("present", BooleanType.BOOLEAN);
++                Expression presentExpr = andExprs(presentSyms.stream().map(Symbol::toQualifiedNameReference).collect(toImmutableList()));
++                newAssignments.put(newPresentSym, presentExpr);
++            }
++
++            PlanNode newNode = new ProjectNode(
+                     node.getId(),
+                     newSource,
+                     newAssignments);
+             context.nodePkSyms.put(newNode.getId(), pkSyms);
++            context.nodePresentSyms.put(newNode.getId(), ImmutableList.of(newPresentSym));
+             return newNode;
+         }
+
+@@ -192,12 +222,26 @@ public class TestPkThreader
+         {
+             PlanNode newSource = node.getSource().accept(this, context);
+             List<Symbol> pkSyms = context.nodePkSyms.get(newSource.getId());
++            checkState(!pkSyms.isEmpty());
++            List<Symbol> presentSyms = context.nodePresentSyms.get(newSource.getId());
++            checkState(!presentSyms.isEmpty());
++
++            Map<Symbol, Expression> newAssignments = newHashMap();
++            newSource.getOutputSymbols().stream().forEach(s -> newAssignments.put(s, s.toQualifiedNameReference()));
+
+-            FilterNode newNode = new FilterNode(
++            Symbol newPresentSym = symbolAllocator.newSymbol("present", BooleanType.BOOLEAN);
++            Expression presentExpr = andExprs(ImmutableList.<Expression>builder()
++                    .addAll(presentSyms.stream().map(Symbol::toQualifiedNameReference).collect(toImmutableList()))
++                    .add(node.getPredicate())
++                    .build());
++            newAssignments.put(newPresentSym, presentExpr);
++
++            PlanNode newNode = new ProjectNode(
+                     node.getId(),
+-                    node.getSource(),
+-                    node.getPredicate());
++                    newSource,
++                    newAssignments);
+             context.nodePkSyms.put(newNode.getId(), pkSyms);
++            context.nodePresentSyms.put(newNode.getId(), ImmutableList.of(newPresentSym));
+             return newNode;
+         }
+
+@@ -231,7 +275,7 @@ public class TestPkThreader
+                     .build();
+             checkState(pkSyms.size() == newHashSet(pkSyms).size());
+
+-            JoinNode newNode = new JoinNode(
++            PlanNode newNode = new JoinNode(
+                     node.getId(),
+                     node.getType(),
+                     newLeft,
+@@ -249,7 +293,7 @@ public class TestPkThreader
+                     pkSyms);
+             indexPopulationQuery = optimize(indexPopulationQuery);
+
+-            urggh
++            // urggh
+
+             if (!rightJkSyms.isEmpty()) {
+                 // lpk -> [rpk]
+@@ -281,11 +325,15 @@ public class TestPkThreader
+         {
+             PlanNode newSource = node.getSource().accept(this, context);
+             List<Symbol> pkSyms = context.nodePkSyms.get(newSource.getId());
++            checkState(!pkSyms.isEmpty());
++            List<Symbol> presentSyms = context.nodePresentSyms.get(newSource.getId());
++            checkState(!presentSyms.isEmpty());
+
+             Set<Symbol> outputSymbolSet = newHashSet(node.getOutputSymbols());
+
+             List<String> newColumnNames = newArrayList(node.getColumnNames());
+             List<Symbol> newOutputSymbols = newArrayList(node.getOutputSymbols());
++            newOutputSymbols.addAll(presentSyms);
+
+             for (Symbol pkSym : pkSyms) {
+                 if (!outputSymbolSet.contains(pkSym)) {
+@@ -296,19 +344,21 @@ public class TestPkThreader
+                 }
+             }
+
+-            OutputNode newNode = new OutputNode(
++            PlanNode newNode = new OutputNode(
+                     node.getId(),
+                     newSource,
+                     newColumnNames,
+                     newOutputSymbols);
+             context.nodePkSyms.put(newNode.getId(), pkSyms);
++            context.nodePresentSyms.put(newNode.getId(), presentSyms);
+             return newNode;
+         }
+
+         @Override
+         public PlanNode visitTableScan(TableScanNode node, Context context)
+         {
+-            // FIXME (optional?) filter extraction - we (may?) only get deltas
++            // TODO: materialize all tables
++
+             ConnectorSupport cs = connectorSupport.get(node.getTable().getConnectorId());
+             Connector c = cs.getConnector();
+             ConnectorSession csess = session.toConnectorSession();
+@@ -338,15 +388,26 @@ public class TestPkThreader
+                 }
+             }
+
+-            TableScanNode newNode = new TableScanNode(
++            PlanNode newNode = new TableScanNode(
+                     node.getId(),
+                     node.getTable(),
+                     newOutputSymbols,
+                     newAssignments,
+                     node.getLayout(),
+-                    node.getCurrentConstraint(),
++                    TupleDomain.<ColumnHandle>all(),
+                     node.getOriginalConstraint());
+             context.nodePkSyms.put(newNode.getId(), pkSyms);
++
++            Symbol newPresentSymbol = symbolAllocator.newSymbol("present", BooleanType.BOOLEAN);
++            newNode = new ProjectNode(
++                    idAllocator.getNextId(),
++                    newNode,
++                    ImmutableMap.<Symbol, Expression>builder()
++                            .putAll(newNode.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, s.toQualifiedNameReference())).collect(toImmutableMap()))
++                            .put(newPresentSymbol, BooleanLiteral.TRUE_LITERAL)
++                            .build());
++            context.nodePkSyms.put(newNode.getId(), pkSyms);
++            context.nodePresentSyms.put(newNode.getId(), ImmutableList.of(newPresentSymbol));
+             return newNode;
+         }
+
+@@ -454,7 +515,7 @@ public class TestPkThreader
+
+             Map<Symbol, ColumnHandle> newAssignments = node.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, dataTableColumnHandles.get(s.getName()))).collect(toImmutableMap());
+
+-            TableScanNode newNode = new TableScanNode(
++            PlanNode newNode = new TableScanNode(
+                     idAllocator.getNextId(),
+                     dataTableHandle,
+                     node.getOutputSymbols(),
