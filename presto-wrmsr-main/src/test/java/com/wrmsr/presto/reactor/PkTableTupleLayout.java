@@ -1,3 +1,16 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.wrmsr.presto.reactor;
 
 import com.facebook.presto.spi.type.Type;
@@ -8,6 +21,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
@@ -41,6 +55,15 @@ public class PkTableTupleLayout
 
         pk = new TableTupleLayout(pkNames, pkTypes);
         nk = new TableTupleLayout(nkNames, nkTypes);
+    }
+
+    public PkTableTupleLayout(List<Field> pkFields, List<Field> nkFields)
+    {
+        this(
+                Stream.concat(pkFields.stream(), nkFields.stream()).map(Field::getName).collect(toImmutableList()),
+                Stream.concat(pkFields.stream(), nkFields.stream()).map(Field::getType).collect(toImmutableList()),
+                pkFields.stream().map(Field::getName).collect(toImmutableList()));
+
     }
 
     public List<String> getPkNames()

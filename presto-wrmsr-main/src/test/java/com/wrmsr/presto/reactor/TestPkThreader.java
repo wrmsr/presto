@@ -12,6 +12,7 @@
  * limitations under the License.
  */
 package com.wrmsr.presto.reactor;
+
 /*
 k's:
  primary
@@ -24,8 +25,9 @@ TODO optional whole-table buffering
 
 split whenever out-pk != in-pk
 CANNOT select from TableScans
-events include pre-pk and FULL postimage
+events include AT LEAST pre-pk and FULL postimage
  - could be driven by post-deltas with TableScan buf
+ - and fuck it just do full both at first ugh
 
 TODO pk+sk isp tables, wide-rows - split tbls up
  - interim just use fuckin __data__ blobz
@@ -111,29 +113,7 @@ public class TestPkThreader
     @FunctionalInterface
     public interface IntermediateStorageProvider
     {
-        final class Column
-        {
-            private final String name;
-            private final Type type;
-
-            public Column(String name, Type type)
-            {
-                this.name = name;
-                this.type = type;
-            }
-
-            public String getName()
-            {
-                return name;
-            }
-
-            public Type getType()
-            {
-                return type;
-            }
-        }
-
-        TableHandle getIntermediateStorage(String name, List<Column> pkColumns, List<Column> nonPkColumns);
+        TableHandle getIntermediateStorage(String name, PkTableTupleLayout layout);
     }
 
     public static class PkThreader
@@ -267,8 +247,9 @@ public class TestPkThreader
             // lpk -> [rpk]
             TableHandle leftTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left", node.getId().toString()),
-                    toIspCols(leftPkSyms),
-                    toIspCols(rightPkSyms));
+                    new PkTableTupleLayout(
+                            toFields(leftPkSyms),
+                            toFields(rightPkSyms)));
             ConnectorSupport leftTableConnectorSupport = connectorSupport.get(leftTableHandle.getConnectorId());
             Connector leftTableConnector = leftTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> leftTableColumnHandles = leftTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), leftTableHandle.getConnectorHandle());
@@ -276,8 +257,9 @@ public class TestPkThreader
             // rpk -> [lpk]
             TableHandle rightTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_right", node.getId().toString()),
-                    toIspCols(rightPkSyms),
-                    toIspCols(leftPkSyms));
+                    new PkTableTupleLayout(
+                            toFields(rightPkSyms),
+                            toFields(leftPkSyms)));
             ConnectorSupport rightTableConnectorSupport = connectorSupport.get(rightTableHandle.getConnectorId());
             Connector rightTableConnector = rightTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> rightTableColumnHandles = rightTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), rightTableHandle.getConnectorHandle());
@@ -372,9 +354,9 @@ public class TestPkThreader
             return planNode;
         }
 
-        private List<IntermediateStorageProvider.Column> toIspCols(List<Symbol> ss)
+        private List<TableTupleLayout.Field> toFields(List<Symbol> ss)
         {
-            return ss.stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
+            return ss.stream().map(s -> new TableTupleLayout.Field(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
         }
 
         @Override
@@ -409,8 +391,9 @@ public class TestPkThreader
             // FIXME optimize away if gk is pk
             TableHandle indexTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_index", node.getId().toString()),
-                    toIspCols(pkSyms),
-                    toIspCols(nonPkGkSyms));
+                    new PkTableTupleLayout(
+                            toFields(pkSyms),
+                            toFields(nonPkGkSyms)));
             ConnectorSupport indexTableConnectorSupport = connectorSupport.get(indexTableHandle.getConnectorId());
             Connector indexTableConnector = indexTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
@@ -420,8 +403,9 @@ public class TestPkThreader
 
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_data", node.getId().toString()),
-                    toIspCols(gkSyms),
-                    Stream.concat(toIspCols(nonGkSyms).stream(), Stream.of(new IntermediateStorageProvider.Column(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList()));
+                    new PkTableTupleLayout(
+                            toFields(gkSyms),
+                            Stream.concat(toFields(nonGkSyms).stream(), Stream.of(new TableTupleLayout.Field(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList())));
             ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
             Connector dataTableConnector = dataTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());
@@ -505,20 +489,18 @@ public class TestPkThreader
             }
         };
 
-        IntermediateStorageProvider isp = (n, gkcs, ngkcs) -> {
-            checkArgument(Stream.concat(gkcs.stream(), ngkcs.stream()).collect(toImmutableSet()).size() == gkcs.size() + ngkcs.size());
-
+        IntermediateStorageProvider isp = (n, l) -> {
             String schemaName = "example";
             String tableName = "isp_" + n;
 
             StringBuilder sql = new StringBuilder();
             sql.append("create table `" + schemaName + "`.`" + tableName + "` (");
-            sql.append(Stream.concat(gkcs.stream(), ngkcs.stream())
+            sql.append(l.getFields().stream()
                     .map(c -> String.format("`%s` %s", c.getName(), formatSqlCol.apply(c.getType())))
                     .collect(Collectors.joining(", ")));
 
             sql.append(", primary key (");
-            sql.append(gkcs.stream().map(c -> c.getName()).collect(Collectors.joining(", ")));
+            sql.append(l.getPk().getFields().stream().map(c -> c.getName()).collect(Collectors.joining(", ")));
             sql.append(")");
 
             sql.append(");");
