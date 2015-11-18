@@ -210,6 +210,24 @@ public class TestPkThreader
             PlanNode newRight = node.getRight().accept(this, context);
             List<Symbol> rightPkSyms = context.nodePkSyms.get(newRight.getId());
 
+            // List<Symbol> jkSyms =
+
+            TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
+                    String.format("%s_left_index", node.getId().toString()),
+                    toIspCols(leftPkSyms),
+                    toIspCols(rightPkSyms));
+            ConnectorSupport leftIndexTableConnectorSupport = connectorSupport.get(leftIndexTableHandle.getConnectorId());
+            Connector leftIndexTableConnector = leftIndexTableConnectorSupport.getConnector();
+            Map<String, ColumnHandle> leftIndexTableColumnHandles = leftIndexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), leftIndexTableHandle.getConnectorHandle());
+
+            TableHandle rightIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
+                    String.format("%s_right_index", node.getId().toString()),
+                    toIspCols(rightPkSyms),
+                    toIspCols(leftPkSyms));
+            ConnectorSupport rightIndexTableConnectorSupport = connectorSupport.get(rightIndexTableHandle.getConnectorId());
+            Connector rightIndexTableConnector = rightIndexTableConnectorSupport.getConnector();
+            Map<String, ColumnHandle> rightIndexTableColumnHandles = rightIndexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), rightIndexTableHandle.getConnectorHandle());
+
             List<Symbol> pkSyms = ImmutableList.<Symbol>builder()
                     .addAll(leftPkSyms)
                     .addAll(rightPkSyms)
@@ -316,6 +334,11 @@ public class TestPkThreader
             return planNode;
         }
 
+        private List<IntermediateStorageProvider.Column> toIspCols(List<Symbol> ss)
+        {
+            return ss.stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
+        }
+
         @Override
         public PlanNode visitAggregation(AggregationNode node, Context context)
         {
@@ -345,14 +368,11 @@ public class TestPkThreader
             List<Symbol> nonGkPkSyms = pkSyms.stream().filter(s -> !gkSymSet.contains(s)).collect(toImmutableList());
             List<Symbol> nonPkGkSyms = gkSyms.stream().filter(s -> !pkSymSet.contains(s)).collect(toImmutableList());
 
-            Function<List<Symbol>, List<IntermediateStorageProvider.Column>> toIspCols = ss ->
-                    ss.stream().map(s -> new IntermediateStorageProvider.Column(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
-
             // FIXME optimize away if gk is pk
             TableHandle indexTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_index", node.getId().toString()),
-                    toIspCols.apply(pkSyms),
-                    toIspCols.apply(nonPkGkSyms));
+                    toIspCols(pkSyms),
+                    toIspCols(nonPkGkSyms));
             ConnectorSupport indexTableConnectorSupport = connectorSupport.get(indexTableHandle.getConnectorId());
             Connector indexTableConnector = indexTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
@@ -362,8 +382,8 @@ public class TestPkThreader
 
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_data", node.getId().toString()),
-                    toIspCols.apply(gkSyms),
-                    Stream.concat(toIspCols.apply(nonGkSyms).stream(), Stream.of(new IntermediateStorageProvider.Column(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList()));
+                    toIspCols(gkSyms),
+                    Stream.concat(toIspCols(nonGkSyms).stream(), Stream.of(new IntermediateStorageProvider.Column(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList()));
             ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
             Connector dataTableConnector = dataTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());
