@@ -20,6 +20,7 @@ n-way join plz, no hash opt
 import com.beust.jcommander.internal.Sets;
 import com.facebook.presto.Session;
 import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.metadata.TableLayoutHandle;
 import com.facebook.presto.metadata.TableMetadata;
@@ -49,7 +50,9 @@ import com.facebook.presto.sql.planner.plan.PlanVisitor;
 import com.facebook.presto.sql.planner.plan.ProjectNode;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.Expression;
+import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.intellij.lang.annotations.Language;
@@ -300,6 +303,19 @@ public class TestPkThreader
             return newNode;
         }
 
+        private PlanNode optimize(PlanNode planNode)
+        {
+            for (PlanOptimizer planOptimizer : planOptimizers) {
+                planNode = planOptimizer.optimize(
+                        planNode,
+                        session,
+                        types,
+                        symbolAllocator,
+                        idAllocator);
+            }
+            return planNode;
+        }
+
         @Override
         public PlanNode visitAggregation(AggregationNode node, Context context)
         {
@@ -341,7 +357,7 @@ public class TestPkThreader
             Connector indexTableConnector = indexTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
 
-            // TODO log(n) recombine
+            // TODO log(n) recombine, wide rows
             String dataColumnName = "__data__";
 
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
@@ -361,18 +377,31 @@ public class TestPkThreader
                             gkPkSyms.stream().map(s -> ImmutablePair.of(s, (Expression) s.toQualifiedNameReference())).collect(toImmutableMap())),
                     gkPkSyms.stream().map(Symbol::getName).collect(toImmutableList()),
                     gkPkSyms);
+            indexQueryRoot = optimize(indexQueryRoot);
 
-            for (PlanOptimizer planOptimizer : planOptimizers) {
-                indexQueryRoot = planOptimizer.optimize(
-                        indexQueryRoot,
-                        session,
-                        types,
-                        symbolAllocator,
-                        idAllocator);
+            Map<Symbol, FunctionCall> newAggregations = newHashMap(node.getAggregations());
+            Map<Symbol, Signature> newFunctions = newHashMap(node.getFunctions());
+            for (Symbol aggSym : newAggregations.keySet()) {
+
             }
 
-            // PlanNode dataQueryRoot = new OutputNode(
-            // );
+            PlanNode dataQueryRoot = new OutputNode(
+                    idAllocator.getNextId(),
+                    new AggregationNode(
+                            idAllocator.getNextId(),
+                            backingSource,
+                            node.getGroupBy(),
+                            newAggregations,
+                            newFunctions,
+                            node.getMasks(),
+                            node.getStep(),
+                            node.getSampleWeight(),
+                            node.getConfidence(),
+                            node.getHashSymbol()),
+                    node.getAggregations().keySet().stream().map(Symbol::getName).collect(toImmutableList()),
+                    newArrayList(node.getAggregations().keySet())
+            );
+            dataQueryRoot = optimize(dataQueryRoot);
 
             Map<Symbol, ColumnHandle> newAssignments = node.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, dataTableColumnHandles.get(s.getName()))).collect(toImmutableMap());
 
