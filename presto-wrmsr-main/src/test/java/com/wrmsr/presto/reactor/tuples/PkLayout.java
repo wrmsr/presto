@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -63,6 +64,12 @@ public class PkLayout<N>
                 Stream.concat(pkFields.stream(), nkFields.stream()).map(Field::getName).collect(toImmutableList()),
                 Stream.concat(pkFields.stream(), nkFields.stream()).map(Field::getType).collect(toImmutableList()),
                 pkFields.stream().map(Field::getName).collect(toImmutableList()));
+    }
+
+    @Override
+    public <T> Layout<T> reKey(Function<N, T> fn)
+    {
+        return new PkLayout<>(names.stream().map(fn::apply).collect(toImmutableList()), types, pkNames.stream().map(fn::apply).collect(toImmutableList()));
     }
 
     public List<N> getPkNames()

@@ -38,14 +38,14 @@ public abstract class ConnectorSupport<C extends Connector>
 
     public abstract List<String> getPrimaryKey(SchemaTableName schemaTableName);
 
-    public PkLayout getTableTupleLayout(SchemaTableName schemaTableName)
+    public PkLayout<String> getTableTupleLayout(SchemaTableName schemaTableName)
     {
         List<String> pk = getPrimaryKey(schemaTableName);
         ConnectorSession cs = session.toConnectorSession();
         ConnectorMetadata m = connector.getMetadata();
         ConnectorTableHandle th = m.getTableHandle(cs, schemaTableName);
         List<ColumnHandle> chs = m.getColumnHandles(cs, th).values().stream().collect(toImmutableList());
-        return new PkLayout(
+        return new PkLayout<>(
                 chs.stream().map(this::getColumnName).collect(toImmutableList()),
                 chs.stream().map(this::getColumnType).collect(toImmutableList()),
                 pk);

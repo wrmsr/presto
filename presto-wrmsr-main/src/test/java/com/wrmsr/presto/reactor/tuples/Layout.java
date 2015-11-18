@@ -20,6 +20,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -96,6 +97,11 @@ public class Layout<N>
         this(fields.stream().map(Field::getName).collect(toImmutableList()), fields.stream().map(Field::getType).collect(toImmutableList()));
     }
 
+    public <T> Layout<T> reKey(Function<N, T> fn)
+    {
+        return new Layout<>(names.stream().map(fn::apply).collect(toImmutableList()), types);
+    }
+
     public int size()
     {
         return names.size();
@@ -114,6 +120,11 @@ public class Layout<N>
     public List<Type> getTypes()
     {
         return types;
+    }
+
+    public Type getType(N name)
+    {
+        return types.get(indices.get(name));
     }
 
     public List<Field<N>> getFields()

@@ -138,18 +138,32 @@ public class TestPkThreader
 
         public static class Context
         {
+            private final PkThreader parent;
             private final Map<PlanNodeId, List<Symbol>> nodePkSyms;
-            private final List<Context> children;
 
-            public Context()
+            public Context(PkThreader parent)
             {
+                this.parent = parent;
                 nodePkSyms = newHashMap();
-                children = newArrayList();
+            }
+
+            protected PkLayout<Symbol> getNodeLayout(PlanNode node)
+            {
+                Map<Symbol, Type> types = parent.symbolAllocator.getTypes();
+                return new PkLayout<>(
+                        node.getOutputSymbols(),
+                        node.getOutputSymbols().stream().map(types::get).collect(toImmutableList()),
+                        nodePkSyms.get(node.getId()));
             }
         }
 
         private static final String dataColumnName = "__data__";
-        private static final Layout.Field dataField = new Layout.Field(dataColumnName, VarbinaryType.VARBINARY);
+        private static final Layout.Field dataField = new Layout.Field<>(dataColumnName, VarbinaryType.VARBINARY);
+
+        public Context newContext()
+        {
+            return new Context(this);
+        }
 
         protected PlanNode visitPlan(PlanNode node, Context context)
         {
@@ -356,10 +370,8 @@ public class TestPkThreader
         @Override
         public PlanNode visitAggregation(AggregationNode node, Context context)
         {
-            Context backingContext = new Context();
-            PlanNode backingSource = node.getSource().accept(this, backingContext);
-            context.children.add(backingContext);
-            List<Symbol> pkSyms = backingContext.nodePkSyms.get(backingSource.getId());
+            PlanNode backingSource = node.getSource().accept(this, context);
+            List<Symbol> pkSyms = context.nodePkSyms.get(backingSource.getId());
             Set<Symbol> pkSymSet = newHashSet(pkSyms);
             checkState(pkSymSet.size() == pkSyms.size());
 
@@ -467,7 +479,6 @@ public class TestPkThreader
                 ;
 
         TestHelper.PlannedQuery pq = helper.plan(stmt);
-        PkThreader.Context ctx = new PkThreader.Context();
 
         Function<Type, String> formatSqlCol = t -> {
             if (t instanceof BigintType) {
@@ -528,6 +539,7 @@ public class TestPkThreader
                 pq.plan.getTypes(),
                 pq.connectorSupport,
                 isp);
+        PkThreader.Context ctx = r.newContext();
 
         PlanNode newRoot = pq.plan.getRoot().accept(r, ctx);
         System.out.println(newRoot);
