@@ -391,7 +391,7 @@ public class TestPkThreader
     {
         @Language("SQL") String stmt =
                 // "select customer.name, nation.name from tpch.tiny.customer inner join tpch.tiny.nation on customer.nationkey = nation.nationkey where acctbal > 100"
-                "select nationkey, count(*) c from tpch.tiny.nation group by nationkey"
+                "select nationkey, count(*) c from tpch.tiny.customer where acctbal > 10 group by nationkey"
                 ;
 
         TestHelper.PlannedQuery pq = helper.plan(stmt);
