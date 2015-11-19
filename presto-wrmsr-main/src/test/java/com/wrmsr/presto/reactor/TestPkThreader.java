@@ -143,29 +143,28 @@ public class TestPkThreader
 
         public abstract static class Action
         {
-            private final TableHandle source;
-            private final PlanNode root;
+            private final OutputNode root;
 
-            public Action(TableHandle source, PlanNode root)
+            public Action(OutputNode root)
             {
-                this.source = source;
                 this.root = root;
             }
         }
 
+        /*
         public static class Reaction extends Action
         {
-            public Reaction(TableHandle source, PlanNode root)
-            {
-                super(source, root);
-            }
         }
+        */
 
         public static class Population extends Action
         {
-            public Population(TableHandle source, PlanNode root)
+            private final TableHandle output;
+
+            public Population(OutputNode root, TableHandle output)
             {
-                super(source, root);
+                super(root);
+                this.output = output;
             }
         }
 
@@ -182,7 +181,7 @@ public class TestPkThreader
                 layoutCache = newHashMap();
             }
 
-            private PlanNode registerNode(PlanNode node, List<Symbol> pkSyms)
+            private PlanNode registerNode(PlanNode node, List<Symbol> pkSyms, List<Population> populations)
             {
                 checkArgument(!nodeInfo.containsKey(node.getId()));
 
@@ -194,7 +193,7 @@ public class TestPkThreader
                 layoutCache.putIfAbsent(layout, layout);
                 layout = layoutCache.get(layout);
 
-                NodeInfo info = new NodeInfo(node, layout);
+                NodeInfo info = new NodeInfo(node, layout, populations);
                 nodeInfo.put(node.getId(), info);
                 return node;
             }
@@ -210,11 +209,13 @@ public class TestPkThreader
         {
             private final PlanNode node;
             private final PkLayout<Symbol> layout;
+            private final List<Population> populations;
 
-            private NodeInfo(PlanNode node, PkLayout<Symbol> layout)
+            public NodeInfo(PlanNode node, PkLayout<Symbol> layout, List<Population> populations)
             {
                 this.node = node;
                 this.layout = layout;
+                this.populations = populations;
             }
 
             private List<Symbol> pkSyms()
@@ -255,7 +256,7 @@ public class TestPkThreader
                     node.getId(),
                     newSource.node,
                     newAssignments);
-            return context.registerNode(newNode, newSource.pkSyms());
+            return context.registerNode(newNode, newSource.pkSyms(), ImmutableList.of());
         }
 
         @Override
@@ -267,7 +268,7 @@ public class TestPkThreader
                     node.getId(),
                     newSource.node,
                     node.getPredicate());
-            return context.registerNode(newNode, newSource.pkSyms());
+            return context.registerNode(newNode, newSource.pkSyms(), ImmutableList.of());
         }
 
         @Override
@@ -306,14 +307,15 @@ public class TestPkThreader
                     node.getCriteria(),
                     node.getLeftHashSymbol(),
                     node.getRightHashSymbol());
-            context.registerNode(newNode, pkSyms);
 
-            PlanNode indexPopulationQuery = new OutputNode(
+            List<Population> populations = newArrayList();
+
+            OutputNode indexPopulationRoot = new OutputNode(
                     idAllocator.getNextId(),
                     newNode,
                     pkSyms.stream().map(Symbol::getName).collect(toImmutableList()),
                     pkSyms);
-            indexPopulationQuery = optimize(indexPopulationQuery);
+            indexPopulationRoot = (OutputNode) optimize(indexPopulationRoot);
 
             // lpk -> [rpk]
             TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
@@ -321,11 +323,13 @@ public class TestPkThreader
                     new PkLayout<>(
                             newLeft.layout.getPk().mapNames(Symbol::getName).getFields(),
                             ImmutableList.of(dataField)));
+            populations.add(new Population(indexPopulationRoot, leftIndexTableHandle));
 
             TableHandle leftDataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left_data", node.getId().toString()),
                     newLeft.layout.mapNames(Symbol::getName));
 
+            context.registerNode(newNode, pkSyms, populations);
             return newNode;
         }
 
@@ -352,7 +356,7 @@ public class TestPkThreader
                     newSource.node,
                     newColumnNames,
                     newOutputSymbols);
-            return context.registerNode(newNode, newSource.pkSyms());
+            return context.registerNode(newNode, newSource.pkSyms(), ImmutableList.of());
         }
 
         @Override
@@ -397,7 +401,7 @@ public class TestPkThreader
                     node.getLayout(),
                     node.getCurrentConstraint(),
                     node.getOriginalConstraint());
-            return context.registerNode(newNode, pkSyms);
+            return context.registerNode(newNode, pkSyms, ImmutableList.of());
         }
 
         private PlanNode optimize(PlanNode planNode)
@@ -411,11 +415,6 @@ public class TestPkThreader
                         idAllocator);
             }
             return planNode;
-        }
-
-        private List<Layout.Field> toFields(List<Symbol> ss)
-        {
-            return ss.stream().map(s -> new Layout.Field(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
         }
 
 //        @Override

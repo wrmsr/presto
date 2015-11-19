@@ -31,6 +31,7 @@ import com.facebook.presto.testing.TestingConnectorSession;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
+import com.wrmsr.presto.reactor.tuples.PkTuple;
 import com.wrmsr.presto.util.collect.SimpleMap;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
