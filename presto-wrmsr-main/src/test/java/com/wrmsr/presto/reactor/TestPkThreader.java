@@ -82,6 +82,7 @@ import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.reactor.tuples.Layout;
 import com.wrmsr.presto.reactor.tuples.PkLayout;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -318,6 +319,25 @@ public class TestPkThreader
                     pkSyms);
             indexPopulationRoot = (OutputNode) optimize(indexPopulationRoot);
 
+
+            need project to struct of pk
+            PlanNode leftIndexAgg = new AggregationNode(
+                    idAllocator.getNextId(),
+                    newNode,
+                    newLeft.pkSyms(),
+                    ImmutableMap.builder()
+
+
+            @JsonProperty("aggregations") Map<Symbol, FunctionCall> aggregations,
+            @JsonProperty("functions") Map<Symbol, Signature> functions,
+            @JsonProperty("masks") Map<Symbol, Symbol> masks,
+            @JsonProperty("step") Step step,
+            @JsonProperty("sampleWeight") Optional<Symbol> sampleWeight,
+            @JsonProperty("confidence") double confidence,
+            @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol)
+
+            );
+
             // lpk -> [rpk]
             TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left_index", node.getId().toString()),
@@ -528,6 +548,12 @@ public class TestPkThreader
                 // "select name, customer_names from tpch.tiny.nation inner join (select nationkey, sum(length(customer.name)) customer_names from tpch.tiny.customer where acctbal > 10 group by nationkey) customers on nation.nationkey = customers.nationkey"
 
                 ;
+
+        TestHelper.PlannedQuery pqa = helper.plan(
+
+        "select nationkey, array_agg(name) from tpch.tiny.customer group by nationkey"
+
+        );
 
         TestHelper.PlannedQuery pq = helper.plan(stmt);
 
