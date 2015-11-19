@@ -265,7 +265,7 @@ public class TestPkThreader
 
             FilterNode newNode = new FilterNode(
                     node.getId(),
-                    node.getSource(),
+                    newSource.node,
                     node.getPredicate());
             return context.registerNode(newNode, newSource.pkSyms());
         }
