@@ -52,8 +52,13 @@ import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.Connector;
+import com.facebook.presto.spi.ConnectorMetadata;
+import com.facebook.presto.spi.ConnectorOutputTableHandle;
+import com.facebook.presto.spi.ConnectorRecordSinkProvider;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
+import com.facebook.presto.spi.ConnectorTableMetadata;
+import com.facebook.presto.spi.RecordSink;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.type.BigintType;
@@ -316,6 +321,14 @@ public class TestPkThreader
                     new PkLayout<>(
                             newLeft.layout.getPk().mapNames(Symbol::getName).getFields(),
                             ImmutableList.of(dataField)));
+
+            ConnectorSession css = session.toConnectorSession();
+            ConnectorSupport cs = connectorSupport.get(leftIndexTableHandle.getConnectorId());
+            Connector c = cs.getConnector();
+            ConnectorMetadata cm = c.getMetadata();
+            ConnectorTableMetadata ctm = cm.getTableMetadata(css, leftIndexTableHandle.getConnectorHandle());
+            ConnectorOutputTableHandle coth = cm.beginCreateTable(css, ctm);
+            RecordSink rs = c.getRecordSinkProvider().getRecordSink(css, coth);
 
             TableHandle leftDataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left_data", node.getId().toString()),
