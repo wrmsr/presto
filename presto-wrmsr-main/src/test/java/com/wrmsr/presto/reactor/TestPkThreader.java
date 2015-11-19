@@ -64,6 +64,7 @@ import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.VarbinaryType;
+import com.facebook.presto.spi.type.VarcharType;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
@@ -534,8 +535,11 @@ public class TestPkThreader
             if (t instanceof BigintType) {
                 return "bigint";
             }
-            if (t instanceof VarbinaryType) {
+            else if (t instanceof VarbinaryType) {
                 return "varbinary";
+            }
+            else if (t instanceof VarcharType) {
+                return "varchar";
             }
             else {
                 throw new UnsupportedOperationException();

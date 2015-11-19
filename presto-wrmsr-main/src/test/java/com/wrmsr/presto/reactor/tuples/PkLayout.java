@@ -45,6 +45,7 @@ public class PkLayout<N>
     public PkLayout(List<N> names, List<Type> types, List<N> pkNames)
     {
         super(names, types);
+        checkArgument(!pkNames.isEmpty());
         checkArgument(newHashSet(pkNames).size() == pkNames.size());
         this.pkNames = ImmutableList.copyOf(pkNames);
 
