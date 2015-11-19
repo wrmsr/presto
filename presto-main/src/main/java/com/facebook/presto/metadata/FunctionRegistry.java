@@ -85,6 +85,7 @@ import com.facebook.presto.type.IntervalDayTimeOperators;
 import com.facebook.presto.type.IntervalYearMonthOperators;
 import com.facebook.presto.type.LikeFunctions;
 import com.facebook.presto.type.RowParametricType;
+import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TimeOperators;
 import com.facebook.presto.type.TimeWithTimeZoneOperators;
 import com.facebook.presto.type.TimestampOperators;
@@ -500,7 +501,7 @@ public class FunctionRegistry
         }
 
         // TODO this should be removed and implemented as a special expression type
-        if (parameterTypes.size() == 1 && parameterTypes.get(0).getBase().equals(StandardTypes.ROW)) {
+        if (parameterTypes.size() == 1 && typeManager.getType(parameterTypes.get(0)) instanceof RowType) {
             SqlFunction fieldReference = getRowFieldReference(name.getSuffix(), parameterTypes.get(0));
             if (fieldReference != null) {
                 return bindSignature(fieldReference.getSignature(), resolvedTypes, true, typeManager);
@@ -514,7 +515,7 @@ public class FunctionRegistry
     private SqlFunction getRowFieldReference(String field, TypeSignature rowTypeSignature)
     {
         Type rowType = typeManager.getType(rowTypeSignature);
-        checkState(rowType.getTypeSignature().getBase().equals(StandardTypes.ROW), "rowType is not a ROW type");
+        checkState(rowType instanceof RowType, "rowType is not a ROW type");
         SqlFunction match = null;
         for (SqlFunction function : RowParametricType.ROW.createFunctions(rowType)) {
             if (!function.getSignature().getName().equals(field)) {
