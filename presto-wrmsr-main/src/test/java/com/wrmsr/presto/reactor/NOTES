@@ -794,3 +794,16 @@ index 3fc8638..fe9947c 100644
                      idAllocator.getNextId(),
                      dataTableHandle,
                      node.getOutputSymbols(),
+
+
+
+
+
+            ConnectorSession css = session.toConnectorSession();
+            ConnectorSupport cs = connectorSupport.get(leftIndexTableHandle.getConnectorId());
+            Connector c = cs.getConnector();
+            ConnectorMetadata cm = c.getMetadata();
+            ConnectorTableMetadata ctm = cm.getTableMetadata(css, leftIndexTableHandle.getConnectorHandle());
+            ConnectorOutputTableHandle coth = cm.beginCreateTable(css, ctm);
+            RecordSink rs = c.getRecordSinkProvider().getRecordSink(css, coth);
+

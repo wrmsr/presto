@@ -322,14 +322,6 @@ public class TestPkThreader
                             newLeft.layout.getPk().mapNames(Symbol::getName).getFields(),
                             ImmutableList.of(dataField)));
 
-            ConnectorSession css = session.toConnectorSession();
-            ConnectorSupport cs = connectorSupport.get(leftIndexTableHandle.getConnectorId());
-            Connector c = cs.getConnector();
-            ConnectorMetadata cm = c.getMetadata();
-            ConnectorTableMetadata ctm = cm.getTableMetadata(css, leftIndexTableHandle.getConnectorHandle());
-            ConnectorOutputTableHandle coth = cm.beginCreateTable(css, ctm);
-            RecordSink rs = c.getRecordSinkProvider().getRecordSink(css, coth);
-
             TableHandle leftDataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left_data", node.getId().toString()),
                     newLeft.layout.mapNames(Symbol::getName));
