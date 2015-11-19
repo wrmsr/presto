@@ -24,9 +24,11 @@ import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.BlockEncoding;
+import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockEncoding;
 import com.facebook.presto.spi.type.Type;
@@ -62,6 +64,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -89,11 +92,13 @@ public class StructManager
 {
     private final TypeRegistry typeRegistry;
     private final Metadata metadata;
+    private final BlockEncodingSerde blockEncodingSerde;
 
-    public StructManager(TypeRegistry typeRegistry, Metadata metadata)
+    public StructManager(TypeRegistry typeRegistry, Metadata metadata, BlockEncodingSerde blockEncodingSerde)
     {
         this.typeRegistry = typeRegistry;
-        this.metadata = checkNotNull(metadata);
+        this.metadata = metadata;
+        this.blockEncodingSerde = blockEncodingSerde;
     }
 
     public static class RowTypeConstructorCompiler
@@ -554,9 +559,8 @@ public class StructManager
         }
         StructInfo structInfo = structInfoMap.get(typeName);
         if (type instanceof RowType && structInfo != null) {
-            checkState(value instanceof List);
-            List list = (List) value;
-            return boxRow((RowType) type, list, connectorSession);
+            checkState(value instanceof Block);
+            return boxRow((RowType) type, (Block) value, connectorSession);
         }
         else if (type instanceof ArrayType) {
             checkState(value instanceof List);
@@ -590,6 +594,35 @@ public class StructManager
         }
     }
 
+    public Box<List> boxRow(RowType rowType, Block block, @Nullable ConnectorSession connectorSession)
+    {
+        StructInfo structInfo = structInfoMap.get(rowType.getTypeSignature().getBase());
+        Class listBoxClass = structInfo.listBoxClass;
+        Constructor<Box<List>> listBoxCtor;
+        try {
+            listBoxCtor = listBoxClass.getDeclaredConstructor(List.class);
+        }
+        catch (NoSuchMethodException e) {
+            throw Throwables.propagate(e);
+        }
+
+        List<Object> values = new ArrayList<>(block.getPositionCount());
+
+        for (int i = 0; i < block.getPositionCount(); i++) {
+            Type fieldType = rowType.getFields().get(i).getType();
+            Object fieldValue = values.add(fieldType.getObjectValue(connectorSession, block, i));
+            values.add(boxValue(fieldType, fieldValue, connectorSession));
+        }
+
+        try {
+            // FIXME lel
+            return listBoxCtor.newInstance(Collections.unmodifiableList(values));
+        }
+        catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
     public Box<List> boxRow(RowType rowType, List rowValues, @Nullable ConnectorSession connectorSession)
     {
         StructInfo structInfo = structInfoMap.get(rowType.getTypeSignature().getBase());
@@ -601,6 +634,7 @@ public class StructManager
         catch (NoSuchMethodException e) {
             throw Throwables.propagate(e);
         }
+
         List<Object> boxedValues = newArrayList();
         List<RowType.RowField> rowFields = rowType.getFields();
         for (int i = 0; i < rowFields.size(); ++i) {
@@ -610,6 +644,7 @@ public class StructManager
             Object boxedValue = boxValue(fieldType, fieldValue, connectorSession);
             boxedValues.add(boxedValue);
         }
+
         try {
             // FIXME lel
             return listBoxCtor.newInstance(Collections.unmodifiableList(boxedValues));

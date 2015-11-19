@@ -47,8 +47,6 @@ import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 public class SerializeFunction
         extends SqlScalarFunction
 {
-
-
     private static final String FUNCTION_NAME = "serialize";
     private static final Signature SIGNATURE = new Signature( // FIXME nullable
             FUNCTION_NAME, FunctionKind.SCALAR, ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"), false);

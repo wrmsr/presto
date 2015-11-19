@@ -26,6 +26,7 @@ import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
+import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
@@ -81,6 +82,7 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.YAML_OBJECT_MAPPER;
+import static java.util.Objects.requireNonNull;
 
 // import com.facebook.presto.type.ParametricType;
 
@@ -98,6 +100,7 @@ public class MainPlugin
     private List<PlanOptimizer> planOptimizers;
     private FeaturesConfig featuresConfig;
     private AccessControl accessControl;
+    private BlockEncodingSerde blockEncodingSerde;
 
     @Override
     public void setOptionalConfig(Map<String, String> optionalConfig)
@@ -165,6 +168,13 @@ public class MainPlugin
         this.accessControl = accessControl;
     }
 
+    @Inject
+    public void setBlockEncodingSerde(BlockEncodingSerde blockEncodingSerde)
+    {
+        this.blockEncodingSerde = requireNonNull(blockEncodingSerde, "blockEncodingSerde is null");
+    }
+
+
     public static final Set<String> KNOWN_MODULE_NAMES = ImmutableSet.of(
             "aws",
             "hadoop"
@@ -225,7 +235,8 @@ public class MainPlugin
         if (event instanceof ServerEvent.ConnectorsLoaded) {
             StructManager structManager = new StructManager(
                     typeRegistry,
-                    metadata
+                    metadata,
+                    blockEncodingSerde
             );
 
             byte[] cfgBytes;
