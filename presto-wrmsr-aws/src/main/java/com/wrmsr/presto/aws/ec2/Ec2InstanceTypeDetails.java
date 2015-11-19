@@ -43,7 +43,6 @@ import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public class Ec2InstanceTypeDetails
 {
-    public static final String URL = "https://github.com/toelen/spymemcached-jcache";
     public static final String RESOURCE = "com/wrmsr/presto/aws/ec2/instance-types.json";
 
     public static Map<String, Ec2InstanceTypeDetails> read()
