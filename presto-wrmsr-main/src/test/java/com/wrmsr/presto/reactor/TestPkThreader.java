@@ -81,8 +81,11 @@ import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
+import com.facebook.presto.type.RowType;
+import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.functions.StructManager;
 import com.wrmsr.presto.reactor.tuples.Layout;
 import com.wrmsr.presto.reactor.tuples.PkLayout;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -130,8 +133,9 @@ public class TestPkThreader
         private final Map<Symbol, Type> types;
         private final Map<String, ConnectorSupport> connectorSupport;
         private final IntermediateStorageProvider intermediateStorageProvider;
+        private final StructManager structManager;
 
-        public PkThreader(PlanNodeIdAllocator idAllocator, SymbolAllocator symbolAllocator, Session session, Metadata metadata, List<PlanOptimizer> planOptimizers, Map<Symbol, Type> types, Map<String, ConnectorSupport> connectorSupport, IntermediateStorageProvider intermediateStorageProvider)
+        public PkThreader(PlanNodeIdAllocator idAllocator, SymbolAllocator symbolAllocator, Session session, Metadata metadata, List<PlanOptimizer> planOptimizers, Map<Symbol, Type> types, Map<String, ConnectorSupport> connectorSupport, IntermediateStorageProvider intermediateStorageProvider, StructManager structManager)
         {
             this.idAllocator = idAllocator;
             this.symbolAllocator = symbolAllocator;
@@ -141,6 +145,7 @@ public class TestPkThreader
             this.types = types;
             this.connectorSupport = connectorSupport;
             this.intermediateStorageProvider = intermediateStorageProvider;
+            this.structManager = structManager;
         }
 
         public abstract static class Action
@@ -318,6 +323,16 @@ public class TestPkThreader
                     pkSyms.stream().map(Symbol::getName).collect(toImmutableList()),
                     pkSyms);
             indexPopulationRoot = (OutputNode) optimize(indexPopulationRoot);
+
+            // see TestSerDeUtils::testListBlock
+            RowType rightPkRowType = structManager.buildRowType(new StructManager.StructDefinition(
+                    "rightPk",
+                    newRight.layout.getPk().getFields().stream()
+                            .map(f -> new StructManager.StructDefinition.Field(
+                                    f.getName().getName(),
+                                    f.getType().getTypeSignature().getBase())
+                            ).collect(toImmutableList())));
+            structManager.registerStruct(rightPkRowType);
 
 //            need project to struct of pk
 //            PlanNode leftIndexAgg = new AggregationNode(
@@ -617,7 +632,12 @@ public class TestPkThreader
                 pq.planOptimizers,
                 pq.plan.getTypes(),
                 pq.connectorSupport,
-                isp);
+                isp,
+                new StructManager(
+                        (TypeRegistry) pq.lqr.getMetadata().getTypeManager(),
+                        pq.lqr.getMetadata(),
+                        null
+                ));
         PkThreader.Context ctx = r.newContext();
 
         PlanNode newRoot = pq.plan.getRoot().accept(r, ctx);

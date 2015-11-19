@@ -610,7 +610,7 @@ public class StructManager
 
         for (int i = 0; i < block.getPositionCount(); i++) {
             Type fieldType = rowType.getFields().get(i).getType();
-            Object fieldValue = values.add(fieldType.getObjectValue(connectorSession, block, i));
+            Object fieldValue = fieldType.getObjectValue(connectorSession, block, i);
             values.add(boxValue(fieldType, fieldValue, connectorSession));
         }
 
@@ -723,7 +723,11 @@ public class StructManager
         String name = rowType.getTypeSignature().getBase();
         typeRegistry.addType(rowType);
         typeRegistry.addParametricType(rowType.getParametricType());
+        registerStructFunctions(rowType, name);
+    }
 
+    public void registerStructFunctions(RowType rowType, String name)
+    {
         metadata.addFunctions(
                 new FunctionListBuilder(typeRegistry)
                         .scalar(new RowTypeConstructorCompiler().run(rowType, name + "_strict"))
@@ -744,8 +748,7 @@ public class StructManager
                 sliceBoxClass,
                 listBoxClass,
                 serializer,
-                deserializer
-        );
+                deserializer);
         structInfoMap.put(name, structInfo);
 
         // TIE THE KNOT - BOX RECURSION
