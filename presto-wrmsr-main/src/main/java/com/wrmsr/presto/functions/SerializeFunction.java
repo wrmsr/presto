@@ -119,7 +119,7 @@ public class SerializeFunction
 
         Signature sig = new Signature(FUNCTION_NAME, FunctionKind.SCALAR, parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature());
         // return new ScalarFunctionImplementation(sig, getDescription(), isHidden(), methodHandle, isDeterministic(), false, ImmutableList.of(true));
-        return new ScalarFunctionImplementation(false, ImmutableList.of(false), METHOD_HANDLE, isDeterministic());
+        return new ScalarFunctionImplementation(false, ImmutableList.of(false), methodHandle, isDeterministic());
     }
 
     public static Slice serialize(SerializationContext serializationContext, ConnectorSession session, @Nullable Object object)
