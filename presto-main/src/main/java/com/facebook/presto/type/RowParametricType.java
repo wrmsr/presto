@@ -31,14 +31,22 @@ public final class RowParametricType
 {
     public static final RowParametricType ROW = new RowParametricType();
 
-    private RowParametricType()
+    private final String name;
+
+    public RowParametricType(String name)
     {
+        this.name = name;
+    }
+
+    public RowParametricType()
+    {
+        this(StandardTypes.ROW);
     }
 
     @Override
     public String getName()
     {
-        return StandardTypes.ROW;
+        return name;
     }
 
     @Override

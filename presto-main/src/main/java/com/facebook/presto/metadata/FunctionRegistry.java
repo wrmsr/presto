@@ -514,10 +514,11 @@ public class FunctionRegistry
     @Nullable
     private SqlFunction getRowFieldReference(String field, TypeSignature rowTypeSignature)
     {
-        Type rowType = typeManager.getType(rowTypeSignature);
-        checkState(rowType instanceof RowType, "rowType is not a ROW type");
+        Type type = typeManager.getType(rowTypeSignature);
+        checkState(type instanceof RowType, "rowType is not a ROW type");
+        RowType rowType = (RowType) type;
         SqlFunction match = null;
-        for (SqlFunction function : RowParametricType.ROW.createFunctions(rowType)) {
+        for (SqlFunction function : rowType.getParametricType().createFunctions(rowType)) {
             if (!function.getSignature().getName().equals(field)) {
                 continue;
             }
@@ -628,7 +629,7 @@ public class FunctionRegistry
         }
 
         // TODO this should be removed and implemented as a special expression type
-        if (!signature.getArgumentTypes().isEmpty() && signature.getArgumentTypes().get(0).getBase().equals(StandardTypes.ROW)) {
+        if (!signature.getArgumentTypes().isEmpty() && typeManager.getType(signature.getArgumentTypes().get(0)) instanceof RowType) {
             SqlFunction fieldReference = getRowFieldReference(signature.getName(), signature.getArgumentTypes().get(0));
             if (fieldReference != null) {
                 Map<String, Type> boundTypeParameters = fieldReference.getSignature().bindTypeParameters(returnType, argumentTypes, false, typeManager);

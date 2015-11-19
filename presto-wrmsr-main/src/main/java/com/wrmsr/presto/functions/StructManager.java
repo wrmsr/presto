@@ -722,6 +722,8 @@ public class StructManager
     {
         String name = rowType.getTypeSignature().getBase();
         typeRegistry.addType(rowType);
+        typeRegistry.addParametricType(rowType.getParametricType());
+
         metadata.addFunctions(
                 new FunctionListBuilder(typeRegistry)
                         .scalar(new RowTypeConstructorCompiler().run(rowType, name + "_strict"))

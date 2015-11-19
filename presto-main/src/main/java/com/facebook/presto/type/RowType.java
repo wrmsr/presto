@@ -43,6 +43,7 @@ public class RowType
         extends AbstractType
 {
     private final List<RowField> fields;
+    private final RowParametricType parametricType;
 
     public RowType(List<Type> fieldTypes, Optional<List<String>> fieldNames)
     {
@@ -65,6 +66,13 @@ public class RowType
             builder.add(new RowField(fieldTypes.get(i), fieldNames.map((names) -> names.get(index))));
         }
         fields = builder.build();
+
+        parametricType = new RowParametricType(signature.getBase());
+    }
+
+    public RowParametricType getParametricType()
+    {
+        return parametricType;
     }
 
     @Override
