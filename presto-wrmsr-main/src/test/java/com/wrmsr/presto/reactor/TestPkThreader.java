@@ -136,24 +136,85 @@ public class TestPkThreader
             this.intermediateStorageProvider = intermediateStorageProvider;
         }
 
+        public abstract static class Action
+        {
+            private final TableHandle source;
+            private final PlanNode root;
+
+            public Action(TableHandle source, PlanNode root)
+            {
+                this.source = source;
+                this.root = root;
+            }
+        }
+
+        public static class Reaction extends Action
+        {
+            public Reaction(TableHandle source, PlanNode root)
+            {
+                super(source, root);
+            }
+        }
+
+        public static class Population extends Action
+        {
+            public Population(TableHandle source, PlanNode root)
+            {
+                super(source, root);
+            }
+        }
+
         public static class Context
         {
-            private final PkThreader parent;
-            private final Map<PlanNodeId, List<Symbol>> nodePkSyms;
+            private final PkThreader owner;
+            private final Map<PlanNodeId, NodeInfo> nodeInfo;
+            private final Map<PkLayout<Symbol>, PkLayout<Symbol>> layoutCache;
 
-            public Context(PkThreader parent)
+            private Context(PkThreader owner)
             {
-                this.parent = parent;
-                nodePkSyms = newHashMap();
+                this.owner = owner;
+                nodeInfo = newHashMap();
+                layoutCache = newHashMap();
             }
 
-            protected PkLayout<Symbol> getNodeLayout(PlanNode node)
+            private PlanNode registerNode(PlanNode node, List<Symbol> pkSyms)
             {
-                Map<Symbol, Type> types = parent.symbolAllocator.getTypes();
-                return new PkLayout<>(
+                checkArgument(!nodeInfo.containsKey(node.getId()));
+
+                Map<Symbol, Type> types = owner.symbolAllocator.getTypes();
+                PkLayout<Symbol> layout = new PkLayout<>(
                         node.getOutputSymbols(),
                         node.getOutputSymbols().stream().map(types::get).collect(toImmutableList()),
-                        nodePkSyms.get(node.getId()));
+                        pkSyms);
+                layoutCache.putIfAbsent(layout, layout);
+                layout = layoutCache.get(layout);
+
+                NodeInfo info = new NodeInfo(node, layout);
+                nodeInfo.put(node.getId(), info);
+                return node;
+            }
+
+            private NodeInfo addChild(PlanNode node)
+            {
+                PlanNode newNode = node.accept(owner, this);
+                return nodeInfo.get(newNode.getId());
+            }
+        }
+
+        private static class NodeInfo
+        {
+            private final PlanNode node;
+            private final PkLayout<Symbol> layout;
+
+            private NodeInfo(PlanNode node, PkLayout<Symbol> layout)
+            {
+                this.node = node;
+                this.layout = layout;
+            }
+
+            private List<Symbol> pkSyms()
+            {
+                return layout.getPkNames();
             }
         }
 
@@ -173,14 +234,13 @@ public class TestPkThreader
         @Override
         public PlanNode visitProject(ProjectNode node, Context context)
         {
-            PlanNode newSource = node.getSource().accept(this, context);
-            List<Symbol> pkSyms = context.nodePkSyms.get(newSource.getId());
+            NodeInfo newSource = context.addChild(node.getSource());
 
-            Set<QualifiedNameReference> pkQnrs = pkSyms.stream().map(Symbol::toQualifiedNameReference).collect(toImmutableSet());
+            Set<QualifiedNameReference> pkQnrs = newSource.pkSyms().stream().map(Symbol::toQualifiedNameReference).collect(toImmutableSet());
             Set<Symbol> identityAssignments = node.getAssignments().entrySet().stream().filter(e -> pkQnrs.contains(e.getValue())).map(Map.Entry::getKey).collect(toImmutableSet());
 
             Map<Symbol, Expression> newAssignments = newHashMap(node.getAssignments());
-            for (Symbol pkSym : pkSyms) {
+            for (Symbol pkSym : newSource.pkSyms()) {
                 if (!identityAssignments.contains(pkSym)) {
                     newAssignments.put(pkSym, pkSym.toQualifiedNameReference());
                 }
@@ -188,41 +248,35 @@ public class TestPkThreader
 
             ProjectNode newNode = new ProjectNode(
                     node.getId(),
-                    newSource,
+                    newSource.node,
                     newAssignments);
-            context.nodePkSyms.put(newNode.getId(), pkSyms);
-            return newNode;
+            return context.registerNode(newNode, newSource.pkSyms());
         }
 
         @Override
         public PlanNode visitFilter(FilterNode node, Context context)
         {
-            PlanNode newSource = node.getSource().accept(this, context);
-            List<Symbol> pkSyms = context.nodePkSyms.get(newSource.getId());
+            NodeInfo newSource = context.addChild(node.getSource());
 
             FilterNode newNode = new FilterNode(
                     node.getId(),
                     node.getSource(),
                     node.getPredicate());
-            context.nodePkSyms.put(newNode.getId(), pkSyms);
-            return newNode;
+            return context.registerNode(newNode, newSource.pkSyms());
         }
 
         @Override
         public PlanNode visitJoin(JoinNode node, Context context)
         {
-            PlanNode newLeft = node.getLeft().accept(this, context);
-            PkLayout<Symbol> leftLayout = context.getNodeLayout(newLeft);
+            // !!! on lpk = rpk -> fuse pk's into one sym
+            NodeInfo newLeft = context.addChild(node.getLeft());
+            NodeInfo newRight = context.addChild(node.getRight());
 
-            PlanNode newRight = node.getRight().accept(this, context);
-            PkLayout<Symbol> rightLayout = context.getNodeLayout(newRight);
-
+            /*
             List<JoinNode.EquiJoinClause> nonHashClauses = node.getCriteria().stream()
                     .filter(c -> !(node.getLeftHashSymbol().isPresent() && c.getLeft().equals(node.getLeftHashSymbol().get())))
                     .filter(c -> !(node.getRightHashSymbol().isPresent() && c.getRight().equals(node.getRightHashSymbol().get())))
                     .collect(toImmutableList());
-
-            /*
             List<Symbol> leftJkSyms = nonHashClauses.stream()
                     .map(JoinNode.EquiJoinClause::getLeft)
                     .filter(s -> !leftLayout.getPk().containsName(s))
@@ -234,21 +288,20 @@ public class TestPkThreader
             */
 
             List<Symbol> pkSyms = ImmutableList.<Symbol>builder()
-                    .addAll(leftLayout.getPkNames())
-                    .addAll(rightLayout.getPkNames())
+                    .addAll(newLeft.pkSyms())
+                    .addAll(newRight.pkSyms())
                     .build();
             checkState(pkSyms.size() == newHashSet(pkSyms).size());
 
             JoinNode newNode = new JoinNode(
                     node.getId(),
                     node.getType(),
-                    newLeft,
-                    newRight,
+                    newLeft.node,
+                    newRight.node,
                     node.getCriteria(),
                     node.getLeftHashSymbol(),
-                    node.getRightHashSymbol()
-            );
-            context.nodePkSyms.put(newNode.getId(), pkSyms);
+                    node.getRightHashSymbol());
+            context.registerNode(newNode, pkSyms);
 
             PlanNode indexPopulationQuery = new OutputNode(
                     idAllocator.getNextId(),
@@ -261,12 +314,12 @@ public class TestPkThreader
             TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left_index", node.getId().toString()),
                     new PkLayout<>(
-                            leftLayout.getPk().mapNames(Symbol::getName).getFields(),
+                            newLeft.layout.getPk().mapNames(Symbol::getName).getFields(),
                             ImmutableList.of(dataField)));
 
             TableHandle leftDataTableHandle = intermediateStorageProvider.getIntermediateStorage(
                     String.format("%s_left_data", node.getId().toString()),
-                    leftLayout.mapNames(Symbol::getName));
+                    newLeft.layout.mapNames(Symbol::getName));
 
             return newNode;
         }
@@ -274,15 +327,13 @@ public class TestPkThreader
         @Override
         public PlanNode visitOutput(OutputNode node, Context context)
         {
-            PlanNode newSource = node.getSource().accept(this, context);
-            List<Symbol> pkSyms = context.nodePkSyms.get(newSource.getId());
+            NodeInfo newSource = context.addChild(node.getSource());
 
             Set<Symbol> outputSymbolSet = newHashSet(node.getOutputSymbols());
-
             List<String> newColumnNames = newArrayList(node.getColumnNames());
             List<Symbol> newOutputSymbols = newArrayList(node.getOutputSymbols());
 
-            for (Symbol pkSym : pkSyms) {
+            for (Symbol pkSym : newSource.pkSyms()) {
                 if (!outputSymbolSet.contains(pkSym)) {
                     String pkCol = pkSym.getName();
                     checkState(!newColumnNames.contains(pkCol));
@@ -293,18 +344,17 @@ public class TestPkThreader
 
             OutputNode newNode = new OutputNode(
                     node.getId(),
-                    newSource,
+                    newSource.node,
                     newColumnNames,
                     newOutputSymbols);
-            context.nodePkSyms.put(newNode.getId(), pkSyms);
-            return newNode;
+            return context.registerNode(newNode, newSource.pkSyms());
         }
 
         @Override
         public PlanNode visitTableScan(TableScanNode node, Context context)
         {
             // FIXME (optional?) filter extraction - we (may?) only get deltas
-            ConnectorSupport cs = connectorSupport.get(node.getTable().getConnectorId());
+            ConnectorSupport<?> cs = connectorSupport.get(node.getTable().getConnectorId());
             Connector c = cs.getConnector();
             ConnectorSession csess = session.toConnectorSession();
             SchemaTableName stn = cs.getSchemaTableName(node.getTable().getConnectorHandle());
@@ -342,8 +392,7 @@ public class TestPkThreader
                     node.getLayout(),
                     node.getCurrentConstraint(),
                     node.getOriginalConstraint());
-            context.nodePkSyms.put(newNode.getId(), pkSyms);
-            return newNode;
+            return context.registerNode(newNode, pkSyms);
         }
 
         private PlanNode optimize(PlanNode planNode)
@@ -364,101 +413,101 @@ public class TestPkThreader
             return ss.stream().map(s -> new Layout.Field(s.getName(), symbolAllocator.getTypes().get(s))).collect(toImmutableList());
         }
 
-        @Override
-        public PlanNode visitAggregation(AggregationNode node, Context context)
-        {
-            PlanNode backingSource = node.getSource().accept(this, context);
-            List<Symbol> pkSyms = context.nodePkSyms.get(backingSource.getId());
-            Set<Symbol> pkSymSet = newHashSet(pkSyms);
-            checkState(pkSymSet.size() == pkSyms.size());
-
-            /*
-            AggregationNode newNode = new AggregationNode(
-                    node.getId(),
-                    node.getSource(),
-                    node.getGroupBy(),
-                    node.getAggregations(),
-                    node.getFunctions(),
-                    node.getMasks()
-                    node.getSampleWeight(),
-                    node.getConfidence());
-            return newNode;
-            */
-
-            List<Symbol> gkSyms = node.getGroupBy();
-            Set<Symbol> gkSymSet = newHashSet(gkSyms);
-            List<Symbol> nonGkSyms = node.getOutputSymbols().stream().filter(s -> !gkSymSet.contains(s)).collect(toImmutableList());
-            List<Symbol> nonGkPkSyms = pkSyms.stream().filter(s -> !gkSymSet.contains(s)).collect(toImmutableList());
-            List<Symbol> nonPkGkSyms = gkSyms.stream().filter(s -> !pkSymSet.contains(s)).collect(toImmutableList());
-
-            // FIXME optimize away if gk is pk
-            TableHandle indexTableHandle = intermediateStorageProvider.getIntermediateStorage(
-                    String.format("%s_index", node.getId().toString()),
-                    new PkLayout(
-                            toFields(pkSyms),
-                            toFields(nonPkGkSyms)));
-            ConnectorSupport indexTableConnectorSupport = connectorSupport.get(indexTableHandle.getConnectorId());
-            Connector indexTableConnector = indexTableConnectorSupport.getConnector();
-            Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
-
-            // TODO optional log(n) recombine, wide rows, special-case reversible combiners (count, sum, array, map)
-            TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
-                    String.format("%s_data", node.getId().toString()),
-                    new PkLayout(
-                            toFields(gkSyms),
-                            Stream.concat(toFields(nonGkSyms).stream(), Stream.of(new Layout.Field(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList())));
-            ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
-            Connector dataTableConnector = dataTableConnectorSupport.getConnector();
-            Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());
-
-            List<Symbol> gkPkSyms = Stream.concat(gkSyms.stream(), nonGkPkSyms.stream()).collect(toImmutableList());
-            PlanNode indexQueryRoot = new OutputNode(
-                    idAllocator.getNextId(),
-                    new ProjectNode(
-                            idAllocator.getNextId(),
-                            backingSource,
-                            gkPkSyms.stream().map(s -> ImmutablePair.of(s, (Expression) s.toQualifiedNameReference())).collect(toImmutableMap())),
-                    gkPkSyms.stream().map(Symbol::getName).collect(toImmutableList()),
-                    gkPkSyms);
-            indexQueryRoot = optimize(indexQueryRoot);
-
-            Map<Symbol, FunctionCall> newAggregations = newHashMap(node.getAggregations());
-            Map<Symbol, Signature> newFunctions = newHashMap(node.getFunctions());
-            for (Symbol aggSym : newAggregations.keySet()) {
-
-            }
-
-            PlanNode dataQueryRoot = new OutputNode(
-                    idAllocator.getNextId(),
-                    new AggregationNode(
-                            idAllocator.getNextId(),
-                            backingSource,
-                            node.getGroupBy(),
-                            newAggregations,
-                            newFunctions,
-                            node.getMasks(),
-                            node.getStep(),
-                            node.getSampleWeight(),
-                            node.getConfidence(),
-                            node.getHashSymbol()),
-                    node.getAggregations().keySet().stream().map(Symbol::getName).collect(toImmutableList()),
-                    newArrayList(node.getAggregations().keySet())
-            );
-            dataQueryRoot = optimize(dataQueryRoot);
-
-            Map<Symbol, ColumnHandle> newAssignments = node.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, dataTableColumnHandles.get(s.getName()))).collect(toImmutableMap());
-
-            TableScanNode newNode = new TableScanNode(
-                    idAllocator.getNextId(),
-                    dataTableHandle,
-                    node.getOutputSymbols(),
-                    newAssignments,
-                    Optional.<TableLayoutHandle>empty(),
-                    TupleDomain.all(),
-                    null);
-            context.nodePkSyms.put(newNode.getId(), gkSyms);
-            return newNode;
-        }
+//        @Override
+//        public PlanNode visitAggregation(AggregationNode node, Context context)
+//        {
+//            NodeInfo newSource = node.getSource().accept(this, context);
+//            List<Symbol> pkSyms = context.nodePkSyms.get(backingSource.getId());
+//            Set<Symbol> pkSymSet = newHashSet(pkSyms);
+//            checkState(pkSymSet.size() == pkSyms.size());
+//
+//            /*
+//            AggregationNode newNode = new AggregationNode(
+//                    node.getId(),
+//                    node.getSource(),
+//                    node.getGroupBy(),
+//                    node.getAggregations(),
+//                    node.getFunctions(),
+//                    node.getMasks()
+//                    node.getSampleWeight(),
+//                    node.getConfidence());
+//            return newNode;
+//            */
+//
+//            List<Symbol> gkSyms = node.getGroupBy();
+//            Set<Symbol> gkSymSet = newHashSet(gkSyms);
+//            List<Symbol> nonGkSyms = node.getOutputSymbols().stream().filter(s -> !gkSymSet.contains(s)).collect(toImmutableList());
+//            List<Symbol> nonGkPkSyms = pkSyms.stream().filter(s -> !gkSymSet.contains(s)).collect(toImmutableList());
+//            List<Symbol> nonPkGkSyms = gkSyms.stream().filter(s -> !pkSymSet.contains(s)).collect(toImmutableList());
+//
+//            // FIXME optimize away if gk is pk
+//            TableHandle indexTableHandle = intermediateStorageProvider.getIntermediateStorage(
+//                    String.format("%s_index", node.getId().toString()),
+//                    new PkLayout(
+//                            toFields(pkSyms),
+//                            toFields(nonPkGkSyms)));
+//            ConnectorSupport indexTableConnectorSupport = connectorSupport.get(indexTableHandle.getConnectorId());
+//            Connector indexTableConnector = indexTableConnectorSupport.getConnector();
+//            Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
+//
+//            // TODO optional log(n) recombine, wide rows, special-case reversible combiners (count, sum, array, map)
+//            TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
+//                    String.format("%s_data", node.getId().toString()),
+//                    new PkLayout(
+//                            toFields(gkSyms),
+//                            Stream.concat(toFields(nonGkSyms).stream(), Stream.of(new Layout.Field(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList())));
+//            ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
+//            Connector dataTableConnector = dataTableConnectorSupport.getConnector();
+//            Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());
+//
+//            List<Symbol> gkPkSyms = Stream.concat(gkSyms.stream(), nonGkPkSyms.stream()).collect(toImmutableList());
+//            PlanNode indexQueryRoot = new OutputNode(
+//                    idAllocator.getNextId(),
+//                    new ProjectNode(
+//                            idAllocator.getNextId(),
+//                            backingSource,
+//                            gkPkSyms.stream().map(s -> ImmutablePair.of(s, (Expression) s.toQualifiedNameReference())).collect(toImmutableMap())),
+//                    gkPkSyms.stream().map(Symbol::getName).collect(toImmutableList()),
+//                    gkPkSyms);
+//            indexQueryRoot = optimize(indexQueryRoot);
+//
+//            Map<Symbol, FunctionCall> newAggregations = newHashMap(node.getAggregations());
+//            Map<Symbol, Signature> newFunctions = newHashMap(node.getFunctions());
+//            for (Symbol aggSym : newAggregations.keySet()) {
+//
+//            }
+//
+//            PlanNode dataQueryRoot = new OutputNode(
+//                    idAllocator.getNextId(),
+//                    new AggregationNode(
+//                            idAllocator.getNextId(),
+//                            backingSource,
+//                            node.getGroupBy(),
+//                            newAggregations,
+//                            newFunctions,
+//                            node.getMasks(),
+//                            node.getStep(),
+//                            node.getSampleWeight(),
+//                            node.getConfidence(),
+//                            node.getHashSymbol()),
+//                    node.getAggregations().keySet().stream().map(Symbol::getName).collect(toImmutableList()),
+//                    newArrayList(node.getAggregations().keySet())
+//            );
+//            dataQueryRoot = optimize(dataQueryRoot);
+//
+//            Map<Symbol, ColumnHandle> newAssignments = node.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, dataTableColumnHandles.get(s.getName()))).collect(toImmutableMap());
+//
+//            TableScanNode newNode = new TableScanNode(
+//                    idAllocator.getNextId(),
+//                    dataTableHandle,
+//                    node.getOutputSymbols(),
+//                    newAssignments,
+//                    Optional.<TableLayoutHandle>empty(),
+//                    TupleDomain.all(),
+//                    null);
+//            context.nodePkSyms.put(newNode.getId(), gkSyms);
+//            return newNode;
+//        }
     }
 
     @Test

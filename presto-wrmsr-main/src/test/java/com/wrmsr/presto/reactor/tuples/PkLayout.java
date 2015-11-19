@@ -25,6 +25,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Sets.newHashSet;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class PkLayout<N>
@@ -44,7 +45,7 @@ public class PkLayout<N>
     public PkLayout(List<N> names, List<Type> types, List<N> pkNames)
     {
         super(names, types);
-        checkArgument(names.size() == types.size());
+        checkArgument(newHashSet(pkNames).size() == pkNames.size());
         this.pkNames = ImmutableList.copyOf(pkNames);
 
         Set<N> pkNameSet = ImmutableSet.copyOf(pkNames);

@@ -24,6 +24,7 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Sets.newHashSet;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
@@ -86,6 +87,7 @@ public class Layout<N>
 
     public Layout(List<N> names, List<Type> types)
     {
+        checkArgument(newHashSet(names).size() == names.size());
         checkArgument(names.size() == types.size());
         this.names = ImmutableList.copyOf(names);
         this.types = ImmutableList.copyOf(types);
