@@ -319,24 +319,23 @@ public class TestPkThreader
                     pkSyms);
             indexPopulationRoot = (OutputNode) optimize(indexPopulationRoot);
 
-
-            need project to struct of pk
-            PlanNode leftIndexAgg = new AggregationNode(
-                    idAllocator.getNextId(),
-                    newNode,
-                    newLeft.pkSyms(),
-                    ImmutableMap.builder()
-
-
-            @JsonProperty("aggregations") Map<Symbol, FunctionCall> aggregations,
-            @JsonProperty("functions") Map<Symbol, Signature> functions,
-            @JsonProperty("masks") Map<Symbol, Symbol> masks,
-            @JsonProperty("step") Step step,
-            @JsonProperty("sampleWeight") Optional<Symbol> sampleWeight,
-            @JsonProperty("confidence") double confidence,
-            @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol)
-
-            );
+//            need project to struct of pk
+//            PlanNode leftIndexAgg = new AggregationNode(
+//                    idAllocator.getNextId(),
+//                    newNode,
+//                    newLeft.pkSyms(),
+//                    ImmutableMap.builder()
+//
+//
+//            @JsonProperty("aggregations") Map<Symbol, FunctionCall> aggregations,
+//            @JsonProperty("functions") Map<Symbol, Signature> functions,
+//            @JsonProperty("masks") Map<Symbol, Symbol> masks,
+//            @JsonProperty("step") Step step,
+//            @JsonProperty("sampleWeight") Optional<Symbol> sampleWeight,
+//            @JsonProperty("confidence") double confidence,
+//            @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol)
+//
+//            );
 
             // lpk -> [rpk]
             TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(

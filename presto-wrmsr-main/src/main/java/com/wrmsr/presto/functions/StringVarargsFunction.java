@@ -60,7 +60,7 @@ public abstract class StringVarargsFunction
             String methodName,
             List<Class<?>> fixedMethodParametersClasses)
     {
-        super(functionName, buildTypeParameters(fixedParameterTypes), functionReturnType, buildArgumentTypes(fixedParameterTypes));
+        super(functionName, buildTypeParameters(fixedParameterTypes), functionReturnType, buildArgumentTypes(fixedParameterTypes), true);
         this.functionName = functionName;
         this.description = description;
         this.fixedParameterTypes = fixedParameterTypes;

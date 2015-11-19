@@ -286,7 +286,7 @@ public class StructManager
 
             body
                     .getVariable(blockBuilder)
-                    .invokeStatic(BlockBuilder.class, "build", com.facebook.presto.spi.block.Block.class)
+                    .invokeInterface(BlockBuilder.class, "build", com.facebook.presto.spi.block.Block.class)
                     .retObject();
 
             return defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(RowTypeConstructorCompiler.class.getClassLoader()));
