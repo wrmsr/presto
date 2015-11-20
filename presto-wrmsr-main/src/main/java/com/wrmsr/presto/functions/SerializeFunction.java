@@ -115,7 +115,7 @@ public class SerializeFunction
 
         // functionRegistry.resolveFunction(new QualifiedName("serialize"), List< TypeSignature > parameterTypes, false)
 
-        Signature sig = new Signature(FUNCTION_NAME, FunctionKind.SCALAR, parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature());
+        // Signature sig = new Signature(FUNCTION_NAME, FunctionKind.SCALAR, parseTypeSignature(StandardTypes.VARBINARY), type.getTypeSignature());
         // return new ScalarFunctionImplementation(sig, getDescription(), isHidden(), methodHandle, isDeterministic(), false, ImmutableList.of(true));
         return new ScalarFunctionImplementation(false, ImmutableList.of(false), methodHandle, isDeterministic());
     }

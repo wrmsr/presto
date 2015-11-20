@@ -332,6 +332,7 @@ public class TestPkThreader
                                     f.getName().getName(),
                                     f.getType().getTypeSignature().getBase())
                             ).collect(toImmutableList())));
+            // TODO: serialize, unregister
             structManager.registerStruct(rightPkRowType);
 
 //            need project to struct of pk
@@ -349,7 +350,6 @@ public class TestPkThreader
 //            @JsonProperty("sampleWeight") Optional<Symbol> sampleWeight,
 //            @JsonProperty("confidence") double confidence,
 //            @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol)
-//
 //            );
 
             // lpk -> [rpk]
