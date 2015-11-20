@@ -64,6 +64,7 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.spi.type.VarcharType;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
@@ -83,6 +84,7 @@ import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
+import com.facebook.presto.type.ArrayType;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
@@ -338,38 +340,39 @@ public class TestPkThreader
             // TODO: serialize, unregister
             structManager.registerStruct(rightPkType);
 
-            Symbol rightPkDataSym = symbolAllocator.newSymbol("rightPkData", rightPkType);
-            Symbol arrayAggSym = symbolAllocator.newSymbol("array_agg", array<rightPkType>);
+            ArrayType rightPkArrayType = new ArrayType(rightPkType);
+
+            Symbol rightPkArraySym = symbolAllocator.newSymbol("rightPkData", rightPkArrayType);
+            Symbol rightPkArrayAggSym = symbolAllocator.newSymbol("array_agg", rightPkArrayType);
 
             PlanNode leftIndexAgg = new AggregationNode(
                     idAllocator.getNextId(),
                     newNode,
                     newLeft.pkSyms(),
-                    ImmutableMap.builder()
+                    ImmutableMap.<Symbol, FunctionCall>builder()
                             .put(
-                                    rightPkDataSym,
+                                    rightPkArraySym,
                                     new FunctionCall(
-                                            arrayAggSym.toQualifiedName(),
+                                            rightPkArraySym.toQualifiedName(),
                                             ImmutableList.of(
                                                     new FunctionCall(
-                                                            QualifiedName.of("rightPk"),
+                                                            rightPkArrayAggSym.toQualifiedName(),
                                                             newRight.pkSyms().stream().map(Symbol::toQualifiedNameReference).collect(toImmutableList())
-                                                    )))
-                            ).build(),
-                    new
-            )
-
-
-            /*
-            @JsonProperty("aggregations") Map<Symbol, FunctionCall> aggregations,
-            @JsonProperty("functions") Map<Symbol, Signature> functions,
-            @JsonProperty("masks") Map<Symbol, Symbol> masks,
-            @JsonProperty("step") Step step,
-            @JsonProperty("sampleWeight") Optional<Symbol> sampleWeight,
-            @JsonProperty("confidence") double confidence,
-            @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol)
-            );
-            */
+                                                    ))))
+                            .build(),
+                    ImmutableMap.<Symbol, Signature>builder()
+                            .put(
+                                    rightPkArrayAggSym,
+                                    metadata.getFunctionRegistry().resolveFunction(
+                                            QualifiedName.of("array_agg"),
+                                            ImmutableList.of(TypeSignature.parseTypeSignature("array<rightPk>")),
+                                            false))
+                            .build(),
+                    ImmutableMap.of(),
+                    AggregationNode.Step.SINGLE,
+                    Optional.empty(),
+                    1.0,
+                    Optional.empty());
 
             // lpk -> [rpk]
             TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
