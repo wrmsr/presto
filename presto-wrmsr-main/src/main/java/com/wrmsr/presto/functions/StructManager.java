@@ -24,6 +24,7 @@ import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.block.ArrayBlock;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
@@ -563,17 +564,23 @@ public class StructManager
             return boxRow((RowType) type, (Block) value, connectorSession);
         }
         else if (type instanceof ArrayType) {
-            checkState(value instanceof List);
-            List list = (List) value;
+            checkState(value instanceof ArrayBlock);
+            ArrayBlock arrayBlock = (ArrayBlock) value;
             ArrayType arrayType = (ArrayType) type;
-            Type elementType = arrayType.getTypeParameters().get(0);
-            String elementTypeName = elementType.getTypeSignature().getBase();
-            if (elementType instanceof RowType && structInfo != null) {
-                return ImmutableList.copyOf(Lists.<List, Box<List>>transform(list, e -> boxRow((RowType) elementType, e, connectorSession)));
+            List list = newArrayList();
+            for (int i = 0; i < arrayBlock.getPositionCount(); ++i) {
+                Block item = arrayBlock.getObject(i, Block.class);
+                Object itemObject = boxValue(arrayType.getElementType(), item, connectorSession);
+                list.add(itemObject);
             }
-            else {
-                return value;
-            }
+//            Type elementType = arrayType.getTypeParameters().get(0);
+//            if (elementType instanceof RowType && structInfo != null) {
+//                return ImmutableList.copyOf(Lists.<List, Box<List>>transform(list, e -> boxRow((RowType) elementType, e, connectorSession)));
+//            }
+//            else {
+//                return value;
+//            }
+            return list;
         }
         else if (type instanceof MapType) {
             checkState(value instanceof Map);
@@ -588,6 +595,9 @@ public class StructManager
             else {
                 return value;
             }
+        }
+        else if (value instanceof Block) {
+            return type.getObjectValue(connectorSession, (Block) value, 0);
         }
         else {
             return value;
