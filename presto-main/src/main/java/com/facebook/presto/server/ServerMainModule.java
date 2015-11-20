@@ -88,6 +88,7 @@ import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.type.TypeDeserializer;
 import com.facebook.presto.type.TypeRegistry;
+import com.facebook.presto.util.FinalizerService;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
 import com.google.inject.Provides;
@@ -338,6 +339,9 @@ public class ServerMainModule
 
         // PageIndexer
         binder.bind(PageIndexerFactory.class).to(GroupByHashPageIndexerFactory.class).in(Scopes.SINGLETON);
+
+        // Finalizer
+        binder.bind(FinalizerService.class).in(Scopes.SINGLETON);
     }
 
     @Provides
