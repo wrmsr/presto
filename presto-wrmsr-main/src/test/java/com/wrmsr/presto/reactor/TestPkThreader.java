@@ -374,22 +374,30 @@ public class TestPkThreader
 
             ArrayType rightPkArrayType = new ArrayType(rightPkType);
 
+            Symbol rightPkSym = symbolAllocator.newSymbol("right_pk", rightPkType);
             Symbol rightPkArraySym = symbolAllocator.newSymbol("right_pk_data", rightPkArrayType);
             Symbol rightPkArrayAggSym = symbolAllocator.newSymbol("array_agg", rightPkArrayType);
 
-            PlanNode leftIndexAgg = new AggregationNode(
+            PlanNode leftIndexProject = new ProjectNode(
                     idAllocator.getNextId(),
                     newNode,
+                    ImmutableMap.<Symbol, Expression>builder()
+                            .putAll(newNode.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, s.toQualifiedNameReference())).collect(toImmutableMap()))
+                            .put(rightPkSym, new FunctionCall(
+                                    rightPkArrayAggSym.toQualifiedName(),
+                                    newRight.pkSyms().stream().map(Symbol::toQualifiedNameReference).collect(toImmutableList())))
+                            .build());
+
+            PlanNode leftIndexAgg = new AggregationNode(
+                    idAllocator.getNextId(),
+                    leftIndexProject,
                     newLeft.pkSyms(),
                     ImmutableMap.<Symbol, FunctionCall>builder()
                             .put(
                                     rightPkArraySym,
                                     new FunctionCall(
                                             rightPkArraySym.toQualifiedName(),
-                                            ImmutableList.of(
-                                                    new FunctionCall(
-                                                            rightPkArrayAggSym.toQualifiedName(),
-                                                            newRight.pkSyms().stream().map(Symbol::toQualifiedNameReference).collect(toImmutableList())))))
+                                            ImmutableList.of(rightPkSym.toQualifiedNameReference())))
                             .build(),
                     ImmutableMap.<Symbol, Signature>builder()
                             .put(
