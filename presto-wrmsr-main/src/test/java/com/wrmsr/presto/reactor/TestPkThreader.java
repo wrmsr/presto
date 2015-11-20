@@ -42,12 +42,22 @@ drop tablescan predis, need it all
  Map<ImmutablePair<ConnectorId, SchemaTableName>, List<PlanNodeId>> reactionPlanLists
 */
 
+import com.facebook.presto.ScheduledSplit;
 import com.facebook.presto.Session;
+import com.facebook.presto.TaskSource;
+import com.facebook.presto.execution.TaskManagerConfig;
+import com.facebook.presto.index.IndexManager;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.Signature;
+import com.facebook.presto.metadata.Split;
 import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.metadata.TableLayoutHandle;
+import com.facebook.presto.operator.Driver;
+import com.facebook.presto.operator.DriverContext;
+import com.facebook.presto.operator.DriverFactory;
+import com.facebook.presto.operator.TaskContext;
+import com.facebook.presto.operator.index.IndexJoinLookupStats;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.spi.ColumnHandle;
@@ -67,7 +77,13 @@ import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.spi.type.VarcharType;
+import com.facebook.presto.split.SplitSource;
+import com.facebook.presto.sql.planner.CompilerConfig;
+import com.facebook.presto.sql.planner.LocalExecutionPlanner;
+import com.facebook.presto.sql.planner.Plan;
+import com.facebook.presto.sql.planner.PlanFragmenter;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
+import com.facebook.presto.sql.planner.SubPlan;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
@@ -84,11 +100,13 @@ import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
+import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.type.ArrayType;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.functions.StructManager;
 import com.wrmsr.presto.reactor.tuples.Layout;
 import com.wrmsr.presto.reactor.tuples.PkLayout;
@@ -99,6 +117,8 @@ import org.testng.annotations.Test;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -107,6 +127,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
@@ -114,6 +135,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableSet;
+import static io.airlift.concurrent.MoreFutures.getFutureValue;
 import static jersey.repackaged.com.google.common.collect.Lists.newArrayList;
 
 public class TestPkThreader
@@ -160,6 +182,11 @@ public class TestPkThreader
             {
                 this.root = root;
             }
+
+            public OutputNode getRoot()
+            {
+                return root;
+            }
         }
 
         /*
@@ -176,6 +203,11 @@ public class TestPkThreader
             {
                 super(root);
                 this.output = output;
+            }
+
+            public TableHandle getOutput()
+            {
+                return output;
             }
         }
 
@@ -319,8 +351,6 @@ public class TestPkThreader
                     node.getLeftHashSymbol(),
                     node.getRightHashSymbol());
 
-            List<Population> populations = newArrayList();
-
             OutputNode indexPopulationRoot = new OutputNode(
                     idAllocator.getNextId(),
                     newNode,
@@ -328,9 +358,11 @@ public class TestPkThreader
                     pkSyms);
             indexPopulationRoot = (OutputNode) optimize(indexPopulationRoot);
 
+            List<Population> populations = newArrayList();
+
             // see TestSerDeUtils::testListBlock
             RowType rightPkType = structManager.buildRowType(new StructManager.StructDefinition(
-                    "rightPk",
+                    "right_pk",
                     newRight.layout.getPk().getFields().stream()
                             .map(f -> new StructManager.StructDefinition.Field(
                                     f.getName().getName(),
@@ -342,7 +374,7 @@ public class TestPkThreader
 
             ArrayType rightPkArrayType = new ArrayType(rightPkType);
 
-            Symbol rightPkArraySym = symbolAllocator.newSymbol("rightPkData", rightPkArrayType);
+            Symbol rightPkArraySym = symbolAllocator.newSymbol("right_pk_data", rightPkArrayType);
             Symbol rightPkArrayAggSym = symbolAllocator.newSymbol("array_agg", rightPkArrayType);
 
             PlanNode leftIndexAgg = new AggregationNode(
@@ -357,15 +389,14 @@ public class TestPkThreader
                                             ImmutableList.of(
                                                     new FunctionCall(
                                                             rightPkArrayAggSym.toQualifiedName(),
-                                                            newRight.pkSyms().stream().map(Symbol::toQualifiedNameReference).collect(toImmutableList())
-                                                    ))))
+                                                            newRight.pkSyms().stream().map(Symbol::toQualifiedNameReference).collect(toImmutableList())))))
                             .build(),
                     ImmutableMap.<Symbol, Signature>builder()
                             .put(
                                     rightPkArrayAggSym,
                                     metadata.getFunctionRegistry().resolveFunction(
                                             QualifiedName.of("array_agg"),
-                                            ImmutableList.of(TypeSignature.parseTypeSignature("array<rightPk>")),
+                                            ImmutableList.of(TypeSignature.parseTypeSignature("array<right_pk>")),
                                             false))
                             .build(),
                     ImmutableMap.of(),
@@ -373,6 +404,14 @@ public class TestPkThreader
                     Optional.empty(),
                     1.0,
                     Optional.empty());
+
+            OutputNode leftIndexOutput = new OutputNode(
+                    idAllocator.getNextId(),
+                    leftIndexAgg,
+                    leftIndexAgg.getOutputSymbols().stream().map(Symbol::getName).collect(toImmutableList()),
+                    leftIndexAgg.getOutputSymbols());
+
+            populations.add(new Population(leftIndexOutput, null));
 
             // lpk -> [rpk]
             TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
@@ -666,11 +705,83 @@ public class TestPkThreader
         System.out.println(newRoot);
         System.out.println(ctx);
 
-        /*
+        PlanNode aggPlanNode = ctx.nodeInfo.get(new PlanNodeId("15")).populations.get(0).getRoot();
+        Plan plan = new Plan(aggPlanNode, pq.planner.getSymbolAllocator());
+
+        // ----
+
+        TaskContext taskContext = createTaskContext(pq.lqr.getExecutor(), pq.lqr.getDefaultSession());
         LocalQueryRunner.MaterializedOutputFactory outputFactory = new LocalQueryRunner.MaterializedOutputFactory();
 
-        TaskContext taskContext = createTaskContext(lqr.getExecutor(), lqr.getDefaultSession());
-        List<Driver> drivers = lqr.createDrivers(lqr.getDefaultSession(), insert, outputFactory, taskContext);
+        SubPlan subplan = new PlanFragmenter().createSubPlans(plan);
+        if (!subplan.getChildren().isEmpty()) {
+            throw new AssertionError("Expected subplan to have no children");
+        }
+
+        LocalExecutionPlanner executionPlanner = new LocalExecutionPlanner(
+                pq.lqr.getMetadata(),
+                pq.lqr.getSqlParser(),
+                pq.lqr.getPageSourceManager(),
+                pq.lqr.getIndexManager(),
+                pq.lqr.getPageSinkManager(),
+                null,
+                pq.lqr.getCompiler(),
+                new IndexJoinLookupStats(),
+                new CompilerConfig().setInterpreterEnabled(false), // make sure tests fail if compiler breaks
+                new TaskManagerConfig().setTaskDefaultConcurrency(4)
+        );
+
+        // plan query
+        LocalExecutionPlanner.LocalExecutionPlan localExecutionPlan = executionPlanner.plan(
+                pq.session,
+                subplan.getFragment().getRoot(),
+                subplan.getFragment().getOutputLayout(),
+                plan.getTypes(),
+                subplan.getFragment().getDistribution(),
+                outputFactory);
+
+        // generate sources
+        List<TaskSource> sources = new ArrayList<>();
+        long sequenceId = 0;
+        for (TableScanNode tableScan : LocalQueryRunner.findTableScanNodes(subplan.getFragment().getRoot())) {
+            TableLayoutHandle layout = tableScan.getLayout().get();
+
+            SplitSource splitSource = pq.lqr.getSplitManager().getSplits(pq.session, layout);
+
+            ImmutableSet.Builder<ScheduledSplit> scheduledSplits = ImmutableSet.builder();
+            while (!splitSource.isFinished()) {
+                for (Split split : getFutureValue(splitSource.getNextBatch(1000))) {
+                    scheduledSplits.add(new ScheduledSplit(sequenceId++, split));
+                }
+            }
+
+            sources.add(new TaskSource(tableScan.getId(), scheduledSplits.build(), true));
+        }
+
+        // create drivers
+        List<Driver> drivers = new ArrayList<>();
+        Map<PlanNodeId, Driver> driversBySource = new HashMap<>();
+        for (DriverFactory driverFactory : localExecutionPlan.getDriverFactories()) {
+            for (int i = 0; i < driverFactory.getDriverInstances(); i++) {
+                DriverContext driverContext = taskContext.addPipelineContext(driverFactory.isInputDriver(), driverFactory.isOutputDriver()).addDriverContext();
+                Driver driver = driverFactory.createDriver(driverContext);
+                drivers.add(driver);
+                for (PlanNodeId sourceId : driver.getSourceIds()) {
+                    driversBySource.put(sourceId, driver);
+                }
+            }
+            driverFactory.close();
+        }
+
+        // add sources to the drivers
+        for (TaskSource source : sources) {
+            for (Driver driver : driversBySource.values()) {
+                driver.updateSource(source);
+            }
+        }
+
+        /*
+        List<Driver> drivers = pq.lqr.createDrivers(pq.lqr.getDefaultSession(), aggPlan, outputFactory, taskContext);
 
         boolean done = false;
         while (!done) {

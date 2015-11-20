@@ -233,6 +233,36 @@ public class LocalQueryRunner
                 .build();
     }
 
+    public SqlParser getSqlParser()
+    {
+        return sqlParser;
+    }
+
+    public PageSourceManager getPageSourceManager()
+    {
+        return pageSourceManager;
+    }
+
+    public PageSinkManager getPageSinkManager()
+    {
+        return pageSinkManager;
+    }
+
+    public IndexManager getIndexManager()
+    {
+        return indexManager;
+    }
+
+    public ExpressionCompiler getCompiler()
+    {
+        return compiler;
+    }
+
+    public SplitManager getSplitManager()
+    {
+        return splitManager;
+    }
+
     @Override
     public void close()
     {
@@ -614,14 +644,14 @@ public class LocalQueryRunner
         return splits.get(0);
     }
 
-    private static List<TableScanNode> findTableScanNodes(PlanNode node)
+    public static List<TableScanNode> findTableScanNodes(PlanNode node)
     {
         ImmutableList.Builder<TableScanNode> tableScanNodes = ImmutableList.builder();
         findTableScanNodes(node, tableScanNodes);
         return tableScanNodes.build();
     }
 
-    private static void findTableScanNodes(PlanNode node, ImmutableList.Builder<TableScanNode> builder)
+    public static void findTableScanNodes(PlanNode node, ImmutableList.Builder<TableScanNode> builder)
     {
         for (PlanNode source : node.getSources()) {
             findTableScanNodes(source, builder);
