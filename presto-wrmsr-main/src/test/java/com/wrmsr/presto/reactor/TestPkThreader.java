@@ -43,6 +43,7 @@ drop tablescan predis, need it all
 */
 
 import com.facebook.presto.Session;
+import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.TableHandle;
@@ -80,6 +81,7 @@ import com.facebook.presto.sql.planner.plan.ProjectNode;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
+import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
@@ -325,32 +327,49 @@ public class TestPkThreader
             indexPopulationRoot = (OutputNode) optimize(indexPopulationRoot);
 
             // see TestSerDeUtils::testListBlock
-            RowType rightPkRowType = structManager.buildRowType(new StructManager.StructDefinition(
+            RowType rightPkType = structManager.buildRowType(new StructManager.StructDefinition(
                     "rightPk",
                     newRight.layout.getPk().getFields().stream()
                             .map(f -> new StructManager.StructDefinition.Field(
                                     f.getName().getName(),
-                                    f.getType().getTypeSignature().getBase())
-                            ).collect(toImmutableList())));
-            // TODO: serialize, unregister
-            structManager.registerStruct(rightPkRowType);
+                                    f.getType().getTypeSignature().getBase()))
+                            .collect(toImmutableList())));
 
-//            need project to struct of pk
-//            PlanNode leftIndexAgg = new AggregationNode(
-//                    idAllocator.getNextId(),
-//                    newNode,
-//                    newLeft.pkSyms(),
-//                    ImmutableMap.builder()
-//
-//
-//            @JsonProperty("aggregations") Map<Symbol, FunctionCall> aggregations,
-//            @JsonProperty("functions") Map<Symbol, Signature> functions,
-//            @JsonProperty("masks") Map<Symbol, Symbol> masks,
-//            @JsonProperty("step") Step step,
-//            @JsonProperty("sampleWeight") Optional<Symbol> sampleWeight,
-//            @JsonProperty("confidence") double confidence,
-//            @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol)
-//            );
+            // TODO: serialize, unregister
+            structManager.registerStruct(rightPkType);
+
+            Symbol rightPkDataSym = symbolAllocator.newSymbol("rightPkData", rightPkType);
+            Symbol arrayAggSym = symbolAllocator.newSymbol("array_agg", array<rightPkType>);
+
+            PlanNode leftIndexAgg = new AggregationNode(
+                    idAllocator.getNextId(),
+                    newNode,
+                    newLeft.pkSyms(),
+                    ImmutableMap.builder()
+                            .put(
+                                    rightPkDataSym,
+                                    new FunctionCall(
+                                            arrayAggSym.toQualifiedName(),
+                                            ImmutableList.of(
+                                                    new FunctionCall(
+                                                            QualifiedName.of("rightPk"),
+                                                            newRight.pkSyms().stream().map(Symbol::toQualifiedNameReference).collect(toImmutableList())
+                                                    )))
+                            ).build(),
+                    new
+            )
+
+
+            /*
+            @JsonProperty("aggregations") Map<Symbol, FunctionCall> aggregations,
+            @JsonProperty("functions") Map<Symbol, Signature> functions,
+            @JsonProperty("masks") Map<Symbol, Symbol> masks,
+            @JsonProperty("step") Step step,
+            @JsonProperty("sampleWeight") Optional<Symbol> sampleWeight,
+            @JsonProperty("confidence") double confidence,
+            @JsonProperty("hashSymbol") Optional<Symbol> hashSymbol)
+            );
+            */
 
             // lpk -> [rpk]
             TableHandle leftIndexTableHandle = intermediateStorageProvider.getIntermediateStorage(
