@@ -401,7 +401,7 @@ public class TestPkThreader
                             .build(),
                     ImmutableMap.<Symbol, Signature>builder()
                             .put(
-                                    rightPkArrayAggSym,
+                                    rightPkArraySym,
                                     metadata.getFunctionRegistry().resolveFunction(
                                             QualifiedName.of("array_agg"),
                                             ImmutableList.of(TypeSignature.parseTypeSignature("array<right_pk>")),
@@ -713,7 +713,7 @@ public class TestPkThreader
         System.out.println(newRoot);
         System.out.println(ctx);
 
-        PlanNode aggPlanNode = ctx.nodeInfo.get(new PlanNodeId("15")).populations.get(0).getRoot();
+        PlanNode aggPlanNode = ctx.nodeInfo.values().stream().filter(i -> !i.populations.isEmpty()).collect(toImmutableList()).get(0).populations.get(0).getRoot();
         Plan plan = new Plan(aggPlanNode, pq.planner.getSymbolAllocator());
 
         // ----
