@@ -626,7 +626,9 @@ public class TestPkThreader
     {
         @Language("SQL") String stmt =
 
-                "select customer.name, nation.name from tpch.tiny.customer inner join tpch.tiny.nation on customer.nationkey = nation.nationkey where acctbal > 100"
+                // "select customer.name, nation.name from tpch.tiny.customer inner join tpch.tiny.nation on customer.nationkey = nation.nationkey where acctbal > 100"
+
+                "select customer.name, nation.name from tpch.tiny.nation inner join tpch.tiny.customer on customer.nationkey = nation.nationkey where acctbal > 100"
 
                 // "select nationkey, count(*) c from tpch.tiny.customer where acctbal > 10 group by nationkey"
 
