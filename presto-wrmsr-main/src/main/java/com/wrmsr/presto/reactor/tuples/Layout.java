@@ -20,6 +20,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -122,6 +123,11 @@ public class Layout<N>
     public List<N> getNames()
     {
         return names;
+    }
+
+    public Set<N> getNameSet()
+    {
+        return indices.keySet();
     }
 
     public List<Type> getTypes()
