@@ -101,6 +101,8 @@ import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.testing.LocalQueryRunner;
+import com.facebook.presto.testing.MaterializedResult;
+import com.facebook.presto.testing.MaterializedRow;
 import com.facebook.presto.type.ArrayType;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
@@ -404,7 +406,7 @@ public class TestPkThreader
                                     rightPkArraySym,
                                     metadata.getFunctionRegistry().resolveFunction(
                                             QualifiedName.of("array_agg"),
-                                            ImmutableList.of(TypeSignature.parseTypeSignature("array<right_pk>")),
+                                            ImmutableList.of(TypeSignature.parseTypeSignature("right_pk")),
                                             false))
                             .build(),
                     ImmutableMap.of(),
@@ -788,9 +790,6 @@ public class TestPkThreader
             }
         }
 
-        /*
-        List<Driver> drivers = pq.lqr.createDrivers(pq.lqr.getDefaultSession(), aggPlan, outputFactory, taskContext);
-
         boolean done = false;
         while (!done) {
             boolean processed = false;
@@ -803,7 +802,9 @@ public class TestPkThreader
             done = !processed;
         }
 
-        outputFactory.getMaterializingOperator().getMaterializedResult();
-        */
+        MaterializedResult result = outputFactory.getMaterializingOperator().getMaterializedResult();
+        for (MaterializedRow row : result.getMaterializedRows()) {
+            System.out.println(row);
+        }
     }
 }
