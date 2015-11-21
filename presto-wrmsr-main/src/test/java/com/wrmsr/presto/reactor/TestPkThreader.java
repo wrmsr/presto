@@ -384,7 +384,7 @@ public class TestPkThreader
                     ImmutableMap.<Symbol, Expression>builder()
                             .putAll(newNode.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, s.toQualifiedNameReference())).collect(toImmutableMap()))
                             .put(rightPkSym, new FunctionCall(
-                                    rightPkArrayAggSym.toQualifiedName(),
+                                    QualifiedName.of("right_pk"),
                                     newRight.pkSyms().stream().map(Symbol::toQualifiedNameReference).collect(toImmutableList())))
                             .build());
 
