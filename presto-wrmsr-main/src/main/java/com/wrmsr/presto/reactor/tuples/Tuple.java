@@ -22,6 +22,7 @@ import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.BlockEncoding;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
+import com.facebook.presto.spi.type.TypeUtils;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.BasicSliceInput;
 import io.airlift.slice.DynamicSliceOutput;
@@ -96,7 +97,7 @@ public class Tuple<N>
     {
         BlockBuilder b = new VariableWidthBlockBuilder(new BlockBuilderStatus(), 10000);
         for (int i = 0; i < values.size(); ++i) {
-            b.write(layout.getTypes().get(i), values.get(i));
+            TypeUtils.writeNativeValue(layout.getTypes().get(i), b, values.get(i));
         }
         return b.build();
     }
@@ -132,7 +133,7 @@ public class Tuple<N>
     {
         ImmutableList.Builder<Object> builder = ImmutableList.builder();
         for (int i = 0; i < layout.getTypes().size(); ++i) {
-            builder.add(block.read(layout.getTypes().get(i), i));
+            TypeUtils.readNativeValue(layout.getTypes().get(i), block, i);
         }
         return new Tuple<>(layout, builder.build());
     }

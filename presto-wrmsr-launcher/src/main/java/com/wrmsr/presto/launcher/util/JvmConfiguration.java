@@ -20,6 +20,11 @@ gc configs
 properties
 heap size
 
+B.2.1 -Xcheck:jni Option
+B.2.2 -verbose:class Option
+B.2.3 -verbose:gc Option
+B.2.4 -verbose:jni Option
+
 http://www.oracle.com/technetwork/java/javase/tech/vmoptions-jsp-140102.html
 http://www.oracle.com/technetwork/java/javase/tech/exactoptions-jsp-141536.html
 
