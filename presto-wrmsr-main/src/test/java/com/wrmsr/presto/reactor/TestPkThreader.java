@@ -575,7 +575,7 @@ public class TestPkThreader
                     String.format("%s_data", node.getId().toString()),
                     new PkLayout<>(
                             toISPFields(gkSyms),
-                            Stream.concat(toISPFields(nonGkSyms).stream(), Stream.of(new Layout.Field(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList())));
+                            Stream.concat(toISPFields(nonGkSyms).stream(), Stream.of(new Layout.Field<>(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList())));
             ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
             Connector dataTableConnector = dataTableConnectorSupport.getConnector();
             Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());
