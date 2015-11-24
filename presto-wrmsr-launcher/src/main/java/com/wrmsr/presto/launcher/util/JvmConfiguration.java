@@ -20,6 +20,9 @@ gc configs
 properties
 heap size
 
+networkaddress.cache.ttl=60
+java.security.Security.setProperty("networkaddress.cache.ttl" , "60");
+
 B.2.1 -Xcheck:jni Option
 B.2.2 -verbose:class Option
 B.2.3 -verbose:gc Option
