@@ -1,0 +1,3 @@
+[submodule "presto-wrmsr-mesos/playa-mesos"]
+	path = presto-wrmsr-mesos/playa-mesos
+	url = https://github.com/wrmsr/playa-mesos
