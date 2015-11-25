@@ -27,9 +27,21 @@ import io.airlift.airline.*;
 import io.airlift.resolver.ArtifactResolver;
 import jnr.posix.POSIX;
 import org.sonatype.aether.artifact.Artifact;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Method;
@@ -37,6 +49,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
+import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -151,17 +164,24 @@ public class PrestoWrapperMain
     {
         @Option(type = OptionType.GLOBAL, name = "-v", description = "Verbose mode")
         public boolean verbose;
-        public static final String VERBOSE_PROPERTY_KEY = "wrmsr.launcher.verbose";
 
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
         public String configFile;
-        public static final String CONFIG_FILE_PROPERTY_KEY = "wrmsr.launcher.config-file";
 
         @Option(type = OptionType.GLOBAL, name = {"-d", "--debug-port"}, description = "Specify jvm debug port")
         public int debugPort;
 
         @Option(type = OptionType.GLOBAL, name = {"-s", "--debug-suspend"}, description = "Specify jvm debugging starts suspended")
         public boolean debugSuspend;
+
+        @Option(type = OptionType.GLOBAL, name = {"-a", "--autoconf"}, description = "Autoconfigure")
+        public boolean autoconfigure;
+
+        public PrestoWrapperConfig readConfig()
+        {
+            // lol fixme
+            throw new UnsupportedOperationException();
+        }
 
         @Override
         public void run()
@@ -173,8 +193,7 @@ public class PrestoWrapperMain
                     List<String> newArgs = newArrayList(runtimeMxBean.getInputArguments());
                     newArgs.add(0, JvmConfiguration.DEBUG.valueOf().toString());
                     newArgs.add(1, JvmConfiguration.REMOTE_DEBUG.valueOf(debugPort, debugSuspend).toString());
-                    String jvmLocation = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" +
-                        (System.getProperty("os.name").startsWith("Win") ? ".exe" : "");
+                    String jvmLocation = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : "");
                     try {
                         newArgs.add("-jar");
                         newArgs.add(new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath());
@@ -296,7 +315,7 @@ public class PrestoWrapperMain
                 System.setProperty("node.id", UUID.randomUUID().toString());
             }
             if (Strings.isNullOrEmpty(System.getProperty("presto.version"))) {
-                System.setProperty("presto.version", "0.116-SNAPSHOT");
+                System.setProperty("presto.version", deducePrestoVersion());
             }
             if (Strings.isNullOrEmpty(System.getProperty("node.coordinator"))) {
                 System.setProperty("node.coordinator", "true");
@@ -422,6 +441,57 @@ public class PrestoWrapperMain
         List<Artifact> list = Lists.newArrayList(artifacts);
         Collections.sort(list, Ordering.natural().nullsLast().onResultOf(Artifact::getFile));
         return list;
+    }
+
+    public static String deducePrestoVersion()
+    {
+        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder dBuilder;
+        try {
+           dBuilder = dbFactory.newDocumentBuilder();
+        }
+        catch (ParserConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+        InputStream pomIn = PrestoWrapperMain.class.getClassLoader().getResourceAsStream("META-INF/maven/com.wrmsr.presto/presto-wrmsr-launcher/pom.xml");
+        if (pomIn == null) {
+            try {
+                pomIn = new FileInputStream(new File("presto-wrmsr-launcher/pom.xml"));
+            }
+            catch (FileNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        Document doc;
+        try {
+            doc = dBuilder.parse(pomIn);
+        }
+        catch (SAXException | IOException e) {
+            throw new RuntimeException(e);
+        }
+        finally {
+            try {
+                pomIn.close();
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        Node project = doc.getDocumentElement();
+        project.normalize();
+        NodeList projectChildren = project.getChildNodes();
+        Optional<Node> parent = IntStream.range(0, projectChildren.getLength()).boxed()
+                .map(projectChildren::item)
+                .filter(n -> "parent".equals(n.getNodeName()))
+                .findFirst();
+        NodeList parentChildren = parent.get().getChildNodes();
+        Optional<Node> version = IntStream.range(0, parentChildren.getLength()).boxed()
+                .map(parentChildren::item)
+                .filter(n -> "version".equals(n.getNodeName()))
+                .findFirst();
+        return version.get().getTextContent();
     }
 
     public static List<URL> resolveModuleClassloaderUrls(String name)

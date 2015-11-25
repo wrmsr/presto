@@ -235,6 +235,8 @@ public class TestFramework
 
     public static void main(String[] args) throws Exception
     {
+        args = new String[]{"http://10.141.141.10:5050/"};
+
         if (args.length < 1 || args.length > 2) {
             usage();
             System.exit(1);

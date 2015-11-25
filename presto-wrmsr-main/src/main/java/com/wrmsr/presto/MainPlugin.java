@@ -31,7 +31,6 @@ import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
-import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
@@ -181,20 +180,7 @@ public class MainPlugin
             "hadoop"
     );
 
-    public static class FileConfig
-    {
-        public final Map<String, String> jvm = ImmutableMap.of();
-        public final Map<String, String> system = ImmutableMap.of();
-        public final Map<String, String> log = ImmutableMap.of();
-        public final List<String> plugins = ImmutableList.of();
-        public final Map<String, Object> connectors = ImmutableMap.of();
-
-        // FIXME gp plugin section
-        public final Map<String, Object> clusters = ImmutableMap.of();
-        public final Object aws = null;
-    }
-
-    public void installConfig(FileConfig fileConfig, StructManager structManager)
+    public void installConfig(MainConfig fileConfig, StructManager structManager)
     {
         for (Map.Entry<String, String> e : fileConfig.system.entrySet()) {
             System.setProperty(e.getKey(), e.getValue());
@@ -252,9 +238,9 @@ public class MainPlugin
                 String partStr = Serialization.YAML.get().dump(part);
 
                 ObjectMapper objectMapper = YAML_OBJECT_MAPPER.get();
-                FileConfig fileConfig;
+                MainConfig fileConfig;
                 try {
-                    fileConfig = objectMapper.readValue(partStr.getBytes(), FileConfig.class);
+                    fileConfig = objectMapper.readValue(partStr.getBytes(), MainConfig.class);
                 }
                 catch (IOException e) {
                     throw Throwables.propagate(e);
