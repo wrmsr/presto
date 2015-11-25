@@ -555,7 +555,7 @@ public class StructManager
         }
         if (value instanceof Slice) {
             Slice slice = (Slice) value;
-            com.facebook.presto.spi.block.Block block = new com.facebook.presto.spi.block.FixedWidthBlockBuilder(slice.length(), new com.facebook.presto.spi.block.BlockBuilderStatus()).writeBytes(slice, 0, slice.length()).closeEntry().build();
+            com.facebook.presto.spi.block.Block block = new com.facebook.presto.spi.block.FixedWidthBlockBuilder(8, slice.length()).writeBytes(slice, 0, slice.length()).closeEntry().build();
             value = type.getObjectValue(connectorSession, block, 0);
         }
         StructInfo structInfo = structInfoMap.get(typeName);

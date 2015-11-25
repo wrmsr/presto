@@ -95,7 +95,7 @@ public class Tuple<N>
 
     public static <N> Block toBlock(Layout<N> layout, List<Object> values)
     {
-        BlockBuilder b = new VariableWidthBlockBuilder(new BlockBuilderStatus(), 10000);
+        BlockBuilder b = new VariableWidthBlockBuilder(new BlockBuilderStatus(), values.size(), 16);
         for (int i = 0; i < values.size(); ++i) {
             TypeUtils.writeNativeValue(layout.getTypes().get(i), b, values.get(i));
         }
