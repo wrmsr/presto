@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 // scripting:string -> function:string -> arg:object...
@@ -20,6 +21,8 @@ public class ScriptFunction
     extends SqlScalarFunction
 {
     public static final String NAME = "script";
+
+    private final int arity;
 
     public ScriptFunction(int arity) // bahahaha
     {
@@ -35,6 +38,8 @@ public class ScriptFunction
                         .add("varchar")
                         .addAll(IntStream.range(0, arity).boxed().map(n -> "T" + n.toString()).collect(toImmutableList()))
                         .build());
+
+        this.arity = arity;
     }
 
     @Override
@@ -70,11 +75,12 @@ public class ScriptFunction
     @Override
     public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
+        checkArgument(arity == this.arity);
+
         return null;
     }
 
     public static Slice script(Context context, Object... args)
     {
-
     }
 }
