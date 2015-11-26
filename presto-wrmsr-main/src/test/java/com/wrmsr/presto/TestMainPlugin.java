@@ -98,7 +98,7 @@ public class TestMainPlugin
 
     public Slice newThing(long a, Slice b, long c, Slice d)
     {
-        BlockBuilder blockBuilder = new VariableWidthBlockBuilder(new BlockBuilderStatus());
+        BlockBuilder blockBuilder = new VariableWidthBlockBuilder(new BlockBuilderStatus(), 16, 16);
 
         blockBuilder.writeLong(a);
         blockBuilder.closeEntry();

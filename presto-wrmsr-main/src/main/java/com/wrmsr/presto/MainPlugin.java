@@ -182,11 +182,11 @@ public class MainPlugin
 
     public void installConfig(MainConfig fileConfig, StructManager structManager)
     {
-        for (Map.Entry<String, String> e : fileConfig.system.entrySet()) {
+        for (Map.Entry<String, String> e : fileConfig.getSystem().entrySet()) {
             System.setProperty(e.getKey(), e.getValue());
         }
 
-        for (String plugin : fileConfig.plugins) {
+        for (String plugin : fileConfig.getPlugins()) {
             try {
                 pluginManager.loadPlugin(plugin);
             }
@@ -195,7 +195,7 @@ public class MainPlugin
             }
         }
 
-        for (Map.Entry<String, Object> e : fileConfig.connectors.entrySet()) {
+        for (Map.Entry<String, Object> e : fileConfig.getConnectors().entrySet()) {
             HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(e.getValue());
             Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
 
