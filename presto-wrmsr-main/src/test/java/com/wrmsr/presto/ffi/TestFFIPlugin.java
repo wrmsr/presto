@@ -15,6 +15,7 @@ package com.wrmsr.presto.ffi;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.byteCode.DynamicClassLoader;
+import com.facebook.presto.execution.QueryId;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.spi.type.Type;
@@ -116,9 +117,11 @@ public class TestFFIPlugin
         Object iface = inv.getInterface(ifaceCls);
         Method m = ifaceCls.getDeclaredMethod("f", int.class);
         System.out.println(m.invoke(iface, 10));
+
         MethodHandle mh = MethodHandles.lookup().unreflect(m);
+
         // FIXME this.class + invokeExact
-        MethodHandle mh2 = mh.asType(MethodType.methodType(int.class, int.class));
+        MethodHandle mh2 = mh.asType(MethodType.methodType(int.class, ifaceCls, int.class));
         System.out.println(mh2.invoke(100));
         /*
         o = engine.getContext().getBindings(javax.script.ScriptContext.ENGINE_SCOPE).get("f");
@@ -139,6 +142,7 @@ public class TestFFIPlugin
                 .setSchema(TINY_SCHEMA_NAME)
                 .setTimeZoneKey(UTC_KEY)
                 .setLocale(ENGLISH)
+                .setQueryId(QueryId.valueOf("lol"))
                 .build();
 
         LocalQueryRunner localQueryRunner = new LocalQueryRunner(defaultSession);
