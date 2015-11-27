@@ -4,16 +4,20 @@ import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.metadata.TypeParameter;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 
+import java.lang.invoke.MethodHandle;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
+import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 // scripting:string -> function:string -> arg:object...
@@ -21,10 +25,12 @@ public class ScriptFunction
     extends SqlScalarFunction
 {
     public static final String NAME = "script";
+    private static final MethodHandle METHOD_HANDLE = methodHandle(ScriptFunction.class, "script", Context.class, ConnectorSession.class, Object[].class);
 
+    private final ScriptingManager scriptingManager;
     private final int arity;
 
-    public ScriptFunction(int arity) // bahahaha
+    public ScriptFunction(ScriptingManager scriptingManager, int arity) // bahahaha
     {
         super(
                 NAME,
@@ -40,6 +46,7 @@ public class ScriptFunction
                         .build());
 
         this.arity = arity;
+        this.scriptingManager = scriptingManager;
     }
 
     @Override
@@ -62,13 +69,15 @@ public class ScriptFunction
 
     private static class Context
     {
-        private final String scripting;
-        private final String name;
+        private final ScriptingManager scriptingManager;
+        private final Type retType;
+        private final List<Type> argTypes;
 
-        public Context(String scripting, String name)
+        public Context(ScriptingManager scriptingManager, Type retType, List<Type> argTypes)
         {
-            this.scripting = scripting;
-            this.name = name;
+            this.scriptingManager = scriptingManager;
+            this.retType = retType;
+            this.argTypes = argTypes;
         }
     }
 
@@ -76,11 +85,16 @@ public class ScriptFunction
     public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
         checkArgument(arity == this.arity);
-
-        return null;
+        Type retType = types.get("R");
+        List<Type> argTypes = IntStream.range(0, arity).boxed().map(n -> types.get("T" + n.toString())).collect(toImmutableList());
+        MethodHandle methodHandle = METHOD_HANDLE.bindTo(new Context(scriptingManager, retType, argTypes));
+        return new ScalarFunctionImplementation(false, ImmutableList.of(false), methodHandle, isDeterministic());
     }
 
-    public static Slice script(Context context, Object... args)
+    private static Slice script(Context context, ConnectorSession session, Slice scriptingName, Slice functionName, Object... args)
     {
+        Scripting scripting = context.scriptingManager.getScripting(scriptingName.toStringUtf8());
+        scripting.invokeFunction(functionName.toStringUtf8(), args);
+        throw new IllegalStateException();
     }
 }
