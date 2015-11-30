@@ -136,6 +136,9 @@ public class ScriptFunction
         for (int i = 0; i < arity - 2; i++) {
             Type argType = types.get("T" + i);
             Class<?> javaType = argType.getJavaType();
+            if (javaType == Void.class) {
+                javaType = Object.class; // FUCKING FUCK FUCK YOU
+            }
             // javaType = ClassUtils.primitiveToWrapper(javaType);
             parameters.add(ImmutablePair.of("arg" + i, javaType));
         }
@@ -165,20 +168,25 @@ public class ScriptFunction
             Variable arg = scope.getVariable("arg" + i);
             body
                     .dup()
-                    .push(i)
-                    .getVariable(arg);
+                    .push(i);
 
             Type argType = types.get("T" + i);
             Class<?> javaType = argType.getJavaType();
 
-            if (javaType == boolean.class) {
-                body.invokeStatic(Boolean.class, "valueOf", Boolean.class, boolean.class);
+            if (javaType == Void.class) {
+                body.pushNull(); // FIXME fuq
             }
-            else if (javaType == long.class) {
-                body.invokeStatic(Long.class, "valueOf", Long.class, long.class);
-            }
-            else if (javaType == double.class) {
-                body.invokeStatic(Double.class, "valueOf", Double.class, double.class);
+            else {
+                body.getVariable(arg);
+                if (javaType == boolean.class) {
+                    body.invokeStatic(Boolean.class, "valueOf", Boolean.class, boolean.class);
+                }
+                else if (javaType == long.class) {
+                    body.invokeStatic(Long.class, "valueOf", Long.class, long.class);
+                }
+                else if (javaType == double.class) {
+                    body.invokeStatic(Double.class, "valueOf", Double.class, double.class);
+                }
             }
 
             body.putObjectArrayElement();

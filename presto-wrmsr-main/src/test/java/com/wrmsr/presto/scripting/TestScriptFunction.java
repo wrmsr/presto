@@ -44,6 +44,7 @@ public class TestScriptFunction
     {
         LocalQueryRunner runner = createLocalQueryRunner();
 
+        assertQuery("select script('a', 'b', null, 'two')", "select null");
         assertQuery("select script('a', 'b', 1, 'two')", "select null");
     }
 
