@@ -58,7 +58,7 @@ public class ScriptFunction
     extends SqlScalarFunction
 {
     public static final String NAME = "script";
-    private static final MethodHandle METHOD_HANDLE = methodHandle(ScriptFunction.class, "script", Context.class, ConnectorSession.class, Slice.class, Slice.class, Object[].class);
+    // private static final MethodHandle METHOD_HANDLE = methodHandle(ScriptFunction.class, "script", Context.class, ConnectorSession.class, Slice.class, Slice.class, Object[].class);
 
     private final ScriptingManager scriptingManager;
     private final Type retType;
@@ -185,10 +185,10 @@ public class ScriptFunction
         }
 
         body
-                .invokeStatic(ScriptFunction.class, "script", Context.class, ConnectorSession.class, Slice.class, Slice.class, Object[].class)
+                .invokeStatic(ScriptFunction.class, "script", Slice.class, Context.class, ConnectorSession.class, Slice.class, Slice.class, Object[].class)
                 .retObject();
 
-        Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(StructManager.RowTypeConstructorCompiler.class.getClassLoader()));
+        Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(ScriptFunction.class.getClassLoader()));
         Method method;
         try {
             method = cls.getMethod(name, parameters.stream().map(p -> p.getRight()).collect(toImmutableList()).toArray(new Class<?>[parameters.size()]));
@@ -214,7 +214,7 @@ public class ScriptFunction
         return new ScalarFunctionImplementation(true, listOf(arity, true), methodHandle, isDeterministic());
     }
 
-    public static Object script(Context context, ConnectorSession session, Slice scriptingName, Slice functionName, Object... args)
+    public static Slice script(Context context, ConnectorSession session, Slice scriptingName, Slice functionName, Object... args)
     {
         Scripting scripting = context.scriptingManager.getScripting(scriptingName.toStringUtf8());
         scripting.invokeFunction(functionName.toStringUtf8(), args);

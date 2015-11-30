@@ -129,7 +129,7 @@ public abstract class StringVarargsFunction
     {
         Type type = types.get("E");
         checkArgument(type.getJavaType() == Slice.class);
-        checkArgument(arity % varargGroupSize == fixedParameterTypes.size());
+        checkArgument(arity % varargGroupSize == fixedParameterTypes.size()); // FIXME wtf
         ImmutableList.Builder<Class<?>> builder = ImmutableList.builder();
         builder.add(Slice.class);
         for (int i = 1; i < arity; i++) {
