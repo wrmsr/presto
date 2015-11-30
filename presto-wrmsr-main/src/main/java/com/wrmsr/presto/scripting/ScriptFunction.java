@@ -27,9 +27,12 @@ import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.functions.StructManager;
 import io.airlift.slice.Slice;
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -44,9 +47,11 @@ import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.Lists.listOf;
+import static java.lang.invoke.MethodHandles.lookup;
 
 // scripting:string -> function:string -> arg:object...
 public class ScriptFunction
@@ -122,20 +127,20 @@ public class ScriptFunction
 
         definition.declareDefaultConstructor(a(PRIVATE));
 
-        ImmutableList.Builder<Parameter> parametersBuilder = ImmutableList.builder();
-        parametersBuilder.add(arg("context", Context.class));
-        parametersBuilder.add(arg("session", ConnectorSession.class));
-        parametersBuilder.add(arg("scriptingName", Slice.class));
-        parametersBuilder.add(arg("functionName", Slice.class));
+        // unfucking believable. FUCK OFF PARAMETERIZEDTYPE
+        List<Pair<String, Class<?>>> parameters = newArrayList();
+        parameters.add(ImmutablePair.of("context", Context.class));
+        parameters.add(ImmutablePair.of("session", ConnectorSession.class));
+        parameters.add(ImmutablePair.of("scriptingName", Slice.class));
+        parameters.add(ImmutablePair.of("functionName", Slice.class));
         for (int i = 0; i < arity - 2; i++) {
             Type argType = types.get("T" + i);
             Class<?> javaType = argType.getJavaType();
             // javaType = ClassUtils.primitiveToWrapper(javaType);
-            parametersBuilder.add(arg("arg" + i, javaType));
+            parameters.add(ImmutablePair.of("arg" + i, javaType));
         }
-        List<Parameter> parameters = parametersBuilder.build();
 
-        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), name, type(com.facebook.presto.spi.block.Block.class), parameters);
+        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), name, type(com.facebook.presto.spi.block.Block.class), parameters.stream().map(p -> arg(p.getLeft(), p.getRight())).collect(toImmutableList()));
         methodDefinition.declareAnnotation(ScalarFunction.class);
         methodDefinition.declareAnnotation(SqlType.class).setValue("value", retType.getTypeSignature().toString());
         methodDefinition.declareParameterAnnotation(SqlType.class, 2).setValue("value", "varchar");
@@ -184,20 +189,29 @@ public class ScriptFunction
                 .retObject();
 
         Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(StructManager.RowTypeConstructorCompiler.class.getClassLoader()));
+        Method method;
+        try {
+            method = cls.getMethod(name, parameters.stream().map(p -> p.getRight()).collect(toImmutableList()).toArray(new Class<?>[parameters.size()]));
+        }
+        catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
 
-        /*
         List<Type> argTypes = ImmutableList.<Type>builder()
                 .add(VarcharType.VARCHAR)
                 .add(VarcharType.VARCHAR)
                 .addAll(IntStream.range(0, arity - 2).boxed().map(n -> types.get("T" + n.toString())).collect(toImmutableList()))
                 .build();
 
-        MethodHandle methodHandle = METHOD_HANDLE.bindTo(new Context(scriptingManager, retType, argTypes)).asVarargsCollector(Object[].class);
-        // FIXME nullable controls
-        return new ScalarFunctionImplementation(true, listOf(arity, true), methodHandle, isDeterministic());
-        */
+        MethodHandle methodHandle;
+        try {
+            methodHandle = lookup().unreflect(method).bindTo(new Context(scriptingManager, retType, argTypes));
+        }
+        catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
 
-        throw new IllegalStateException();
+        return new ScalarFunctionImplementation(true, listOf(arity, true), methodHandle, isDeterministic());
     }
 
     public static Object script(Context context, ConnectorSession session, Slice scriptingName, Slice functionName, Object... args)
