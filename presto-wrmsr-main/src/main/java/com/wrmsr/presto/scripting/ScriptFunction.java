@@ -140,7 +140,7 @@ public class ScriptFunction
             parameters.add(ImmutablePair.of("arg" + i, javaType));
         }
 
-        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), name, type(com.facebook.presto.spi.block.Block.class), parameters.stream().map(p -> arg(p.getLeft(), p.getRight())).collect(toImmutableList()));
+        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), name, type(Slice.class), parameters.stream().map(p -> arg(p.getLeft(), p.getRight())).collect(toImmutableList()));
         methodDefinition.declareAnnotation(ScalarFunction.class);
         methodDefinition.declareAnnotation(SqlType.class).setValue("value", retType.getTypeSignature().toString());
         methodDefinition.declareParameterAnnotation(SqlType.class, 2).setValue("value", "varchar");
