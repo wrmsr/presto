@@ -17,13 +17,13 @@ public class SerializedType
     public static final String NAME = "serialized";
 
     private final Type targetType;
-    private final Codec<Object, byte[]> codec;
+    private final Serializer serializer;
 
-    public SerializedType(Type targetType, String codecName, Codec<Object, byte[]> codec)
+    public SerializedType(Type targetType, Serializer serializer)
     {
-        super(new TypeSignature(NAME, ImmutableList.of(targetType.getTypeSignature()), ImmutableList.of(codecName)), Slice.class);
+        super(new TypeSignature(NAME, ImmutableList.of(targetType.getTypeSignature()), ImmutableList.of(serializer.getName())), Slice.class);
         this.targetType = targetType;
-        this.codec = codec;
+        this.serializer = serializer;
     }
 
     @Override

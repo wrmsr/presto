@@ -2,9 +2,13 @@ package com.wrmsr.presto.serialization;
 
 import com.wrmsr.presto.util.codec.Codec;
 
+/*
+lol type aliases
+*/
+
 public class SerializationManager
 {
-    public Codec<Object, byte[]> getCodec(String name)
+    public Serializer getSerializer(String name)
     {
         return null;
     }
