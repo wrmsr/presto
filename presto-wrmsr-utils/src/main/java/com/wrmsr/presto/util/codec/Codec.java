@@ -1,7 +1,5 @@
 package com.wrmsr.presto.util.codec;
 
-import com.wrmsr.presto.util.Codecs;
-
 public interface Codec<F, T>
     extends Encoder<F, T>, Decoder<F, T>
 {

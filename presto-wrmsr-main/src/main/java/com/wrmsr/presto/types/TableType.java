@@ -4,8 +4,10 @@ import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.type.AbstractType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.type.RowType;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
@@ -13,44 +15,24 @@ import java.lang.invoke.MethodHandle;
 import java.util.List;
 
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
-import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 public class TableType
+    extends AbstractType
 {
     public static final String NAME = "table";
 
-    private final Type returnType;
-    private final List<Type> argumentTypes;
+    private final RowType rowType;
 
-    public TableType(List<Type> argumentTypes, Type returnType)
+    public TableType(RowType rowType)
     {
-        super(parameterizedTypeName(NAME, typeParameters(argumentTypes, returnType)), MethodHandle.class);
-        this.returnType = requireNonNull(returnType, "returnType is null");
-        this.argumentTypes = ImmutableList.copyOf(requireNonNull(argumentTypes, "argumentTypes is null"));
+        super(parameterizedTypeName(NAME, new TypeSignature(NAME, ImmutableList.of(rowType.getTypeSignature()), ImmutableList.of())), MethodHandle.class);
+        this.rowType = requireNonNull(rowType, "rowType is null");
     }
 
-    private static TypeSignature[] typeParameters(List<Type> argumentTypes, Type returnType)
+    public RowType getRowType()
     {
-        requireNonNull(returnType, "returnType is null");
-        requireNonNull(argumentTypes, "argumentTypes is null");
-        ImmutableList.Builder<TypeSignature> builder = ImmutableList.builder();
-        argumentTypes.stream()
-                .map(Type::getTypeSignature)
-                .forEach(builder::add);
-        builder.add(returnType.getTypeSignature());
-        List<TypeSignature> signatures = builder.build();
-        return signatures.toArray(new TypeSignature[signatures.size()]);
-    }
-
-    public Type getReturnType()
-    {
-        return returnType;
-    }
-
-    public List<Type> getArgumentTypes()
-    {
-        return argumentTypes;
+        return rowType;
     }
 
     @Override
@@ -80,15 +62,6 @@ public class TableType
     @Override
     public List<Type> getTypeParameters()
     {
-        return ImmutableList.<Type>builder().addAll(argumentTypes).add(returnType).build();
-    }
-
-    @Override
-    public String getDisplayName()
-    {
-        ImmutableList<String> names = getTypeParameters().stream()
-                .map(Type::getDisplayName)
-                .collect(toImmutableList());
-        return "function<" + Joiner.on(",").join(names) + ">";
+        return ImmutableList.<Type>of(rowType);
     }
 }

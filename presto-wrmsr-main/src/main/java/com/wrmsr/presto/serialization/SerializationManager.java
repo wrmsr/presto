@@ -4,5 +4,8 @@ import com.wrmsr.presto.util.codec.Codec;
 
 public class SerializationManager
 {
-    public Codec
+    public Codec<Object, byte[]> getCodec(String name)
+    {
+        return null;
+    }
 }
