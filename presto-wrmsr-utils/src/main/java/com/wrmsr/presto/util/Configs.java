@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.*;
 import com.google.common.collect.Lists;
+import com.wrmsr.presto.util.codec.Codec;
 import com.wrmsr.presto.util.collect.ImmutableCollectors;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationMap;
@@ -493,11 +494,11 @@ public class Configs
     }
 
     // FIXME invert?
-    public static final Codecs.Codec<HierarchicalConfiguration, Map<String, String>> CONFIG_PROPERTIES_CODEC = Codecs.Codec.of(
+    public static final Codec<HierarchicalConfiguration, Map<String, String>> CONFIG_PROPERTIES_CODEC = Codec.of(
             hc -> flatten(Configs.unpackHierarchical(hc)),
             m -> toHierarchical(m));
 
-    public static final class ObjectConfigCodec implements Codecs.Codec<Object, HierarchicalConfiguration>
+    public static final class ObjectConfigCodec implements Codec<Object, HierarchicalConfiguration>
     {
         @Override
         public HierarchicalConfiguration encode(Object data)

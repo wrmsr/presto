@@ -15,11 +15,13 @@ package com.wrmsr.presto.reactor;
 
 /*
 k's:
- primary
- secondary
- non
- join
- group
+ Primary
+ Secondary
+ Non
+ Join
+ Group
+ Version?
+  - is this shit even necessary?
 
 TODO optional whole-table buffering
 
@@ -40,6 +42,10 @@ drop tablescan predis, need it all
 
  List<List<PlanNodeId>> populationPlanStages
  Map<ImmutablePair<ConnectorId, SchemaTableName>, List<PlanNodeId>> reactionPlanLists
+
+
+omg omg omg omg
+Event sources are symbolAllocated with Type Table<Row<....
 */
 
 import com.facebook.presto.ScheduledSplit;
@@ -174,6 +180,39 @@ public class TestPkThreader
             this.connectorSupport = connectorSupport;
             this.intermediateStorageProvider = intermediateStorageProvider;
             this.structManager = structManager;
+        }
+
+        public enum KeyType
+        {
+            PRIMARY,
+            SECONDARY,
+            JOIN,
+            GROUP,
+            VERSION,
+            NONE
+        }
+
+        public interface TableEvent
+        {
+
+        }
+
+        public interface TableEventSource
+        {
+            TableHandle getTable();
+
+            PkLayout<String> getLayout();
+
+            TableEvent getTableEvent();
+        }
+
+        public interface TableEventSink
+        {
+            TableHandle getTable();
+
+            PkLayout<String> getLayout();
+
+            List<TableEvent> handleTableEvent(TableEvent event);
         }
 
         public abstract static class Action

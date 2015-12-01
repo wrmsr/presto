@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.functions;
 
+import com.facebook.presto.byteCode.ByteCodeBlock;
 import com.facebook.presto.byteCode.ClassDefinition;
 import com.facebook.presto.byteCode.DynamicClassLoader;
 import com.facebook.presto.byteCode.MethodDefinition;
@@ -30,6 +31,7 @@ import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.BlockEncoding;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
+import com.facebook.presto.spi.block.FixedWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockEncoding;
 import com.facebook.presto.spi.type.Type;
@@ -121,7 +123,7 @@ public class StructManager
             }
         }
 
-        protected void writeBoolean(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+        protected void writeBoolean(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isFalse = new LabelNode("isFalse" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -142,7 +144,7 @@ public class StructManager
                     .pop();
         }
 
-        protected void writeLong(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+        protected void writeLong(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             body
                     .getVariable(blockBuilder)
@@ -155,7 +157,7 @@ public class StructManager
                     .pop();
         }
 
-        protected void writeDouble(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+        protected void writeDouble(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             body
                     .getVariable(blockBuilder)
@@ -168,7 +170,7 @@ public class StructManager
                     .pop();
         }
 
-        protected void writeSlice(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+        protected void writeSlice(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -196,7 +198,7 @@ public class StructManager
                     .visitLabel(done);
         }
 
-        protected void writeObject(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+        protected void writeObject(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -208,8 +210,8 @@ public class StructManager
                     .getVariable(arg)
                     .push(0)
                     .getVariable(arg)
-                    .invokeVirtual(com.facebook.presto.spi.block.Block.class, "length", int.class)
-                    .invokeInterface(BlockBuilder.class, "writeBytes", BlockBuilder.class, com.facebook.presto.spi.block.Block.class, int.class, int.class)
+                    .invokeVirtual(Block.class, "length", int.class)
+                    .invokeInterface(BlockBuilder.class, "writeBytes", BlockBuilder.class, Block.class, int.class, int.class)
                     .pop()
 
                     .getVariable(blockBuilder)
@@ -243,14 +245,14 @@ public class StructManager
 
             List<Parameter> parameters = createParameters(fieldTypes);
 
-            MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), name, type(com.facebook.presto.spi.block.Block.class), parameters);
+            MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), name, type(Block.class), parameters);
             methodDefinition.declareAnnotation(ScalarFunction.class);
             methodDefinition.declareAnnotation(SqlType.class).setValue("value", rowType.getTypeSignature().toString());
             annotateParameters(fieldTypes, methodDefinition);
 
             Scope scope = methodDefinition.getScope();
             CallSiteBinder binder = new CallSiteBinder();
-            com.facebook.presto.byteCode.ByteCodeBlock body = methodDefinition.getBody();
+            ByteCodeBlock body = methodDefinition.getBody();
 
             Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
 
@@ -282,7 +284,7 @@ public class StructManager
                 else if (javaType == Slice.class) {
                     writeSlice(body, blockBuilder, arg, i);
                 }
-                else if (javaType == com.facebook.presto.spi.block.Block.class) {
+                else if (javaType == Block.class) {
                     writeObject(body, blockBuilder, arg, i);
                 }
                 else {
@@ -292,7 +294,7 @@ public class StructManager
 
             body
                     .getVariable(blockBuilder)
-                    .invokeInterface(BlockBuilder.class, "build", com.facebook.presto.spi.block.Block.class)
+                    .invokeInterface(BlockBuilder.class, "build", Block.class)
                     .retObject();
 
             return defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(RowTypeConstructorCompiler.class.getClassLoader()));
@@ -303,7 +305,7 @@ public class StructManager
             return blockToSlice(blockBuilder.build());
         }
 
-        public static Slice blockToSlice(com.facebook.presto.spi.block.Block block)
+        public static Slice blockToSlice(Block block)
         {
             BlockEncoding blockEncoding = new VariableWidthBlockEncoding();
 
@@ -340,7 +342,7 @@ public class StructManager
                 else if (javaType == Slice.class) {
                     javaType = Slice.class;
                 }
-                else if (javaType == com.facebook.presto.spi.block.Block.class) {
+                else if (javaType == Block.class) {
                     // FIXME
                 }
                 else {
@@ -361,7 +363,7 @@ public class StructManager
         }
 
         @Override
-        protected void writeBoolean(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+        protected void writeBoolean(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode isFalse = new LabelNode("isFalse" + i);
@@ -396,7 +398,7 @@ public class StructManager
         }
 
         @Override
-        protected void writeLong(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+        protected void writeLong(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -423,7 +425,7 @@ public class StructManager
         }
 
         @Override
-        protected void writeDouble(com.facebook.presto.byteCode.ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+        protected void writeDouble(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
         {
             LabelNode isNull = new LabelNode("isNull" + i);
             LabelNode done = new LabelNode("done" + i);
@@ -555,7 +557,7 @@ public class StructManager
         }
         if (value instanceof Slice) {
             Slice slice = (Slice) value;
-            com.facebook.presto.spi.block.Block block = new com.facebook.presto.spi.block.FixedWidthBlockBuilder(8, slice.length()).writeBytes(slice, 0, slice.length()).closeEntry().build();
+            Block block = new FixedWidthBlockBuilder(8, slice.length()).writeBytes(slice, 0, slice.length()).closeEntry().build();
             value = type.getObjectValue(connectorSession, block, 0);
         }
         StructInfo structInfo = structInfoMap.get(typeName);

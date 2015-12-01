@@ -15,6 +15,8 @@ package com.wrmsr.presto.util;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.util.codec.Codec;
+import com.wrmsr.presto.util.codec.StreamCodec;
 import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 
@@ -32,12 +34,12 @@ public class Compression
     }
 
     public interface CompressionCodec
-            extends Codecs.Codec<byte[], byte[]>
+            extends Codec<byte[], byte[]>
     {
     }
 
     public interface CompressionStreamCodec
-            extends Codecs.StreamCodec
+            extends StreamCodec
     {
     }
 

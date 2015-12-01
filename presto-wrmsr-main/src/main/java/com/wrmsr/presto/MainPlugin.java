@@ -46,7 +46,7 @@ import com.wrmsr.presto.functions.DefineStructFunction;
 import com.wrmsr.presto.functions.GrokFunctions;
 import com.wrmsr.presto.functions.PropertiesFunction;
 import com.wrmsr.presto.functions.PropertiesType;
-import com.wrmsr.presto.functions.SerializeFunction;
+import com.wrmsr.presto.serialization.SerializeFunction;
 import com.wrmsr.presto.functions.StructManager;
 import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
 import com.wrmsr.presto.hardcoded.HardcodedMetadataPopulator;

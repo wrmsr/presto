@@ -13,8 +13,7 @@
  */
 package com.wrmsr.presto.util.collect;
 
-import com.wrmsr.presto.util.Codecs;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import com.wrmsr.presto.util.codec.Codec;
 
 import java.util.Collection;
 import java.util.Map;
@@ -319,9 +318,9 @@ public interface SimpleMap<K, V>
     class KeyCodec<KO, KI, V> implements SimpleMap<KO, V>
     {
         protected final SimpleMap<KI, V> wrapped;
-        protected final Codecs.Codec<KO, KI> codec;
+        protected final Codec<KO, KI> codec;
 
-        public KeyCodec(SimpleMap<KI, V> wrapped, Codecs.Codec<KO, KI> codec)
+        public KeyCodec(SimpleMap<KI, V> wrapped, Codec<KO, KI> codec)
         {
             this.wrapped = wrapped;
             this.codec = codec;
@@ -355,9 +354,9 @@ public interface SimpleMap<K, V>
     class ValueCodec<K, VO, VI> implements SimpleMap<K, VO>
     {
         protected final SimpleMap<K, VI> wrapped;
-        protected final Codecs.Codec<VO, VI> codec;
+        protected final Codec<VO, VI> codec;
 
-        public ValueCodec(SimpleMap<K, VI> wrapped, Codecs.Codec<VO, VI> codec)
+        public ValueCodec(SimpleMap<K, VI> wrapped, Codec<VO, VI> codec)
         {
             this.wrapped = wrapped;
             this.codec = codec;

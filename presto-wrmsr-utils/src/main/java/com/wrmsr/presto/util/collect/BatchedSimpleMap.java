@@ -14,21 +14,17 @@
 package com.wrmsr.presto.util.collect;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.wrmsr.presto.util.Codecs;
+import com.wrmsr.presto.util.codec.Codec;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableSet;
 
 public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
 {
@@ -310,7 +306,7 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
 
     class KeyCodec<KO, KI, V> extends SimpleMap.KeyCodec<KO, KI, V> implements BatchedSimpleMap<KO, V>
     {
-        public KeyCodec(BatchedSimpleMap<KI, V> wrapped, Codecs.Codec<KO, KI> codec)
+        public KeyCodec(BatchedSimpleMap<KI, V> wrapped, Codec<KO, KI> codec)
         {
             super(wrapped, codec);
         }
@@ -387,7 +383,7 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
 
     class ValueCodec<K, VO, VI> extends SimpleMap.ValueCodec<K, VO, VI> implements BatchedSimpleMap<K, VO>
     {
-        public ValueCodec(BatchedSimpleMap<K, VI> wrapped, Codecs.Codec<VO, VI> codec)
+        public ValueCodec(BatchedSimpleMap<K, VI> wrapped, Codec<VO, VI> codec)
         {
             super(wrapped, codec);
         }

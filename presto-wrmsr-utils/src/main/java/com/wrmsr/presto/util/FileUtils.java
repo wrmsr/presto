@@ -15,13 +15,13 @@
  */
 package com.wrmsr.presto.util;
 
-        import com.google.common.base.Preconditions;
-        import com.google.common.collect.ImmutableList;
-        import com.google.common.io.Files;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.io.Files;
 
-        import java.io.File;
-        import java.io.FilenameFilter;
-        import java.io.IOException;
+import java.io.File;
+import java.io.FilenameFilter;
+import java.io.IOException;
 
 //This is a copy from galaxy-server's com.proofpoint.galaxy.shared.FileUtils
 public class FileUtils

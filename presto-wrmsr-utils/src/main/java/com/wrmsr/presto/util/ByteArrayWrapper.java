@@ -2,7 +2,7 @@ package com.wrmsr.presto.util;
 
 import java.util.Arrays;
 
-import static com.wrmsr.presto.util.Codecs.Codec;
+import com.wrmsr.presto.util.codec.Codec;
 
 public class ByteArrayWrapper
 {
