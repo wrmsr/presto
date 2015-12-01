@@ -1,5 +1,6 @@
 package com.wrmsr.presto.types;
 
+import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
@@ -26,7 +27,7 @@ public class TableType
 
     public TableType(RowType rowType)
     {
-        super(parameterizedTypeName(NAME, new TypeSignature(NAME, ImmutableList.of(rowType.getTypeSignature()), ImmutableList.of())), MethodHandle.class);
+        super(parameterizedTypeName(NAME, new TypeSignature(NAME, ImmutableList.of(rowType.getTypeSignature()), ImmutableList.of())), TableHandle.class);
         this.rowType = requireNonNull(rowType, "rowType is null");
     }
 
