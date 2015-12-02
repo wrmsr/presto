@@ -13,19 +13,10 @@
  */
 package com.facebook.presto.operator;
 
-import com.facebook.presto.sql.planner.plan.PlanNodeId;
+import java.util.Optional;
 
-public interface SourceOperatorFactory
+public interface JoinOperatorFactory
         extends OperatorFactory
 {
-    PlanNodeId getSourceId();
-
-    @Override
-    SourceOperator createOperator(DriverContext driverContext);
-
-    @Override
-    default OperatorFactory duplicate()
-    {
-        throw new UnsupportedOperationException("Source operator factories can not be duplicated");
-    }
+    Optional<OperatorFactory> createOuterOperatorFactory();
 }

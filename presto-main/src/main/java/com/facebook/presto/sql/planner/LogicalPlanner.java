@@ -15,7 +15,7 @@ package com.facebook.presto.sql.planner;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.QualifiedTableName;
+import com.facebook.presto.metadata.QualifiedObjectName;
 import com.facebook.presto.metadata.TableMetadata;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
@@ -115,7 +115,7 @@ public class LogicalPlanner
 
     private RelationPlan createTableCreationPlan(Analysis analysis)
     {
-        QualifiedTableName destination = analysis.getCreateTableDestination().get();
+        QualifiedObjectName destination = analysis.getCreateTableDestination().get();
 
         RelationPlan plan = createRelationPlan(analysis);
 
@@ -241,7 +241,7 @@ public class LogicalPlanner
                 .process(analysis.getQuery(), null);
     }
 
-    private TableMetadata createTableMetadata(QualifiedTableName table, List<ColumnMetadata> columns, Map<String, Expression> propertyExpressions, boolean sampled)
+    private TableMetadata createTableMetadata(QualifiedObjectName table, List<ColumnMetadata> columns, Map<String, Expression> propertyExpressions, boolean sampled)
     {
         String owner = session.getUser();
 
