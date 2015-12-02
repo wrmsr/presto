@@ -5,16 +5,16 @@ import com.wrmsr.presto.util.Configs;
 
 import java.util.Map;
 
-public final class SystemConfigNode
+public final class LogConfigNode
     extends MapConfigNode<String, String>
 {
     @JsonCreator
-    public static SystemConfigNode valueOf(Object object)
+    public static LogConfigNode valueOf(Object object)
     {
-        return new SystemConfigNode(Configs.flatten(object));
+        return new LogConfigNode(Configs.flatten(object));
     }
 
-    public SystemConfigNode(Map<String, String> entries)
+    public LogConfigNode(Map<String, String> entries)
     {
         super(entries);
     }

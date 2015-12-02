@@ -2,6 +2,7 @@ package com.wrmsr.presto.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.scripting.ScriptingConfig;
@@ -9,70 +10,54 @@ import com.wrmsr.presto.scripting.ScriptingConfig;
 import java.util.List;
 import java.util.Map;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
+
 public class MainConfig
 {
-    private final Map<String, String> jvm;
-    private final Map<String, String> system;
-    private final Map<String, String> log;
-
-    private final List<String> plugins;
-    private final Map<String, Object> connectors;
-    private final Map<String, ScriptingConfig> scripting;
-
-    // FIXME gp plugin section
-    // public final Map<String, Object> clusters = ImmutableMap.of();
-    // public final Object aws = null;
-
     @JsonCreator
-    public MainConfig(
-            @JsonProperty("jvm") Map<String, String> jvm,
-            @JsonProperty("system") Map<String, String> system,
-            @JsonProperty("log") Map<String, String> log,
-            @JsonProperty("plugins") List<String> plugins,
-            @JsonProperty("connectors") Map<String, Object> connectors,
-            @JsonProperty("scripting") Map<String, ScriptingConfig> scripting)
+    public static MainConfig valueOf(List<ConfigNode> nodes)
     {
-        this.jvm = jvm;
-        this.system = system;
-        this.log = log;
-        this.plugins = plugins;
-        this.connectors = connectors;
-        this.scripting = scripting;
+        return new MainConfig(nodes);
     }
 
-    @JsonProperty
-    public Map<String, String> getJvm()
+    private final List<ConfigNode> nodes;
+
+    public MainConfig(List<ConfigNode> nodes)
     {
-        return jvm;
+        this.nodes = nodes;
     }
 
-    @JsonProperty
-    public Map<String, String> getSystem()
+    @JsonValue
+    public List<ConfigNode> getNodes()
     {
-        return system;
+        return nodes;
     }
 
-    @JsonProperty
-    public Map<String, String> getLog()
+    public <T extends ConfigNode> List<T> getNodes(Class<T> cls)
     {
-        return log;
+        return nodes.stream().filter(cls::isInstance).map(cls::cast).collect(toImmutableList());
     }
 
-    @JsonProperty
-    public List<String> getPlugins()
+    @SuppressWarnings({"unchecked"})
+    public <T> List<T> getList(Class<? extends ListConfigNode<T>> cls)
     {
-        return plugins;
+        return getNodes(cls).stream().flatMap(n -> n.getItems().stream()).collect(toImmutableList());
     }
 
-    @JsonProperty
-    public Map<String, Object> getConnectors()
+    @SuppressWarnings({"unchecked"})
+    public <K, V> Map<K, V> getMap(Class<? extends MapConfigNode<K, V>> cls)
     {
-        return connectors;
-    }
+        Map<K, V> map = newHashMap();
+        for (MapConfigNode node : getNodes(cls)) {
+            for (Map.Entry<K, V> entry : node.getEntries().entrySet()) {
+                if (!map.containsKey(entry.getKey())) {
+                    map.put(entry.getKey(), entry.getValue());
+                }
+            }
 
-    @JsonProperty
-    public Map<String, ScriptingConfig> getScripting()
-    {
-        return scripting;
+        }
+        return ImmutableMap.copyOf(map);
     }
 }

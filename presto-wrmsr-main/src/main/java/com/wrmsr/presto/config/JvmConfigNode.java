@@ -1,20 +1,21 @@
 package com.wrmsr.presto.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.wrmsr.presto.util.Configs;
 
-import java.util.List;
+import java.util.Map;
 
-public class JvmConfigNode
-    extends StringListConfigNode
+public final class JvmConfigNode
+    extends MapConfigNode<String, String>
 {
     @JsonCreator
-    public static JvmConfigNode valueOf(List<String> items)
+    public static JvmConfigNode valueOf(Object object)
     {
-        return new JvmConfigNode(items);
+        return new JvmConfigNode(Configs.flatten(object));
     }
 
-    public JvmConfigNode(List<String> items)
+    public JvmConfigNode(Map<String, String> entries)
     {
-        super(items);
+        super(entries);
     }
 }

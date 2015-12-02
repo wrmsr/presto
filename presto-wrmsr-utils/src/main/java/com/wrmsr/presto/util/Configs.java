@@ -414,7 +414,7 @@ public class Configs
         }
     }
 
-    protected static Map<String, String> flatten(Object object)
+    public static Map<String, String> flatten(Object object)
     {
         return flattenValues(object).entrySet().stream()
                 .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey().render(), e -> e.getValue()));

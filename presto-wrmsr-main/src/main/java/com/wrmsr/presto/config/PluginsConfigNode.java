@@ -4,16 +4,16 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 import java.util.List;
 
-public final class IncludeConfigNode
+public final class PluginsConfigNode
     extends ListConfigNode<String>
 {
     @JsonCreator
-    public static IncludeConfigNode valueOf(Object object)
+    public static PluginsConfigNode valueOf(List<String> items)
     {
-        return new IncludeConfigNode(unpack(object, String.class));
+        return new PluginsConfigNode(items);
     }
 
-    public IncludeConfigNode(List<String> items)
+    public PluginsConfigNode(List<String> items)
     {
         super(items);
     }

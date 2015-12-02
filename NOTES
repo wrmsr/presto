@@ -1672,3 +1672,10 @@ fakeroot debian/rules binary-headers binary-generic
 configurable structural equality for structs?
  define_struct('thing', false, ... ... ...
  define_struct_for_view? type view_struct('view.name')
+
+
+decode
+decode_full
+encoded<encoded<business>('json')>('gzip')
+
+diodes lol

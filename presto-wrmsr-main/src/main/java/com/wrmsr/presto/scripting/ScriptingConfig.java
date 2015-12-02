@@ -1,5 +1,6 @@
 package com.wrmsr.presto.scripting;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.airlift.configuration.Config;
 
 import javax.validation.constraints.NotNull;
