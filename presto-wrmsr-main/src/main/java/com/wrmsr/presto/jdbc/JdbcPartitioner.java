@@ -17,7 +17,7 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.google.common.base.Throwables;
 import com.wrmsr.presto.jdbc.util.Queries;
-import com.wrmsr.presto.metaconnectors.partitioner.Partitioner;
+import com.wrmsr.presto.metaconnector.partitioner.Partitioner;
 import com.wrmsr.presto.util.ColumnDomain;
 
 import java.io.IOException;
