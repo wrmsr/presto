@@ -48,9 +48,6 @@ import com.wrmsr.presto.functions.PropertiesFunction;
 import com.wrmsr.presto.functions.PropertiesType;
 import com.wrmsr.presto.serialization.SerializeFunction;
 import com.wrmsr.presto.functions.StructManager;
-import com.wrmsr.presto.hardcoded.HardcodedConnectorFactory;
-import com.wrmsr.presto.hardcoded.HardcodedMetadataPopulator;
-import com.wrmsr.presto.hardcoded.HardcodedModule;
 import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
@@ -249,16 +246,6 @@ public class MainPlugin
                 installConfig(fileConfig, structManager);
             }
 
-            new HardcodedMetadataPopulator(
-                    connectorManager,
-                    viewCodec,
-                    metadata,
-                    sqlParser,
-                    planOptimizers,
-                    featuresConfig,
-                    accessControl
-            ).run();
-
             metadata.addFunctions(
                     new FunctionListBuilder(typeRegistry)
                             .scalar(CompressionFunctions.class)
@@ -292,8 +279,6 @@ public class MainPlugin
                     type.cast(new PartitionerConnectorFactory(optionalConfig, new PartitionerModule(null), getClassLoader(), connectorManager)),
 
                     type.cast(new FlatConnectorFactory(optionalConfig, new FlatModule(), getClassLoader())),
-
-                    type.cast(new HardcodedConnectorFactory(optionalConfig, new HardcodedModule(), getClassLoader())),
 
                     type.cast(new ExtendedJdbcConnectorFactory("extended-mysql", new ExtendedMySqlClientModule(), optionalConfig, ImmutableMap.of(), getClassLoader())),
                     type.cast(new ExtendedJdbcConnectorFactory("extended-postgresql", new ExtendedPostgreSqlClientModule(), optionalConfig, ImmutableMap.of(), getClassLoader())),
