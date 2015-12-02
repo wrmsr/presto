@@ -38,7 +38,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Module;
+import com.wrmsr.presto.config.ConnectorsConfigNode;
 import com.wrmsr.presto.config.MainConfig;
+import com.wrmsr.presto.config.PluginsConfigNode;
+import com.wrmsr.presto.config.SystemConfigNode;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.function.CompressionFunctions;
@@ -178,13 +181,13 @@ public class MainPlugin
             "hadoop"
     );
 
-    public void installConfig(MainConfig fileConfig, StructManager structManager)
+    public void installConfig(MainConfig config, StructManager structManager)
     {
-        for (Map.Entry<String, String> e : fileConfig.getSystem().entrySet()) {
+        for (Map.Entry<String, String> e : config.getMap(SystemConfigNode.class).entrySet()) {
             System.setProperty(e.getKey(), e.getValue());
         }
 
-        for (String plugin : fileConfig.getPlugins()) {
+        for (String plugin : config.getList(PluginsConfigNode.class)) {
             try {
                 pluginManager.loadPlugin(plugin);
             }
@@ -193,7 +196,7 @@ public class MainPlugin
             }
         }
 
-        for (Map.Entry<String, Object> e : fileConfig.getConnectors().entrySet()) {
+        for (Map.Entry<String, ConnectorsConfigNode.Entry> e : config.getMap(ConnectorsConfigNode.class).entrySet()) {
             HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(e.getValue());
             Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
 

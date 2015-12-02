@@ -9,6 +9,7 @@ import com.wrmsr.presto.scripting.ScriptingConfig;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
@@ -51,7 +52,8 @@ public class MainConfig
     {
         Map<K, V> map = newHashMap();
         for (MapConfigNode node : getNodes(cls)) {
-            for (Map.Entry<K, V> entry : node.getEntries().entrySet()) {
+            Set<Map.Entry<K, V>> entries = node.getEntries().entrySet();
+            for (Map.Entry<K, V> entry : entries) {
                 if (!map.containsKey(entry.getKey())) {
                     map.put(entry.getKey(), entry.getValue());
                 }

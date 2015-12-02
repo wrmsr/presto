@@ -8,7 +8,7 @@ import com.wrmsr.presto.util.Configs;
 import java.util.Map;
 
 public final class ConnectorsConfigNode
-    extends ConfigNode
+    extends MapConfigNode<String, ConnectorsConfigNode.Entry>
 {
     public static class Entry
     {
@@ -46,24 +46,8 @@ public final class ConnectorsConfigNode
         return new ConnectorsConfigNode(entries);
     }
 
-    private final Map<String, Entry> entries;
-
     public ConnectorsConfigNode(Map<String, Entry> entries)
     {
-        this.entries = ImmutableMap.copyOf(entries);
-    }
-
-    @JsonValue
-    public Map<String, Entry> getEntries()
-    {
-        return entries;
-    }
-
-    @Override
-    public String toString()
-    {
-        return "ConnectorsConfigNode{" +
-                "entries=" + entries +
-                '}';
+        super(entries);
     }
 }
