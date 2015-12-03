@@ -73,24 +73,6 @@ public class ExtendedJdbcConnectorFactory
 
     public static class Config
     {
-        public Object init = null;
-
-        public final List<String> getInit()
-        {
-            if (init == null) {
-                return ImmutableList.of();
-            }
-            else if (init instanceof String) {
-                return ImmutableList.of((String) init);
-            }
-            else if (init instanceof List) {
-                return ImmutableList.copyOf((List<String>) init);
-            }
-            else {
-                throw new IllegalStateException();
-            }
-        }
-
         private final Map<String, Object> extraProperties = new HashMap<>();
 
         @JsonAnyGetter
@@ -116,7 +98,6 @@ public class ExtendedJdbcConnectorFactory
         HierarchicalConfiguration hc = Configs.CONFIG_PROPERTIES_CODEC.decode(workingConfig);
         Config config = Configs.OBJECT_CONFIG_CODEC.decode(hc, Config.class);
 
-        List<String> initScripts = config.getInit();
         workingConfig = Configs.CONFIG_PROPERTIES_CODEC.encode(
                 Configs.OBJECT_CONFIG_CODEC.encode(config.getExtraProperties()));
 
@@ -129,8 +110,6 @@ public class ExtendedJdbcConnectorFactory
                     .setRequiredConfigurationProperties(workingConfig)
                     .setOptionalConfigurationProperties(optionalConfig)
                     .initialize();
-
-            injector.getInstance(ExtendedJdbcConfig.class).getInitScripts().addAll(initScripts);
 
             return injector.getInstance(JdbcConnector.class);
         }

@@ -47,13 +47,6 @@ public class ExtendedJdbcConfig
         this.driverClass = driverClass;
     }
 
-    private final List<String> initScripts = newArrayList();
-
-    public List<String> getInitScripts()
-    {
-        return initScripts;
-    }
-
     private boolean isRemotelyAccessible = true;
 
     public boolean getIsRemotelyAccessible()

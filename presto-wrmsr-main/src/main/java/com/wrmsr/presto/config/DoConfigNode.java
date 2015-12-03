@@ -4,11 +4,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 import java.util.List;
 
-public class ExecConfigNode
+// TODO sxec / file / script
+public class DoConfigNode
     extends StringListConfigNode
 {
     @JsonCreator
-    public ExecConfigNode(List<String> items)
+    public DoConfigNode(List<String> items)
     {
         super(items);
     }

@@ -48,6 +48,7 @@ import com.wrmsr.presto.function.CompressionFunctions;
 import com.wrmsr.presto.function.DefineStructForQueryFunction;
 import com.wrmsr.presto.function.DefineStructFunction;
 import com.wrmsr.presto.function.GrokFunctions;
+import com.wrmsr.presto.function.JdbcFunction;
 import com.wrmsr.presto.function.PropertiesFunction;
 import com.wrmsr.presto.function.PropertiesType;
 import com.wrmsr.presto.codec.SerializeFunction;
@@ -182,7 +183,7 @@ public class MainPlugin
             "hadoop"
     );
 
-    public void installConfig(MainConfig config, StructManager structManager)
+    public void installConfig(MainConfig config)
     {
         for (Map.Entry<String, String> e : config.getMap(SystemConfigNode.class).entrySet()) {
             System.setProperty(e.getKey(), e.getValue());
@@ -213,15 +214,6 @@ public class MainPlugin
             String targetName = e.getKey();
             connectorManager.createConnection(targetName, targetConnectorName, connProps);
             checkNotNull(connectorManager.getConnectors().get(targetName));
-        }
-
-        for (Connector connector : connectorManager.getConnectors().values()) {
-            if (connector instanceof ExtendedJdbcConnector) {
-                JdbcClient client = ((ExtendedJdbcConnector) connector).getJdbcClient();
-                if (client instanceof ExtendedJdbcClient) {
-                    ((ExtendedJdbcClient) client).runInitScripts();
-                }
-            }
         }
     }
 
@@ -255,7 +247,7 @@ public class MainPlugin
                     throw Throwables.propagate(e);
                 }
 
-                installConfig(fileConfig, structManager);
+                installConfig(fileConfig);
             }
 
             metadata.addFunctions(
@@ -266,8 +258,7 @@ public class MainPlugin
                             .function(new DefineStructFunction(structManager))
                             .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata, accessControl))
                             .function(new PropertiesFunction(typeRegistry))
-                                    //.function(new ConnectFunction())
-                            // .function(Hash.HASH)
+                            .function(new JdbcFunction(connectorManager))
                             .getFunctions());
         }
     }

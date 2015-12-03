@@ -75,13 +75,6 @@ public class ExtendedJdbcClient
         return getConnection(connectionUrl, connectionProperties);
     }
 
-    public void runInitScripts()
-    {
-        for (String sql : extendedConfig.getInitScripts()) {
-            executeScript(sql);
-        }
-    }
-
     public void executeScript(String sql)
     {
         try (Connection connection = getConnection(connectionUrl, connectionProperties)) {
