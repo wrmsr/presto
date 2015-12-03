@@ -25,7 +25,8 @@ import com.facebook.presto.type.RowType;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.struct.StructManager;
+import com.wrmsr.presto.struct.NullableRowTypeConstructorCompiler;
+import com.wrmsr.presto.struct.RowTypeConstructorCompiler;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import org.testng.annotations.Test;
@@ -112,7 +113,7 @@ public class TestMainPlugin
         blockBuilder.writeBytes(d, 0, d.length());
         blockBuilder.closeEntry();
 
-        return StructManager.RowTypeConstructorCompiler.blockBuilderToSlice(blockBuilder);
+        return RowTypeConstructorCompiler.blockBuilderToSlice(blockBuilder);
     }
 
     @Test
@@ -123,7 +124,7 @@ public class TestMainPlugin
         System.out.println(block);
 
         RowType rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
-        Class<?> cls = new StructManager.RowTypeConstructorCompiler().run(rt);
+        Class<?> cls = new RowTypeConstructorCompiler().run(rt);
 
         try {
             Method m = cls.getMethod(rt.getTypeSignature().getBase(), long.class, Slice.class, long.class, Slice.class, boolean.class, double.class);
@@ -135,7 +136,7 @@ public class TestMainPlugin
         }
 
         rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
-        cls = new StructManager.NullableRowTypeConstructorCompiler().run(rt);
+        cls = new NullableRowTypeConstructorCompiler().run(rt);
 
         try {
             Method m = cls.getMethod(rt.getTypeSignature().getBase(), Long.class, Slice.class, Long.class, Slice.class, Boolean.class, Double.class);
