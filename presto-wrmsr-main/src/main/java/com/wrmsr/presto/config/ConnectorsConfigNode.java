@@ -44,11 +44,6 @@ public final class ConnectorsConfigNode
     }
 
     @JsonCreator
-    public static ConnectorsConfigNode valueOf(Map<String, Entry> entries)
-    {
-        return new ConnectorsConfigNode(entries);
-    }
-
     public ConnectorsConfigNode(Map<String, Entry> entries)
     {
         super(entries);

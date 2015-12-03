@@ -4,11 +4,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 import java.util.List;
 
-public final class PluginsConfigNode
+public class ExecConfigNode
     extends StringListConfigNode
 {
     @JsonCreator
-    public PluginsConfigNode(List<String> items)
+    public ExecConfigNode(List<String> items)
     {
         super(items);
     }

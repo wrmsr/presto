@@ -1679,3 +1679,5 @@ decode_full
 encoded<encoded<business>('json')>('gzip')
 
 diodes lol
+
+select jdbc('conn', 'do raw jdbc stuff') pls
