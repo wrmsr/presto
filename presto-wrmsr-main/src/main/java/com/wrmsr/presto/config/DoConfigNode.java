@@ -1,8 +1,11 @@
 package com.wrmsr.presto.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
@@ -13,7 +16,25 @@ public class DoConfigNode
     @JsonCreator
     public static DoConfigNode valueOf(Object object)
     {
+        List<Entry> entries;
+        if (object instanceof String) {
+            entries = ImmutableList.of(new StatementEntry((String) object));
+        }
+        else {
+            throw new IllegalArgumentException();
+        }
+        return new DoConfigNode(entries);
+    }
 
+    public DoConfigNode(List<Entry> items)
+    {
+        super(items);
+    }
+
+    @JsonValue
+    public List<Entry> getItems()
+    {
+        return items;
     }
 
     @JsonTypeInfo(
@@ -29,10 +50,45 @@ public class DoConfigNode
 
     public static final class StatementEntry extends Entry
     {
+        private final String statement;
 
+        @JsonCreator
+        public static StatementEntry valueOf(String statement)
+        {
+            return new StatementEntry(statement);
+        }
+
+        public StatementEntry(String statement)
+        {
+            this.statement = statement;
+        }
+
+        @JsonValue
+        public String getStatement()
+        {
+            return statement;
+        }
     }
 
     public static final class FileEntry extends Entry
     {
+        private final String path;
+
+        @JsonCreator
+        public static FileEntry valueOf(String path)
+        {
+            return new FileEntry(path);
+        }
+
+        public FileEntry(String path)
+        {
+            this.path = path;
+        }
+
+        @JsonValue
+        public String getPath()
+        {
+            return path;
+        }
     }
 }
