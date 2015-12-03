@@ -70,7 +70,6 @@ public class SerializeFunction
 
     private final ThreadLocal<ConnectorSession> connectorSessionThreadLocal = new ThreadLocal<ConnectorSession>();
 
-
     public SerializeFunction(FunctionRegistry functionRegistry, StructManager structManager)
     {
         super(FUNCTION_NAME, ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"));
@@ -99,7 +98,7 @@ public class SerializeFunction
     @Override
     public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
-        checkArgument(types.size() == 1, "Cardinality expects only one argument");
+        checkArgument(types.size() == 1);
         Type type = types.get("E");
         MethodHandle methodHandle = METHOD_HANDLE.bindTo(new SerializationContext(structManager, OBJECT_MAPPER, type));
 
