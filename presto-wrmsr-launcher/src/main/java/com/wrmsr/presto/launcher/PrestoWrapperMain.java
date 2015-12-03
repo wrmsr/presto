@@ -132,6 +132,7 @@ public class PrestoWrapperMain
                         Status.class,
                         Kill.class,
                         CliCommand.class,
+                        H2.class,
                         Hive.class,
                         Hdfs.class
                 );
@@ -588,7 +589,7 @@ public class PrestoWrapperMain
         }
     }
 
-    @Command(name = "hive", description = "Execute Hive command")
+    @Command(name = "hive", description = "Executes Hive command")
     public static class Hive extends PassthroughCommand
     {
         @Override
@@ -604,7 +605,7 @@ public class PrestoWrapperMain
         }
     }
 
-    @Command(name = "hdfs", description = "Executs HDFS command")
+    @Command(name = "hdfs", description = "Executes HDFS command")
     public static class Hdfs extends PassthroughCommand
     {
         @Override
@@ -617,6 +618,22 @@ public class PrestoWrapperMain
         public String getClassName()
         {
             return "com.wrmsr.presto.hadoop.hdfs.HdfsMain";
+        }
+    }
+
+    @Command(name = "h2", description = "Execute H2 command")
+    public static class H2 extends PassthroughCommand
+    {
+        @Override
+        public String getModuleName()
+        {
+            return "presto-wrmsr-launcher";
+        }
+
+        @Override
+        public String getClassName()
+        {
+            return null;
         }
     }
 
