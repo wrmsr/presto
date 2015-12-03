@@ -61,11 +61,11 @@ public class DefineStructFunction
     public static Slice defineStruct(DefineStructContext context, Slice name, Object... strs)
     {
         checkArgument(strs.length % 2 == 0);
-        List<StructManager.StructDefinition.Field> fields = newArrayList();
+        List<StructDefinition.Field> fields = newArrayList();
         for (int i = 0; i < strs.length; i += 2) {
-            fields.add(new StructManager.StructDefinition.Field(((Slice) strs[i]).toStringUtf8(), ((Slice) strs[i + 1]).toStringUtf8()));
+            fields.add(new StructDefinition.Field(((Slice) strs[i]).toStringUtf8(), ((Slice) strs[i + 1]).toStringUtf8()));
         }
-        StructManager.StructDefinition def = new StructManager.StructDefinition(name.toStringUtf8(), fields);
+        StructDefinition def = new StructDefinition(name.toStringUtf8(), fields);
         context.structManager.registerStruct(context.structManager.buildRowType(def));
         return name;
     }

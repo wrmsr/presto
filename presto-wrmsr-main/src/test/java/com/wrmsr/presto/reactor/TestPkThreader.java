@@ -108,6 +108,7 @@ import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.struct.StructDefinition;
 import com.wrmsr.presto.struct.StructManager;
 import com.wrmsr.presto.reactor.tuples.Layout;
 import com.wrmsr.presto.reactor.tuples.PkLayout;
@@ -401,10 +402,10 @@ public class TestPkThreader
 
             {
                 // see TestSerDeUtils::testListBlock
-                RowType rightPkType = structManager.buildRowType(new StructManager.StructDefinition(
+                RowType rightPkType = structManager.buildRowType(new StructDefinition(
                         "right_pk",
                         newRight.layout.getPk().getFields().stream()
-                                .map(f -> new StructManager.StructDefinition.Field(
+                                .map(f -> new StructDefinition.Field(
                                         f.getName().getName(),
                                         f.getType().getTypeSignature().getBase()))
                                 .collect(toImmutableList())));

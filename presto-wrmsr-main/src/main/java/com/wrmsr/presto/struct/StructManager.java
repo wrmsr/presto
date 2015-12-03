@@ -25,12 +25,6 @@ import com.facebook.presto.type.ArrayType;
 import com.facebook.presto.type.MapType;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
@@ -44,7 +38,6 @@ import io.airlift.slice.Slice;
 
 import javax.annotation.Nullable;
 
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -83,81 +76,6 @@ public class StructManager
     // TODO direct in-session serializers via thread local, no intermediate lists / slices
     // raw is trivial just dont add names
     public final Map<String, StructInfo> structInfoMap = new MapMaker().makeMap();
-
-    public static final class StructInfo
-    {
-        private final RowType rowType;
-        private final Class<?> sliceBoxClass;
-        private final Class<?> listBoxClass;
-        private final StdSerializer serializer;
-        private final StdDeserializer deserializer;
-
-        public StructInfo(RowType rowType, Class<?> sliceBoxClass, Class<?> listBoxClass, StdSerializer serializer, StdDeserializer deserializer)
-        {
-            this.rowType = rowType;
-            this.sliceBoxClass = sliceBoxClass;
-            this.listBoxClass = listBoxClass;
-            this.serializer = serializer;
-            this.deserializer = deserializer;
-        }
-
-        public String getName()
-        {
-            return rowType.getTypeSignature().getBase();
-        }
-    }
-
-    public static class RowTypeSerializer
-            extends StdSerializer<Box<List>>
-    {
-        private final RowType rowType;
-
-        public RowTypeSerializer(RowType rowType, Class listBoxClass)
-        {
-            super(listBoxClass);
-            this.rowType = rowType;
-        }
-
-        @Override
-        public void serialize(Box<List> value, JsonGenerator jgen, SerializerProvider provider)
-                throws IOException
-        {
-            checkNotNull(value);
-            List list = value.getValue();
-            if (list == null) {
-                jgen.writeNull();
-                return;
-            }
-            List<RowType.RowField> rowFields = rowType.getFields();
-            checkArgument(list.size() == rowFields.size());
-            jgen.writeStartObject();
-            for (int i = 0; i < list.size(); ++i) {
-                RowType.RowField rowField = rowFields.get(i);
-                // FIXME nameless = lists
-                jgen.writeObjectField(rowField.getName().get(), list.get(i));
-            }
-            jgen.writeEndObject();
-        }
-    }
-
-    public static class RowTypeDeserializer
-            extends StdDeserializer<Box<Slice>>
-    {
-        private final RowType rowType;
-
-        public RowTypeDeserializer(RowType rowType, Class sliceBoxClass)
-        {
-            super(sliceBoxClass);
-            this.rowType = rowType;
-        }
-
-        @Override
-        public Box<Slice> deserialize(JsonParser jp, DeserializationContext ctxt)
-                throws IOException
-        {
-            return null;
-        }
-    }
 
     public Object boxValue(Type type, Object value, @Nullable ConnectorSession connectorSession)
     {
@@ -219,7 +137,7 @@ public class StructManager
     public Box<List> boxRow(RowType rowType, Block block, @Nullable ConnectorSession connectorSession)
     {
         StructInfo structInfo = structInfoMap.get(rowType.getTypeSignature().getBase());
-        Class listBoxClass = structInfo.listBoxClass;
+        Class listBoxClass = structInfo.getListBoxClass();
         Constructor<Box<List>> listBoxCtor;
         try {
             listBoxCtor = listBoxClass.getDeclaredConstructor(List.class);
@@ -248,7 +166,7 @@ public class StructManager
     public Box<List> boxRow(RowType rowType, List rowValues, @Nullable ConnectorSession connectorSession)
     {
         StructInfo structInfo = structInfoMap.get(rowType.getTypeSignature().getBase());
-        Class listBoxClass = structInfo.listBoxClass;
+        Class listBoxClass = structInfo.getListBoxClass();
         Constructor<Box<List>> listBoxCtor;
         try {
             listBoxCtor = listBoxClass.getDeclaredConstructor(List.class);
@@ -273,59 +191,6 @@ public class StructManager
         }
         catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
             throw Throwables.propagate(e);
-        }
-    }
-
-    // FIXME delete
-    public static class StructDefinition
-    {
-        public static class Field
-        {
-            @Nullable
-            private final String name;
-            private final String type;
-
-            @JsonCreator
-            public Field(
-                    @JsonProperty("name") @Nullable String name,
-                    @JsonProperty("type") String type)
-            {
-                this.name = name;
-                this.type = type;
-            }
-
-            @Nullable
-            public String getName()
-            {
-                return name;
-            }
-
-            public String getType()
-            {
-                return type;
-            }
-        }
-
-        private final String name;
-        private final List<Field> fields;
-
-        @JsonCreator
-        public StructDefinition(
-                @JsonProperty("name") String name,
-                @JsonProperty("fields") List<Field> fields)
-        {
-            this.name = name;
-            this.fields = fields;
-        }
-
-        public String getName()
-        {
-            return name;
-        }
-
-        public List<Field> getFields()
-        {
-            return fields;
         }
     }
 

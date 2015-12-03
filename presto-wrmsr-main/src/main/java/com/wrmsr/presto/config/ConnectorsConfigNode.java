@@ -50,7 +50,7 @@ public final class ConnectorsConfigNode
     }
 
     @JsonValue
-    public Map<String, Map<String, String>>  flatten()
+    public Map<String, Map<String, String>> flatten()
     {
         return getEntries().entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), e.getValue().getEntries())).collect(toImmutableMap());
     }
