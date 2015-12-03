@@ -23,6 +23,7 @@ import com.facebook.presto.spi.type.TypeManager;
 import java.util.List;
 import java.util.Map;
 
+// String name, Properties properties
 public class ConnectFunction
         extends SqlScalarFunction
 {

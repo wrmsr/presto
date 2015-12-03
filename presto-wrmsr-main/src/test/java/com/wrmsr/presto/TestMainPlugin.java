@@ -25,7 +25,7 @@ import com.facebook.presto.type.RowType;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.function.StructManager;
+import com.wrmsr.presto.struct.StructManager;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import org.testng.annotations.Test;

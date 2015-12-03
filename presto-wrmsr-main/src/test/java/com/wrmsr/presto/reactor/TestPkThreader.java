@@ -108,7 +108,7 @@ import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.wrmsr.presto.function.StructManager;
+import com.wrmsr.presto.struct.StructManager;
 import com.wrmsr.presto.reactor.tuples.Layout;
 import com.wrmsr.presto.reactor.tuples.PkLayout;
 import org.apache.commons.lang3.tuple.ImmutablePair;

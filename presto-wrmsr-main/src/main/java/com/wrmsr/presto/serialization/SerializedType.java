@@ -1,4 +1,4 @@
-package com.wrmsr.presto.codec;
+package com.wrmsr.presto.serialization;
 
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.block.Block;

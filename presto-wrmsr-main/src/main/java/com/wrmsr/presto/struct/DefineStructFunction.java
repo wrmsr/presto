@@ -11,9 +11,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.function;
+package com.wrmsr.presto.struct;
 
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.function.StringVarargsFunction;
 import io.airlift.slice.Slice;
 
 import java.lang.invoke.MethodHandle;

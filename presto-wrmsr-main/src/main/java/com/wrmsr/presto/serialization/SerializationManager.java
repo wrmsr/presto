@@ -1,4 +1,4 @@
-package com.wrmsr.presto.codec;
+package com.wrmsr.presto.serialization;
 
 /*
 lol type aliases

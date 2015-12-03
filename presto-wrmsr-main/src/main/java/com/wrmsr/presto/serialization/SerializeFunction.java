@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.codec;
+package com.wrmsr.presto.serialization;
 
 import com.facebook.presto.metadata.FunctionKind;
 import com.facebook.presto.metadata.FunctionRegistry;
@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.wrmsr.presto.function.StructManager;
+import com.wrmsr.presto.struct.StructManager;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
