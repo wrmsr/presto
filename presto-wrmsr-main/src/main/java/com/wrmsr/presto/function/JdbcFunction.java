@@ -36,7 +36,7 @@ public class JdbcFunction
                 1,
                 "varchar",
                 "jdbc",
-                ImmutableList.of(Context.class));
+                ImmutableList.of(Context.class, Slice.class));
         this.connectorManager = connectorManager;
     }
 
@@ -56,14 +56,14 @@ public class JdbcFunction
         return super.bindMethodHandle().bindTo(new Context(connectorManager));
     }
 
-    public static Slice jdbc(Context context, Slice connectorName, Slice[] commands)
+    public static Slice jdbc(Context context, Slice connectorName, Object[] commands)
     {
         JdbcConnector connector = (JdbcConnector) context.connectorManager.getConnectors().get(connectorName.toStringUtf8());
         JdbcMetadata metadata = (JdbcMetadata) connector.getMetadata();
         BaseJdbcClient client = (BaseJdbcClient) metadata.getJdbcClient();
         try (Connection connection = client.getConnection()) {
             for (int i = 0; i < commands.length; ++i) {
-                String sql = commands[i].toStringUtf8();
+                String sql = ((Slice) commands[i]).toStringUtf8();
                 ScriptRunner scriptRunner = new ScriptRunner(connection);
                 scriptRunner.runScript(new StringReader(sql));
             }
