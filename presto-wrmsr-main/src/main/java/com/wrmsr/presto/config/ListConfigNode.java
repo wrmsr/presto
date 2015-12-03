@@ -23,14 +23,13 @@ public abstract class ListConfigNode<T>
         }
     }
 
-    private final List<T> items;
+    protected final List<T> items;
 
     public ListConfigNode(List<T> items)
     {
         this.items = ImmutableList.copyOf(items);
     }
 
-    @JsonValue
     public List<T> getItems()
     {
         return items;

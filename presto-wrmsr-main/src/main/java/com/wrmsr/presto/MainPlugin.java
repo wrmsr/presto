@@ -82,6 +82,7 @@ import java.util.Set;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Serialization.YAML_OBJECT_MAPPER;
 import static java.util.Objects.requireNonNull;
 
@@ -197,7 +198,14 @@ public class MainPlugin
         }
 
         for (Map.Entry<String, ConnectorsConfigNode.Entry> e : config.getMap(ConnectorsConfigNode.class).entrySet()) {
-            HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(e.getValue());
+            Object rt;
+            try {
+                rt = OBJECT_MAPPER.get().readValue(OBJECT_MAPPER.get().writeValueAsString(e.getValue()), Map.class);
+            }
+            catch (IOException ex) {
+                throw Throwables.propagate(ex);
+            }
+            HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(rt);
             Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
 
             String targetConnectorName = connProps.get("connector.name");

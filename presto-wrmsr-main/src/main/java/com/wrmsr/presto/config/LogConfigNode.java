@@ -6,7 +6,7 @@ import com.wrmsr.presto.util.Configs;
 import java.util.Map;
 
 public final class LogConfigNode
-    extends MapConfigNode<String, String>
+    extends StringMapConfigNode
 {
     @JsonCreator
     public static LogConfigNode valueOf(Object object)

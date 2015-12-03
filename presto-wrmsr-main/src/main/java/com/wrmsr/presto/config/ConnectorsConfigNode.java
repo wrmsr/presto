@@ -13,7 +13,7 @@ import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 public final class ConnectorsConfigNode
     extends MapConfigNode<String, ConnectorsConfigNode.Entry>
 {
-    public static class Entry
+    public static final class Entry
     {
         @JsonCreator
         public static Entry valueOf(Object object)
@@ -21,7 +21,7 @@ public final class ConnectorsConfigNode
             return new Entry(Configs.flatten(object));
         }
 
-        private final Map<String, String> entries;
+        protected final Map<String, String> entries;
 
         public Entry(Map<String, String> entries)
         {

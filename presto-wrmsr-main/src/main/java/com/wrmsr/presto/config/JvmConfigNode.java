@@ -6,7 +6,7 @@ import com.wrmsr.presto.util.Configs;
 import java.util.Map;
 
 public final class JvmConfigNode
-    extends MapConfigNode<String, String>
+    extends StringMapConfigNode
 {
     @JsonCreator
     public static JvmConfigNode valueOf(Object object)

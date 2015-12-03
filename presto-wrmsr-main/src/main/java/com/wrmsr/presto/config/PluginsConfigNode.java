@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import java.util.List;
 
 public final class PluginsConfigNode
-    extends ListConfigNode<String>
+    extends StringListConfigNode
 {
     @JsonCreator
     public static PluginsConfigNode valueOf(List<String> items)
