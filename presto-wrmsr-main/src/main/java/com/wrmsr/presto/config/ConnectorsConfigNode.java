@@ -4,8 +4,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.Configs;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.Map;
+
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public final class ConnectorsConfigNode
     extends MapConfigNode<String, ConnectorsConfigNode.Entry>
@@ -49,5 +52,11 @@ public final class ConnectorsConfigNode
     public ConnectorsConfigNode(Map<String, Entry> entries)
     {
         super(entries);
+    }
+
+    @JsonValue
+    public Map<String, Map<String, String>>  flatten()
+    {
+        return getEntries().entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), e.getValue().getEntries())).collect(toImmutableMap());
     }
 }

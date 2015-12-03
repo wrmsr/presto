@@ -12,6 +12,7 @@ import io.airlift.slice.Slices;
 import org.testng.annotations.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
@@ -52,6 +53,18 @@ public class TestSerialization
         public List<Type> getTypes()
         {
             return ImmutableList.<Type>of(BOOLEAN, BIGINT, DOUBLE, VARCHAR, VARBINARY, TIMESTAMP, DATE, HYPER_LOG_LOG);
+        }
+
+        @Override
+        public Optional<Type> getCommonSuperType(List<? extends Type> types)
+        {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Type> getCommonSuperType(Type firstType, Type secondType)
+        {
+            return Optional.empty();
         }
     }
 

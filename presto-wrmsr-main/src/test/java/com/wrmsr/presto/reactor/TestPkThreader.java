@@ -790,8 +790,10 @@ public class TestPkThreader
                 subplan.getFragment().getRoot(),
                 subplan.getFragment().getOutputLayout(),
                 plan.getTypes(),
-                subplan.getFragment().getDistribution(),
-                outputFactory);
+                //subplan.getFragment().getDistribution(),
+                outputFactory,
+                true,
+                false);
 
         // generate sources
         List<TaskSource> sources = new ArrayList<>();
@@ -845,7 +847,7 @@ public class TestPkThreader
             done = !processed;
         }
 
-        MaterializedResult result = outputFactory.getMaterializingOperator().getMaterializedResult();
+        MaterializedResult result = outputFactory.getMaterializedResult();
         for (MaterializedRow row : result.getMaterializedRows()) {
             System.out.println(row);
         }
