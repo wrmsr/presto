@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
+import static com.wrmsr.presto.util.Serialization.roundTrip;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 /*
@@ -104,12 +105,7 @@ public class DoConfigNode
 
             ImmutableList.Builder<Verb> builder = ImmutableList.builder();
             for (Object child : children) {
-                try {
-                    builder.add(mapper.readValue(mapper.writeValueAsString(child), Verb.class));
-                }
-                catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                builder.add(roundTrip(mapper, child, Verb.class));
             }
             return new VerbList(builder.build());
         }
@@ -255,6 +251,12 @@ public class DoConfigNode
         {
             return subjects;
         }
+    }
+
+    @JsonCreator
+    public static DoConfigNode valueOf(Object object)
+    {
+        return new DoConfigNode(SubjectList.valueOf(object));
     }
 
     protected final SubjectList subjects;

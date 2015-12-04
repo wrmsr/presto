@@ -15,8 +15,14 @@ package com.wrmsr.presto.util;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.AnnotationIntrospector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.DefaultDeserializationContext;
+import com.fasterxml.jackson.databind.introspect.Annotated;
+import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -28,13 +34,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.airlift.json.ObjectMapperProvider;
 import io.airlift.slice.Slice;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import com.wrmsr.presto.util.codec.Codec;
+
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public class Serialization
 {
@@ -118,5 +128,34 @@ public class Serialization
                 }
             }
         };
+    }
+
+    public static <T> T roundTrip(ObjectMapper mapper, Object object, Class<T> cls)
+    {
+        try {
+            return mapper.readValue(mapper.writeValueAsBytes(object), cls);
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    @SuppressWarnings({"unchecked"})
+    public static <T> T roundTrip(ObjectMapper mapper, Object object, TypeReference valueTypeRef)
+    {
+        try {
+            return (T) mapper.readValue(mapper.writeValueAsBytes(object), valueTypeRef);
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    public static Map<String, Class<?>> getJsonSubtypeMap(ObjectMapper mapper, Class<?> cls)
+    {
+        AnnotationIntrospector ai = new JacksonAnnotationIntrospector();
+        Annotated a = AnnotatedClass.construct(cls, ai, mapper.getDeserializationConfig());
+        List<NamedType> nts = ai.findSubtypes(a);
+        return nts.stream().map(nt -> ImmutablePair.<String, Class<?>>of(nt.getName(), nt.getType())).collect(toImmutableMap());
     }
 }

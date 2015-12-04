@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
-        include = JsonTypeInfo.As.WRAPPER_OBJECT)
+        include = JsonTypeInfo.As.WRAPPER_OBJECT
+        // defaultImpl = UnknownConfigNode.class
+)
 @JsonSubTypes({
         @JsonSubTypes.Type(value = ConnectorsConfigNode.class, name = "connectors"),
         @JsonSubTypes.Type(value = DoConfigNode.class, name = "do"),

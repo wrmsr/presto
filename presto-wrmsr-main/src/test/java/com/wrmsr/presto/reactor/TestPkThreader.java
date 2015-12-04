@@ -108,6 +108,7 @@ import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.connectorSupport.ConnectorSupport;
 import com.wrmsr.presto.struct.StructDefinition;
 import com.wrmsr.presto.struct.StructManager;
 import com.wrmsr.presto.reactor.tuples.Layout;

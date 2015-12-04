@@ -1,4 +1,4 @@
-package com.wrmsr.presto.reactor;
+package com.wrmsr.presto.connectorSupport;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.spi.ColumnHandle;

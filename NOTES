@@ -1685,3 +1685,11 @@ select jdbc('conn', 'do raw jdbc stuff') pls
 
 https://github.com/dockerfile/java/tree/master/oracle-java8
 jdk.nashorn.tools.Shell
+
+
+seriously, sigils?
+ Nullable<>
+ SizeEstimated<>('40M')
+ ...
+ how does this shit work with math and funcs?
+ annotations?
