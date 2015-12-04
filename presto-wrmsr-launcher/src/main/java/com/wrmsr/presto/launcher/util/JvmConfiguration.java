@@ -98,6 +98,20 @@ ulimits
 -XX:+ExplicitGCInvokesConcurrent
 
 hotspot/src/share/vm/runtime/globals.hpp
+
+-server
+-XX:BCEATraceLevel=3
+-XX:+PrintCompilation
+-XX:+UnlockDiagnosticVMOptions
+-XX:+PrintInlining
+-verbose:gc
+-XX:MaxInlineSize=256
+-XX:FreqInlineSize=1024
+-XX:MaxBCEAEstimateSize=1024
+-XX:MaxInlineLevel=22
+-XX:CompileThreshold=10
+-Xmx4g
+-Xms4g
 */
 
 package com.wrmsr.presto.launcher.util;

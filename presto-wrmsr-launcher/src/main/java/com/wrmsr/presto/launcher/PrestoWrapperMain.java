@@ -134,7 +134,9 @@ public class PrestoWrapperMain
                         CliCommand.class,
                         H2.class,
                         Hive.class,
-                        Hdfs.class
+                        Hdfs.class,
+                        Jython.class,
+                        Nashorn.class
                 );
 
         Cli<Runnable> gitParser = builder.build();
@@ -633,7 +635,39 @@ public class PrestoWrapperMain
         @Override
         public String getClassName()
         {
-            return null;
+            return "com.wrmsr.presto.launcher.H2Main";
+        }
+    }
+
+    @Command(name = "jython", description = "Starts Jython shell")
+    public static class Jython extends PassthroughCommand
+    {
+        @Override
+        public String getModuleName()
+        {
+            return "presto-wrmsr-jython";
+        }
+
+        @Override
+        public String getClassName()
+        {
+            return "org.python.util.jython";
+        }
+    }
+
+    @Command(name = "nashorn", description = "Starts Nashorn shell")
+    public static class Nashorn extends PassthroughCommand
+    {
+        @Override
+        public String getModuleName()
+        {
+            return "presto-wrmsr-launcher";
+        }
+
+        @Override
+        public String getClassName()
+        {
+            return "jdk.nashorn.tools.Shell";
         }
     }
 

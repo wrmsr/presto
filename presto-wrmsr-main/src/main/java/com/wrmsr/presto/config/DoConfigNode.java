@@ -1,9 +1,11 @@
 package com.wrmsr.presto.config;
 
+import com.facebook.presto.spi.ConnectorViewDefinition;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 
@@ -13,84 +15,43 @@ import java.util.Map;
 import java.util.Objects;
 
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
-// TODO sxec / file / script
+/*
+sql
+connector + name
+script + name
+
+list
+
+string
+file
+*/
 public class DoConfigNode
-        extends ListConfigNode<DoConfigNode.Entry>
+        extends ConfigNode
 {
-    @JsonCreator
-    public static DoConfigNode valueOf(Object object)
-    {
-        ObjectMapper mapper = OBJECT_MAPPER.get();
-        List<Entry> entries;
-        if (object instanceof String) {
-            entries = ImmutableList.of(new StatementEntry((String) object));
-        }
-        else if (object instanceof Entry) {
-            entries = ImmutableList.of((Entry) object);
-        }
-        else if (object instanceof List) {
-            ImmutableList.Builder<Entry> builder = ImmutableList.builder();
-            for (Object o : (List) object) {
-                if (o instanceof String) {
-                    builder.add(new StatementEntry((String) o));
-                }
-                else if (o instanceof Map) {
-                    try {
-                        builder.add(mapper.readValue(mapper.writeValueAsString(o), Entry.class));
-                    }
-                    catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                else {
-                    throw new IllegalArgumentException(Objects.toString(o));
-                }
-            }
-            entries = builder.build();
-        }
-        else {
-            throw new IllegalArgumentException();
-        }
-        return new DoConfigNode(entries);
-    }
-
-    public DoConfigNode(List<Entry> items)
-    {
-        super(items);
-    }
-
-    @JsonValue
-    public List<Entry> getItems()
-    {
-        return items;
-    }
-
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
             include = JsonTypeInfo.As.WRAPPER_OBJECT)
     @JsonSubTypes({
-            @JsonSubTypes.Type(value = StatementEntry.class, name = StatementEntry.NAME),
-            @JsonSubTypes.Type(value = FileEntry.class, name = FileEntry.NAME),
+            @JsonSubTypes.Type(value = StringVerb.class, name = "string"),
+            @JsonSubTypes.Type(value = FileVerb.class, name = "file"),
     })
-    public static abstract class Entry
+    public static abstract class Verb
     {
     }
 
-    public static final class StatementEntry
-            extends Entry
+    public static final class StringVerb extends Verb
     {
-        public static final String NAME = "statement";
-
-        private final String statement;
+        protected final String statement;
 
         @JsonCreator
-        public static StatementEntry valueOf(String statement)
+        public static StringVerb valueOf(String statement)
         {
-            return new StatementEntry(statement);
+            return new StringVerb(statement);
         }
 
-        public StatementEntry(String statement)
+        public StringVerb(String statement)
         {
             this.statement = statement;
         }
@@ -102,20 +63,17 @@ public class DoConfigNode
         }
     }
 
-    public static final class FileEntry
-            extends Entry // TODO os.path.expandvars
+    public static final class FileVerb extends Verb
     {
-        public static final String NAME = "file";
-
-        private final String path;
+        protected final String path;
 
         @JsonCreator
-        public static FileEntry valueOf(String path)
+        public static FileVerb valueOf(String path)
         {
-            return new FileEntry(path);
+            return new FileVerb(path);
         }
 
-        public FileEntry(String path)
+        public FileVerb(String path)
         {
             this.path = path;
         }
@@ -125,5 +83,190 @@ public class DoConfigNode
         {
             return path;
         }
+    }
+
+    public static final class VerbList
+    {
+        @JsonCreator
+        public static VerbList valueOf(Object object)
+        {
+            ObjectMapper mapper = OBJECT_MAPPER.get();
+            List children;
+            if (object instanceof String) {
+                children = ImmutableList.of(object);
+            }
+            else if (object instanceof List) {
+                children = (List) object;
+            }
+            else {
+                throw new IllegalArgumentException();
+            }
+
+            ImmutableList.Builder<Verb> builder = ImmutableList.builder();
+            for (Object child : children) {
+                try {
+                    builder.add(mapper.readValue(mapper.writeValueAsString(child), Verb.class));
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return new VerbList(builder.build());
+        }
+
+        protected final List<Verb> verbs;
+
+        public VerbList(List<Verb> verbs)
+        {
+            this.verbs = ImmutableList.copyOf(verbs);
+        }
+
+        @JsonValue
+        public List<Verb> getVerbs()
+        {
+            return verbs;
+        }
+    }
+
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.WRAPPER_OBJECT)
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = SqlSubject.class, name = "sql"),
+            @JsonSubTypes.Type(value = ConnectorSubject.class, name = "connector"),
+            @JsonSubTypes.Type(value = ScriptSubject.class, name = "script"),
+    })
+    public static abstract class Subject
+    {
+    }
+
+    public static final class SqlSubject extends Subject
+    {
+        protected final VerbList verbs;
+
+        @JsonCreator
+        public static SqlSubject valueOf(VerbList verbs)
+        {
+            return new SqlSubject(verbs);
+        }
+
+        public SqlSubject(VerbList verbs)
+        {
+            this.verbs = verbs;
+        }
+
+        @JsonValue
+        public VerbList getVerbs()
+        {
+            return verbs;
+        }
+    }
+
+    public static final class ConnectorSubject extends Subject
+    {
+        protected final Map<String, VerbList> verbs;
+
+        @JsonCreator
+        public static ConnectorSubject valueOf(Map<String, VerbList> verbs)
+        {
+            return new ConnectorSubject(verbs);
+        }
+
+        public ConnectorSubject(Map<String, VerbList> verbs)
+        {
+            this.verbs = verbs;
+        }
+
+        @JsonValue
+        public Map<String, VerbList> getVerbs()
+        {
+            return verbs;
+        }
+    }
+
+    public static final class ScriptSubject extends Subject
+    {
+        protected final Map<String, VerbList> verbs;
+
+        @JsonCreator
+        public static ScriptSubject valueOf(Map<String, VerbList> verbs)
+        {
+            return new ScriptSubject(verbs);
+        }
+
+        public ScriptSubject(Map<String, VerbList> verbs)
+        {
+            this.verbs = verbs;
+        }
+
+        @JsonValue
+        public Map<String, VerbList> getVerbs()
+        {
+            return verbs;
+        }
+    }
+
+    public static final class SubjectList
+    {
+        @JsonCreator
+        public static SubjectList valueOf(Object object)
+        {
+            ObjectMapper mapper = OBJECT_MAPPER.get();
+            if (object instanceof String) {
+                return new SubjectList(
+                        ImmutableList.of(
+                                new SqlSubject(
+                                        new VerbList(
+                                                ImmutableList.of(
+                                                        new StringVerb((String) object))))));
+            }
+            else if (object instanceof List) {
+                return new SubjectList(
+                        ImmutableList.of(
+                                new SqlSubject(
+                                        new VerbList(
+                                                ((List) object).stream().map(o -> new StringVerb((String) o)).collect(toImmutableList())))));
+            }
+            else if (object instanceof Map) {
+                /*
+                try {
+                    mapper.readValue(mapper.writeValueAsString(object), new TypeReference<Map<String>>() {
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                */
+                throw new IllegalArgumentException();
+            }
+            else {
+                throw new IllegalArgumentException();
+            }
+        }
+
+        protected final List<Subject> subjects;
+
+        public SubjectList(List<Subject> subjects)
+        {
+            this.subjects = ImmutableList.copyOf(subjects);
+        }
+
+        @JsonValue
+        public List<Subject> getSubjects()
+        {
+            return subjects;
+        }
+    }
+
+    protected final SubjectList subjects;
+
+    public DoConfigNode(SubjectList subjects)
+    {
+        this.subjects = subjects;
+    }
+
+    @JsonValue
+    public SubjectList getSubjects()
+    {
+        return subjects;
     }
 }
