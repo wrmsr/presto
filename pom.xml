@@ -81,6 +81,7 @@
         <module>presto-raptor</module>
         <module>presto-base-jdbc</module>
         <module>presto-mysql</module>
+        <module>presto-local-file</module>
         <module>presto-postgresql</module>
         <module>presto-client</module>
         <module>presto-parser</module>
@@ -132,6 +133,12 @@
             <dependency>
                 <groupId>com.facebook.presto</groupId>
                 <artifactId>presto-orc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.facebook.presto</groupId>
+                <artifactId>presto-local-file</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
