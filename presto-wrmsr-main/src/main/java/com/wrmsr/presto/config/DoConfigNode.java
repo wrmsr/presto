@@ -225,7 +225,7 @@ public class DoConfigNode
                         ImmutableList.of(
                                 new SqlSubject(
                                         new VerbList(
-                                                ((List) object).stream().map(o -> new StringVerb((String) o)).collect(toImmutableList())))));
+                                                ((List<String>) object).stream().map(o -> new StringVerb(o)).collect(toImmutableList())))));
             }
             else if (object instanceof Map) {
                 /*
