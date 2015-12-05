@@ -37,7 +37,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Module;
 import com.wrmsr.presto.config.ConnectorsConfigNode;
+import com.wrmsr.presto.config.DoConfigNode;
 import com.wrmsr.presto.config.MainConfig;
+import com.wrmsr.presto.config.MainConfigNode;
 import com.wrmsr.presto.config.PluginsConfigNode;
 import com.wrmsr.presto.config.SystemConfigNode;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
@@ -181,35 +183,47 @@ public class MainPlugin
 
     public void installConfig(MainConfig config)
     {
-        for (Map.Entry<String, String> e : config.getMap(SystemConfigNode.class).entrySet()) {
-            System.setProperty(e.getKey(), e.getValue());
-        }
+        for (MainConfigNode node : config.getNodes()) {
+            if (node instanceof SystemConfigNode) {
+                for (Map.Entry<String, String> e : ((SystemConfigNode) node).getEntries().entrySet()) {
+                    System.setProperty(e.getKey(), e.getValue());
+                }
+            }
 
-        for (String plugin : config.getList(PluginsConfigNode.class)) {
-            try {
-                pluginManager.loadPlugin(plugin);
+            else if (node instanceof PluginsConfigNode) {
+                for (String plugin : ((PluginsConfigNode) node).getItems()) {
+                    try {
+                        pluginManager.loadPlugin(plugin);
+                    }
+                    catch (Exception e) {
+                        throw Throwables.propagate(e);
+                    }
+                }
             }
-            catch (Exception e) {
-                throw Throwables.propagate(e);
-            }
-        }
 
-        for (Map.Entry<String, ConnectorsConfigNode.Entry> e : config.getMap(ConnectorsConfigNode.class).entrySet()) {
-            Object rt;
-            try {
-                rt = OBJECT_MAPPER.get().readValue(OBJECT_MAPPER.get().writeValueAsString(e.getValue()), Map.class);
-            }
-            catch (IOException ex) {
-                throw Throwables.propagate(ex);
-            }
-            HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(rt);
-            Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
+            else if (node instanceof ConnectorsConfigNode) {
+                for (Map.Entry<String, ConnectorsConfigNode.Entry> e : ((ConnectorsConfigNode) node).getEntries().entrySet()) {
+                    Object rt;
+                    try {
+                        rt = OBJECT_MAPPER.get().readValue(OBJECT_MAPPER.get().writeValueAsString(e.getValue()), Map.class);
+                    }
+                    catch (IOException ex) {
+                        throw Throwables.propagate(ex);
+                    }
+                    HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(rt);
+                    Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
 
-            String targetConnectorName = connProps.get("connector.name");
-            connProps.remove("connector.name");
-            String targetName = e.getKey();
-            connectorManager.createConnection(targetName, targetConnectorName, connProps);
-            checkNotNull(connectorManager.getConnectors().get(targetName));
+                    String targetConnectorName = connProps.get("connector.name");
+                    connProps.remove("connector.name");
+                    String targetName = e.getKey();
+                    connectorManager.createConnection(targetName, targetConnectorName, connProps);
+                    checkNotNull(connectorManager.getConnectors().get(targetName));
+                }
+            }
+
+            else if (node instanceof DoConfigNode) {
+
+            }
         }
     }
 

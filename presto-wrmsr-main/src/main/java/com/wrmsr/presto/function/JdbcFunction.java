@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 // String conn, String... command
+// FIXME use connectorSupport
 // TODO jdbc_exec, jdbc_eval
 // TODO init from file
 public class JdbcFunction

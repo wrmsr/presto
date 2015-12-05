@@ -1,16 +1,24 @@
 package com.wrmsr.presto.connectorSupport;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
+import com.facebook.presto.plugin.jdbc.JdbcConnector;
+import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.type.Type;
+import com.google.common.base.Throwables;
 import com.wrmsr.presto.connectorSupport.ConnectorSupport;
 import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
+import com.wrmsr.presto.jdbc.util.ScriptRunner;
+import io.airlift.slice.Slice;
+import io.airlift.slice.Slices;
 
+import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -71,5 +79,19 @@ public class ExtendedJdbcConnectorSupport
     public Type getColumnType(ColumnHandle columnHandle)
     {
         return ((JdbcColumnHandle) columnHandle).getColumnType();
+    }
+
+    @Override
+    public void exec(String buf)
+    {
+        JdbcMetadata metadata = (JdbcMetadata) connector.getMetadata();
+        BaseJdbcClient client = (BaseJdbcClient) metadata.getJdbcClient();
+        try (Connection connection = client.getConnection()) {
+            ScriptRunner scriptRunner = new ScriptRunner(connection);
+            scriptRunner.runScript(new StringReader(buf));
+        }
+        catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
     }
 }

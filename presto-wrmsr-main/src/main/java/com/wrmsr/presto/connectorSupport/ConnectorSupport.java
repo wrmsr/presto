@@ -51,5 +51,13 @@ public abstract class ConnectorSupport<C extends Connector>
                 pk);
     }
 
-    // exec
+    public void exec(String buf)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    public List eval(String cmd)
+    {
+        throw new UnsupportedOperationException();
+    }
 }
