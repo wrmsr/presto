@@ -32,7 +32,7 @@ import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.google.inject.Scopes;
 import com.google.inject.util.Modules;
-import com.wrmsr.presto.util.Configs;
+import com.wrmsr.presto.util.config.Configs;
 import io.airlift.bootstrap.Bootstrap;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 

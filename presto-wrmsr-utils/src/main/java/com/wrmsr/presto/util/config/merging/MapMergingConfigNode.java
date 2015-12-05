@@ -1,16 +1,15 @@
-package com.wrmsr.presto.config;
+package com.wrmsr.presto.util.config.merging;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
-public abstract class MapConfigNode<K, V>
-    extends ConfigNode
+public abstract class MapMergingConfigNode<K, V>
+    implements MergingConfigNode
 {
     protected final Map<K, V> entries;
 
-    public MapConfigNode(Map<K, V> entries)
+    public MapMergingConfigNode(Map<K, V> entries)
     {
         this.entries = ImmutableMap.copyOf(entries);
     }

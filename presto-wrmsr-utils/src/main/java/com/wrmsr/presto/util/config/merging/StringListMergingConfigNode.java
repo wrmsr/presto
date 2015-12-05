@@ -1,13 +1,13 @@
-package com.wrmsr.presto.config;
+package com.wrmsr.presto.util.config.merging;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.List;
 
-public abstract class StringListConfigNode
-    extends ListConfigNode<String>
+public abstract class StringListMergingConfigNode
+    extends ListMergingConfigNode<String>
 {
-    public StringListConfigNode(List<String> items)
+    public StringListMergingConfigNode(List<String> items)
     {
         super(items);
     }

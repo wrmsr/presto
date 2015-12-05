@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.wrmsr.presto.metaconnector.partitioner.PartitionerConnector;
-import com.wrmsr.presto.util.Configs;
+import com.wrmsr.presto.util.config.Configs;
 import io.airlift.bootstrap.Bootstrap;
 
 import java.util.Arrays;

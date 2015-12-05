@@ -1,12 +1,13 @@
 package com.wrmsr.presto.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.wrmsr.presto.util.Configs;
+import com.wrmsr.presto.util.config.Configs;
+import com.wrmsr.presto.util.config.merging.StringMapMergingConfigNode;
 
 import java.util.Map;
 
 public final class SystemConfigNode
-    extends StringMapConfigNode
+    extends StringMapMergingConfigNode implements MainConfigNode
 {
     @JsonCreator
     public static SystemConfigNode valueOf(Object object)

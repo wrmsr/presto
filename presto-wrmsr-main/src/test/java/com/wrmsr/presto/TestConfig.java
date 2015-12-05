@@ -1,15 +1,11 @@
 package com.wrmsr.presto;
 
-import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.*;
+import com.wrmsr.presto.util.config.Configs;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
-import org.apache.bval.jsr303.ApacheValidationProvider;
 import org.apache.commons.configuration.*;
 import org.testng.annotations.Test;
-
-import javax.validation.Validation;
-import javax.validation.Validator;
 
 import java.io.File;
 import java.io.OutputStreamWriter;

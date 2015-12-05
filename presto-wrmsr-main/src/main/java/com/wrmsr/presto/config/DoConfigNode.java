@@ -1,18 +1,14 @@
 package com.wrmsr.presto.config;
 
-import com.facebook.presto.spi.ConnectorViewDefinition;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Serialization.roundTrip;
@@ -29,7 +25,7 @@ string
 file
 */
 public class DoConfigNode
-        extends ConfigNode
+        implements MainConfigNode
 {
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,

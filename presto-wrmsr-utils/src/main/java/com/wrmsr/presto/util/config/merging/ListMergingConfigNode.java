@@ -1,13 +1,12 @@
-package com.wrmsr.presto.config;
+package com.wrmsr.presto.util.config.merging;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
 
-public abstract class ListConfigNode<T>
-    extends ConfigNode
+public abstract class ListMergingConfigNode<T>
+    implements MergingConfigNode
 {
     @SuppressWarnings({"unchecked"})
     public static <T> List<T> unpack(Object object, Class<T> cls)
@@ -25,7 +24,7 @@ public abstract class ListConfigNode<T>
 
     protected final List<T> items;
 
-    public ListConfigNode(List<T> items)
+    public ListMergingConfigNode(List<T> items)
     {
         this.items = ImmutableList.copyOf(items);
     }

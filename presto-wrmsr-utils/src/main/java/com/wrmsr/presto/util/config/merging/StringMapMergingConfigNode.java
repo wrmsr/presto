@@ -1,13 +1,13 @@
-package com.wrmsr.presto.config;
+package com.wrmsr.presto.util.config.merging;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.Map;
 
-public abstract class StringMapConfigNode
-    extends MapConfigNode<String, String>
+public abstract class StringMapMergingConfigNode
+    extends MapMergingConfigNode<String, String>
 {
-    public StringMapConfigNode(Map<String, String> entries)
+    public StringMapMergingConfigNode(Map<String, String> entries)
     {
         super(entries);
     }

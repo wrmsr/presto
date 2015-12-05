@@ -3,7 +3,8 @@ package com.wrmsr.presto.config;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.util.Configs;
+import com.wrmsr.presto.util.config.Configs;
+import com.wrmsr.presto.util.config.merging.MapMergingConfigNode;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.Map;
@@ -11,7 +12,7 @@ import java.util.Map;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public final class ConnectorsConfigNode
-    extends MapConfigNode<String, ConnectorsConfigNode.Entry>
+    extends MapMergingConfigNode<String, ConnectorsConfigNode.Entry> implements MainConfigNode
 {
     public static final class Entry
     {

@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.util;
+package com.wrmsr.presto.util.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.*;
 import com.google.common.collect.Lists;
+import com.wrmsr.presto.util.*;
 import com.wrmsr.presto.util.codec.Codec;
 import com.wrmsr.presto.util.collect.ImmutableCollectors;
 import org.apache.commons.configuration.Configuration;

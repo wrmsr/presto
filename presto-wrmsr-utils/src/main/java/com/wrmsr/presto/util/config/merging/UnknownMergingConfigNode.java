@@ -1,15 +1,17 @@
-package com.wrmsr.presto.config;
+package com.wrmsr.presto.util.config.merging;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableMap;
 
-public final class UnknownConfigNode
-    extends ConfigNode
+import java.util.Map;
+
+public abstract class UnknownMergingConfigNode
+    implements MergingConfigNode
 {
     private final String type;
     private final Object object;
 
-    public UnknownConfigNode(String type, Object object)
+    public UnknownMergingConfigNode(String type, Object object)
     {
         this.type = type;
         this.object = object;
@@ -26,7 +28,7 @@ public final class UnknownConfigNode
     }
 
     @JsonValue
-    public Object jsonValue()
+    public Map<String, Object> jsonValue()
     {
         return ImmutableMap.of(type, object);
     }

@@ -30,6 +30,8 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.airlift.json.ObjectMapperProvider;
@@ -151,11 +153,12 @@ public class Serialization
         }
     }
 
-    public static Map<String, Class<?>> getJsonSubtypeMap(ObjectMapper mapper, Class<?> cls)
+    public static BiMap<String, Class<?>> getJsonSubtypeMap(ObjectMapper mapper, Class<?> cls)
     {
         AnnotationIntrospector ai = new JacksonAnnotationIntrospector();
         Annotated a = AnnotatedClass.construct(cls, ai, mapper.getDeserializationConfig());
         List<NamedType> nts = ai.findSubtypes(a);
-        return nts.stream().map(nt -> ImmutablePair.<String, Class<?>>of(nt.getName(), nt.getType())).collect(toImmutableMap());
+        Map<String, Class<?>> m = nts.stream().map(nt -> ImmutablePair.<String, Class<?>>of(nt.getName(), nt.getType())).collect(toImmutableMap());
+        return ImmutableBiMap.copyOf(m);
     }
 }

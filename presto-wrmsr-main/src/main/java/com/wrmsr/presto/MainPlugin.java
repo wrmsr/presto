@@ -62,7 +62,7 @@ import com.wrmsr.presto.metaconnector.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.metaconnector.partitioner.PartitionerModule;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
-import com.wrmsr.presto.util.Configs;
+import com.wrmsr.presto.util.config.Configs;
 import com.wrmsr.presto.util.Serialization;
 import io.airlift.json.JsonCodec;
 import org.apache.commons.configuration.HierarchicalConfiguration;
