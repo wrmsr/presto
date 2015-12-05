@@ -15,8 +15,9 @@ package com.facebook.presto.metadata;
 
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorResolvedIndex;
-import com.facebook.presto.spi.TupleDomain;
-import com.google.common.base.Preconditions;
+import com.facebook.presto.spi.predicate.TupleDomain;
+
+import static java.util.Objects.requireNonNull;
 
 public final class ResolvedIndex
 {
@@ -25,8 +26,8 @@ public final class ResolvedIndex
 
     public ResolvedIndex(String connectorId, ConnectorResolvedIndex index)
     {
-        Preconditions.checkNotNull(connectorId, "connectorId is null");
-        Preconditions.checkNotNull(index, "index is null");
+        requireNonNull(connectorId, "connectorId is null");
+        requireNonNull(index, "index is null");
 
         indexHandle = new IndexHandle(connectorId, index.getIndexHandle());
         undeterminedTupleDomain = index.getUnresolvedTupleDomain();

@@ -34,6 +34,7 @@ import org.intellij.lang.annotations.Language;
 import org.testng.annotations.AfterClass;
 
 import java.util.List;
+import java.util.OptionalLong;
 
 import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
@@ -53,7 +54,7 @@ public abstract class AbstractTestQueryFramework
     }
 
     @AfterClass(alwaysRun = true)
-    private void close()
+    public void close()
             throws Exception
     {
         try {
@@ -93,19 +94,25 @@ public abstract class AbstractTestQueryFramework
     protected void assertQuery(Session session, @Language("SQL") String sql)
             throws Exception
     {
-        QueryAssertions.assertQuery(queryRunner, session, sql, h2QueryRunner, sql, false);
+        QueryAssertions.assertQuery(queryRunner, session, sql, h2QueryRunner, sql, false, false);
     }
 
     public void assertQueryOrdered(@Language("SQL") String sql)
             throws Exception
     {
-        QueryAssertions.assertQuery(queryRunner, getSession(), sql, h2QueryRunner, sql, true);
+        QueryAssertions.assertQuery(queryRunner, getSession(), sql, h2QueryRunner, sql, true, false);
     }
 
     protected void assertQuery(@Language("SQL") String actual, @Language("SQL") String expected)
             throws Exception
     {
-        QueryAssertions.assertQuery(queryRunner, getSession(), actual, h2QueryRunner, expected, false);
+        QueryAssertions.assertQuery(queryRunner, getSession(), actual, h2QueryRunner, expected, false, false);
+    }
+
+    protected void assertQuery(Session session, @Language("SQL") String actual, @Language("SQL") String expected)
+            throws Exception
+    {
+        QueryAssertions.assertQuery(queryRunner, session, actual, h2QueryRunner, expected, false, false);
     }
 
     protected void assertQueryOrdered(@Language("SQL") String actual, @Language("SQL") String expected)
@@ -117,13 +124,39 @@ public abstract class AbstractTestQueryFramework
     protected void assertQueryOrdered(Session session, @Language("SQL") String actual, @Language("SQL") String expected)
             throws Exception
     {
-        QueryAssertions.assertQuery(queryRunner, session, actual, h2QueryRunner, expected, true);
+        QueryAssertions.assertQuery(queryRunner, session, actual, h2QueryRunner, expected, true, false);
     }
 
-    protected void assertQueryTrue(@Language("SQL") String sql)
+    protected void assertUpdate(@Language("SQL") String actual, @Language("SQL") String expected)
             throws Exception
     {
-        assertQuery(sql, "SELECT true");
+        assertUpdate(getSession(), actual, expected);
+    }
+
+    protected void assertUpdate(Session session, @Language("SQL") String actual, @Language("SQL") String expected)
+            throws Exception
+    {
+        QueryAssertions.assertQuery(queryRunner, session, actual, h2QueryRunner, expected, false, true);
+    }
+
+    protected void assertUpdate(@Language("SQL") String sql)
+    {
+        assertUpdate(getSession(), sql);
+    }
+
+    protected void assertUpdate(Session session, @Language("SQL") String sql)
+    {
+        QueryAssertions.assertUpdate(queryRunner, session, sql, OptionalLong.empty());
+    }
+
+    protected void assertUpdate(@Language("SQL") String sql, long count)
+    {
+        assertUpdate(getSession(), sql, count);
+    }
+
+    protected void assertUpdate(Session session, @Language("SQL") String sql, long count)
+    {
+        QueryAssertions.assertUpdate(queryRunner, session, sql, OptionalLong.of(count));
     }
 
     public void assertApproximateQuery(Session session, @Language("SQL") String actual, @Language("SQL") String expected)
@@ -136,22 +169,46 @@ public abstract class AbstractTestQueryFramework
                 expected);
     }
 
-    protected void assertAccessDenied(@Language("SQL") String sql, @Language("RegExp") String exceptionsMessageRegExp, TestingPrivilege... deniedPrivileges)
+    protected void assertAccessAllowed(@Language("SQL") String sql, TestingPrivilege... deniedPrivileges)
+            throws Exception
+    {
+        assertAccessAllowed(getSession(), sql, deniedPrivileges);
+    }
+
+    protected void assertAccessAllowed(Session session, @Language("SQL") String sql, TestingPrivilege... deniedPrivileges)
             throws Exception
     {
         queryRunner.getExclusiveLock().lock();
         try {
             queryRunner.getAccessControl().deny(deniedPrivileges);
-            queryRunner.execute(getSession(), sql);
+            queryRunner.execute(session, sql);
+        }
+        finally {
+            queryRunner.getAccessControl().reset();
+            queryRunner.getExclusiveLock().unlock();
+        }
+    }
+
+    protected void assertAccessDenied(@Language("SQL") String sql, @Language("RegExp") String exceptionsMessageRegExp, TestingPrivilege... deniedPrivileges)
+            throws Exception
+    {
+        assertAccessDenied(getSession(), sql, exceptionsMessageRegExp, deniedPrivileges);
+    }
+
+    protected void assertAccessDenied(
+            Session session,
+            @Language("SQL") String sql,
+            @Language("RegExp") String exceptionsMessageRegExp,
+            TestingPrivilege... deniedPrivileges)
+            throws Exception
+    {
+        queryRunner.getExclusiveLock().lock();
+        try {
+            queryRunner.getAccessControl().deny(deniedPrivileges);
+            queryRunner.execute(session, sql);
             fail("Expected " + AccessDeniedException.class.getSimpleName());
         }
-        catch (AccessDeniedException e) {
-            assertExceptionMessage(e, exceptionsMessageRegExp);
-        }
         catch (RuntimeException e) {
-            if (!e.toString().startsWith(AccessDeniedException.class.getName())) {
-                throw e;
-            }
             assertExceptionMessage(e, exceptionsMessageRegExp);
         }
         finally {
@@ -162,7 +219,7 @@ public abstract class AbstractTestQueryFramework
 
     private static void assertExceptionMessage(Exception exception, @Language("RegExp") String exceptionMessagePattern)
     {
-        String regex = "Access Denied: " + exceptionMessagePattern;
+        String regex = ".*Access Denied: " + exceptionMessagePattern;
         if (!exception.getMessage().matches(regex)) {
             fail(format("Expected exception message '%s' to match '%s'", exception.getMessage(), regex));
         }
@@ -175,14 +232,9 @@ public abstract class AbstractTestQueryFramework
 
     public Function<MaterializedRow, String> onlyColumnGetter()
     {
-        return new Function<MaterializedRow, String>()
-        {
-            @Override
-            public String apply(MaterializedRow input)
-            {
-                assertEquals(input.getFieldCount(), 1);
-                return (String) input.getField(0);
-            }
+        return input -> {
+            assertEquals(input.getFieldCount(), 1);
+            return (String) input.getField(0);
         };
     }
 

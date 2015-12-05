@@ -25,6 +25,7 @@ import com.facebook.presto.sql.planner.plan.IndexJoinNode;
 import com.facebook.presto.sql.planner.plan.JoinNode;
 import com.facebook.presto.sql.planner.plan.LimitNode;
 import com.facebook.presto.sql.planner.plan.MarkDistinctNode;
+import com.facebook.presto.sql.planner.plan.MetadataDeleteNode;
 import com.facebook.presto.sql.planner.plan.OutputNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanVisitor;
@@ -49,7 +50,7 @@ import javax.inject.Inject;
 
 import java.util.Optional;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class DistributedExecutionPlanner
 {
@@ -58,7 +59,7 @@ public class DistributedExecutionPlanner
     @Inject
     public DistributedExecutionPlanner(SplitManager splitManager)
     {
-        this.splitManager = checkNotNull(splitManager, "splitManager is null");
+        this.splitManager = requireNonNull(splitManager, "splitManager is null");
     }
 
     public StageExecutionPlan plan(SubPlan root, Session session)
@@ -75,10 +76,10 @@ public class DistributedExecutionPlanner
             dependencies.add(plan(childPlan, session));
         }
 
-        return new StageExecutionPlan(currentFragment,
+        return new StageExecutionPlan(
+                currentFragment,
                 splits,
-                dependencies.build()
-        );
+                dependencies.build());
     }
 
     private final class Visitor
@@ -258,6 +259,13 @@ public class DistributedExecutionPlanner
         public Optional<SplitSource> visitDelete(DeleteNode node, Void context)
         {
             return node.getSource().accept(this, context);
+        }
+
+        @Override
+        public Optional<SplitSource> visitMetadataDelete(MetadataDeleteNode node, Void context)
+        {
+            // MetadataDelete node does not have splits
+            return Optional.empty();
         }
 
         @Override

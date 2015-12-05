@@ -13,11 +13,11 @@
  */
 package com.facebook.presto.sql.tree;
 
-import com.google.common.base.Preconditions;
-
 import java.util.List;
+import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
+import static java.util.Objects.requireNonNull;
 
 public class AliasedRelation
         extends Relation
@@ -28,8 +28,19 @@ public class AliasedRelation
 
     public AliasedRelation(Relation relation, String alias, List<String> columnNames)
     {
-        Preconditions.checkNotNull(relation, "relation is null");
-        Preconditions.checkNotNull(alias, " is null");
+        this(Optional.empty(), relation, alias, columnNames);
+    }
+
+    public AliasedRelation(NodeLocation location, Relation relation, String alias, List<String> columnNames)
+    {
+        this(Optional.of(location), relation, alias, columnNames);
+    }
+
+    private AliasedRelation(Optional<NodeLocation> location, Relation relation, String alias, List<String> columnNames)
+    {
+        super(location);
+        requireNonNull(relation, "relation is null");
+        requireNonNull(alias, " is null");
 
         this.relation = relation;
         this.alias = alias;

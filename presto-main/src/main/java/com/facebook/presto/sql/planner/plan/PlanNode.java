@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
@@ -49,6 +49,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
         @JsonSubTypes.Type(value = IndexSourceNode.class, name = "indexsource"),
         @JsonSubTypes.Type(value = TableWriterNode.class, name = "tablewriter"),
         @JsonSubTypes.Type(value = DeleteNode.class, name = "delete"),
+        @JsonSubTypes.Type(value = MetadataDeleteNode.class, name = "metadatadelete"),
         @JsonSubTypes.Type(value = TableCommitNode.class, name = "tablecommit"),
         @JsonSubTypes.Type(value = UnnestNode.class, name = "unnest"),
         @JsonSubTypes.Type(value = ExchangeNode.class, name = "exchange"),
@@ -60,7 +61,7 @@ public abstract class PlanNode
 
     protected PlanNode(PlanNodeId id)
     {
-        checkNotNull(id, "id is null");
+        requireNonNull(id, "id is null");
         this.id = id;
     }
 

@@ -15,7 +15,7 @@ package com.facebook.presto.execution;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.QualifiedTableName;
+import com.facebook.presto.metadata.QualifiedObjectName;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.spi.PrestoException;
@@ -35,12 +35,12 @@ import javax.inject.Inject;
 import java.util.List;
 import java.util.Optional;
 
-import static com.facebook.presto.metadata.MetadataUtil.createQualifiedTableName;
+import static com.facebook.presto.metadata.MetadataUtil.createQualifiedObjectName;
 import static com.facebook.presto.metadata.ViewDefinition.ViewColumn;
 import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.facebook.presto.sql.SqlFormatter.formatSql;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class CreateViewTask
         implements DataDefinitionTask<CreateView>
@@ -57,10 +57,10 @@ public class CreateViewTask
             AccessControl accessControl,
             FeaturesConfig featuresConfig)
     {
-        this.codec = checkNotNull(codec, "codec is null");
-        this.sqlParser = checkNotNull(sqlParser, "sqlParser is null");
-        this.accessControl = checkNotNull(accessControl, "accessControl is null");
-        checkNotNull(featuresConfig, "featuresConfig is null");
+        this.codec = requireNonNull(codec, "codec is null");
+        this.sqlParser = requireNonNull(sqlParser, "sqlParser is null");
+        this.accessControl = requireNonNull(accessControl, "accessControl is null");
+        requireNonNull(featuresConfig, "featuresConfig is null");
         this.experimentalSyntaxEnabled = featuresConfig.isExperimentalSyntaxEnabled();
     }
 
@@ -79,7 +79,7 @@ public class CreateViewTask
     @Override
     public void execute(CreateView statement, Session session, Metadata metadata, AccessControl accessControl, QueryStateMachine stateMachine)
     {
-        QualifiedTableName name = createQualifiedTableName(session, statement.getName());
+        QualifiedObjectName name = createQualifiedObjectName(session, statement, statement.getName());
 
         accessControl.checkCanCreateView(session.getIdentity(), name);
 
@@ -92,7 +92,7 @@ public class CreateViewTask
                 .map(field -> new ViewColumn(field.getName().get(), field.getType()))
                 .collect(toImmutableList());
 
-        String data = codec.toJson(new ViewDefinition(sql, session.getCatalog(), session.getSchema(), columns));
+        String data = codec.toJson(new ViewDefinition(sql, session.getCatalog(), session.getSchema(), columns, Optional.of(session.getUser())));
 
         metadata.createView(session, name, data, statement.isReplace());
     }

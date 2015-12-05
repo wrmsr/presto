@@ -25,40 +25,6 @@ import java.util.List;
 
 public interface MetadataDao
 {
-    @SqlUpdate("CREATE TABLE IF NOT EXISTS tables (\n" +
-            "  table_id BIGINT PRIMARY KEY AUTO_INCREMENT,\n" +
-            "  schema_name VARCHAR(255) NOT NULL,\n" +
-            "  table_name VARCHAR(255) NOT NULL,\n" +
-            "  temporal_column_id BIGINT DEFAULT NULL,\n" +
-            "  UNIQUE (schema_name, table_name)\n" +
-            ")")
-    void createTableTables();
-
-    @SqlUpdate("CREATE TABLE IF NOT EXISTS columns (\n" +
-            "  table_id BIGINT NOT NULL,\n" +
-            "  column_id BIGINT NOT NULL,\n" +
-            "  column_name VARCHAR(255) NOT NULL,\n" +
-            "  ordinal_position INT NOT NULL,\n" +
-            "  data_type VARCHAR(255) NOT NULL,\n" +
-            "  sort_ordinal_position INT DEFAULT NULL,\n" +
-            "  PRIMARY KEY (table_id, column_id),\n" +
-            "  UNIQUE (table_id, column_name),\n" +
-            "  UNIQUE (table_id, ordinal_position),\n" +
-            "  FOREIGN KEY (table_id) REFERENCES tables (table_id)\n" +
-            ")")
-    void createTableColumns();
-
-    @SqlUpdate("CREATE TABLE IF NOT EXISTS views (\n" +
-            "  schema_name VARCHAR(255) NOT NULL,\n" +
-            "  table_name VARCHAR(255) NOT NULL,\n" +
-            "  data TEXT NOT NULL,\n" +
-            "  PRIMARY KEY (schema_name, table_name)\n" +
-            ")")
-    void createTableViews();
-
-    @SqlQuery("SELECT table_id FROM tables")
-    List<Long> listTableIds();
-
     @SqlQuery("SELECT table_id FROM tables\n" +
             "WHERE schema_name = :schemaName\n" +
             "  AND table_name = :tableName")
@@ -96,8 +62,7 @@ public interface MetadataDao
     @SqlQuery("SELECT DISTINCT schema_name FROM tables")
     List<String> listSchemaNames();
 
-    @SqlQuery("SELECT t.schema_name, t.table_name,\n" +
-            "  c.column_id, c.column_name, c.ordinal_position, c.data_type\n" +
+    @SqlQuery("SELECT t.schema_name, t.table_name, c.column_id, c.column_name, c.data_type\n" +
             "FROM tables t\n" +
             "JOIN columns c ON (t.table_id = c.table_id)\n" +
             "WHERE (schema_name = :schemaName OR :schemaName IS NULL)\n" +
@@ -107,8 +72,7 @@ public interface MetadataDao
             @Bind("schemaName") String schemaName,
             @Bind("tableName") String tableName);
 
-    @SqlQuery("SELECT t.schema_name, t.table_name,\n" +
-            "  c.column_id, c.column_name, c.ordinal_position, c.data_type\n" +
+    @SqlQuery("SELECT t.schema_name, t.table_name, c.column_id, c.column_name, c.data_type\n" +
             "FROM tables t\n" +
             "JOIN columns c ON (t.table_id = c.table_id)\n" +
             "WHERE t.table_id = :tableId\n" +
@@ -141,12 +105,13 @@ public interface MetadataDao
             @Bind("schemaName") String schemaName,
             @Bind("tableName") String tableName);
 
-    @SqlUpdate("INSERT INTO tables (schema_name, table_name)\n" +
-            "VALUES (:schemaName, :tableName)")
+    @SqlUpdate("INSERT INTO tables (schema_name, table_name, compaction_enabled)\n" +
+            "VALUES (:schemaName, :tableName, :compactionEnabled)")
     @GetGeneratedKeys
     long insertTable(
             @Bind("schemaName") String schemaName,
-            @Bind("tableName") String tableName);
+            @Bind("tableName") String tableName,
+            @Bind("compactionEnabled") boolean compactionEnabled);
 
     @SqlUpdate("INSERT INTO columns (table_id, column_id, column_name, ordinal_position, data_type, sort_ordinal_position)\n" +
             "VALUES (:tableId, :columnId, :columnName, :ordinalPosition, :dataType, :sortOrdinalPosition)")
@@ -209,4 +174,10 @@ public interface MetadataDao
     void updateTemporalColumnId(
             @Bind("tableId") long tableId,
             @Bind("columnId") long columnId);
+
+    @SqlQuery("SELECT compaction_enabled FROM tables WHERE table_id = :tableId")
+    boolean isCompactionEnabled(@Bind("tableId") long tableId);
+
+    @SqlQuery("SELECT table_id FROM tables WHERE table_id = :tableId FOR UPDATE")
+    Long getLockedTableId(@Bind("tableId") long tableId);
 }

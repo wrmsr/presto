@@ -17,10 +17,9 @@ import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ErrorCodeSupplier;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.spi.SerializableNativeValue;
+import com.facebook.presto.spi.predicate.NullableValue;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -42,6 +41,7 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.JobConf;
@@ -64,7 +64,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-import static com.facebook.presto.hive.HiveColumnHandle.SAMPLE_WEIGHT_COLUMN_NAME;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_CANNOT_OPEN_SPLIT;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_INVALID_METADATA;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_INVALID_PARTITION_VALUE;
@@ -81,12 +80,16 @@ import static com.facebook.presto.hive.HiveType.HIVE_LONG;
 import static com.facebook.presto.hive.HiveType.HIVE_SHORT;
 import static com.facebook.presto.hive.HiveType.HIVE_STRING;
 import static com.facebook.presto.hive.HiveType.HIVE_TIMESTAMP;
-import static com.facebook.presto.hive.HiveType.getHiveType;
-import static com.facebook.presto.hive.HiveType.getSupportedHiveType;
-import static com.facebook.presto.hive.HiveType.getType;
+import static com.facebook.presto.hive.HiveType.toHiveType;
 import static com.facebook.presto.hive.RetryDriver.retry;
 import static com.facebook.presto.hive.util.Types.checkType;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
+import static com.facebook.presto.spi.type.BigintType.BIGINT;
+import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
+import static com.facebook.presto.spi.type.DateType.DATE;
+import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
+import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
+import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Iterables.filter;
@@ -104,6 +107,7 @@ import static org.apache.hadoop.hive.serde.serdeConstants.SERIALIZATION_LIB;
 import static org.apache.hadoop.hive.serde2.ColumnProjectionUtils.READ_ALL_COLUMNS;
 import static org.apache.hadoop.hive.serde2.ColumnProjectionUtils.READ_COLUMN_IDS_CONF_STR;
 import static org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
+import static org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils.getTypeInfoFromTypeString;
 
 public final class HiveUtil
 {
@@ -344,61 +348,60 @@ public final class HiveUtil
         return bytes.length == 2 && bytes[0] == '\\' && bytes[1] == 'N';
     }
 
-    public static SerializableNativeValue parsePartitionValue(String partitionName, String value, HiveType hiveType, DateTimeZone timeZone)
+    public static NullableValue parsePartitionValue(String partitionName, String value, HiveType hiveType, DateTimeZone timeZone)
     {
         try {
             boolean isNull = HIVE_DEFAULT_DYNAMIC_PARTITION.equals(value);
 
             if (HIVE_BOOLEAN.equals(hiveType)) {
                 if (isNull) {
-                    return new SerializableNativeValue(Boolean.class, null);
+                    return NullableValue.asNull(BOOLEAN);
                 }
                 if (value.isEmpty()) {
-                    return new SerializableNativeValue(Boolean.class, false);
+                    return NullableValue.of(BOOLEAN, false);
                 }
-                return new SerializableNativeValue(Boolean.class, parseBoolean(value));
+                return NullableValue.of(BOOLEAN, parseBoolean(value));
             }
 
             if (HIVE_BYTE.equals(hiveType) || HIVE_SHORT.equals(hiveType) || HIVE_INT.equals(hiveType) || HIVE_LONG.equals(hiveType)) {
                 if (isNull) {
-                    return new SerializableNativeValue(Long.class, null);
+                    return NullableValue.asNull(BIGINT);
                 }
                 if (value.isEmpty()) {
-                    return new SerializableNativeValue(Long.class, 0L);
+                    return NullableValue.of(BIGINT, 0L);
                 }
-                return new SerializableNativeValue(Long.class, parseLong(value));
+                return NullableValue.of(BIGINT, parseLong(value));
             }
 
             if (HIVE_DATE.equals(hiveType)) {
                 if (isNull) {
-                    return new SerializableNativeValue(Long.class, null);
+                    return NullableValue.asNull(DATE);
                 }
-                long dateInMillis = parseHiveDate(value);
-                return new SerializableNativeValue(Long.class, dateInMillis);
+                return NullableValue.of(DATE, parseHiveDate(value));
             }
 
             if (HIVE_TIMESTAMP.equals(hiveType)) {
                 if (isNull) {
-                    return new SerializableNativeValue(Long.class, null);
+                    return NullableValue.asNull(TIMESTAMP);
                 }
-                return new SerializableNativeValue(Long.class, parseHiveTimestamp(value, timeZone));
+                return NullableValue.of(TIMESTAMP, parseHiveTimestamp(value, timeZone));
             }
 
             if (HIVE_FLOAT.equals(hiveType) || HIVE_DOUBLE.equals(hiveType)) {
                 if (isNull) {
-                    return new SerializableNativeValue(Double.class, null);
+                    return NullableValue.asNull(DOUBLE);
                 }
                 if (value.isEmpty()) {
-                    return new SerializableNativeValue(Double.class, 0.0);
+                    return NullableValue.of(DOUBLE, 0.0);
                 }
-                return new SerializableNativeValue(Double.class, parseDouble(value));
+                return NullableValue.of(DOUBLE, parseDouble(value));
             }
 
             if (HIVE_STRING.equals(hiveType)) {
                 if (isNull) {
-                    return new SerializableNativeValue(Slice.class, null);
+                    return NullableValue.asNull(VARCHAR);
                 }
-                return new SerializableNativeValue(Slice.class, utf8Slice(value));
+                return NullableValue.of(VARCHAR, utf8Slice(value));
             }
         }
         catch (RuntimeException e) {
@@ -436,6 +439,11 @@ public final class HiveUtil
     public static boolean isMapType(Type type)
     {
         return type.getTypeSignature().getBase().equals(StandardTypes.MAP);
+    }
+
+    public static boolean isRowType(Type type)
+    {
+        return type.getTypeSignature().getBase().equals(StandardTypes.ROW);
     }
 
     public static boolean isStructuralType(Type type)
@@ -505,39 +513,36 @@ public final class HiveUtil
         return checkType(tableHandle, HiveTableHandle.class, "tableHandle").getSchemaTableName();
     }
 
-    public static List<HiveColumnHandle> hiveColumnHandles(TypeManager typeManager, String connectorId, Table table, boolean includeSampleWeight)
+    public static List<HiveColumnHandle> hiveColumnHandles(String connectorId, Table table)
     {
         ImmutableList.Builder<HiveColumnHandle> columns = ImmutableList.builder();
 
         // add the data fields first
         int hiveColumnIndex = 0;
-        for (StructField field : getTableStructFields(table)) {
+        for (FieldSchema field : table.getSd().getCols()) {
             // ignore unsupported types rather than failing
-            HiveType hiveType = getHiveType(field.getFieldObjectInspector());
-            if (hiveType != null && (includeSampleWeight || !field.getFieldName().equals(SAMPLE_WEIGHT_COLUMN_NAME))) {
-                Type type = getType(field.getFieldObjectInspector(), typeManager);
-                checkCondition(type != null, NOT_SUPPORTED, "Unsupported Hive type: %s", field.getFieldObjectInspector().getTypeName());
-                columns.add(new HiveColumnHandle(connectorId, field.getFieldName(), hiveColumnIndex, hiveType, type.getTypeSignature(), hiveColumnIndex, false));
+            TypeInfo typeInfo = getTypeInfoFromTypeString(field.getType());
+            if (HiveType.isSupportedType(typeInfo)) {
+                HiveType hiveType = toHiveType(typeInfo);
+                columns.add(new HiveColumnHandle(connectorId, field.getName(), hiveType, hiveType.getTypeSignature(), hiveColumnIndex, false));
             }
             hiveColumnIndex++;
         }
 
         // add the partition keys last (like Hive does)
-        columns.addAll(getPartitionKeyColumnHandles(connectorId, table, hiveColumnIndex));
+        columns.addAll(getPartitionKeyColumnHandles(connectorId, table));
 
         return columns.build();
     }
 
-    public static List<HiveColumnHandle> getPartitionKeyColumnHandles(String connectorId, Table table, int startOrdinal)
+    public static List<HiveColumnHandle> getPartitionKeyColumnHandles(String connectorId, Table table)
     {
         ImmutableList.Builder<HiveColumnHandle> columns = ImmutableList.builder();
 
         List<FieldSchema> partitionKeys = table.getPartitionKeys();
-        for (int i = 0; i < partitionKeys.size(); i++) {
-            FieldSchema field = partitionKeys.get(i);
-
-            HiveType hiveType = getSupportedHiveType(field.getType());
-            columns.add(new HiveColumnHandle(connectorId, field.getName(), startOrdinal + i, hiveType, getType(field.getType()).getTypeSignature(), -1, true));
+        for (FieldSchema field : partitionKeys) {
+            HiveType hiveType = HiveType.valueOf(field.getType());
+            columns.add(new HiveColumnHandle(connectorId, field.getName(), hiveType, HiveType.valueOf(field.getType()).getTypeSignature(), -1, true));
         }
 
         return columns.build();

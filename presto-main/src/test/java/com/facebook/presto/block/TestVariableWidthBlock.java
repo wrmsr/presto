@@ -40,7 +40,7 @@ public class TestVariableWidthBlock
         assertBlockFilteredPositions(expectedValues, blockBuilder.build(), Ints.asList(0, 2, 4, 6, 7, 9, 10, 16));
     }
 
-    private static void assertVariableWithValues(Slice[] expectedValues)
+    private void assertVariableWithValues(Slice[] expectedValues)
     {
         BlockBuilder blockBuilder = createBlockBuilderWithValues(expectedValues);
         assertBlock(blockBuilder, expectedValues);
@@ -49,7 +49,7 @@ public class TestVariableWidthBlock
 
     private static BlockBuilder createBlockBuilderWithValues(Slice[] expectedValues)
     {
-        VariableWidthBlockBuilder blockBuilder = new VariableWidthBlockBuilder(new BlockBuilderStatus());
+        VariableWidthBlockBuilder blockBuilder = new VariableWidthBlockBuilder(new BlockBuilderStatus(), expectedValues.length, 32);
         for (Slice expectedValue : expectedValues) {
             if (expectedValue == null) {
                 blockBuilder.appendNull();

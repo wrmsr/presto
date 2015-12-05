@@ -25,12 +25,13 @@ import java.util.Optional;
 
 import static com.facebook.presto.raptor.util.MetadataUtil.checkSchemaName;
 import static com.facebook.presto.raptor.util.MetadataUtil.checkTableName;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class RaptorOutputTableHandle
         implements ConnectorOutputTableHandle
 {
     private final String connectorId;
+    private final long transactionId;
     private final String schemaName;
     private final String tableName;
     private final List<RaptorColumnHandle> columnHandles;
@@ -43,6 +44,7 @@ public class RaptorOutputTableHandle
     @JsonCreator
     public RaptorOutputTableHandle(
             @JsonProperty("connectorId") String connectorId,
+            @JsonProperty("transactionId") long transactionId,
             @JsonProperty("schemaName") String schemaName,
             @JsonProperty("tableName") String tableName,
             @JsonProperty("columnHandles") List<RaptorColumnHandle> columnHandles,
@@ -52,21 +54,28 @@ public class RaptorOutputTableHandle
             @JsonProperty("sortOrders") List<SortOrder> sortOrders,
             @JsonProperty("temporalColumnHandle") Optional<RaptorColumnHandle> temporalColumnHandle)
     {
-        this.connectorId = checkNotNull(connectorId, "connectorId is null");
+        this.connectorId = requireNonNull(connectorId, "connectorId is null");
+        this.transactionId = transactionId;
         this.schemaName = checkSchemaName(schemaName);
         this.tableName = checkTableName(tableName);
-        this.columnHandles = ImmutableList.copyOf(checkNotNull(columnHandles, "columnHandles is null"));
-        this.columnTypes = ImmutableList.copyOf(checkNotNull(columnTypes, "columnTypes is null"));
-        this.sampleWeightColumnHandle = checkNotNull(sampleWeightColumnHandle, "sampleWeightColumnHandle is null");
-        this.sortOrders = checkNotNull(sortOrders, "sortOrders is null");
-        this.sortColumnHandles = checkNotNull(sortColumnHandles, "sortColumnHandles is null");
-        this.temporalColumnHandle = checkNotNull(temporalColumnHandle, "temporalColumnHandle is null");
+        this.columnHandles = ImmutableList.copyOf(requireNonNull(columnHandles, "columnHandles is null"));
+        this.columnTypes = ImmutableList.copyOf(requireNonNull(columnTypes, "columnTypes is null"));
+        this.sampleWeightColumnHandle = requireNonNull(sampleWeightColumnHandle, "sampleWeightColumnHandle is null");
+        this.sortOrders = requireNonNull(sortOrders, "sortOrders is null");
+        this.sortColumnHandles = requireNonNull(sortColumnHandles, "sortColumnHandles is null");
+        this.temporalColumnHandle = requireNonNull(temporalColumnHandle, "temporalColumnHandle is null");
     }
 
     @JsonProperty
     public String getConnectorId()
     {
         return connectorId;
+    }
+
+    @JsonProperty
+    public long getTransactionId()
+    {
+        return transactionId;
     }
 
     @JsonProperty

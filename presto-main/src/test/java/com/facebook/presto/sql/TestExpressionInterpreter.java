@@ -18,20 +18,16 @@ import com.facebook.presto.metadata.MetadataManager;
 import com.facebook.presto.operator.scalar.FunctionAssertions;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.RecordCursor;
+import com.facebook.presto.spi.type.SqlTimestampWithTimeZone;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.ExpressionInterpreter;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolResolver;
 import com.facebook.presto.sql.tree.Expression;
-import com.facebook.presto.sql.tree.ExpressionRewriter;
-import com.facebook.presto.sql.tree.ExpressionTreeRewriter;
-import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.LikePredicate;
-import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.sql.tree.StringLiteral;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
@@ -54,6 +50,7 @@ import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
 import static com.facebook.presto.spi.type.IntervalDayTimeType.INTERVAL_DAY_TIME;
 import static com.facebook.presto.spi.type.TimeType.TIME;
+import static com.facebook.presto.spi.type.TimeZoneKey.getTimeZoneKey;
 import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.sql.ExpressionFormatter.formatExpression;
@@ -577,10 +574,10 @@ public class TestExpressionInterpreter
                         "else 1 " +
                         "end");
 
-        assertOptimizedMatches("case when 0 / 0 = 0 then 1 end",
-                "case when cast(fail() as boolean) then 1 end");
+        assertOptimizedEquals("case when 0 / 0 = 0 then 1 end",
+                "case when 0 / 0 = 0 then 1 end");
 
-        assertOptimizedMatches("if(false, 1, 0 / 0)", "cast(fail() as bigint)");
+        assertOptimizedEquals("if(false, 1, 0 / 0)", "if (false, 1, 0 / 0)");
     }
 
     @Test
@@ -739,27 +736,15 @@ public class TestExpressionInterpreter
                         "when unbound_long then 4 " +
                         "end");
 
-        assertOptimizedMatches("case 1 " +
-                "when unbound_long then 1 " +
-                "when 0 / 0 then 2 " +
-                "else 1 " +
-                "end",
-                "" +
-                        "case 1 " +
-                        "when unbound_long then 1 " +
-                        "when cast(fail() AS bigint) then 2 " +
-                        "else 1 " +
-                        "end");
-
-        assertOptimizedMatches("case 1 " +
+        assertOptimizedEquals("case 1 " +
                 "when 0 / 0 then 1 " +
                 "when 0 / 0 then 2 " +
                 "else 1 " +
                 "end",
                 "" +
                         "case 1 " +
-                        "when cast(fail() as bigint) then 1 " +
-                        "when cast(fail() as bigint) then 2 " +
+                        "when 0 / 0 then 1 " +
+                        "when 0 / 0 then 2 " +
                         "else 1 " +
                         "end");
     }
@@ -771,8 +756,8 @@ public class TestExpressionInterpreter
         assertOptimizedEquals("coalesce(2 * 3 * unbound_long, 1 - 1, null)", "coalesce(6 * unbound_long, 0)");
         assertOptimizedEquals("coalesce(2 * 3 * unbound_long, 1.0/2.0, null)", "coalesce(6 * unbound_long, 0.5)");
         assertOptimizedEquals("coalesce(unbound_long, 2, 1.0/2.0, 12.34, null)", "coalesce(unbound_long, 2.0, 0.5, 12.34)");
-        assertOptimizedMatches("coalesce(0 / 0 > 1, unbound_boolean, 0 / 0 = 0)",
-                "coalesce(cast(fail() as boolean), unbound_boolean, cast(fail() as boolean))");
+        assertOptimizedEquals("coalesce(0 / 0 > 1, unbound_boolean, 0 / 0 = 0)",
+                "coalesce(0 / 0 > 1, unbound_boolean, 0 / 0 = 0)");
     }
 
     @Test
@@ -889,32 +874,6 @@ public class TestExpressionInterpreter
         assertOptimizedEquals("unbound_string like unbound_pattern escape unbound_string", "unbound_string like unbound_pattern escape unbound_string");
     }
 
-    @Test
-    public void testFailedExpressionOptimization()
-            throws Exception
-    {
-        assertOptimizedEquals("if(unbound_boolean, 1, 0 / 0)", "CASE WHEN unbound_boolean THEN 1 ELSE 0 / 0 END");
-        assertOptimizedEquals("if(unbound_boolean, 0 / 0, 1)", "CASE WHEN unbound_boolean THEN 0 / 0 ELSE 1 END");
-
-        assertOptimizedMatches("CASE unbound_long WHEN 1 THEN 1 WHEN 0 / 0 THEN 2 END",
-                "CASE unbound_long WHEN 1 THEN 1 WHEN cast(fail() as bigint) THEN 2 END");
-
-        assertOptimizedMatches("CASE unbound_boolean WHEN true THEN 1 ELSE 0 / 0 END",
-                "CASE unbound_boolean WHEN true THEN 1 ELSE cast(fail() as bigint) END");
-
-        assertOptimizedMatches("CASE bound_long WHEN unbound_long THEN 1 WHEN 0 / 0 THEN 2 ELSE 1 END",
-                "CASE 1234 WHEN unbound_long THEN 1 WHEN cast(fail() as bigint) THEN 2 ELSE 1 END");
-
-        assertOptimizedMatches("case when unbound_boolean then 1 when 0 / 0 = 0 then 2 end",
-                "case when unbound_boolean then 1 when cast(fail() as boolean) then 2 end");
-
-        assertOptimizedMatches("case when unbound_boolean then 1 else 0 / 0  end",
-                "case when unbound_boolean then 1 else cast(fail() as bigint) end");
-
-        assertOptimizedMatches("case when unbound_boolean then 0 / 0 else 1 end",
-                "case when unbound_boolean then cast(fail() as bigint) else 1 end");
-    }
-
     @Test(expectedExceptions = PrestoException.class)
     public void testOptimizeDivideByZero()
             throws Exception
@@ -993,16 +952,6 @@ public class TestExpressionInterpreter
         assertEquals(optimize(expression), SQL_PARSER.createExpression(expression));
     }
 
-    private static void assertOptimizedMatches(@Language("SQL") String actual, @Language("SQL") String expected)
-    {
-        // replaces FunctionCalls to FailureFunction by fail()
-        Object actualOptimized = optimize(actual);
-        if (actualOptimized instanceof Expression) {
-            actualOptimized = ExpressionTreeRewriter.rewriteWith(new FailedFunctionRewriter(), (Expression) actualOptimized);
-        }
-        assertEquals(actualOptimized, SQL_PARSER.createExpression(expected));
-    }
-
     private static Object optimize(@Language("SQL") String expression)
     {
         assertRoundTrip(expression);
@@ -1031,6 +980,8 @@ public class TestExpressionInterpreter
                         return new DateTime(2001, 8, 22, 3, 4, 5, 321, DateTimeZone.UTC).getMillis();
                     case "bound_pattern":
                         return Slices.wrappedBuffer("%el%".getBytes(UTF_8));
+                    case "bound_timestamp_with_timezone":
+                        return new SqlTimestampWithTimeZone(new DateTime(1970, 1, 1, 1, 0, 0, 999, DateTimeZone.UTC).getMillis(), getTimeZoneKey("Z"));
                 }
 
                 return new QualifiedNameReference(symbol.toQualifiedName());
@@ -1059,18 +1010,5 @@ public class TestExpressionInterpreter
         ExpressionInterpreter interpreter = expressionInterpreter(expression, METADATA, TEST_SESSION, expressionTypes);
 
         return interpreter.evaluate((RecordCursor) null);
-    }
-
-    private static class FailedFunctionRewriter
-            extends ExpressionRewriter<Object>
-    {
-        @Override
-        public Expression rewriteFunctionCall(FunctionCall node, Object context, ExpressionTreeRewriter<Object> treeRewriter)
-        {
-            if (node.getName().equals(QualifiedName.of("fail"))) {
-                return new FunctionCall(QualifiedName.of("fail"), ImmutableList.of());
-            }
-            return node;
-        }
     }
 }

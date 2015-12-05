@@ -14,6 +14,7 @@
 package com.facebook.presto;
 
 import com.facebook.presto.client.ClientSession;
+import com.facebook.presto.execution.QueryId;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.security.Identity;
@@ -22,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import java.net.URI;
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -32,15 +34,15 @@ import java.util.TimeZone;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Objects.requireNonNull;
 
 public final class Session
 {
+    private final QueryId queryId;
     private final Identity identity;
     private final Optional<String> source;
-    private final String catalog;
-    private final String schema;
+    private final Optional<String> catalog;
+    private final Optional<String> schema;
     private final TimeZoneKey timeZoneKey;
     private final Locale locale;
     private final Optional<String> remoteUserAddress;
@@ -51,10 +53,11 @@ public final class Session
     private final SessionPropertyManager sessionPropertyManager;
 
     public Session(
+            QueryId queryId,
             Identity identity,
             Optional<String> source,
-            String catalog,
-            String schema,
+            Optional<String> catalog,
+            Optional<String> schema,
             TimeZoneKey timeZoneKey,
             Locale locale,
             Optional<String> remoteUserAddress,
@@ -64,6 +67,7 @@ public final class Session
             Map<String, Map<String, String>> catalogProperties,
             SessionPropertyManager sessionPropertyManager)
     {
+        this.queryId = requireNonNull(queryId, "queryId is null");
         this.identity = identity;
         this.source = requireNonNull(source, "source is null");
         this.catalog = requireNonNull(catalog, "catalog is null");
@@ -81,6 +85,13 @@ public final class Session
                 .map(entry -> Maps.immutableEntry(entry.getKey(), ImmutableMap.copyOf(entry.getValue())))
                 .forEach(catalogPropertiesBuilder::put);
         this.catalogProperties = catalogPropertiesBuilder.build();
+
+        checkArgument(catalog.isPresent() || !schema.isPresent(), "schema is set but catalog is not");
+    }
+
+    public QueryId getQueryId()
+    {
+        return queryId;
     }
 
     public String getUser()
@@ -98,12 +109,12 @@ public final class Session
         return source;
     }
 
-    public String getCatalog()
+    public Optional<String> getCatalog()
     {
         return catalog;
     }
 
-    public String getSchema()
+    public Optional<String> getSchema()
     {
         return schema;
     }
@@ -155,13 +166,14 @@ public final class Session
 
     public Session withSystemProperty(String key, String value)
     {
-        checkNotNull(key, "key is null");
-        checkNotNull(value, "value is null");
+        requireNonNull(key, "key is null");
+        requireNonNull(value, "value is null");
 
         Map<String, String> systemProperties = new LinkedHashMap<>(this.systemProperties);
         systemProperties.put(key, value);
 
         return new Session(
+                queryId,
                 identity,
                 source,
                 catalog,
@@ -178,9 +190,9 @@ public final class Session
 
     public Session withCatalogProperty(String catalog, String key, String value)
     {
-        checkNotNull(catalog, "catalog is null");
-        checkNotNull(key, "key is null");
-        checkNotNull(value, "value is null");
+        requireNonNull(catalog, "catalog is null");
+        requireNonNull(key, "key is null");
+        requireNonNull(value, "value is null");
 
         Map<String, Map<String, String>> catalogProperties = new LinkedHashMap<>(this.catalogProperties);
         Map<String, String> properties = catalogProperties.get(catalog);
@@ -194,9 +206,10 @@ public final class Session
         catalogProperties.put(catalog, properties);
 
         return new Session(
+                queryId,
                 identity,
                 source,
-                catalog,
+                this.catalog,
                 schema,
                 timeZoneKey,
                 locale,
@@ -210,13 +223,14 @@ public final class Session
 
     public ConnectorSession toConnectorSession()
     {
-        return new FullConnectorSession(identity, timeZoneKey, locale, startTime);
+        return new FullConnectorSession(queryId.toString(), identity, timeZoneKey, locale, startTime);
     }
 
     public ConnectorSession toConnectorSession(String catalog)
     {
-        checkNotNull(catalog, "catalog is null");
+        requireNonNull(catalog, "catalog is null");
         return new FullConnectorSession(
+                queryId.toString(),
                 identity,
                 timeZoneKey,
                 locale,
@@ -238,11 +252,11 @@ public final class Session
         }
 
         return new ClientSession(
-                checkNotNull(server, "server is null"),
+                requireNonNull(server, "server is null"),
                 identity.getUser(),
                 source.orElse(null),
-                catalog,
-                schema,
+                catalog.orElse(null),
+                schema.orElse(null),
                 timeZoneKey.getId(),
                 locale,
                 properties.build(),
@@ -252,7 +266,9 @@ public final class Session
     public SessionRepresentation toSessionRepresentation()
     {
         return new SessionRepresentation(
+                queryId.toString(),
                 identity.getUser(),
+                identity.getPrincipal().map(Principal::toString),
                 source,
                 catalog,
                 schema,
@@ -269,15 +285,18 @@ public final class Session
     public String toString()
     {
         return toStringHelper(this)
+                .add("queryId", queryId)
                 .add("user", getUser())
-                .add("source", source)
-                .add("catalog", catalog)
-                .add("schema", schema)
+                .add("principal", getIdentity().getPrincipal().orElse(null))
+                .add("source", source.orElse(null))
+                .add("catalog", catalog.orElse(null))
+                .add("schema", schema.orElse(null))
                 .add("timeZoneKey", timeZoneKey)
                 .add("locale", locale)
-                .add("remoteUserAddress", remoteUserAddress)
-                .add("userAgent", userAgent)
+                .add("remoteUserAddress", remoteUserAddress.orElse(null))
+                .add("userAgent", userAgent.orElse(null))
                 .add("startTime", startTime)
+                .omitNullValues()
                 .toString();
     }
 
@@ -288,6 +307,7 @@ public final class Session
 
     public static class SessionBuilder
     {
+        private QueryId queryId;
         private Identity identity;
         private String source;
         private String catalog;
@@ -303,7 +323,13 @@ public final class Session
 
         private SessionBuilder(SessionPropertyManager sessionPropertyManager)
         {
-            this.sessionPropertyManager = checkNotNull(sessionPropertyManager, "sessionPropertyManager is null");
+            this.sessionPropertyManager = requireNonNull(sessionPropertyManager, "sessionPropertyManager is null");
+        }
+
+        public SessionBuilder setQueryId(QueryId queryId)
+        {
+            this.queryId = requireNonNull(queryId, "queryId is null");
+            return this;
         }
 
         public SessionBuilder setCatalog(String catalog)
@@ -376,7 +402,7 @@ public final class Session
          */
         public SessionBuilder setCatalogProperties(String catalog, Map<String, String> properties)
         {
-            checkNotNull(catalog, "catalog is null");
+            requireNonNull(catalog, "catalog is null");
             checkArgument(!catalog.isEmpty(), "catalog is empty");
 
             catalogProperties.put(catalog, ImmutableMap.copyOf(properties));
@@ -386,10 +412,11 @@ public final class Session
         public Session build()
         {
             return new Session(
+                    queryId,
                     identity,
                     Optional.ofNullable(source),
-                    catalog,
-                    schema,
+                    Optional.ofNullable(catalog),
+                    Optional.ofNullable(schema),
                     timeZoneKey,
                     locale,
                     Optional.ofNullable(remoteUserAddress),

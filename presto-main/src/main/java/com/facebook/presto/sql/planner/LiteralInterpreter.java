@@ -14,7 +14,6 @@
 package com.facebook.presto.sql.planner;
 
 import com.facebook.presto.block.BlockSerdeUtil;
-import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.Signature;
@@ -46,8 +45,10 @@ import io.airlift.slice.DynamicSliceOutput;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
 
+import java.lang.invoke.MethodHandle;
 import java.util.List;
 
+import static com.facebook.presto.metadata.FunctionKind.SCALAR;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
@@ -62,9 +63,9 @@ import static com.facebook.presto.util.DateTimeUtils.parseTime;
 import static com.facebook.presto.util.DateTimeUtils.parseTimestampLiteral;
 import static com.facebook.presto.util.DateTimeUtils.parseYearMonthInterval;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static io.airlift.slice.Slices.utf8Slice;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 public final class LiteralInterpreter
 {
@@ -80,8 +81,8 @@ public final class LiteralInterpreter
 
     public static List<Expression> toExpressions(List<?> objects, List<? extends Type> types)
     {
-        checkNotNull(objects, "objects is null");
-        checkNotNull(types, "types is null");
+        requireNonNull(objects, "objects is null");
+        requireNonNull(types, "types is null");
         checkArgument(objects.size() == types.size(), "objects and types do not have the same size");
 
         ImmutableList.Builder<Expression> expressions = ImmutableList.builder();
@@ -95,7 +96,7 @@ public final class LiteralInterpreter
 
     public static Expression toExpression(Object object, Type type)
     {
-        checkNotNull(type, "type is null");
+        requireNonNull(type, "type is null");
 
         if (object instanceof Expression) {
             return (Expression) object;
@@ -219,24 +220,25 @@ public final class LiteralInterpreter
             }
 
             if (JSON.equals(type)) {
-                FunctionInfo operator = metadata.getFunctionRegistry().getExactFunction(new Signature("json_parse", JSON.getTypeSignature(), VARCHAR.getTypeSignature()));
+                MethodHandle operator = metadata.getFunctionRegistry().getScalarFunctionImplementation(new Signature("json_parse", SCALAR, JSON.getTypeSignature(), VARCHAR.getTypeSignature())).getMethodHandle();
                 try {
-                    return ExpressionInterpreter.invoke(session, operator.getMethodHandle(), ImmutableList.<Object>of(utf8Slice(node.getValue())));
+                    return ExpressionInterpreter.invoke(session, operator, ImmutableList.<Object>of(utf8Slice(node.getValue())));
                 }
                 catch (Throwable throwable) {
                     throw Throwables.propagate(throwable);
                 }
             }
 
-            FunctionInfo operator;
+            MethodHandle operator;
             try {
-                operator = metadata.getFunctionRegistry().getCoercion(VARCHAR, type);
+                Signature signature = metadata.getFunctionRegistry().getCoercion(VARCHAR, type);
+                operator = metadata.getFunctionRegistry().getScalarFunctionImplementation(signature).getMethodHandle();
             }
             catch (IllegalArgumentException e) {
                 throw new SemanticException(TYPE_MISMATCH, node, "No literal form for type %s", type);
             }
             try {
-                return ExpressionInterpreter.invoke(session, operator.getMethodHandle(), ImmutableList.<Object>of(utf8Slice(node.getValue())));
+                return ExpressionInterpreter.invoke(session, operator, ImmutableList.<Object>of(utf8Slice(node.getValue())));
             }
             catch (Throwable throwable) {
                 throw Throwables.propagate(throwable);
@@ -269,7 +271,6 @@ public final class LiteralInterpreter
             else {
                 return node.getSign().multiplier() * parseDayTimeInterval(node.getValue(), node.getStartField(), node.getEndField());
             }
-
         }
 
         @Override

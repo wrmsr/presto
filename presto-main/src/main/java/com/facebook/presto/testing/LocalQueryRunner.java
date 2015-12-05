@@ -37,7 +37,8 @@ import com.facebook.presto.metadata.HandleResolver;
 import com.facebook.presto.metadata.InMemoryNodeManager;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.MetadataManager;
-import com.facebook.presto.metadata.QualifiedTableName;
+import com.facebook.presto.metadata.MetadataUtil;
+import com.facebook.presto.metadata.QualifiedObjectName;
 import com.facebook.presto.metadata.QualifiedTablePrefix;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.Split;
@@ -128,11 +129,11 @@ import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.sql.testing.TreeAssertions.assertFormattedSql;
 import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static io.airlift.concurrent.MoreFutures.getFutureValue;
 import static io.airlift.concurrent.Threads.daemonThreadsNamed;
 import static io.airlift.json.JsonCodec.jsonCodec;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 
 public class LocalQueryRunner
@@ -162,7 +163,7 @@ public class LocalQueryRunner
 
     public LocalQueryRunner(Session defaultSession)
     {
-        checkNotNull(defaultSession, "defaultSession is null");
+        requireNonNull(defaultSession, "defaultSession is null");
         this.executor = newCachedThreadPool(daemonThreadsNamed("local-query-runner-%s"));
 
         this.sqlParser = new SqlParser();
@@ -206,6 +207,7 @@ public class LocalQueryRunner
 
         // rewrite session to use managed SessionPropertyMetadata
         this.defaultSession = new Session(
+                defaultSession.getQueryId(),
                 defaultSession.getIdentity(),
                 defaultSession.getSource(),
                 defaultSession.getCatalog(),
@@ -304,19 +306,19 @@ public class LocalQueryRunner
     public static class MaterializedOutputFactory
             implements OutputFactory
     {
-        private final AtomicReference<MaterializingOperator> materializingOperator = new AtomicReference<>();
+        private final AtomicReference<MaterializedResult.Builder> materializedResultBuilder = new AtomicReference<>();
 
-        private MaterializingOperator getMaterializingOperator()
+        public MaterializedResult getMaterializedResult()
         {
-            MaterializingOperator operator = materializingOperator.get();
-            checkState(operator != null, "Output not created");
-            return operator;
+            MaterializedResult.Builder resultBuilder = materializedResultBuilder.get();
+            checkState(resultBuilder != null, "Output not created");
+            return resultBuilder.build();
         }
 
         @Override
         public OperatorFactory createOutputOperator(int operatorId, List<Type> sourceTypes)
         {
-            checkNotNull(sourceTypes, "sourceType is null");
+            requireNonNull(sourceTypes, "sourceType is null");
 
             return new OperatorFactory()
             {
@@ -329,25 +331,31 @@ public class LocalQueryRunner
                 @Override
                 public Operator createOperator(DriverContext driverContext)
                 {
-                    OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, MaterializingOperator.class.getSimpleName());
-                    MaterializingOperator operator = new MaterializingOperator(operatorContext, sourceTypes);
-
-                    if (!materializingOperator.compareAndSet(null, operator)) {
-                        throw new IllegalArgumentException("Output already created");
+                    MaterializedResult.Builder resultBuilder = materializedResultBuilder.get();
+                    if (resultBuilder == null) {
+                        materializedResultBuilder.compareAndSet(null, MaterializedResult.resultBuilder(driverContext.getSession(), sourceTypes));
+                        resultBuilder = materializedResultBuilder.get();
                     }
-                    return operator;
+                    OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, MaterializingOperator.class.getSimpleName());
+                    return new MaterializingOperator(operatorContext, resultBuilder);
                 }
 
                 @Override
                 public void close()
                 {
                 }
+
+                @Override
+                public OperatorFactory duplicate()
+                {
+                    return createOutputOperator(operatorId, sourceTypes);
+                }
             };
         }
     }
 
     @Override
-    public List<QualifiedTableName> listTables(Session session, String catalog, String schema)
+    public List<QualifiedObjectName> listTables(Session session, String catalog, String schema)
     {
         lock.readLock().lock();
         try {
@@ -356,7 +364,6 @@ public class LocalQueryRunner
         finally {
             lock.readLock().unlock();
         }
-
     }
 
     @Override
@@ -364,13 +371,11 @@ public class LocalQueryRunner
     {
         lock.readLock().lock();
         try {
-            QualifiedTableName name = new QualifiedTableName(session.getCatalog(), session.getSchema(), table);
-            return getMetadata().getTableHandle(session, name).isPresent();
+            return MetadataUtil.tableExists(getMetadata(), session, table);
         }
         finally {
             lock.readLock().unlock();
         }
-
     }
 
     @Override
@@ -401,12 +406,11 @@ public class LocalQueryRunner
                 done = !processed;
             }
 
-            return outputFactory.getMaterializingOperator().getMaterializedResult();
+            return outputFactory.getMaterializedResult();
         }
         finally {
             lock.readLock().unlock();
         }
-
     }
 
     @Override
@@ -468,12 +472,14 @@ public class LocalQueryRunner
         );
 
         // plan query
-        LocalExecutionPlan localExecutionPlan = executionPlanner.plan(session,
+        LocalExecutionPlan localExecutionPlan = executionPlanner.plan(
+                session,
                 subplan.getFragment().getRoot(),
                 subplan.getFragment().getOutputLayout(),
                 plan.getTypes(),
-                subplan.getFragment().getDistribution(),
-                outputFactory);
+                outputFactory,
+                true,
+                false);
 
         // generate sources
         List<TaskSource> sources = new ArrayList<>();
@@ -529,8 +535,11 @@ public class LocalQueryRunner
             String tableName,
             String... columnNames)
     {
+        checkArgument(session.getCatalog().isPresent(), "catalog not set");
+        checkArgument(session.getSchema().isPresent(), "schema not set");
+
         // look up the table
-        QualifiedTableName qualifiedTableName = new QualifiedTableName(session.getCatalog(), session.getSchema(), tableName);
+        QualifiedObjectName qualifiedTableName = new QualifiedObjectName(session.getCatalog().get(), session.getSchema().get(), tableName);
         TableHandle tableHandle = metadata.getTableHandle(session, qualifiedTableName).orElse(null);
         checkArgument(tableHandle != null, "Table %s does not exist", qualifiedTableName);
 
@@ -571,6 +580,12 @@ public class LocalQueryRunner
             @Override
             public void close()
             {
+            }
+
+            @Override
+            public OperatorFactory duplicate()
+            {
+                throw new UnsupportedOperationException();
             }
         };
     }

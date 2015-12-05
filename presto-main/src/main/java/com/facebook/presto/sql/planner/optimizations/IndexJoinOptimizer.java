@@ -18,7 +18,7 @@ import com.facebook.presto.index.IndexManager;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.ResolvedIndex;
 import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.TupleDomain;
+import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.sql.planner.DomainTranslator;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
 import com.facebook.presto.sql.planner.Symbol;
@@ -29,9 +29,9 @@ import com.facebook.presto.sql.planner.plan.IndexJoinNode;
 import com.facebook.presto.sql.planner.plan.IndexSourceNode;
 import com.facebook.presto.sql.planner.plan.JoinNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
-import com.facebook.presto.sql.planner.plan.PlanRewriter;
 import com.facebook.presto.sql.planner.plan.PlanVisitor;
 import com.facebook.presto.sql.planner.plan.ProjectNode;
+import com.facebook.presto.sql.planner.plan.SimplePlanRewriter;
 import com.facebook.presto.sql.planner.plan.SortNode;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.BooleanLiteral;
@@ -57,7 +57,6 @@ import static com.facebook.presto.sql.ExpressionUtils.combineConjuncts;
 import static com.facebook.presto.sql.tree.BooleanLiteral.TRUE_LITERAL;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableSet;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.in;
 import static java.util.Objects.requireNonNull;
@@ -77,17 +76,17 @@ public class IndexJoinOptimizer
     @Override
     public PlanNode optimize(PlanNode plan, Session session, Map<Symbol, com.facebook.presto.spi.type.Type> types, SymbolAllocator symbolAllocator, PlanNodeIdAllocator idAllocator)
     {
-        checkNotNull(plan, "plan is null");
-        checkNotNull(session, "session is null");
-        checkNotNull(types, "types is null");
-        checkNotNull(symbolAllocator, "symbolAllocator is null");
-        checkNotNull(idAllocator, "idAllocator is null");
+        requireNonNull(plan, "plan is null");
+        requireNonNull(session, "session is null");
+        requireNonNull(types, "types is null");
+        requireNonNull(symbolAllocator, "symbolAllocator is null");
+        requireNonNull(idAllocator, "idAllocator is null");
 
-        return PlanRewriter.rewriteWith(new Rewriter(symbolAllocator, idAllocator, indexManager, metadata, session), plan, null);
+        return SimplePlanRewriter.rewriteWith(new Rewriter(symbolAllocator, idAllocator, indexManager, metadata, session), plan, null);
     }
 
     private static class Rewriter
-            extends PlanRewriter<Void>
+            extends SimplePlanRewriter<Void>
     {
         private final IndexManager indexManager;
         private final SymbolAllocator symbolAllocator;
@@ -200,7 +199,7 @@ public class IndexJoinOptimizer
      * Tries to rewrite a PlanNode tree with an IndexSource instead of a TableScan
      */
     private static class IndexSourceRewriter
-            extends PlanRewriter<IndexSourceRewriter.Context>
+            extends SimplePlanRewriter<IndexSourceRewriter.Context>
     {
         private final IndexManager indexManager;
         private final SymbolAllocator symbolAllocator;
@@ -211,9 +210,9 @@ public class IndexJoinOptimizer
         private IndexSourceRewriter(IndexManager indexManager, SymbolAllocator symbolAllocator, PlanNodeIdAllocator idAllocator, Metadata metadata, Session session)
         {
             this.metadata = requireNonNull(metadata, "metadata is null");
-            this.symbolAllocator = checkNotNull(symbolAllocator, "symbolAllocator is null");
-            this.idAllocator = checkNotNull(idAllocator, "idAllocator is null");
-            this.indexManager = checkNotNull(indexManager, "indexManager is null");
+            this.symbolAllocator = requireNonNull(symbolAllocator, "symbolAllocator is null");
+            this.idAllocator = requireNonNull(idAllocator, "idAllocator is null");
+            this.indexManager = requireNonNull(indexManager, "indexManager is null");
             this.session = requireNonNull(session, "session is null");
         }
 
@@ -228,7 +227,7 @@ public class IndexJoinOptimizer
         {
             AtomicBoolean success = new AtomicBoolean();
             IndexSourceRewriter indexSourceRewriter = new IndexSourceRewriter(indexManager, symbolAllocator, idAllocator, metadata, session);
-            PlanNode rewritten = PlanRewriter.rewriteWith(indexSourceRewriter, planNode, new Context(lookupSymbols, success));
+            PlanNode rewritten = SimplePlanRewriter.rewriteWith(indexSourceRewriter, planNode, new Context(lookupSymbols, success));
             if (success.get()) {
                 return Optional.of(rewritten);
             }
@@ -288,9 +287,7 @@ public class IndexJoinOptimizer
                     simplifiedConstraint);
 
             Expression resultingPredicate = combineConjuncts(
-                    DomainTranslator.toPredicate(
-                            resolvedIndex.getUnresolvedTupleDomain().transform(inverseAssignments::get),
-                            symbolAllocator.getTypes()),
+                    DomainTranslator.toPredicate(resolvedIndex.getUnresolvedTupleDomain().transform(inverseAssignments::get)),
                     decomposedPredicate.getRemainingExpression());
 
             if (!resultingPredicate.equals(TRUE_LITERAL)) {
@@ -386,8 +383,8 @@ public class IndexJoinOptimizer
             public Context(Set<Symbol> lookupSymbols, AtomicBoolean success)
             {
                 checkArgument(!lookupSymbols.isEmpty(), "lookupSymbols can not be empty");
-                this.lookupSymbols = ImmutableSet.copyOf(checkNotNull(lookupSymbols, "lookupSymbols is null"));
-                this.success = checkNotNull(success, "success is null");
+                this.lookupSymbols = ImmutableSet.copyOf(requireNonNull(lookupSymbols, "lookupSymbols is null"));
+                this.success = requireNonNull(success, "success is null");
             }
 
             public Set<Symbol> getLookupSymbols()

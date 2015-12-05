@@ -22,8 +22,8 @@ import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.SymbolAllocator;
 import com.facebook.presto.sql.planner.plan.AggregationNode;
 import com.facebook.presto.sql.planner.plan.PlanNode;
-import com.facebook.presto.sql.planner.plan.PlanRewriter;
 import com.facebook.presto.sql.planner.plan.ProjectNode;
+import com.facebook.presto.sql.planner.plan.SimplePlanRewriter;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.Literal;
@@ -36,7 +36,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.facebook.presto.metadata.FunctionKind.AGGREGATE;
+import static java.util.Objects.requireNonNull;
 
 public class CountConstantOptimizer
         extends PlanOptimizer
@@ -44,17 +45,17 @@ public class CountConstantOptimizer
     @Override
     public PlanNode optimize(PlanNode plan, Session session, Map<Symbol, Type> types, SymbolAllocator symbolAllocator, PlanNodeIdAllocator idAllocator)
     {
-        checkNotNull(plan, "plan is null");
-        checkNotNull(session, "session is null");
-        checkNotNull(types, "types is null");
-        checkNotNull(symbolAllocator, "symbolAllocator is null");
-        checkNotNull(idAllocator, "idAllocator is null");
+        requireNonNull(plan, "plan is null");
+        requireNonNull(session, "session is null");
+        requireNonNull(types, "types is null");
+        requireNonNull(symbolAllocator, "symbolAllocator is null");
+        requireNonNull(idAllocator, "idAllocator is null");
 
-        return PlanRewriter.rewriteWith(new Rewriter(), plan);
+        return SimplePlanRewriter.rewriteWith(new Rewriter(), plan);
     }
 
     private static class Rewriter
-            extends PlanRewriter<Void>
+            extends SimplePlanRewriter<Void>
     {
         @Override
         public PlanNode visitAggregation(AggregationNode node, RewriteContext<Void> context)
@@ -71,7 +72,7 @@ public class CountConstantOptimizer
                     Signature signature = node.getFunctions().get(symbol);
                     if (isCountConstant(projectNode, functionCall, signature)) {
                         aggregations.put(symbol, new FunctionCall(functionCall.getName(), null, functionCall.isDistinct(), ImmutableList.<Expression>of()));
-                        functions.put(symbol, new Signature("count", StandardTypes.BIGINT));
+                        functions.put(symbol, new Signature("count", AGGREGATE, StandardTypes.BIGINT));
                     }
                 }
             }

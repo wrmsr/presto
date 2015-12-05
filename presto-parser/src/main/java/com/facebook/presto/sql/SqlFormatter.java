@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.sql;
 
+import com.facebook.presto.sql.tree.AddColumn;
 import com.facebook.presto.sql.tree.AliasedRelation;
 import com.facebook.presto.sql.tree.AllColumns;
 import com.facebook.presto.sql.tree.AstVisitor;
@@ -69,6 +70,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import static com.facebook.presto.sql.ExpressionFormatter.formatExpression;
+import static com.facebook.presto.sql.ExpressionFormatter.formatGroupBy;
 import static com.facebook.presto.sql.ExpressionFormatter.formatSortItems;
 import static com.facebook.presto.sql.ExpressionFormatter.formatStringLiteral;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -84,7 +86,14 @@ public final class SqlFormatter
     public static String formatSql(Node root)
     {
         StringBuilder builder = new StringBuilder();
-        new Formatter(builder).process(root, 0);
+        new Formatter(builder, true).process(root, 0);
+        return builder.toString();
+    }
+
+    public static String formatSql(Node root, boolean unmangleNames)
+    {
+        StringBuilder builder = new StringBuilder();
+        new Formatter(builder, unmangleNames).process(root, 0);
         return builder.toString();
     }
 
@@ -92,10 +101,12 @@ public final class SqlFormatter
             extends AstVisitor<Void, Integer>
     {
         private final StringBuilder builder;
+        private final boolean unmangledNames;
 
-        public Formatter(StringBuilder builder)
+        public Formatter(StringBuilder builder, boolean unmangleNames)
         {
             this.builder = builder;
+            this.unmangledNames = unmangleNames;
         }
 
         @Override
@@ -108,7 +119,7 @@ public final class SqlFormatter
         protected Void visitExpression(Expression node, Integer indent)
         {
             checkArgument(indent == 0, "visitExpression should only be called at root");
-            builder.append(formatExpression(node));
+            builder.append(formatExpression(node, unmangledNames));
             return null;
         }
 
@@ -184,8 +195,7 @@ public final class SqlFormatter
             }
 
             if (!node.getGroupBy().isEmpty()) {
-                append(indent, "GROUP BY " + Joiner.on(", ").join(transform(node.getGroupBy(), ExpressionFormatter::formatExpression)))
-                        .append('\n');
+                append(indent, "GROUP BY " + formatGroupBy(node.getGroupBy())).append('\n');
             }
 
             if (node.getHaving().isPresent()) {
@@ -607,6 +617,10 @@ public final class SqlFormatter
             builder.append(" AS ");
             process(node.getQuery(), indent);
 
+            if (!node.isWithData()) {
+                builder.append(" WITH NO DATA");
+            }
+
             return null;
         }
 
@@ -672,11 +686,30 @@ public final class SqlFormatter
         }
 
         @Override
+        protected Void visitAddColumn(AddColumn node, Integer indent)
+        {
+            builder.append("ALTER TABLE ")
+                    .append(node.getName())
+                    .append(" ADD COLUMN ")
+                    .append(node.getColumn().getName())
+                    .append(" ")
+                    .append(node.getColumn().getType());
+
+            return null;
+        }
+
+        @Override
         protected Void visitInsert(Insert node, Integer indent)
         {
             builder.append("INSERT INTO ")
                     .append(node.getTarget())
                     .append(" ");
+
+            if (node.getColumns().isPresent()) {
+                builder.append("(")
+                        .append(Joiner.on(", ").join(node.getColumns().get()))
+                        .append(") ");
+            }
 
             process(node.getQuery(), indent);
 

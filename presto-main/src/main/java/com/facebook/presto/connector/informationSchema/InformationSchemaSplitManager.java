@@ -24,8 +24,8 @@ import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.FixedSplitSource;
 import com.facebook.presto.spi.HostAddress;
 import com.facebook.presto.spi.NodeManager;
-import com.facebook.presto.spi.SerializableNativeValue;
-import com.facebook.presto.spi.TupleDomain;
+import com.facebook.presto.spi.predicate.NullableValue;
+import com.facebook.presto.spi.predicate.TupleDomain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -38,7 +38,7 @@ import java.util.Map.Entry;
 
 import static com.facebook.presto.util.Types.checkType;
 import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class InformationSchemaSplitManager
         implements ConnectorSplitManager
@@ -48,16 +48,16 @@ public class InformationSchemaSplitManager
     @Inject
     public InformationSchemaSplitManager(NodeManager nodeManager)
     {
-        this.nodeManager = checkNotNull(nodeManager, "nodeManager is null");
+        this.nodeManager = requireNonNull(nodeManager, "nodeManager is null");
     }
 
     @Override
     public ConnectorPartitionResult getPartitions(ConnectorSession session, ConnectorTableHandle table, TupleDomain<ColumnHandle> tupleDomain)
     {
-        checkNotNull(tupleDomain, "tupleDomain is null");
+        requireNonNull(tupleDomain, "tupleDomain is null");
         InformationSchemaTableHandle informationSchemaTableHandle = checkType(table, InformationSchemaTableHandle.class, "table");
 
-        Map<ColumnHandle, SerializableNativeValue> bindings = tupleDomain.extractNullableFixedValues();
+        Map<ColumnHandle, NullableValue> bindings = TupleDomain.extractFixedValues(tupleDomain).get();
 
         List<ConnectorPartition> partitions = ImmutableList.<ConnectorPartition>of(new InformationSchemaPartition(informationSchemaTableHandle, bindings));
         // We don't strip out the bindings that we have created from the undeterminedTupleDomain b/c the current InformationSchema
@@ -68,7 +68,7 @@ public class InformationSchemaSplitManager
     @Override
     public ConnectorSplitSource getPartitionSplits(ConnectorSession session, ConnectorTableHandle table, List<ConnectorPartition> partitions)
     {
-        checkNotNull(partitions, "partitions is null");
+        requireNonNull(partitions, "partitions is null");
         if (partitions.isEmpty()) {
             return new FixedSplitSource(null, ImmutableList.<ConnectorSplit>of());
         }
@@ -78,8 +78,8 @@ public class InformationSchemaSplitManager
 
         List<HostAddress> localAddress = ImmutableList.of(nodeManager.getCurrentNode().getHostAndPort());
 
-        ImmutableMap.Builder<String, SerializableNativeValue> filters = ImmutableMap.builder();
-        for (Entry<ColumnHandle, SerializableNativeValue> entry : informationSchemaPartition.getFilters().entrySet()) {
+        ImmutableMap.Builder<String, NullableValue> filters = ImmutableMap.builder();
+        for (Entry<ColumnHandle, NullableValue> entry : informationSchemaPartition.getFilters().entrySet()) {
             InformationSchemaColumnHandle informationSchemaColumnHandle = (InformationSchemaColumnHandle) entry.getKey();
             filters.put(informationSchemaColumnHandle.getColumnName(), entry.getValue());
         }
@@ -93,12 +93,12 @@ public class InformationSchemaSplitManager
             implements ConnectorPartition
     {
         private final InformationSchemaTableHandle table;
-        private final Map<ColumnHandle, SerializableNativeValue> filters;
+        private final Map<ColumnHandle, NullableValue> filters;
 
-        public InformationSchemaPartition(InformationSchemaTableHandle table, Map<ColumnHandle, SerializableNativeValue> filters)
+        public InformationSchemaPartition(InformationSchemaTableHandle table, Map<ColumnHandle, NullableValue> filters)
         {
-            this.table = checkNotNull(table, "table is null");
-            this.filters = ImmutableMap.copyOf(checkNotNull(filters, "filters is null"));
+            this.table = requireNonNull(table, "table is null");
+            this.filters = ImmutableMap.copyOf(requireNonNull(filters, "filters is null"));
         }
 
         public InformationSchemaTableHandle getTable()
@@ -115,10 +115,10 @@ public class InformationSchemaSplitManager
         @Override
         public TupleDomain<ColumnHandle> getTupleDomain()
         {
-            return TupleDomain.withNullableFixedValues(filters);
+            return TupleDomain.fromFixedValues(filters);
         }
 
-        public Map<ColumnHandle, SerializableNativeValue> getFilters()
+        public Map<ColumnHandle, NullableValue> getFilters()
         {
             return filters;
         }

@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.airlift.units.DataSize;
-import it.unimi.dsi.fastutil.longs.LongIterator;
 
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -47,11 +46,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Iterables.filter;
+import static java.util.Objects.requireNonNull;
 
 @ThreadSafe
 public class IndexLoader
@@ -89,16 +88,16 @@ public class IndexLoader
             DataSize maxIndexMemorySize,
             IndexJoinLookupStats stats)
     {
-        checkNotNull(lookupSourceInputChannels, "lookupSourceInputChannels is null");
+        requireNonNull(lookupSourceInputChannels, "lookupSourceInputChannels is null");
         checkArgument(!lookupSourceInputChannels.isEmpty(), "lookupSourceInputChannels must not be empty");
-        checkNotNull(keyOutputChannels, "keyOutputChannels is null");
+        requireNonNull(keyOutputChannels, "keyOutputChannels is null");
         checkArgument(!keyOutputChannels.isEmpty(), "keyOutputChannels must not be empty");
-        checkNotNull(keyOutputHashChannel, "keyOutputHashChannel is null");
+        requireNonNull(keyOutputHashChannel, "keyOutputHashChannel is null");
         checkArgument(lookupSourceInputChannels.size() <= keyOutputChannels.size(), "Lookup channels must supply a subset of the actual index columns");
-        checkNotNull(outputTypes, "outputTypes is null");
-        checkNotNull(indexBuildDriverFactoryProvider, "indexBuildDriverFactoryProvider is null");
-        checkNotNull(maxIndexMemorySize, "maxIndexMemorySize is null");
-        checkNotNull(stats, "stats is null");
+        requireNonNull(outputTypes, "outputTypes is null");
+        requireNonNull(indexBuildDriverFactoryProvider, "indexBuildDriverFactoryProvider is null");
+        requireNonNull(maxIndexMemorySize, "maxIndexMemorySize is null");
+        requireNonNull(stats, "stats is null");
 
         this.lookupSourceInputChannels = ImmutableSet.copyOf(lookupSourceInputChannels);
         this.keyOutputChannels = ImmutableList.copyOf(keyOutputChannels);
@@ -376,6 +375,12 @@ public class IndexLoader
         }
 
         @Override
+        public int getJoinPositionCount()
+        {
+            return 0;
+        }
+
+        @Override
         public long getInMemorySizeInBytes()
         {
             return 0;
@@ -397,12 +402,6 @@ public class IndexLoader
         public long getNextJoinPosition(long currentPosition)
         {
             return IndexSnapshot.UNLOADED_INDEX_KEY;
-        }
-
-        @Override
-        public LongIterator getUnvisitedJoinPositions()
-        {
-            throw new UnsupportedOperationException();
         }
 
         @Override

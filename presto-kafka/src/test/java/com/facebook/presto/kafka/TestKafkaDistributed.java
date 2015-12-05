@@ -115,12 +115,6 @@ public class TestKafkaDistributed
     {
     }
 
-    @Override
-    public void testDeleteSemiJoin()
-            throws Exception
-    {
-    }
-
     //
     // Kafka connector does not table rename.
     //
@@ -132,11 +126,21 @@ public class TestKafkaDistributed
     }
 
     //
-    // Kafka connector does not table column.
+    // Kafka connector does not rename column.
     //
 
     @Override
     public void testRenameColumn()
+            throws Exception
+    {
+    }
+
+    //
+    // Kafka connector does not add column.
+    //
+
+    @Override
+    public void testAddColumn()
             throws Exception
     {
     }

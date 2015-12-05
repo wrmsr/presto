@@ -18,7 +18,8 @@ import com.facebook.presto.client.Column;
 import com.facebook.presto.client.QueryError;
 import com.facebook.presto.client.QueryResults;
 import com.facebook.presto.client.StatementClient;
-import com.facebook.presto.metadata.QualifiedTableName;
+import com.facebook.presto.metadata.MetadataUtil;
+import com.facebook.presto.metadata.QualifiedObjectName;
 import com.facebook.presto.metadata.QualifiedTablePrefix;
 import com.facebook.presto.server.testing.TestingPrestoServer;
 import com.facebook.presto.spi.type.Type;
@@ -36,9 +37,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
 import static io.airlift.json.JsonCodec.jsonCodec;
+import static java.util.Objects.requireNonNull;
 
 public abstract class AbstractTestingPrestoClient<T>
         implements Closeable
@@ -53,8 +54,8 @@ public abstract class AbstractTestingPrestoClient<T>
     protected AbstractTestingPrestoClient(TestingPrestoServer prestoServer,
             Session defaultSession)
     {
-        this.prestoServer = checkNotNull(prestoServer, "prestoServer is null");
-        this.defaultSession = checkNotNull(defaultSession, "defaultSession is null");
+        this.prestoServer = requireNonNull(prestoServer, "prestoServer is null");
+        this.defaultSession = requireNonNull(defaultSession, "defaultSession is null");
 
         this.httpClient = new JettyHttpClient(
                 new HttpClientConfig()
@@ -88,6 +89,14 @@ public abstract class AbstractTestingPrestoClient<T>
             }
 
             if (!client.isFailed()) {
+                QueryResults results = client.finalResults();
+                if (results.getUpdateType() != null) {
+                    resultsSession.setUpdateType(results.getUpdateType());
+                }
+                if (results.getUpdateCount() != null) {
+                    resultsSession.setUpdateCount(results.getUpdateCount());
+                }
+
                 return resultsSession.build(client.getSetSessionProperties(), client.getResetSessionProperties());
             }
 
@@ -104,15 +113,14 @@ public abstract class AbstractTestingPrestoClient<T>
         }
     }
 
-    public List<QualifiedTableName> listTables(Session session, String catalog, String schema)
+    public List<QualifiedObjectName> listTables(Session session, String catalog, String schema)
     {
         return prestoServer.getMetadata().listTables(session, new QualifiedTablePrefix(catalog, schema));
     }
 
     public boolean tableExists(Session session, String table)
     {
-        QualifiedTableName name = new QualifiedTableName(session.getCatalog(), session.getSchema(), table);
-        return prestoServer.getMetadata().getTableHandle(session, name).isPresent();
+        return MetadataUtil.tableExists(prestoServer.getMetadata(), session, table);
     }
 
     public Session getDefaultSession()
@@ -132,18 +140,13 @@ public abstract class AbstractTestingPrestoClient<T>
 
     protected Function<Column, Type> columnTypeGetter()
     {
-        return new Function<Column, Type>()
-        {
-            @Override
-            public Type apply(Column column)
-            {
-                String typeName = column.getType();
-                Type type = prestoServer.getMetadata().getType(parseTypeSignature(typeName));
-                if (type == null) {
-                    throw new AssertionError("Unhandled type: " + typeName);
-                }
-                return type;
+        return column -> {
+            String typeName = column.getType();
+            Type type = prestoServer.getMetadata().getType(parseTypeSignature(typeName));
+            if (type == null) {
+                throw new AssertionError("Unhandled type: " + typeName);
             }
+            return type;
         };
     }
 }

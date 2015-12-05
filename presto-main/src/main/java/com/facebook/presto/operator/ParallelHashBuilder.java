@@ -31,7 +31,6 @@ import java.util.Optional;
 
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static it.unimi.dsi.fastutil.HashCommon.murmurHash3;
 import static java.util.Objects.requireNonNull;
@@ -153,6 +152,12 @@ public class ParallelHashBuilder
         {
             closed = true;
         }
+
+        @Override
+        public OperatorFactory duplicate()
+        {
+            throw new UnsupportedOperationException("Parallel hash collector can not be duplicated");
+        }
     }
 
     private static class ParallelHashCollectOperator
@@ -240,7 +245,7 @@ public class ParallelHashBuilder
         @Override
         public void addInput(Page page)
         {
-            checkNotNull(page, "page is null");
+            requireNonNull(page, "page is null");
             checkState(!isFinished(), "Operator is already finished");
 
             // build a block containing the partition id of each position
@@ -331,6 +336,12 @@ public class ParallelHashBuilder
         {
             closed = true;
         }
+
+        @Override
+        public OperatorFactory duplicate()
+        {
+            throw new UnsupportedOperationException("Parallel hash collector can not be duplicated");
+        }
     }
 
     private static class ParallelHashBuilderOperator
@@ -391,9 +402,8 @@ public class ParallelHashBuilder
             }
 
             PagesIndex pagesIndex = Futures.getUnchecked(pagesIndexFuture);
-            // Free memory, as the SharedLookupSource is going to take it over
-            operatorContext.setMemoryReservation(0);
-            SharedLookupSource sharedLookupSource = new SharedLookupSource(pagesIndex.createLookupSource(hashChannels, hashChannel), operatorContext.getDriverContext().getPipelineContext().getTaskContext());
+            // After this point the SharedLookupSource will take over our memory reservation, and ours will be zero
+            SharedLookupSource sharedLookupSource = new SharedLookupSource(pagesIndex.createLookupSource(hashChannels, hashChannel), operatorContext);
 
             if (!lookupSourceFuture.set(sharedLookupSource)) {
                 sharedLookupSource.freeMemory();

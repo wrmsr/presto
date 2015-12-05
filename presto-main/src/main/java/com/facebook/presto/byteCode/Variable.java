@@ -20,7 +20,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 import static com.facebook.presto.byteCode.ParameterizedType.type;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.facebook.presto.byteCode.expression.ByteCodeExpressions.add;
+import static com.facebook.presto.byteCode.expression.ByteCodeExpressions.constantInt;
+import static java.util.Objects.requireNonNull;
 
 public class Variable
         extends ByteCodeExpression
@@ -30,7 +32,7 @@ public class Variable
     public Variable(String name, ParameterizedType type)
     {
         super(type);
-        this.name = checkNotNull(name, "name is null");
+        this.name = requireNonNull(name, "name is null");
     }
 
     public String getName()
@@ -41,6 +43,11 @@ public class Variable
     public ByteCodeExpression set(ByteCodeExpression value)
     {
         return new SetVariableByteCodeExpression(this, value);
+    }
+
+    public ByteCodeExpression increment()
+    {
+        return new SetVariableByteCodeExpression(this, add(this, constantInt(1)));
     }
 
     @Override
@@ -70,8 +77,8 @@ public class Variable
         public SetVariableByteCodeExpression(Variable variable, ByteCodeExpression value)
         {
             super(type(void.class));
-            this.variable = checkNotNull(variable, "variable is null");
-            this.value = checkNotNull(value, "value is null");
+            this.variable = requireNonNull(variable, "variable is null");
+            this.value = requireNonNull(value, "value is null");
         }
 
         @Override

@@ -35,7 +35,8 @@ import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 
 public final class TypeUtils
 {
@@ -80,6 +81,9 @@ public final class TypeUtils
             else if (type.getJavaType() == Slice.class) {
                 return (long) methodHandle.invoke(type.getSlice(block, position));
             }
+            else if (!type.getJavaType().isPrimitive()) {
+                return (long) methodHandle.invoke(type.getObject(block, position));
+            }
             else {
                 throw new UnsupportedOperationException("Unsupported native container type: " + type.getJavaType() + " with type " + type.getTypeSignature());
             }
@@ -102,7 +106,7 @@ public final class TypeUtils
     public static List<Type> resolveTypes(List<TypeSignature> typeNames, TypeManager typeManager)
     {
         return typeNames.stream()
-                .map((TypeSignature type) -> checkNotNull(typeManager.getType(type), "Type '%s' not found", type))
+                .map((TypeSignature type) -> requireNonNull(typeManager.getType(type), format("Type '%s' not found", type)))
                 .collect(toImmutableList());
     }
 
@@ -152,30 +156,6 @@ public final class TypeUtils
         }
         blocks[page.getChannelCount()] = getHashBlock(hashTypes.build(), hashBlocks);
         return new Page(blocks);
-    }
-
-    public static Object castValue(Type type, Block block, int position)
-    {
-        Class<?> javaType = type.getJavaType();
-
-        if (block.isNull(position)) {
-            return null;
-        }
-        else if (javaType == boolean.class) {
-            return type.getBoolean(block, position);
-        }
-        else if (javaType == long.class) {
-            return type.getLong(block, position);
-        }
-        else if (javaType == double.class) {
-            return type.getDouble(block, position);
-        }
-        else if (type.getJavaType() == Slice.class) {
-            return type.getSlice(block, position);
-        }
-        else {
-            return type.getObject(block, position);
-        }
     }
 
     public static void checkElementNotNull(boolean isNull, String errorMsg)

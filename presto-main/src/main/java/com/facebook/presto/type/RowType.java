@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * As defined in ISO/IEC FCD 9075-2 (SQL 2011), section 4.8
@@ -105,7 +105,7 @@ public class RowType
         }
 
         Block arrayBlock = getObject(block, position);
-        List<Object> values = Lists.newArrayListWithCapacity(arrayBlock.getPositionCount());
+        List<Object> values = new ArrayList<>(arrayBlock.getPositionCount());
 
         for (int i = 0; i < arrayBlock.getPositionCount(); i++) {
             values.add(fields.get(i).getType().getObjectValue(session, arrayBlock, i));
@@ -158,8 +158,8 @@ public class RowType
 
         public RowField(Type type, Optional<String> name)
         {
-            this.type = checkNotNull(type, "type is null");
-            this.name = checkNotNull(name, "name is null");
+            this.type = requireNonNull(type, "type is null");
+            this.name = requireNonNull(name, "name is null");
         }
 
         public Type getType()

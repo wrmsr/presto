@@ -16,14 +16,14 @@ package com.facebook.presto.sql.gen;
 import com.facebook.presto.byteCode.ByteCodeNode;
 import com.facebook.presto.byteCode.Scope;
 import com.facebook.presto.byteCode.Variable;
-import com.facebook.presto.metadata.FunctionInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.sql.relational.RowExpression;
 
 import java.util.List;
 
 import static com.facebook.presto.sql.gen.ByteCodeUtils.generateInvocation;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class ByteCodeGeneratorContext
 {
@@ -39,10 +39,10 @@ public class ByteCodeGeneratorContext
             CallSiteBinder callSiteBinder,
             FunctionRegistry registry)
     {
-        checkNotNull(byteCodeGenerator, "byteCodeGenerator is null");
-        checkNotNull(scope, "scope is null");
-        checkNotNull(callSiteBinder, "callSiteBinder is null");
-        checkNotNull(registry, "registry is null");
+        requireNonNull(byteCodeGenerator, "byteCodeGenerator is null");
+        requireNonNull(scope, "scope is null");
+        requireNonNull(callSiteBinder, "callSiteBinder is null");
+        requireNonNull(registry, "registry is null");
 
         this.byteCodeGenerator = byteCodeGenerator;
         this.scope = scope;
@@ -74,10 +74,10 @@ public class ByteCodeGeneratorContext
     /**
      * Generates a function call with null handling, automatic binding of session parameter, etc.
      */
-    public ByteCodeNode generateCall(FunctionInfo function, List<ByteCodeNode> arguments)
+    public ByteCodeNode generateCall(String name, ScalarFunctionImplementation function, List<ByteCodeNode> arguments)
     {
         Binding binding = callSiteBinder.bind(function.getMethodHandle());
-        return generateInvocation(scope, function, arguments, binding);
+        return generateInvocation(scope, name, function, arguments, binding);
     }
 
     public Variable wasNull()

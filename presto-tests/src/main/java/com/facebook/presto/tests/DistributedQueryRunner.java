@@ -18,7 +18,7 @@ import com.facebook.presto.execution.QueryInfo;
 import com.facebook.presto.execution.QueryManager;
 import com.facebook.presto.metadata.AllNodes;
 import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.QualifiedTableName;
+import com.facebook.presto.metadata.QualifiedObjectName;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.server.testing.TestingPrestoServer;
 import com.facebook.presto.spi.Node;
@@ -46,8 +46,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static io.airlift.units.Duration.nanosSince;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -76,7 +76,7 @@ public class DistributedQueryRunner
     public DistributedQueryRunner(Session defaultSession, int workersCount, Map<String, String> extraProperties)
             throws Exception
     {
-        checkNotNull(defaultSession, "defaultSession is null");
+        requireNonNull(defaultSession, "defaultSession is null");
 
         try {
             long start = System.nanoTime();
@@ -129,10 +129,9 @@ public class DistributedQueryRunner
                 .put("compiler.interpreter-enabled", "false")
                 .put("task.max-index-memory", "16kB") // causes index joins to fault load
                 .put("datasources", "system")
-                .put("distributed-index-joins-enabled", "true")
-                .put("optimizer.optimize-hash-generation", "true");
+                .put("distributed-index-joins-enabled", "true");
         if (coordinator) {
-            propertiesBuilder.put("node-scheduler.include-coordinator", "false");
+            propertiesBuilder.put("node-scheduler.include-coordinator", "true");
             propertiesBuilder.put("distributed-joins-enabled", "true");
             propertiesBuilder.put("node-scheduler.multiple-tasks-per-node-enabled", "true");
         }
@@ -249,7 +248,7 @@ public class DistributedQueryRunner
     }
 
     @Override
-    public List<QualifiedTableName> listTables(Session session, String catalog, String schema)
+    public List<QualifiedObjectName> listTables(Session session, String catalog, String schema)
     {
         lock.readLock().lock();
         try {
@@ -258,7 +257,6 @@ public class DistributedQueryRunner
         finally {
             lock.readLock().unlock();
         }
-
     }
 
     @Override
@@ -271,7 +269,6 @@ public class DistributedQueryRunner
         finally {
             lock.readLock().unlock();
         }
-
     }
 
     @Override
@@ -284,7 +281,6 @@ public class DistributedQueryRunner
         finally {
             lock.readLock().unlock();
         }
-
     }
 
     @Override
@@ -297,7 +293,6 @@ public class DistributedQueryRunner
         finally {
             lock.readLock().unlock();
         }
-
     }
 
     @Override

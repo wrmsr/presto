@@ -23,6 +23,7 @@ import com.facebook.presto.client.StageStats;
 import com.facebook.presto.client.StatementStats;
 import com.facebook.presto.execution.BufferInfo;
 import com.facebook.presto.execution.QueryId;
+import com.facebook.presto.execution.QueryIdGenerator;
 import com.facebook.presto.execution.QueryInfo;
 import com.facebook.presto.execution.QueryManager;
 import com.facebook.presto.execution.QueryState;
@@ -96,12 +97,12 @@ import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.facebook.presto.spi.StandardErrorCode.toErrorType;
 import static com.facebook.presto.util.Failures.toFailure;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static io.airlift.concurrent.Threads.threadsNamed;
 import static io.airlift.http.client.HttpUriBuilder.uriBuilderFrom;
 import static io.airlift.units.DataSize.Unit.MEGABYTE;
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -119,6 +120,7 @@ public class StatementResource
     private final AccessControl accessControl;
     private final SessionPropertyManager sessionPropertyManager;
     private final ExchangeClientSupplier exchangeClientSupplier;
+    private final QueryIdGenerator queryIdGenerator;
 
     private final ConcurrentMap<QueryId, Query> queries = new ConcurrentHashMap<>();
     private final ScheduledExecutorService queryPurger = newSingleThreadScheduledExecutor(threadsNamed("query-purger"));
@@ -128,12 +130,14 @@ public class StatementResource
             QueryManager queryManager,
             AccessControl accessControl,
             SessionPropertyManager sessionPropertyManager,
-            ExchangeClientSupplier exchangeClientSupplier)
+            ExchangeClientSupplier exchangeClientSupplier,
+            QueryIdGenerator queryIdGenerator)
     {
-        this.queryManager = checkNotNull(queryManager, "queryManager is null");
-        this.accessControl = checkNotNull(accessControl, "accessControl is null");
-        this.sessionPropertyManager = checkNotNull(sessionPropertyManager, "sessionPropertyManager is null");
-        this.exchangeClientSupplier = checkNotNull(exchangeClientSupplier, "exchangeClientSupplier is null");
+        this.queryManager = requireNonNull(queryManager, "queryManager is null");
+        this.accessControl = requireNonNull(accessControl, "accessControl is null");
+        this.sessionPropertyManager = requireNonNull(sessionPropertyManager, "sessionPropertyManager is null");
+        this.exchangeClientSupplier = requireNonNull(exchangeClientSupplier, "exchangeClientSupplier is null");
+        this.queryIdGenerator = requireNonNull(queryIdGenerator, "queryIdGenerator is null");
 
         queryPurger.scheduleWithFixedDelay(new PurgeQueriesRunnable(queries, queryManager), 200, 200, MILLISECONDS);
     }
@@ -154,7 +158,7 @@ public class StatementResource
     {
         assertRequest(!isNullOrEmpty(statement), "SQL statement is empty");
 
-        Session session = createSessionForRequest(servletRequest, accessControl, sessionPropertyManager);
+        Session session = createSessionForRequest(servletRequest, accessControl, sessionPropertyManager, queryIdGenerator.createNextQueryId());
 
         ExchangeClient exchangeClient = exchangeClientSupplier.get(deltaMemoryInBytes -> { });
         Query query = new Query(session, statement, queryManager, exchangeClient);
@@ -253,10 +257,10 @@ public class StatementResource
                 QueryManager queryManager,
                 ExchangeClient exchangeClient)
         {
-            checkNotNull(session, "session is null");
-            checkNotNull(query, "query is null");
-            checkNotNull(queryManager, "queryManager is null");
-            checkNotNull(exchangeClient, "exchangeClient is null");
+            requireNonNull(session, "session is null");
+            requireNonNull(query, "query is null");
+            requireNonNull(queryManager, "queryManager is null");
+            requireNonNull(exchangeClient, "exchangeClient is null");
 
             this.session = session;
             this.queryManager = queryManager;
@@ -339,7 +343,10 @@ public class StatementResource
                     (columns.size() == 1) && (columns.get(0).getType().equals(StandardTypes.BIGINT))) {
                 Iterator<List<Object>> iterator = data.iterator();
                 if (iterator.hasNext()) {
-                    updateCount = ((Number) iterator.next().get(0)).longValue();
+                    Number number = (Number) iterator.next().get(0);
+                    if (number != null) {
+                        updateCount = number.longValue();
+                    }
                 }
             }
 
@@ -498,9 +505,9 @@ public class StatementResource
 
         private static List<Column> createColumnsList(QueryInfo queryInfo)
         {
-            checkNotNull(queryInfo, "queryInfo is null");
+            requireNonNull(queryInfo, "queryInfo is null");
             StageInfo outputStage = queryInfo.getOutputStage();
-            checkNotNull(outputStage, "outputStage is null");
+            requireNonNull(outputStage, "outputStage is null");
 
             List<String> names = queryInfo.getFieldNames();
             List<Type> types = outputStage.getTypes();
@@ -665,8 +672,8 @@ public class StatementResource
             private RowIterable(ConnectorSession session, List<Type> types, Page page)
             {
                 this.session = session;
-                this.types = ImmutableList.copyOf(checkNotNull(types, "types is null"));
-                this.page = checkNotNull(page, "page is null");
+                this.types = ImmutableList.copyOf(requireNonNull(types, "types is null"));
+                this.page = requireNonNull(page, "page is null");
             }
 
             @Override

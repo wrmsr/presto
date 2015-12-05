@@ -24,14 +24,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.OptionalLong;
 import java.util.UUID;
 
 import static com.facebook.presto.raptor.RaptorErrorCode.RAPTOR_ERROR;
 import static com.facebook.presto.raptor.storage.FileStorageService.getFileSystemPath;
-import static java.nio.file.Files.readAttributes;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
@@ -82,20 +78,17 @@ public class FileBackupStore
         }
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Override
-    public OptionalLong shardSize(UUID uuid)
+    public void deleteShard(UUID uuid)
     {
-        Path path = getBackupFile(uuid).toPath();
-        try {
-            BasicFileAttributes attributes = readAttributes(path, BasicFileAttributes.class);
-            if (!attributes.isRegularFile()) {
-                return OptionalLong.empty();
-            }
-            return OptionalLong.of(attributes.size());
-        }
-        catch (IOException e) {
-            return OptionalLong.empty();
-        }
+        getBackupFile(uuid).delete();
+    }
+
+    @Override
+    public boolean shardExists(UUID uuid)
+    {
+        return getBackupFile(uuid).isFile();
     }
 
     @VisibleForTesting

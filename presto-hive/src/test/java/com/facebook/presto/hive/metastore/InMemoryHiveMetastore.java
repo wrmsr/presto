@@ -18,6 +18,7 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.TableNotFoundException;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.api.Database;
@@ -40,11 +41,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.facebook.presto.hive.AbstractTestHiveClient.listAllDataPaths;
+import static com.facebook.presto.hive.HiveUtil.createPartitionName;
 import static com.facebook.presto.hive.metastore.HivePrivilege.OWNERSHIP;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableSet;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static io.airlift.testing.FileUtils.deleteRecursively;
+import static java.util.Locale.US;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
 import static org.apache.hadoop.hive.metastore.api.PrincipalType.ROLE;
 import static org.apache.hadoop.hive.metastore.api.PrincipalType.USER;
 
@@ -55,6 +60,7 @@ public class InMemoryHiveMetastore
     private final ConcurrentHashMap<String, Database> databases = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<SchemaTableName, Table> relations = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<SchemaTableName, Table> views = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<PartitionName, Partition> partitions = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<String, Set<String>> roleGrants = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<PrincipalTableKey, Set<HivePrivilege>> tablePrivileges = new ConcurrentHashMap<>();
@@ -63,14 +69,14 @@ public class InMemoryHiveMetastore
 
     public InMemoryHiveMetastore(File baseDirectory)
     {
-        this.baseDirectory = checkNotNull(baseDirectory, "baseDirectory is null");
+        this.baseDirectory = requireNonNull(baseDirectory, "baseDirectory is null");
         checkArgument(!baseDirectory.exists(), "Base directory already exists");
         checkArgument(baseDirectory.mkdirs(), "Could not create base directory");
     }
 
     public void createDatabase(Database database)
     {
-        checkNotNull(database, "database is null");
+        requireNonNull(database, "database is null");
 
         File directory = new File(URI.create(database.getLocationUri()));
         checkArgument(!directory.exists(), "Database directory already exists");
@@ -134,37 +140,53 @@ public class InMemoryHiveMetastore
     @Override
     public void dropTable(String databaseName, String tableName)
     {
+        List<String> locations = listAllDataPaths(this, databaseName, tableName);
+
         SchemaTableName schemaTableName = new SchemaTableName(databaseName, tableName);
         Table table = relations.remove(schemaTableName);
         if (table == null) {
             throw new TableNotFoundException(schemaTableName);
         }
         views.remove(schemaTableName);
+        partitions.keySet().stream()
+                .filter(partitionName -> partitionName.matches(databaseName, tableName))
+                .forEach(partitions::remove);
 
         // remove data
-        String location = table.getSd().getLocation();
-        if (location != null) {
-            File directory = new File(URI.create(location));
-            checkArgument(isParentDir(directory, baseDirectory), "Table directory must be inside of the metastore base directory");
-            deleteRecursively(directory);
+        for (String location : locations) {
+            if (location != null) {
+                File directory = new File(URI.create(location));
+                checkArgument(isParentDir(directory, baseDirectory), "Table directory must be inside of the metastore base directory");
+                deleteRecursively(directory);
+            }
         }
     }
 
     @Override
-    public void renameTable(String databaseName, String tableName, String newDatabaseName, String newTableName)
+    public void alterTable(String databaseName, String tableName, Table newTable)
     {
-        // TODO: use locking to do this properly
-        SchemaTableName oldTable = new SchemaTableName(databaseName, tableName);
-        Table table = relations.get(oldTable);
-        if (table == null) {
-            throw new TableNotFoundException(oldTable);
+        SchemaTableName oldName = new SchemaTableName(databaseName, tableName);
+        SchemaTableName newName = new SchemaTableName(newTable.getDbName(), newTable.getTableName());
+
+        // if the name did not change, this is a simple schema change
+        if (oldName.equals(newName)) {
+            if (relations.replace(oldName, newTable) != null) {
+                throw new TableNotFoundException(oldName);
+            }
+            return;
         }
 
-        SchemaTableName newTable = new SchemaTableName(newDatabaseName, newTableName);
-        if (relations.putIfAbsent(newTable, table) != null) {
-            throw new TableAlreadyExistsException(newTable);
+        // remove old table definition and add the new one
+        // TODO: use locking to do this properly
+        Table table = relations.get(oldName);
+        if (table == null) {
+            throw new TableNotFoundException(oldName);
         }
-        relations.remove(oldTable);
+
+        if (relations.putIfAbsent(newName, newTable) != null) {
+            throw new TableAlreadyExistsException(newName);
+        }
+        relations.remove(oldName);
     }
 
     @Override
@@ -198,21 +220,105 @@ public class InMemoryHiveMetastore
     }
 
     @Override
+    public void addPartitions(String databaseName, String tableName, List<Partition> partitions)
+    {
+        Optional<Table> table = getTable(databaseName, tableName);
+        if (!table.isPresent()) {
+            throw new TableNotFoundException(new SchemaTableName(databaseName, tableName));
+        }
+        for (Partition partition : partitions) {
+            String partitionName = createPartitionName(partition, table.get());
+            partition = partition.deepCopy();
+            if (partition.getParameters() == null) {
+                partition.setParameters(ImmutableMap.of());
+            }
+            this.partitions.put(new PartitionName(databaseName, tableName, partitionName), partition);
+        }
+    }
+
+    @Override
+    public void dropPartition(String databaseName, String tableName, List<String> parts)
+    {
+        for (Entry<PartitionName, Partition> entry : partitions.entrySet()) {
+            PartitionName partitionName = entry.getKey();
+            Partition partition = entry.getValue();
+            if (partitionName.matches(databaseName, tableName) && partition.getValues().equals(parts)) {
+                partitions.remove(partitionName);
+            }
+        }
+    }
+
+    @Override
+    public void dropPartitionByName(String databaseName, String tableName, String partitionName)
+    {
+        for (PartitionName partition : partitions.keySet()) {
+            if (partition.matches(databaseName, tableName, partitionName)) {
+                partitions.remove(partition);
+            }
+        }
+    }
+
+    @Override
     public Optional<List<String>> getPartitionNames(String databaseName, String tableName)
     {
-        throw new UnsupportedOperationException();
+        return Optional.of(ImmutableList.copyOf(partitions.entrySet().stream()
+                .filter(entry -> entry.getKey().matches(databaseName, tableName))
+                .map(entry -> entry.getKey().getPartitionName())
+                .collect(toList())));
+    }
+
+    @Override
+    public Optional<Partition> getPartition(String databaseName, String tableName, String partitionName)
+    {
+        PartitionName name = new PartitionName(databaseName, tableName, partitionName);
+        Partition partition = partitions.get(name);
+        if (partition == null) {
+            return Optional.empty();
+        }
+        return Optional.of(partition.deepCopy());
     }
 
     @Override
     public Optional<List<String>> getPartitionNamesByParts(String databaseName, String tableName, List<String> parts)
     {
-        throw new UnsupportedOperationException();
+        return Optional.of(partitions.entrySet().stream()
+                .filter(entry -> partitionMatches(entry.getValue(), databaseName, tableName, parts))
+                .map(entry -> entry.getKey().getPartitionName())
+                .collect(toList()));
+    }
+
+    private static boolean partitionMatches(Partition partition, String databaseName, String tableName, List<String> parts)
+    {
+        if (!partition.getDbName().equals(databaseName) ||
+                !partition.getTableName().equals(tableName)) {
+            return false;
+        }
+        List<String> values = partition.getValues();
+        if (values.size() != parts.size()) {
+            return false;
+        }
+        for (int i = 0; i < values.size(); i++) {
+            String part = parts.get(i);
+            if (!part.isEmpty() && !values.get(i).equals(part)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
     public Optional<Map<String, Partition>> getPartitionsByNames(String databaseName, String tableName, List<String> partitionNames)
     {
-        throw new UnsupportedOperationException();
+        ImmutableMap.Builder<String, Partition> builder = ImmutableMap.builder();
+        for (String name : partitionNames) {
+            PartitionName partitionName = new PartitionName(databaseName, tableName, name);
+            Partition partition = partitions.get(partitionName);
+            if (partition == null) {
+                return Optional.empty();
+            }
+            builder.put(name, partition.deepCopy());
+        }
+        return Optional.of(builder.build());
     }
 
     @Override
@@ -287,6 +393,65 @@ public class InMemoryHiveMetastore
         return false;
     }
 
+    private static class PartitionName
+    {
+        private final String schemaName;
+        private final String tableName;
+        private final String partitionName;
+
+        public PartitionName(String schemaName, String tableName, String partitionName)
+        {
+            this.schemaName = schemaName.toLowerCase(US);
+            this.tableName = tableName.toLowerCase(US);
+            this.partitionName = partitionName;
+        }
+
+        public String getPartitionName()
+        {
+            return partitionName;
+        }
+
+        public boolean matches(String schemaName, String tableName)
+        {
+            return this.schemaName.equals(schemaName) &&
+                    this.tableName.equals(tableName);
+        }
+
+        public boolean matches(String schemaName, String tableName, String partitionName)
+        {
+            return this.schemaName.equals(schemaName) &&
+                    this.tableName.equals(tableName) &&
+                    this.partitionName.equals(partitionName);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(schemaName, tableName, partitionName);
+        }
+
+        @Override
+        public boolean equals(Object obj)
+        {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null || getClass() != obj.getClass()) {
+                return false;
+            }
+            PartitionName other = (PartitionName) obj;
+            return Objects.equals(this.schemaName, other.schemaName)
+                    && Objects.equals(this.tableName, other.tableName)
+                    && Objects.equals(this.partitionName, other.partitionName);
+        }
+
+        @Override
+        public String toString()
+        {
+            return schemaName + "/" + tableName + "/" + partitionName;
+        }
+    }
+
     private static class PrincipalTableKey
     {
         private final String principalName;
@@ -296,10 +461,10 @@ public class InMemoryHiveMetastore
 
         public PrincipalTableKey(String principalName, PrincipalType principalType, String table, String database)
         {
-            this.principalName = checkNotNull(principalName, "principalName is null");
-            this.principalType = checkNotNull(principalType, "principalType is null");
-            this.table = checkNotNull(table, "table is null");
-            this.database = checkNotNull(database, "database is null");
+            this.principalName = requireNonNull(principalName, "principalName is null");
+            this.principalType = requireNonNull(principalType, "principalType is null");
+            this.table = requireNonNull(table, "table is null");
+            this.database = requireNonNull(database, "database is null");
         }
 
         @Override

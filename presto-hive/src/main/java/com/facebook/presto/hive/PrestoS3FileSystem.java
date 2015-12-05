@@ -18,15 +18,21 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.internal.StaticCredentialsProvider;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3EncryptionClient;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.CryptoConfiguration;
+import com.amazonaws.services.s3.model.EncryptionMaterialsProvider;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
@@ -46,6 +52,7 @@ import com.google.common.primitives.Ints;
 import io.airlift.log.Logger;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.BufferedFSInputStream;
@@ -77,9 +84,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.amazonaws.services.s3.Headers.UNENCRYPTED_CONTENT_LENGTH;
 import static com.facebook.presto.hive.RetryDriver.retry;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.Iterables.toArray;
@@ -87,6 +94,7 @@ import static io.airlift.units.DataSize.Unit.MEGABYTE;
 import static java.lang.Math.max;
 import static java.nio.file.Files.createDirectories;
 import static java.nio.file.Files.createTempFile;
+import static java.util.Objects.requireNonNull;
 import static org.apache.http.HttpStatus.SC_FORBIDDEN;
 import static org.apache.http.HttpStatus.SC_NOT_FOUND;
 import static org.apache.http.HttpStatus.SC_REQUESTED_RANGE_NOT_SATISFIABLE;
@@ -118,6 +126,8 @@ public class PrestoS3FileSystem
     public static final String S3_MULTIPART_MIN_FILE_SIZE = "presto.s3.multipart.min-file-size";
     public static final String S3_MULTIPART_MIN_PART_SIZE = "presto.s3.multipart.min-part-size";
     public static final String S3_USE_INSTANCE_CREDENTIALS = "presto.s3.use-instance-credentials";
+    public static final String S3_PIN_CLIENT_TO_CURRENT_REGION = "presto.s3.pin-client-to-current-region";
+    public static final String S3_ENCRYPTION_MATERIALS_PROVIDER = "presto.s3.encryption-materials-provider";
 
     private static final DataSize BLOCK_SIZE = new DataSize(32, MEGABYTE);
     private static final DataSize MAX_SKIP_SIZE = new DataSize(1, MEGABYTE);
@@ -132,13 +142,14 @@ public class PrestoS3FileSystem
     private Duration maxBackoffTime;
     private Duration maxRetryTime;
     private boolean useInstanceCredentials;
+    private boolean pinS3ClientToCurrentRegion;
 
     @Override
     public void initialize(URI uri, Configuration conf)
             throws IOException
     {
-        checkNotNull(uri, "uri is null");
-        checkNotNull(conf, "conf is null");
+        requireNonNull(uri, "uri is null");
+        requireNonNull(conf, "conf is null");
         super.initialize(uri, conf);
         setConf(conf);
 
@@ -158,6 +169,7 @@ public class PrestoS3FileSystem
         long minFileSize = conf.getLong(S3_MULTIPART_MIN_FILE_SIZE, defaults.getS3MultipartMinFileSize().toBytes());
         long minPartSize = conf.getLong(S3_MULTIPART_MIN_PART_SIZE, defaults.getS3MultipartMinPartSize().toBytes());
         this.useInstanceCredentials = conf.getBoolean(S3_USE_INSTANCE_CREDENTIALS, defaults.isS3UseInstanceCredentials());
+        this.pinS3ClientToCurrentRegion = conf.getBoolean(S3_PIN_CLIENT_TO_CURRENT_REGION, defaults.isPinS3ClientToCurrentRegion());
 
         ClientConfiguration configuration = new ClientConfiguration()
                 .withMaxErrorRetry(maxErrorRetries)
@@ -261,12 +273,18 @@ public class PrestoS3FileSystem
         }
 
         return new FileStatus(
-                metadata.getContentLength(),
+                getObjectSize(metadata),
                 false,
                 1,
                 BLOCK_SIZE.toBytes(),
                 lastModifiedTime(metadata),
                 qualifiedPath(path));
+    }
+
+    private static long getObjectSize(ObjectMetadata metadata)
+    {
+        String length = metadata.getUserMetadata().get(UNENCRYPTED_CONTENT_LENGTH);
+        return (length != null) ? Long.parseLong(length) : metadata.getContentLength();
     }
 
     @Override
@@ -441,6 +459,9 @@ public class PrestoS3FileSystem
 
     private Iterator<LocatedFileStatus> statusFromObjects(List<S3ObjectSummary> objects)
     {
+        // NOTE: for encrypted objects, S3ObjectSummary.size() used below is NOT correct,
+        // however, to get the correct size we'd need to make an additional request to get
+        // user metadata, and in this case it doesn't matter.
         return objects.stream()
                 .filter(object -> !object.getKey().endsWith("/"))
                 .map(object -> new FileStatus(
@@ -548,15 +569,61 @@ public class PrestoS3FileSystem
 
     private AmazonS3Client createAmazonS3Client(URI uri, Configuration hadoopConfig, ClientConfiguration clientConfig)
     {
+        AWSCredentialsProvider credentials = getAwsCredentialsProvider(uri, hadoopConfig);
+        EncryptionMaterialsProvider emp = createEncryptionMaterialsProvider(hadoopConfig);
+        AmazonS3Client client;
+        if (emp != null) {
+            client = new AmazonS3EncryptionClient(credentials, emp, clientConfig, new CryptoConfiguration(), METRIC_COLLECTOR);
+        }
+        else {
+            client = new AmazonS3Client(credentials, clientConfig, METRIC_COLLECTOR);
+        }
+
+        // use local region when running inside of EC2
+        if (pinS3ClientToCurrentRegion) {
+            Region region = Regions.getCurrentRegion();
+            if (region != null) {
+                client.setRegion(region);
+            }
+        }
+
+        return client;
+    }
+
+    private static EncryptionMaterialsProvider createEncryptionMaterialsProvider(Configuration hadoopConfig)
+    {
+        String empClassName = hadoopConfig.get(S3_ENCRYPTION_MATERIALS_PROVIDER);
+        if (empClassName == null) {
+            return null;
+        }
+
+        try {
+            Object instance = Class.forName(empClassName).getConstructor().newInstance();
+            if (!(instance instanceof EncryptionMaterialsProvider)) {
+                throw new RuntimeException("Invalid encryption materials provider class: " + instance.getClass().getName());
+            }
+            EncryptionMaterialsProvider emp = (EncryptionMaterialsProvider) instance;
+            if (emp instanceof Configurable) {
+                ((Configurable) emp).setConf(hadoopConfig);
+            }
+            return emp;
+        }
+        catch (ReflectiveOperationException e) {
+            throw new RuntimeException("Unable to load or create S3 encryption materials provider: " + empClassName, e);
+        }
+    }
+
+    private AWSCredentialsProvider getAwsCredentialsProvider(URI uri, Configuration conf)
+    {
         // first try credentials from URI or static properties
         try {
-            return new AmazonS3Client(new StaticCredentialsProvider(getAwsCredentials(uri, hadoopConfig)), clientConfig, METRIC_COLLECTOR);
+            return new StaticCredentialsProvider(getAwsCredentials(uri, conf));
         }
         catch (IllegalArgumentException ignored) {
         }
 
         if (useInstanceCredentials) {
-            return new AmazonS3Client(new InstanceProfileCredentialsProvider(), clientConfig, METRIC_COLLECTOR);
+            return new InstanceProfileCredentialsProvider();
         }
 
         throw new RuntimeException("S3 credentials not configured");
@@ -586,14 +653,14 @@ public class PrestoS3FileSystem
 
         public PrestoS3InputStream(AmazonS3 s3, String host, Path path, int maxAttempts, Duration maxBackoffTime, Duration maxRetryTime)
         {
-            this.s3 = checkNotNull(s3, "s3 is null");
-            this.host = checkNotNull(host, "host is null");
-            this.path = checkNotNull(path, "path is null");
+            this.s3 = requireNonNull(s3, "s3 is null");
+            this.host = requireNonNull(host, "host is null");
+            this.path = requireNonNull(path, "path is null");
 
             checkArgument(maxAttempts >= 0, "maxAttempts cannot be negative");
             this.maxAttempts = maxAttempts;
-            this.maxBackoffTime = checkNotNull(maxBackoffTime, "maxBackoffTime is null");
-            this.maxRetryTime = checkNotNull(maxRetryTime, "maxRetryTime is null");
+            this.maxBackoffTime = requireNonNull(maxBackoffTime, "maxBackoffTime is null");
+            this.maxRetryTime = requireNonNull(maxRetryTime, "maxRetryTime is null");
         }
 
         @Override
@@ -785,13 +852,13 @@ public class PrestoS3FileSystem
         public PrestoS3OutputStream(AmazonS3 s3, TransferManagerConfiguration config, String host, String key, File tempFile)
                 throws IOException
         {
-            super(new BufferedOutputStream(new FileOutputStream(checkNotNull(tempFile, "tempFile is null"))));
+            super(new BufferedOutputStream(new FileOutputStream(requireNonNull(tempFile, "tempFile is null"))));
 
-            transferManager = new TransferManager(checkNotNull(s3, "s3 is null"));
-            transferManager.setConfiguration(checkNotNull(config, "config is null"));
+            transferManager = new TransferManager(requireNonNull(s3, "s3 is null"));
+            transferManager.setConfiguration(requireNonNull(config, "config is null"));
 
-            this.host = checkNotNull(host, "host is null");
-            this.key = checkNotNull(key, "key is null");
+            this.host = requireNonNull(host, "host is null");
+            this.key = requireNonNull(key, "key is null");
             this.tempFile = tempFile;
 
             log.debug("OutputStream for key '%s' using file: %s", key, tempFile);

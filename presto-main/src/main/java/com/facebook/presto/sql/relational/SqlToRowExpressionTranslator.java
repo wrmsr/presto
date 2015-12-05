@@ -14,6 +14,7 @@
 package com.facebook.presto.sql.relational;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.metadata.FunctionKind;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.spi.type.TimeZoneKey;
@@ -55,7 +56,6 @@ import com.facebook.presto.sql.tree.TimeLiteral;
 import com.facebook.presto.sql.tree.TimestampLiteral;
 import com.facebook.presto.sql.tree.WhenClause;
 import com.facebook.presto.type.UnknownType;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.airlift.slice.Slices;
@@ -64,6 +64,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.IdentityHashMap;
 import java.util.List;
 
+import static com.facebook.presto.metadata.FunctionKind.SCALAR;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
@@ -99,6 +100,7 @@ import static com.facebook.presto.util.DateTimeUtils.parseTimestampWithTimeZone;
 import static com.facebook.presto.util.DateTimeUtils.parseTimestampWithoutTimeZone;
 import static com.facebook.presto.util.DateTimeUtils.parseYearMonthInterval;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
+import static java.util.Objects.requireNonNull;
 
 public final class SqlToRowExpressionTranslator
 {
@@ -106,15 +108,16 @@ public final class SqlToRowExpressionTranslator
 
     public static RowExpression translate(
             Expression expression,
+            FunctionKind functionKind,
             IdentityHashMap<Expression, Type> types,
             FunctionRegistry functionRegistry,
             TypeManager typeManager,
             Session session,
             boolean optimize)
     {
-        RowExpression result = new Visitor(types, typeManager, session.getTimeZoneKey()).process(expression, null);
+        RowExpression result = new Visitor(functionKind, types, typeManager, session.getTimeZoneKey()).process(expression, null);
 
-        Preconditions.checkNotNull(result, "translated expression is null");
+        requireNonNull(result, "translated expression is null");
 
         if (optimize) {
             ExpressionOptimizer optimizer = new ExpressionOptimizer(functionRegistry, typeManager, session);
@@ -127,12 +130,14 @@ public final class SqlToRowExpressionTranslator
     private static class Visitor
             extends AstVisitor<RowExpression, Void>
     {
+        private final FunctionKind functionKind;
         private final IdentityHashMap<Expression, Type> types;
         private final TypeManager typeManager;
         private final TimeZoneKey timeZoneKey;
 
-        private Visitor(IdentityHashMap<Expression, Type> types, TypeManager typeManager, TimeZoneKey timeZoneKey)
+        private Visitor(FunctionKind functionKind, IdentityHashMap<Expression, Type> types, TypeManager typeManager, TimeZoneKey timeZoneKey)
         {
+            this.functionKind = functionKind;
             this.types = types;
             this.typeManager = typeManager;
             this.timeZoneKey = timeZoneKey;
@@ -190,7 +195,7 @@ public final class SqlToRowExpressionTranslator
 
             if (JSON.equals(type)) {
                 return call(
-                        new Signature("json_parse", types.get(node).getTypeSignature(), VARCHAR.getTypeSignature()),
+                        new Signature("json_parse", SCALAR, types.get(node).getTypeSignature(), VARCHAR.getTypeSignature()),
                         types.get(node),
                         constant(Slices.copiedBuffer(node.getValue(), StandardCharsets.UTF_8), VARCHAR));
             }
@@ -266,7 +271,8 @@ public final class SqlToRowExpressionTranslator
                     .map(RowExpression::getType)
                     .map(Type::getTypeSignature)
                     .collect(toImmutableList());
-            Signature signature = new Signature(node.getName().getSuffix(), types.get(node).getTypeSignature(), argumentTypes);
+
+            Signature signature = new Signature(node.getName().getSuffix(), functionKind, types.get(node).getTypeSignature(), argumentTypes);
 
             return call(signature, types.get(node), arguments);
         }
