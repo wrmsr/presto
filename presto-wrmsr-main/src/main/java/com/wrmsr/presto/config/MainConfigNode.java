@@ -15,6 +15,7 @@ import com.wrmsr.presto.util.config.merging.MergingConfigNode;
         @JsonSubTypes.Type(value = LogConfigNode.class, name = "log"),
         @JsonSubTypes.Type(value = PluginsConfigNode.class, name = "plugins"),
         @JsonSubTypes.Type(value = JvmConfigNode.class, name = "jvm"),
+        @JsonSubTypes.Type(value = ScriptingConfigNode.class, name = "scripting"),
         @JsonSubTypes.Type(value = SystemConfigNode.class, name = "system"),
 })
 public interface MainConfigNode

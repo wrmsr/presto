@@ -41,10 +41,12 @@ import com.wrmsr.presto.config.DoConfigNode;
 import com.wrmsr.presto.config.MainConfig;
 import com.wrmsr.presto.config.MainConfigNode;
 import com.wrmsr.presto.config.PluginsConfigNode;
+import com.wrmsr.presto.config.ScriptingConfigNode;
 import com.wrmsr.presto.config.SystemConfigNode;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.function.CompressionFunctions;
+import com.wrmsr.presto.scripting.ScriptingConfig;
 import com.wrmsr.presto.struct.DefineStructForQueryFunction;
 import com.wrmsr.presto.struct.DefineStructFunction;
 import com.wrmsr.presto.function.GrokFunctions;
@@ -77,6 +79,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -222,6 +225,25 @@ public class MainPlugin
             }
 
             else if (node instanceof DoConfigNode) {
+                for (DoConfigNode.Subject subject : ((DoConfigNode) node).getSubjects().getSubjects()) {
+                    if (subject instanceof DoConfigNode.SqlSubject) {
+                        for (DoConfigNode.Verb verb : ((DoConfigNode.SqlSubject) subject).getVerbs().getVerbs()) {
+
+                        }
+                    }
+                    else if(subject instanceof DoConfigNode.ConnectorSubject) {
+
+                    }
+                    else if(subject instanceof DoConfigNode.ScriptSubject) {
+
+                    }
+                    else {
+                        throw new IllegalArgumentException();
+                    }
+                }
+            }
+
+            else if (node instanceof ScriptingConfigNode) {
 
             }
         }
