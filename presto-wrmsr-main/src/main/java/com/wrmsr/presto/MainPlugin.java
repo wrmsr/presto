@@ -238,6 +238,7 @@ public class MainPlugin
                 MainConfig fileConfig;
                 try {
                     fileConfig = objectMapper.readValue(partStr.getBytes(), MainConfig.class);
+                    OBJECT_MAPPER.get().writeValueAsString(fileConfig);
                 }
                 catch (IOException e) {
                     throw Throwables.propagate(e);

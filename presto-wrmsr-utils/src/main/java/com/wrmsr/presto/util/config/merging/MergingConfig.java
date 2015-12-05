@@ -8,6 +8,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.wrmsr.presto.util.Serialization;
 
 import java.io.IOException;
@@ -70,7 +71,9 @@ public abstract class MergingConfig<N extends MergingConfigNode>
             }
             else {
                 String type = nodeTypeMap.get(node.getClass());
-                builder.add(ImmutableMap.of(type, roundTrip(mapper, node, Map.class)));
+                // FIXME god
+                Map map = roundTrip(mapper, node, Map.class);
+                builder.add(ImmutableMap.of(type, Iterables.getOnlyElement(map.values())));
             }
         }
         return builder.build();
