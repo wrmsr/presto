@@ -14,10 +14,15 @@
 package com.wrmsr.presto.aws;
 
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.DescribeSpotPriceHistoryRequest;
 import com.amazonaws.services.ec2.model.DescribeSpotPriceHistoryResult;
+import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -38,7 +43,7 @@ public class TestAwsMain
     {
         Ini i = new Ini(new File("/Users/wtimoney/.boto"));
         // Map<String, String> m = i.get("profile devc");
-        Map<String, String> m = i.get("profile devc");
+        Map<String, String> m = i.get("Credentials");
         AmazonS3 s3Client = new AmazonS3Client(new BasicAWSCredentials(m.get("aws_access_key_id"), m.get("aws_secret_access_key")));
         s3Client.listBuckets();
     }
@@ -47,10 +52,20 @@ public class TestAwsMain
     public void testEc2() throws Throwable
     {
         Ini i = new Ini(new File("/Users/wtimoney/.boto"));
-        Map<String, String> m = i.get("profile devc");
+        Map<String, String> m = i.get("Credentials");
         AmazonEC2 ec2Client = new AmazonEC2Client(new BasicAWSCredentials(m.get("aws_access_key_id"), m.get("aws_secret_access_key")));
+        ec2Client.setRegion(Region.getRegion(Regions.US_WEST_2));
         ec2Client.describeRegions();
-        ec2Client.describeInstances();
+        DescribeInstancesResult dir = ec2Client.describeInstances();
+
+        List<Reservation> reservations = dir.getReservations();
+        for (Reservation reservation : reservations) {
+            List<Instance> instances = reservation.getInstances();
+            for (Instance instance : instances) {
+                System.out.println(instance.getInstanceId());
+            }
+        }
+
         ec2Client.describeInstanceStatus();
     }
 
