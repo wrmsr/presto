@@ -46,6 +46,7 @@ import com.wrmsr.presto.config.SystemConfigNode;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.function.CompressionFunctions;
+import com.wrmsr.presto.function.bitwise.BitAndFunction;
 import com.wrmsr.presto.scripting.ScriptingConfig;
 import com.wrmsr.presto.struct.DefineStructForQueryFunction;
 import com.wrmsr.presto.struct.DefineStructFunction;
@@ -292,6 +293,7 @@ public class MainPlugin
                             .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata, accessControl))
                             .function(new PropertiesFunction(typeRegistry))
                             .function(new JdbcFunction(connectorManager))
+                            .function(new BitAndFunction())
                             .getFunctions());
         }
     }
