@@ -18,6 +18,7 @@ import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.wrmsr.presto.config.MainConfig;
 import com.wrmsr.presto.function.FunctionModule;
+import com.wrmsr.presto.scripting.ScriptingModule;
 
 public class MainPluginModule
     implements Module
@@ -32,6 +33,9 @@ public class MainPluginModule
     @Override
     public void configure(Binder binder)
     {
+        binder.bind(MainConfig.class).toInstance(config);
+
         binder.install(new FunctionModule());
+        binder.install(new ScriptingModule());
     }
 }

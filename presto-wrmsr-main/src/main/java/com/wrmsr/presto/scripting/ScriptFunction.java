@@ -7,6 +7,7 @@ import com.facebook.presto.byteCode.MethodDefinition;
 import com.facebook.presto.byteCode.Scope;
 import com.facebook.presto.byteCode.Variable;
 import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.metadata.TypeParameter;
 import com.facebook.presto.operator.scalar.ScalarFunction;
@@ -19,6 +20,10 @@ import com.facebook.presto.sql.gen.CallSiteBinder;
 import com.facebook.presto.sql.gen.CompilerUtils;
 import com.facebook.presto.type.SqlType;
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
+import com.wrmsr.presto.function.FunctionRegistration;
+import com.wrmsr.presto.util.Box;
 import io.airlift.slice.Slice;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -45,7 +50,7 @@ import static java.lang.invoke.MethodHandles.lookup;
 
 // scripting:string -> function:string -> arg:object...
 public class ScriptFunction
-    extends SqlScalarFunction
+        extends SqlScalarFunction
 {
     public static final String NAME = "script";
     // private static final MethodHandle METHOD_HANDLE = methodHandle(ScriptFunction.class, "script", Context.class, ConnectorSession.class, Slice.class, Slice.class, Object[].class);
@@ -54,7 +59,45 @@ public class ScriptFunction
     private final Type retType;
     private final int arity;
 
-    public ScriptFunction(ScriptingManager scriptingManager, Type retType, int arity) // bahahaha
+    @FunctionalInterface
+    public interface Factory
+    {
+        ScriptFunction create(Type retType, int arity);
+    }
+
+    public final static class Registration
+            implements FunctionRegistration
+    {
+        public static class MaxArity
+                extends Box<Integer>
+        {
+            public MaxArity(Integer value)
+            {
+                super(value);
+            }
+        }
+
+        private final List<SqlFunction> functions;
+
+        @Inject
+        public Registration(Factory factory, MaxArity maxArity)
+        {
+            ImmutableList.Builder<SqlFunction> builder = ImmutableList.builder();
+            for (int i = 0; i < maxArity.getValue(); ++i) {
+                builder.add(factory.create(VarcharType.VARCHAR, i));
+            }
+            functions = builder.build();
+        }
+
+        @Override
+        public List<SqlFunction> getFunctions(TypeManager typeManager)
+        {
+            return functions;
+        }
+    }
+
+    @Inject
+    public ScriptFunction(ScriptingManager scriptingManager, @Assisted Type retType, @Assisted int arity) // bahahaha
     {
         super(
                 NAME,

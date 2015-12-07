@@ -24,9 +24,9 @@ public class BitwiseModule
     @Override
     public void configure(Binder binder)
     {
-        Multibinder<FunctionRegistration> functinoRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
+        Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
 
-        functinoRegistrationBinder.addBinding().toInstance(FunctionRegistration.of(flb -> {
+        functionRegistrationBinder.addBinding().toInstance(FunctionRegistration.of(flb -> {
             flb
                     .aggregate(BitAndAggregationFunction.class)
                     .function(BitAndFunction.BIT_AND_FUNCTION)

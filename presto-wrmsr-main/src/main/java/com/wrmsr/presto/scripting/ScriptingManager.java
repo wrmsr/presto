@@ -18,6 +18,8 @@ import com.google.common.collect.MapMaker;
 import com.wrmsr.presto.spi.ScriptEngineProvider;
 import org.apache.commons.lang.NotImplementedException;
 
+import javax.inject.Inject;
+
 import java.util.Map;
 
 public class ScriptingManager
@@ -25,6 +27,7 @@ public class ScriptingManager
     private final PluginManager pluginManager;
     private final Map<String, ScriptEngineProvider> scriptEngineProviders = new MapMaker().makeMap();
 
+    @Inject
     public ScriptingManager(PluginManager pluginManager)
     {
         this.pluginManager = pluginManager;

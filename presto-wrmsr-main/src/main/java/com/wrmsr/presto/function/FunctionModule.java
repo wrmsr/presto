@@ -26,9 +26,9 @@ public class FunctionModule
     {
         binder.install(new BitwiseModule());
 
-        Multibinder<FunctionRegistration> functinoRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
+        Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
 
         binder.bind(JdbcFunction.class).asEagerSingleton();
-        functinoRegistrationBinder.addBinding().to(JdbcFunction.class);
+        functionRegistrationBinder.addBinding().to(JdbcFunction.class);
     }
 }
