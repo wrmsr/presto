@@ -9,6 +9,14 @@ The scheduler can now be configured to take network topology into account when
 scheduling splits. This is set using the ``node-scheduler.network-topology``
 config. See :doc:`/admin/tuning` for more information.
 
+General Changes
+---------------
+
+* The JDBC driver now properly supports non-query statements.
+  The ``Statement`` interface supports all variants of the ``execute`` methods.
+  It also supports the ``getUpdateCount`` and ``getLargeUpdateCount`` methods.
+* Fix :doc:`/sql/show-session` to not show hidden session properties.
+
 Hive Changes
 ------------
 
