@@ -12,6 +12,9 @@ cardinality estimation
 guideposts (quantile estimation - https://en.wikipedia.org/wiki/Order_statistic_tree ?)
 
 null is a type
+
+https://commons.apache.org/proper/commons-math/apidocs/org/apache/commons/math3/stat/descriptive/rank/Percentile.html
+https://github.com/addthis/stream-lib/blob/master/src/main/java/com/clearspring/analytics/stream/quantile/QDigest.java
 */
 
 import java.util.Map;
