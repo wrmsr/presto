@@ -1,4 +1,4 @@
-package com.wrmsr.presto.function;
+package com.wrmsr.presto.struct;
 
 public class RowTypeSerializationManager
 {
