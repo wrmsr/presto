@@ -151,6 +151,10 @@ public class PrestoServer
                     injector.getInstance(ServerConfig.class),
                     injector.getInstance(NodeSchedulerConfig.class));
 
+            for (ServerEvent.Listener listener : listeners) {
+                listener.onServerEvent(new ServerEvent.DataSourcesLoaded());
+            }
+
             injector.getInstance(AccessControlManager.class).loadSystemAccessControl();
 
             injector.getInstance(Announcer.class).start();

@@ -17,4 +17,12 @@ public class Statistics
     public static abstract class Statistic
     {
     }
+
+    public static final class Size extends Statistic
+    {
+    }
+
+    public static final class Bounds extends Statistic
+    {
+    }
 }

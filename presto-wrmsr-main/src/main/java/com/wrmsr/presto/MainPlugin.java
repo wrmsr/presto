@@ -15,9 +15,15 @@ package com.wrmsr.presto;
 
 // import com.facebook.presto.metadata.FunctionFactory;
 
+import com.facebook.presto.Session;
 import com.facebook.presto.connector.ConnectorManager;
+import com.facebook.presto.execution.QueryId;
+import com.facebook.presto.execution.QueryIdGenerator;
+import com.facebook.presto.execution.QueryInfo;
+import com.facebook.presto.execution.QueryManager;
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.server.PluginManager;
@@ -25,6 +31,7 @@ import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
+import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
@@ -48,6 +55,7 @@ import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.function.CompressionFunctions;
 import com.wrmsr.presto.function.bitwise.BitAndFunction;
 import com.wrmsr.presto.scripting.ScriptingConfig;
+import com.wrmsr.presto.spi.ScriptEngineProvider;
 import com.wrmsr.presto.struct.DefineStructForQueryFunction;
 import com.wrmsr.presto.struct.DefineStructFunction;
 import com.wrmsr.presto.function.GrokFunctions;
@@ -70,16 +78,23 @@ import com.wrmsr.presto.server.ServerEvent;
 import com.wrmsr.presto.util.config.Configs;
 import com.wrmsr.presto.util.Serialization;
 import io.airlift.json.JsonCodec;
+import io.airlift.log.Logger;
+import io.airlift.units.Duration;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 
 import javax.inject.Inject;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
@@ -94,7 +109,11 @@ import static java.util.Objects.requireNonNull;
 public class MainPlugin
         implements Plugin, ServerEvent.Listener
 {
+    private static final Logger log = Logger.get(MainPlugin.class);
+
     private Map<String, String> optionalConfig = ImmutableMap.of();
+    private final MainConfig config;
+
     private ConnectorManager connectorManager;
     private TypeRegistry typeRegistry;
     private NodeManager nodeManager;
@@ -106,6 +125,23 @@ public class MainPlugin
     private FeaturesConfig featuresConfig;
     private AccessControl accessControl;
     private BlockEncodingSerde blockEncodingSerde;
+    private QueryManager queryManager;
+    private SessionPropertyManager sessionPropertyManager;
+    private QueryIdGenerator queryIdGenerator;
+
+    public MainPlugin()
+    {
+        Path configPath = new File(System.getProperty("user.home") + "/presto/yelp-presto.yaml").toPath();
+        config = loadConfig(configPath);
+
+        for (MainConfigNode node : config.getNodes()) {
+            if (node instanceof SystemConfigNode) {
+                for (Map.Entry<String, String> e : ((SystemConfigNode) node).getEntries().entrySet()) {
+                    System.setProperty(e.getKey(), e.getValue());
+                }
+            }
+        }
+    }
 
     @Override
     public void setOptionalConfig(Map<String, String> optionalConfig)
@@ -179,110 +215,75 @@ public class MainPlugin
         this.blockEncodingSerde = requireNonNull(blockEncodingSerde, "blockEncodingSerde is null");
     }
 
-
-    public static final Set<String> KNOWN_MODULE_NAMES = ImmutableSet.of(
-            "aws",
-            "hadoop"
-    );
-
-    public void installConfig(MainConfig config)
+    @Inject
+    public void setQueryManager(QueryManager queryManager)
     {
-        for (MainConfigNode node : config.getNodes()) {
-            if (node instanceof SystemConfigNode) {
-                for (Map.Entry<String, String> e : ((SystemConfigNode) node).getEntries().entrySet()) {
-                    System.setProperty(e.getKey(), e.getValue());
-                }
-            }
+        this.queryManager = queryManager;
+    }
 
-            else if (node instanceof PluginsConfigNode) {
-                for (String plugin : ((PluginsConfigNode) node).getItems()) {
-                    try {
-                        pluginManager.loadPlugin(plugin);
-                    }
-                    catch (Exception e) {
-                        throw Throwables.propagate(e);
-                    }
-                }
-            }
+    @Inject
+    public void setSessionPropertyManager(SessionPropertyManager sessionPropertyManager)
+    {
+        this.sessionPropertyManager = sessionPropertyManager;
+    }
 
-            else if (node instanceof ConnectorsConfigNode) {
-                for (Map.Entry<String, ConnectorsConfigNode.Entry> e : ((ConnectorsConfigNode) node).getEntries().entrySet()) {
-                    Object rt;
-                    try {
-                        rt = OBJECT_MAPPER.get().readValue(OBJECT_MAPPER.get().writeValueAsString(e.getValue()), Map.class);
-                    }
-                    catch (IOException ex) {
-                        throw Throwables.propagate(ex);
-                    }
-                    HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(rt);
-                    Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
+    @Inject
+    public void setQueryIdGenerator(QueryIdGenerator queryIdGenerator)
+    {
+        this.queryIdGenerator = queryIdGenerator;
+    }
 
-                    String targetConnectorName = connProps.get("connector.name");
-                    connProps.remove("connector.name");
-                    String targetName = e.getKey();
-                    connectorManager.createConnection(targetName, targetConnectorName, connProps);
-                    checkNotNull(connectorManager.getConnectors().get(targetName));
-                }
-            }
-
-            else if (node instanceof DoConfigNode) {
-                for (DoConfigNode.Subject subject : ((DoConfigNode) node).getSubjects().getSubjects()) {
-                    if (subject instanceof DoConfigNode.SqlSubject) {
-                        for (DoConfigNode.Verb verb : ((DoConfigNode.SqlSubject) subject).getVerbs().getVerbs()) {
-
-                        }
-                    }
-                    else if(subject instanceof DoConfigNode.ConnectorSubject) {
-
-                    }
-                    else if(subject instanceof DoConfigNode.ScriptSubject) {
-
-                    }
-                    else {
-                        throw new IllegalArgumentException();
-                    }
-                }
-            }
-
-            else if (node instanceof ScriptingConfigNode) {
-
-            }
+    private static MainConfig loadConfig(Path path)
+    {
+        byte[] cfgBytes;
+        try {
+            cfgBytes = Files.readAllBytes(path);
         }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+        String cfgStr = new String(cfgBytes);
+        List<Object> parts = Serialization.splitYaml(cfgStr);
+        if (parts.size() != 1) {
+            throw new IllegalArgumentException();
+        }
+
+        String partStr = Serialization.YAML.get().dump(parts.get(0));
+        ObjectMapper objectMapper = YAML_OBJECT_MAPPER.get();
+        MainConfig fileConfig;
+        try {
+            fileConfig = objectMapper.readValue(partStr.getBytes(), MainConfig.class);
+            OBJECT_MAPPER.get().writeValueAsString(fileConfig);
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+
+        return fileConfig;
     }
 
     @Override
     public void onServerEvent(ServerEvent event)
     {
-        if (event instanceof ServerEvent.ConnectorsLoaded) {
+        if (event instanceof ServerEvent.PluginsLoaded) {
+            for (MainConfigNode node : config.getNodes()) {
+                if (node instanceof PluginsConfigNode) {
+                    for (String plugin : ((PluginsConfigNode) node).getItems()) {
+                        try {
+                            pluginManager.loadPlugin(plugin);
+                        }
+                        catch (Exception e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
+                }
+            }
+
             StructManager structManager = new StructManager(
                     typeRegistry,
                     metadata,
                     blockEncodingSerde
             );
-
-            byte[] cfgBytes;
-            try {
-                cfgBytes = Files.readAllBytes(new File(System.getProperty("user.home") + "/presto/yelp-presto.yaml").toPath());
-            }
-            catch (IOException e) {
-                throw Throwables.propagate(e);
-            }
-            String cfgStr = new String(cfgBytes);
-            for (Object part : Serialization.splitYaml(cfgStr)) {
-                String partStr = Serialization.YAML.get().dump(part);
-
-                ObjectMapper objectMapper = YAML_OBJECT_MAPPER.get();
-                MainConfig fileConfig;
-                try {
-                    fileConfig = objectMapper.readValue(partStr.getBytes(), MainConfig.class);
-                    OBJECT_MAPPER.get().writeValueAsString(fileConfig);
-                }
-                catch (IOException e) {
-                    throw Throwables.propagate(e);
-                }
-
-                installConfig(fileConfig);
-            }
 
             metadata.addFunctions(
                     new FunctionListBuilder(typeRegistry)
@@ -293,8 +294,101 @@ public class MainPlugin
                             .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata, accessControl))
                             .function(new PropertiesFunction(typeRegistry))
                             .function(new JdbcFunction(connectorManager))
-                            .function(new BitAndFunction())
+                            .function(BitAndFunction.BIT_AND_FUNCTION)
                             .getFunctions());
+
+            /*
+            for (Plugin plugin : pluginManager.getLoadedPlugins()) {
+                for (ScriptEngineProvider scriptEngineProvider : plugin.getServices(ScriptEngineProvider.class)) {
+                    log.info("Registering server event listener %s", serverEventListener.getClass().getName());
+                    serverEventListeners.add(serverEventListener);
+                }
+            }
+            */
+        }
+
+        else if (event instanceof ServerEvent.ConnectorsLoaded) {
+            for (MainConfigNode node : config.getNodes()) {
+                if (node instanceof ConnectorsConfigNode) {
+                    for (Map.Entry<String, ConnectorsConfigNode.Entry> e : ((ConnectorsConfigNode) node).getEntries().entrySet()) {
+                        Object rt;
+                        try {
+                            rt = OBJECT_MAPPER.get().readValue(OBJECT_MAPPER.get().writeValueAsString(e.getValue()), Map.class);
+                        }
+                        catch (IOException ex) {
+                            throw Throwables.propagate(ex);
+                        }
+                        HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(rt);
+                        Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
+
+                        String targetConnectorName = connProps.get("connector.name");
+                        connProps.remove("connector.name");
+                        String targetName = e.getKey();
+                        connectorManager.createConnection(targetName, targetConnectorName, connProps);
+                        checkNotNull(connectorManager.getConnectors().get(targetName));
+                    }
+                }
+            }
+        }
+
+        else if (event instanceof ServerEvent.DataSourcesLoaded) {
+            for (MainConfigNode node : config.getNodes()) {
+                if (node instanceof DoConfigNode) {
+                    for (DoConfigNode.Subject subject : ((DoConfigNode) node).getSubjects().getSubjects()) {
+                        if (subject instanceof DoConfigNode.SqlSubject) {
+                            for (DoConfigNode.Verb verb : ((DoConfigNode.SqlSubject) subject).getVerbs().getVerbs()) {
+                                ImmutableList.Builder<String> builder = ImmutableList.builder();
+                                if (verb instanceof DoConfigNode.StringVerb) {
+                                    builder.add(((DoConfigNode.StringVerb) verb).getStatement());
+                                }
+                                else if (verb instanceof DoConfigNode.FileVerb) {
+                                    File file = new File(((DoConfigNode.FileVerb) verb).getPath());
+                                    byte[] b = new byte[(int) file.length()];
+                                    try (FileInputStream fis = new FileInputStream(file)) {
+                                        fis.read(b);
+                                    }
+                                    catch (IOException e) {
+                                        throw Throwables.propagate(e);
+                                    }
+                                    builder.add(new String(b));
+                                }
+                                else {
+                                    throw new IllegalArgumentException();
+                                }
+                                for (String s : builder.build()) {
+                                    QueryId queryId = queryIdGenerator.createNextQueryId();
+                                    Session session = Session.builder(sessionPropertyManager)
+                                            .setQueryId(queryId)
+                                            .setIdentity(new Identity("system", Optional.<Principal>empty()))
+                                            .build();
+                                    QueryInfo qi = queryManager.createQuery(session, s);
+
+                                    while (!qi.getState().isDone()) {
+                                        try {
+                                            queryManager.waitForStateChange(qi.getQueryId(), qi.getState(), new Duration(10, TimeUnit.MINUTES));
+                                            qi = queryManager.getQueryInfo(qi.getQueryId());
+                                        }
+                                        catch (InterruptedException e) {
+                                            Thread.currentThread().interrupt();
+                                            ;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        else if(subject instanceof DoConfigNode.ConnectorSubject) {
+
+                        }
+                        else if(subject instanceof DoConfigNode.ScriptSubject) {
+
+                        }
+                        else {
+                            throw new IllegalArgumentException();
+                        }
+                    }
+                }
+            }
         }
     }
 

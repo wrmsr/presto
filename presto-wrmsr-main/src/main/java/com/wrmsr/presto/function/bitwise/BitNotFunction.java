@@ -27,27 +27,26 @@ import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.collect.Lists.listOf;
 
-// and or xor (scalars + aggs)
-// not shl shr lshl lshr (scalars)
-public class BitAndFunction
-    extends SqlScalarFunction
+public class BitNotFunction
+        extends SqlScalarFunction
 {
-    public static final BitAndFunction BIT_AND_FUNCTION = new BitAndFunction();
+    public static final BitNotFunction BIT_NOT_FUNCTION = new BitNotFunction();
 
-    public static final String NAME = "bit_and";
-    private static final String FUNCTION_NAME = "bitAnd";
-    private static final MethodHandle METHOD_HANDLE = methodHandle(BitAndFunction.class, FUNCTION_NAME, long[].class);
+    public static final String NAME = "bit_not";
+    private static final String FUNCTION_NAME = "bitNot";
+    private static final MethodHandle METHOD_HANDLE = methodHandle(BitNotFunction.class, FUNCTION_NAME, long.class);
 
-    public BitAndFunction()
+    public BitNotFunction()
     {
-        super(NAME, ImmutableList.of(), "bigint", ImmutableList.of("bigint"), true);
+        super(NAME, ImmutableList.of(), "bigint", ImmutableList.of("bigint"), false);
     }
 
     @Override
     public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
         checkArgument(types.isEmpty());
-        return new ScalarFunctionImplementation(false, listOf(arity, false), METHOD_HANDLE.asVarargsCollector(long[].class), true);
+        checkArgument(arity == 1);
+        return new ScalarFunctionImplementation(false, ImmutableList.of(false), METHOD_HANDLE, true);
     }
 
     @Override
@@ -65,16 +64,11 @@ public class BitAndFunction
     @Override
     public String getDescription()
     {
-        return "bitwise and";
+        return "bitwise not";
     }
 
-    public static long bitAnd(long[] longs)
+    public static long bitNot(long value)
     {
-        checkArgument(longs.length > 0);
-        long ret = longs[0];
-        for (int i = 0; i < longs.length; ++i) {
-            ret &= longs[i];
-        }
-        return ret;
+        return ~value;
     }
 }

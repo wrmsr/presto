@@ -103,7 +103,7 @@ public class PluginManager
     private final AtomicBoolean pluginsLoading = new AtomicBoolean();
     private final AtomicBoolean pluginsLoaded = new AtomicBoolean();
     private final List<ServerEvent.Listener> serverEventListeners = new CopyOnWriteArrayList<>();
-    private final Map<String, ScriptEngineProvider> scriptEngineProviders = new MapMaker().makeMap();
+    private final CopyOnWriteArrayList<Plugin> loadedPlugins = new CopyOnWriteArrayList<>();
 
     @Inject
     public PluginManager(Injector injector,
@@ -148,9 +148,9 @@ public class PluginManager
         this.preloadedPlugins = requireNonNull(preloadedPlugins);
     }
 
-    public boolean arePluginsLoaded()
+    public CopyOnWriteArrayList<Plugin> getLoadedPlugins()
     {
-        return pluginsLoaded.get();
+        return loadedPlugins;
     }
 
     @Override
@@ -159,11 +159,6 @@ public class PluginManager
         for (ServerEvent.Listener listener : serverEventListeners) {
             listener.onServerEvent(event);
         }
-    }
-
-    public Map<String, ScriptEngineProvider> getScriptEngineProviders()
-    {
-        return Collections.unmodifiableMap(scriptEngineProviders);
     }
 
     public void loadPlugins()
@@ -263,10 +258,7 @@ public class PluginManager
             serverEventListeners.add(serverEventListener);
         }
 
-        for (ScriptEngineProvider scriptEngineProvider : plugin.getServices(ScriptEngineProvider.class)) {
-            log.info("Registering script engine provider %s", scriptEngineProvider.getName());
-            scriptEngineProviders.put(scriptEngineProvider.getName(), scriptEngineProvider);
-        }
+        loadedPlugins.add(plugin);
     }
 
     public static URLClassLoader buildClassLoader(ArtifactResolver resolver, String plugin)

@@ -27,18 +27,16 @@ import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.collect.Lists.listOf;
 
-// and or xor (scalars + aggs)
-// not shl shr lshl lshr (scalars)
-public class BitAndFunction
-    extends SqlScalarFunction
+public class BitXorFunction
+        extends SqlScalarFunction
 {
-    public static final BitAndFunction BIT_AND_FUNCTION = new BitAndFunction();
+    public static final BitXorFunction BIT_XOR_FUNCTION = new BitXorFunction();
 
-    public static final String NAME = "bit_and";
-    private static final String FUNCTION_NAME = "bitAnd";
-    private static final MethodHandle METHOD_HANDLE = methodHandle(BitAndFunction.class, FUNCTION_NAME, long[].class);
+    public static final String NAME = "bit_xor";
+    private static final String FUNCTION_NAME = "bitXor";
+    private static final MethodHandle METHOD_HANDLE = methodHandle(BitXorFunction.class, FUNCTION_NAME, long[].class);
 
-    public BitAndFunction()
+    public BitXorFunction()
     {
         super(NAME, ImmutableList.of(), "bigint", ImmutableList.of("bigint"), true);
     }
@@ -65,15 +63,15 @@ public class BitAndFunction
     @Override
     public String getDescription()
     {
-        return "bitwise and";
+        return "bitwise xor";
     }
 
-    public static long bitAnd(long[] longs)
+    public static long bitXor(long[] longs)
     {
         checkArgument(longs.length > 0);
         long ret = longs[0];
         for (int i = 0; i < longs.length; ++i) {
-            ret &= longs[i];
+            ret ^= longs[i];
         }
         return ret;
     }

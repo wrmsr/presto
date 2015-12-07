@@ -11,26 +11,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.server;
+package com.wrmsr.presto;
 
-public abstract class ServerEvent
+import com.google.inject.AbstractModule;
+import io.airlift.configuration.AbstractConfigurationAwareModule;
+
+public class MainPluginModule
+    extends AbstractModule
 {
-    public interface Listener
+    @Override
+    protected void configure()
     {
-        default void onServerEvent(ServerEvent event)
-        {
-        }
-    }
 
-    public static final class PluginsLoaded extends ServerEvent
-    {
-    }
-
-    public static final class ConnectorsLoaded extends ServerEvent
-    {
-    }
-
-    public static final class DataSourcesLoaded extends ServerEvent
-    {
     }
 }

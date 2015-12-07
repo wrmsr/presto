@@ -11,29 +11,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.scripting;
+package com.wrmsr.presto.function;
 
 import com.facebook.presto.Session;
-import com.facebook.presto.metadata.SqlFunction;
-import com.facebook.presto.spi.type.VarcharType;
+import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.function.bitwise.BitAndAggregationFunction;
+import com.wrmsr.presto.function.bitwise.BitAndFunction;
 import org.testng.annotations.Test;
-
-import java.util.List;
-import java.util.stream.IntStream;
 
 import static com.facebook.presto.testing.TestingSession.testSessionBuilder;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
-public class TestScriptFunction
+public class TestBitwiseFunctions
         extends AbstractTestQueryFramework
 {
 
-    public TestScriptFunction()
+    public TestBitwiseFunctions()
     {
         super(createLocalQueryRunner());
     }
@@ -42,10 +39,8 @@ public class TestScriptFunction
     public void testStuff()
             throws Throwable
     {
-        LocalQueryRunner runner = createLocalQueryRunner();
-
-        assertQuery("select script('a', 'b', null, 'two')", "select null");
-        assertQuery("select script('a', 'b', 1, 'two')", "select null");
+        assertQuery("select bit_and_agg(n) from (select 111 n union all select 222 n)", "select 0");
+        assertQuery("select bit_and(111, 222)", "select 0");
     }
 
     private static LocalQueryRunner createLocalQueryRunner()
@@ -62,9 +57,11 @@ public class TestScriptFunction
                 new TpchConnectorFactory(localQueryRunner.getNodeManager(), 1),
                 ImmutableMap.<String, String>of());
 
-        ScriptingManager scriptingManager = new ScriptingManager(null);
-        List<? extends SqlFunction> functions = IntStream.range(1, 3).boxed().map(i -> new ScriptFunction(scriptingManager, VarcharType.VARCHAR, i)).collect(toImmutableList());
-        localQueryRunner.getMetadata().getFunctionRegistry().addFunctions(functions);
+        localQueryRunner.getMetadata().getFunctionRegistry().addFunctions(
+                new FunctionListBuilder(localQueryRunner.getTypeManager())
+                        .aggregate(BitAndAggregationFunction.class)
+                        .function(BitAndFunction.BIT_AND_FUNCTION)
+                        .getFunctions());
         return localQueryRunner;
     }
 }
