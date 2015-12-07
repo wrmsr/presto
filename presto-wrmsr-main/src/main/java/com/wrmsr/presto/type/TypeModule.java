@@ -11,20 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.function;
+package com.wrmsr.presto.type;
 
-import com.facebook.presto.spi.type.VarcharType;
-import com.facebook.presto.type.MapType;
-
-import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
-
-public class PropertiesType
-        extends MapType
+public class TypeModule
 {
-    public static final PropertiesType PROPERTIES = new PropertiesType();
-
-    public PropertiesType()
-    {
-        super(parameterizedTypeName("properties"), VarcharType.VARCHAR, VarcharType.VARCHAR);
-    }
 }

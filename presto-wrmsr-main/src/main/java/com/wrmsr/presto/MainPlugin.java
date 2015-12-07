@@ -56,11 +56,9 @@ import com.wrmsr.presto.config.PluginsConfigNode;
 import com.wrmsr.presto.config.SystemConfigNode;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
-import com.wrmsr.presto.function.CompressionFunctions;
 import com.wrmsr.presto.function.FunctionRegistration;
-import com.wrmsr.presto.function.GrokFunctions;
-import com.wrmsr.presto.function.PropertiesFunction;
-import com.wrmsr.presto.function.PropertiesType;
+import com.wrmsr.presto.type.PropertiesFunction;
+import com.wrmsr.presto.type.PropertiesType;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
 import com.wrmsr.presto.jdbc.h2.H2ClientModule;
 import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
@@ -70,12 +68,8 @@ import com.wrmsr.presto.jdbc.sqlite.SqliteClientModule;
 import com.wrmsr.presto.jdbc.temp.TempClientModule;
 import com.wrmsr.presto.metaconnector.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.metaconnector.partitioner.PartitionerModule;
-import com.wrmsr.presto.serialization.SerializeFunction;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
-import com.wrmsr.presto.struct.DefineStructForQueryFunction;
-import com.wrmsr.presto.struct.DefineStructFunction;
-import com.wrmsr.presto.struct.StructManager;
 import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.Configs;
 import io.airlift.json.JsonCodec;
@@ -337,12 +331,6 @@ public class MainPlugin
             for (FunctionRegistration fr : frs) {
                 metadata.addFunctions(fr.getFunctions(typeRegistry));
             }
-
-            StructManager structManager = new StructManager(
-                    typeRegistry,
-                    metadata,
-                    blockEncodingSerde
-            );
 
             metadata.addFunctions(
                     new FunctionListBuilder(typeRegistry)

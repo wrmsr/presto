@@ -1,11 +1,11 @@
-package com.wrmsr.presto.types;
+package com.wrmsr.presto.type;
 
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.type.ParametricType;
 
 import java.util.List;
 
-import static com.wrmsr.presto.types.TableType.NAME;
+import static com.wrmsr.presto.type.TableType.NAME;
 
 public class TableParametricType
     implements ParametricType

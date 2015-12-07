@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.function;
+package com.wrmsr.presto.type;
 
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
@@ -20,6 +20,7 @@ import com.facebook.presto.spi.block.InterleavedBlockBuilder;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.VarcharType;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.function.StringVarargsFunction;
 import io.airlift.slice.Slice;
 
 import java.lang.invoke.MethodHandle;

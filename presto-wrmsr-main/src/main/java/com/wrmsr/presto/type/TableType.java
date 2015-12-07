@@ -1,4 +1,4 @@
-package com.wrmsr.presto.types;
+package com.wrmsr.presto.type;
 
 import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.spi.ConnectorSession;
@@ -9,10 +9,8 @@ import com.facebook.presto.spi.type.AbstractType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.type.RowType;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
-import java.lang.invoke.MethodHandle;
 import java.util.List;
 
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
