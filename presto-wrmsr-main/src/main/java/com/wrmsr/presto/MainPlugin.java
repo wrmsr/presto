@@ -53,7 +53,13 @@ import com.wrmsr.presto.config.SystemConfigNode;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.function.CompressionFunctions;
+import com.wrmsr.presto.function.bitwise.BitAndAggregationFunction;
 import com.wrmsr.presto.function.bitwise.BitAndFunction;
+import com.wrmsr.presto.function.bitwise.BitNotFunction;
+import com.wrmsr.presto.function.bitwise.BitOrAggregationFunction;
+import com.wrmsr.presto.function.bitwise.BitOrFunction;
+import com.wrmsr.presto.function.bitwise.BitXorAggregationFunction;
+import com.wrmsr.presto.function.bitwise.BitXorFunction;
 import com.wrmsr.presto.scripting.ScriptingConfig;
 import com.wrmsr.presto.spi.ScriptEngineProvider;
 import com.wrmsr.presto.struct.DefineStructForQueryFunction;
@@ -294,7 +300,13 @@ public class MainPlugin
                             .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata, accessControl))
                             .function(new PropertiesFunction(typeRegistry))
                             .function(new JdbcFunction(connectorManager))
+                            .aggregate(BitAndAggregationFunction.class)
                             .function(BitAndFunction.BIT_AND_FUNCTION)
+                            .function(BitNotFunction.BIT_NOT_FUNCTION)
+                            .aggregate(BitOrAggregationFunction.class)
+                            .function(BitOrFunction.BIT_OR_FUNCTION)
+                            .aggregate(BitXorAggregationFunction.class)
+                            .function(BitXorFunction.BIT_XOR_FUNCTION)
                             .getFunctions());
 
             /*
