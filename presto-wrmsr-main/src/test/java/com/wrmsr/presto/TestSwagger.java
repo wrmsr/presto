@@ -11,25 +11,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.swagger;
+package com.wrmsr.presto;
 
-import io.swagger.codegen.ClientOptInput;
-import io.swagger.codegen.ClientOpts;
-import io.swagger.codegen.CodegenConfig;
-import io.swagger.codegen.DefaultGenerator;
-import io.swagger.models.Swagger;
-import io.swagger.parser.SwaggerParser;
 import org.testng.annotations.Test;
 
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
@@ -37,25 +29,25 @@ import java.util.stream.Collectors;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.ServiceLoader.load;
 
-public class TestSwaggerPlugin
+public class TestSwagger
 {
-    private static CodegenConfig forName(String name)
-    {
-        ServiceLoader<CodegenConfig> loader = load(CodegenConfig.class);
-        for (CodegenConfig config : loader) {
-            if (config.getName().equals(name)) {
-                return config;
-            }
-        }
-
-        // else try to load directly
-        try {
-            return (CodegenConfig) Class.forName(name).newInstance();
-        }
-        catch (Exception e) {
-            throw new RuntimeException("Can't load config class with name ".concat(name), e);
-        }
-    }
+//    private static CodegenConfig forName(String name)
+//    {
+//        ServiceLoader<CodegenConfig> loader = load(CodegenConfig.class);
+//        for (CodegenConfig config : loader) {
+//            if (config.getName().equals(name)) {
+//                return config;
+//            }
+//        }
+//
+//        // else try to load directly
+//        try {
+//            return (CodegenConfig) Class.forName(name).newInstance();
+//        }
+//        catch (Exception e) {
+//            throw new RuntimeException("Can't load config class with name ".concat(name), e);
+//        }
+//    }
 
     @Test
     public void testStuff()
@@ -63,7 +55,7 @@ public class TestSwaggerPlugin
     {
         // javax.tools.JavaCompiler
 
-        ClientOptInput input = new ClientOptInput();
+//        ClientOptInput input = new ClientOptInput();
 
         // if (isNotEmpty(auth)) {
         //     input.setAuth(auth);
@@ -71,8 +63,8 @@ public class TestSwaggerPlugin
         File root = Files.createTempDirectory(null).toFile();
         root.deleteOnExit(); // FIXME OSX EXECVE SEGFAULT
 
-        CodegenConfig config = new ExplicitJavaClientCodegen();
-        config.setOutputDir(root.getAbsolutePath());
+//        CodegenConfig config = new ExplicitJavaClientCodegen();
+//        config.setOutputDir(root.getAbsolutePath());
 
         // if (null != templateDir) {
         //     config.additionalProperties().put(TEMPLATE_DIR_PARAM, new File(templateDir).getAbsolutePath());
@@ -89,12 +81,12 @@ public class TestSwaggerPlugin
         //     }
         // }
 
-        input.setConfig(config);
+//        input.setConfig(config);
 
         String spec = System.getProperty("user.home") + "/presto/swagger_1.2/business.json";
 
-        Swagger swagger = new SwaggerParser().read(spec, input.getAuthorizationValues(), true);
-        new DefaultGenerator().opts(input.opts(new ClientOpts()).swagger(swagger)).generate();
+//        Swagger swagger = new SwaggerParser().read(spec, input.getAuthorizationValues(), true);
+//        new DefaultGenerator().opts(input.opts(new ClientOpts()).swagger(swagger)).generate();
 
         // need to :%s/Object/java.lang.Object jesus christ.
 

@@ -32,7 +32,7 @@ public class EncodedParametricType
         checkArgument(literals.get(0) instanceof String);
         Type fromType = types.get(0);
         String codecName = (String) literals.get(0);
-        TypeCodec typeCodec = typeCodecManager.getTypeCodec(codecName, fromType);
+        TypeCodec typeCodec = typeCodecManager.getTypeCodec(codecName, fromType).get();
         return new EncodedType(typeCodec);
     }
 }

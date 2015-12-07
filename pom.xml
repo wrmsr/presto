@@ -112,7 +112,6 @@
         <!-- <module>presto-wrmsr-lucene</module> -->
         <!-- <module>presto-wrmsr-memcache</module> -->
         <module>presto-wrmsr-mesos</module>
-        <module>presto-wrmsr-swagger</module>
         <module>presto-wrmsr-utils</module>
         <module>presto-wrmsr-launcher</module>
         <module>presto-wrmsr-launcher-builder</module>
