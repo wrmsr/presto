@@ -18,9 +18,14 @@ import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.codec.Codec;
 import com.wrmsr.presto.util.codec.StreamCodec;
 import org.apache.commons.compress.compressors.CompressorException;
+import org.apache.commons.compress.compressors.CompressorInputStream;
+import org.apache.commons.compress.compressors.CompressorOutputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
+import org.apache.commons.io.IOUtils;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
@@ -91,12 +96,12 @@ public class Compression
         }
     }
 
-    public static class CommonsCompressionCodec
+    public static class CommonsCompressionStreamCodec
             implements CompressionStreamCodec
     {
         private final String name;
 
-        public CommonsCompressionCodec(String name)
+        public CommonsCompressionStreamCodec(String name)
         {
             this.name = name;
         }
@@ -118,8 +123,7 @@ public class Compression
         public InputStream decode(InputStream data)
         {
             try {
-                return new CompressorStreamFactory()
-                        .createCompressorInputStream(data);
+                return new CompressorStreamFactory().createCompressorInputStream(name, data);
             }
             catch (CompressorException e) {
                 throw Throwables.propagate(e);
@@ -130,8 +134,7 @@ public class Compression
         public OutputStream encode(OutputStream data)
         {
             try {
-                return new CompressorStreamFactory()
-                        .createCompressorOutputStream(CompressorStreamFactory.GZIP, data);
+                return new CompressorStreamFactory().createCompressorOutputStream(name, data);
             }
             catch (CompressorException e) {
                 throw Throwables.propagate(e);
@@ -155,8 +158,48 @@ public class Compression
                 CompressorStreamFactory.Z,
                 CompressorStreamFactory.DEFLATE
         }) {
-            builder.put(name, new CommonsCompressionCodec(name));
+            builder.put(name, new CommonsCompressionStreamCodec(name));
         }
         COMPRESSION_STREAM_CODECS_BY_NAME = builder.build();
+    }
+
+    public static class CommonsCompressionCodec implements CompressionCodec
+    {
+        private final String name;
+
+        public CommonsCompressionCodec(String name)
+        {
+            this.name = name;
+        }
+
+        public String getName()
+        {
+            return name;
+        }
+
+        @Override
+        public byte[] encode(byte[] data)
+        {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try (CompressorOutputStream out = new CompressorStreamFactory().createCompressorOutputStream(name, baos)) {
+                out.write(data);
+            }
+            catch (CompressorException | IOException e) {
+                throw Throwables.propagate(e);
+            }
+            return baos.toByteArray();
+        }
+
+        @Override
+        public byte[] decode(byte[] data)
+        {
+            ByteArrayInputStream bais = new ByteArrayInputStream(data);
+            try (CompressorInputStream in = new CompressorStreamFactory().createCompressorInputStream(name, bais)) {
+                return IOUtils.toByteArray(in);
+            }
+            catch (CompressorException | IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }
     }
 }
