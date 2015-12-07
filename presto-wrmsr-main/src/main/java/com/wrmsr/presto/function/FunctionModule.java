@@ -11,27 +11,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto;
+package com.wrmsr.presto.function;
 
-import com.google.inject.AbstractModule;
 import com.google.inject.Binder;
 import com.google.inject.Module;
-import com.wrmsr.presto.config.MainConfig;
-import com.wrmsr.presto.function.FunctionModule;
+import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.function.bitwise.BitwiseModule;
 
-public class MainPluginModule
+public class FunctionModule
     implements Module
 {
-    private final MainConfig config;
-
-    public MainPluginModule(MainConfig config)
-    {
-        this.config = config;
-    }
-
     @Override
     public void configure(Binder binder)
     {
-        binder.install(new FunctionModule());
+        binder.install(new BitwiseModule());
+
+        Multibinder<FunctionRegistration> functinoRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
+
+        binder.bind(JdbcFunction.class).asEagerSingleton();
+        functinoRegistrationBinder.addBinding().to(JdbcFunction.class);
     }
 }

@@ -13,6 +13,8 @@ import com.wrmsr.presto.jdbc.util.ScriptRunner;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
+import javax.inject.Inject;
+
 import java.io.StringReader;
 import java.lang.invoke.MethodHandle;
 import java.sql.Connection;
@@ -25,9 +27,11 @@ import java.util.List;
 // TODO init from file
 public class JdbcFunction
     extends StringVarargsFunction
+        implements FunctionRegistration.Self
 {
     private final ConnectorManager connectorManager;
 
+    @Inject
     public JdbcFunction(ConnectorManager connectorManager)
     {
         super(

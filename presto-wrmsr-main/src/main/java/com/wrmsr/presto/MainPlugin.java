@@ -41,18 +41,27 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.inject.Binder;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.google.inject.Key;
 import com.google.inject.Module;
+import com.google.inject.TypeLiteral;
+import com.google.inject.util.Modules;
 import com.wrmsr.presto.config.ConnectorsConfigNode;
-import com.wrmsr.presto.config.DoConfigNode;
+import com.wrmsr.presto.config.ExecConfigNode;
 import com.wrmsr.presto.config.MainConfig;
 import com.wrmsr.presto.config.MainConfigNode;
 import com.wrmsr.presto.config.PluginsConfigNode;
-import com.wrmsr.presto.config.ScriptingConfigNode;
 import com.wrmsr.presto.config.SystemConfigNode;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.function.CompressionFunctions;
+import com.wrmsr.presto.function.FunctionRegistration;
+import com.wrmsr.presto.function.GrokFunctions;
+import com.wrmsr.presto.function.JdbcFunction;
+import com.wrmsr.presto.function.PropertiesFunction;
+import com.wrmsr.presto.function.PropertiesType;
 import com.wrmsr.presto.function.bitwise.BitAndAggregationFunction;
 import com.wrmsr.presto.function.bitwise.BitAndFunction;
 import com.wrmsr.presto.function.bitwise.BitNotFunction;
@@ -60,16 +69,6 @@ import com.wrmsr.presto.function.bitwise.BitOrAggregationFunction;
 import com.wrmsr.presto.function.bitwise.BitOrFunction;
 import com.wrmsr.presto.function.bitwise.BitXorAggregationFunction;
 import com.wrmsr.presto.function.bitwise.BitXorFunction;
-import com.wrmsr.presto.scripting.ScriptingConfig;
-import com.wrmsr.presto.spi.ScriptEngineProvider;
-import com.wrmsr.presto.struct.DefineStructForQueryFunction;
-import com.wrmsr.presto.struct.DefineStructFunction;
-import com.wrmsr.presto.function.GrokFunctions;
-import com.wrmsr.presto.function.JdbcFunction;
-import com.wrmsr.presto.function.PropertiesFunction;
-import com.wrmsr.presto.function.PropertiesType;
-import com.wrmsr.presto.serialization.SerializeFunction;
-import com.wrmsr.presto.struct.StructManager;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
 import com.wrmsr.presto.jdbc.h2.H2ClientModule;
 import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
@@ -79,10 +78,14 @@ import com.wrmsr.presto.jdbc.sqlite.SqliteClientModule;
 import com.wrmsr.presto.jdbc.temp.TempClientModule;
 import com.wrmsr.presto.metaconnector.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.metaconnector.partitioner.PartitionerModule;
+import com.wrmsr.presto.serialization.SerializeFunction;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
-import com.wrmsr.presto.util.config.Configs;
+import com.wrmsr.presto.struct.DefineStructForQueryFunction;
+import com.wrmsr.presto.struct.DefineStructFunction;
+import com.wrmsr.presto.struct.StructManager;
 import com.wrmsr.presto.util.Serialization;
+import com.wrmsr.presto.util.config.Configs;
 import io.airlift.json.JsonCodec;
 import io.airlift.log.Logger;
 import io.airlift.units.Duration;
@@ -101,7 +104,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -119,6 +121,8 @@ public class MainPlugin
 
     private Map<String, String> optionalConfig = ImmutableMap.of();
     private final MainConfig config;
+    private final Object lock = new Object();
+    private volatile Injector injector;
 
     private ConnectorManager connectorManager;
     private TypeRegistry typeRegistry;
@@ -139,14 +143,7 @@ public class MainPlugin
     {
         Path configPath = new File(System.getProperty("user.home") + "/presto/yelp-presto.yaml").toPath();
         config = loadConfig(configPath);
-
-        for (MainConfigNode node : config.getNodes()) {
-            if (node instanceof SystemConfigNode) {
-                for (Map.Entry<String, String> e : ((SystemConfigNode) node).getEntries().entrySet()) {
-                    System.setProperty(e.getKey(), e.getValue());
-                }
-            }
-        }
+        setSystemProperties();
     }
 
     @Override
@@ -249,6 +246,7 @@ public class MainPlugin
             throw Throwables.propagate(e);
         }
         String cfgStr = new String(cfgBytes);
+
         List<Object> parts = Serialization.splitYaml(cfgStr);
         if (parts.size() != 1) {
             throw new IllegalArgumentException();
@@ -268,6 +266,64 @@ public class MainPlugin
         return fileConfig;
     }
 
+    private Module buildInjectedModule()
+    {
+        return new Module()
+        {
+            @Override
+            public void configure(Binder binder)
+            {
+                binder.bind(ConnectorManager.class).toInstance(checkNotNull(connectorManager));
+                binder.bind(TypeRegistry.class).toInstance(checkNotNull(typeRegistry));
+                binder.bind(NodeManager.class).toInstance(checkNotNull(nodeManager));
+                binder.bind(PluginManager.class).toInstance(checkNotNull(pluginManager));
+                binder.bind(new TypeLiteral<JsonCodec<ViewDefinition>>() {}).toInstance(checkNotNull(viewCodec));
+                binder.bind(Metadata.class).toInstance(checkNotNull(metadata));
+                binder.bind(SqlParser.class).toInstance(checkNotNull(sqlParser));
+                binder.bind(new TypeLiteral<List<PlanOptimizer>>() {}).toInstance(checkNotNull(planOptimizers));
+                binder.bind(FeaturesConfig.class).toInstance(checkNotNull(featuresConfig));
+                binder.bind(AccessControl.class).toInstance(checkNotNull(accessControl));
+                binder.bind(BlockEncodingSerde.class).toInstance(checkNotNull(blockEncodingSerde));
+                binder.bind(QueryManager.class).toInstance(checkNotNull(queryManager));
+                binder.bind(SessionPropertyManager.class).toInstance(checkNotNull(sessionPropertyManager));
+                binder.bind(QueryIdGenerator.class).toInstance(checkNotNull(queryIdGenerator));
+            }
+        };
+    }
+
+    private Module buildModule()
+    {
+        return Modules.combine(new MainPluginModule(config), buildInjectedModule());
+    }
+
+    private Injector buildInjector()
+    {
+        return Guice.createInjector(buildModule());
+    }
+
+    private Injector getInjector()
+    {
+        if (injector == null) {
+            synchronized (lock) {
+                if (injector == null) {
+                    injector = buildInjector();
+                }
+            }
+        }
+        return checkNotNull(injector);
+    }
+
+    private void setSystemProperties()
+    {
+        for (MainConfigNode node : config.getNodes()) {
+            if (node instanceof SystemConfigNode) {
+                for (Map.Entry<String, String> e : ((SystemConfigNode) node).getEntries().entrySet()) {
+                    System.setProperty(e.getKey(), e.getValue());
+                }
+            }
+        }
+    }
+
     @Override
     public void onServerEvent(ServerEvent event)
     {
@@ -285,6 +341,11 @@ public class MainPlugin
                 }
             }
 
+            Set<FunctionRegistration> frs = getInjector().getInstance(Key.get(new TypeLiteral<Set<FunctionRegistration>>() {}));
+            for (FunctionRegistration fr : frs) {
+                metadata.addFunctions(fr.getFunctions(typeRegistry));
+            }
+
             StructManager structManager = new StructManager(
                     typeRegistry,
                     metadata,
@@ -299,14 +360,7 @@ public class MainPlugin
                             .function(new DefineStructFunction(structManager))
                             .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata, accessControl))
                             .function(new PropertiesFunction(typeRegistry))
-                            .function(new JdbcFunction(connectorManager))
-                            .aggregate(BitAndAggregationFunction.class)
-                            .function(BitAndFunction.BIT_AND_FUNCTION)
-                            .function(BitNotFunction.BIT_NOT_FUNCTION)
-                            .aggregate(BitOrAggregationFunction.class)
-                            .function(BitOrFunction.BIT_OR_FUNCTION)
-                            .aggregate(BitXorAggregationFunction.class)
-                            .function(BitXorFunction.BIT_XOR_FUNCTION)
+
                             .getFunctions());
 
             /*
@@ -345,16 +399,16 @@ public class MainPlugin
 
         else if (event instanceof ServerEvent.DataSourcesLoaded) {
             for (MainConfigNode node : config.getNodes()) {
-                if (node instanceof DoConfigNode) {
-                    for (DoConfigNode.Subject subject : ((DoConfigNode) node).getSubjects().getSubjects()) {
-                        if (subject instanceof DoConfigNode.SqlSubject) {
-                            for (DoConfigNode.Verb verb : ((DoConfigNode.SqlSubject) subject).getVerbs().getVerbs()) {
+                if (node instanceof ExecConfigNode) {
+                    for (ExecConfigNode.Subject subject : ((ExecConfigNode) node).getSubjects().getSubjects()) {
+                        if (subject instanceof ExecConfigNode.SqlSubject) {
+                            for (ExecConfigNode.Verb verb : ((ExecConfigNode.SqlSubject) subject).getVerbs().getVerbs()) {
                                 ImmutableList.Builder<String> builder = ImmutableList.builder();
-                                if (verb instanceof DoConfigNode.StringVerb) {
-                                    builder.add(((DoConfigNode.StringVerb) verb).getStatement());
+                                if (verb instanceof ExecConfigNode.StringVerb) {
+                                    builder.add(((ExecConfigNode.StringVerb) verb).getStatement());
                                 }
-                                else if (verb instanceof DoConfigNode.FileVerb) {
-                                    File file = new File(((DoConfigNode.FileVerb) verb).getPath());
+                                else if (verb instanceof ExecConfigNode.FileVerb) {
+                                    File file = new File(((ExecConfigNode.FileVerb) verb).getPath());
                                     byte[] b = new byte[(int) file.length()];
                                     try (FileInputStream fis = new FileInputStream(file)) {
                                         fis.read(b);
@@ -389,10 +443,10 @@ public class MainPlugin
                             }
                         }
 
-                        else if(subject instanceof DoConfigNode.ConnectorSubject) {
+                        else if (subject instanceof ExecConfigNode.ConnectorSubject) {
 
                         }
-                        else if(subject instanceof DoConfigNode.ScriptSubject) {
+                        else if (subject instanceof ExecConfigNode.ScriptSubject) {
 
                         }
                         else {

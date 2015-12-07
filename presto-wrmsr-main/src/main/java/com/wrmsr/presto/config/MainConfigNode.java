@@ -11,7 +11,7 @@ import com.wrmsr.presto.util.config.merging.MergingConfigNode;
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = ConnectorsConfigNode.class, name = "connectors"),
-        @JsonSubTypes.Type(value = DoConfigNode.class, name = "do"),
+        @JsonSubTypes.Type(value = ExecConfigNode.class, name = "exec"),
         @JsonSubTypes.Type(value = LogConfigNode.class, name = "log"),
         @JsonSubTypes.Type(value = PluginsConfigNode.class, name = "plugins"),
         @JsonSubTypes.Type(value = JvmConfigNode.class, name = "jvm"),

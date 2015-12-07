@@ -11,27 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto;
+package com.wrmsr.presto.function;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.Binder;
-import com.google.inject.Module;
-import com.wrmsr.presto.config.MainConfig;
-import com.wrmsr.presto.function.FunctionModule;
-
-public class MainPluginModule
-    implements Module
+public class ConnectorExecFunction
 {
-    private final MainConfig config;
-
-    public MainPluginModule(MainConfig config)
-    {
-        this.config = config;
-    }
-
-    @Override
-    public void configure(Binder binder)
-    {
-        binder.install(new FunctionModule());
-    }
 }
