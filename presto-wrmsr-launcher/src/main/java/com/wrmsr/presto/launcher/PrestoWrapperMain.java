@@ -530,6 +530,19 @@ public class PrestoWrapperMain
         return new ParentLastURLClassLoader(resolveModuleClassloaderUrls(name));
     }
 
+    public static void runStaticMethod(String className, String methodName, Class<?>[] parameterTypes, Object[] args)
+    {
+        try {
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            Class cls = cl.loadClass(className);
+            Method main = cls.getMethod(methodName, parameterTypes);
+            main.invoke(null, args);
+        }
+        catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
     public static void runStaticMethod(List<URL> urls, String className, String methodName, Class<?>[] parameterTypes, Object[] args)
     {
         Thread t = new Thread() {
@@ -539,9 +552,7 @@ public class PrestoWrapperMain
                 try {
                     ClassLoader cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), getContextClassLoader().getParent());
                     Thread.currentThread().setContextClassLoader(cl);
-                    Class cls = cl.loadClass(className);
-                    Method main = cls.getMethod(methodName, parameterTypes);
-                    main.invoke(null, args);
+                    runStaticMethod(className, methodName, parameterTypes, args);
                 }
                 catch (Exception e) {
                     throw Throwables.propagate(e);
@@ -554,7 +565,6 @@ public class PrestoWrapperMain
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw Throwables.propagate(e);
         }
     }
 
@@ -571,7 +581,15 @@ public class PrestoWrapperMain
         public void innerRun() throws Throwable
         {
             deleteRepositoryOnExit();
-            runStaticMethod(resolveModuleClassloaderUrls(getModuleName()), getClassName(), "main", new Class<?>[]{String[].class}, new Object[]{args.toArray(new String[args.size()])});
+            String moduleName = getModuleName();
+            Class<?>[] parameterTypes = new Class<?>[] {String[].class};
+            Object[] args = new Object[] { this.args.toArray(new String[this.args.size()])};
+            if (moduleName == null) {
+                runStaticMethod(getClassName(), "main", parameterTypes, args);
+            }
+            else {
+                runStaticMethod(resolveModuleClassloaderUrls(moduleName), getClassName(), "main", parameterTypes, args);
+            }
         }
     }
 
@@ -629,7 +647,7 @@ public class PrestoWrapperMain
         @Override
         public String getModuleName()
         {
-            return "presto-wrmsr-launcher";
+            return null;
         }
 
         @Override
@@ -661,7 +679,7 @@ public class PrestoWrapperMain
         @Override
         public String getModuleName()
         {
-            return "presto-wrmsr-launcher";
+            return null;
         }
 
         @Override
