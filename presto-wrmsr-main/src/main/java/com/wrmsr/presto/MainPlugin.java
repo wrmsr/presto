@@ -59,16 +59,8 @@ import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.function.CompressionFunctions;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.function.GrokFunctions;
-import com.wrmsr.presto.function.JdbcFunction;
 import com.wrmsr.presto.function.PropertiesFunction;
 import com.wrmsr.presto.function.PropertiesType;
-import com.wrmsr.presto.function.bitwise.BitAndAggregationFunction;
-import com.wrmsr.presto.function.bitwise.BitAndFunction;
-import com.wrmsr.presto.function.bitwise.BitNotFunction;
-import com.wrmsr.presto.function.bitwise.BitOrAggregationFunction;
-import com.wrmsr.presto.function.bitwise.BitOrFunction;
-import com.wrmsr.presto.function.bitwise.BitXorAggregationFunction;
-import com.wrmsr.presto.function.bitwise.BitXorFunction;
 import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
 import com.wrmsr.presto.jdbc.h2.H2ClientModule;
 import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
@@ -354,13 +346,7 @@ public class MainPlugin
 
             metadata.addFunctions(
                     new FunctionListBuilder(typeRegistry)
-                            .scalar(CompressionFunctions.class)
-                            .scalar(GrokFunctions.class)
-                            .function(new SerializeFunction(metadata.getFunctionRegistry(), structManager))
-                            .function(new DefineStructFunction(structManager))
-                            .function(new DefineStructForQueryFunction(structManager, sqlParser, planOptimizers, featuresConfig, metadata, accessControl))
                             .function(new PropertiesFunction(typeRegistry))
-
                             .getFunctions());
 
             /*

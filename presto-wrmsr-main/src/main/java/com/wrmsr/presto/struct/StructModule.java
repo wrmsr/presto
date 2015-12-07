@@ -11,30 +11,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.function;
+package com.wrmsr.presto.struct;
 
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
-import com.wrmsr.presto.function.bitwise.BitwiseModule;
+import com.wrmsr.presto.function.FunctionRegistration;
 
-public class FunctionModule
-        implements Module
+public class StructModule
+    implements Module
 {
     @Override
     public void configure(Binder binder)
     {
-        binder.install(new BitwiseModule());
+        binder.bind(StructManager.class).asEagerSingleton();
 
         Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
 
-        binder.bind(JdbcFunction.class).asEagerSingleton();
-        functionRegistrationBinder.addBinding().to(JdbcFunction.class);
+        binder.bind(DefineStructForQueryFunction.class).asEagerSingleton();
+        functionRegistrationBinder.addBinding().to(DefineStructForQueryFunction.class);
 
-        functionRegistrationBinder.addBinding().toInstance(FunctionRegistration.of(flb -> {
-            flb
-                    .scalar(CompressionFunctions.class)
-                    .scalar(GrokFunctions.class);
-        }));
+        binder.bind(DefineStructFunction.class).asEagerSingleton();
+        functionRegistrationBinder.addBinding().to(DefineStructFunction.class);
     }
 }

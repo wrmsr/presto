@@ -14,8 +14,11 @@
 package com.wrmsr.presto.struct;
 
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.function.StringVarargsFunction;
 import io.airlift.slice.Slice;
+
+import javax.inject.Inject;
 
 import java.lang.invoke.MethodHandle;
 import java.util.List;
@@ -25,9 +28,11 @@ import static com.google.common.collect.Lists.newArrayList;
 
 public class DefineStructFunction
         extends StringVarargsFunction
+        implements FunctionRegistration.Self
 {
     private final StructManager structManager;
 
+    @Inject
     public DefineStructFunction(StructManager structManager)
     {
         super(

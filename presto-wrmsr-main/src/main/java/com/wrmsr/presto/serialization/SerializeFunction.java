@@ -27,11 +27,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.struct.StructManager;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 
 import java.lang.invoke.MethodHandle;
 import java.util.Map;
@@ -45,10 +47,9 @@ import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 // FIXME LOLOL RECURSION LINKED LISTS
 public class SerializeFunction
         extends SqlScalarFunction
+        implements FunctionRegistration.Self
 {
     private static final String FUNCTION_NAME = "serialize";
-    private static final Signature SIGNATURE = new Signature( // FIXME nullable
-            FUNCTION_NAME, FunctionKind.SCALAR, ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"), false);
     private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", SerializationContext.class, ConnectorSession.class, Object.class);
 
     private static class SerializationContext
@@ -65,15 +66,12 @@ public class SerializeFunction
         }
     }
 
-    private final FunctionRegistry functionRegistry;
     private final StructManager structManager;
 
-    private final ThreadLocal<ConnectorSession> connectorSessionThreadLocal = new ThreadLocal<ConnectorSession>();
-
-    public SerializeFunction(FunctionRegistry functionRegistry, StructManager structManager)
+    @Inject
+    public SerializeFunction(StructManager structManager)
     {
         super(FUNCTION_NAME, ImmutableList.of(typeParameter("E")), StandardTypes.VARBINARY, ImmutableList.of("E"));
-        this.functionRegistry = functionRegistry;
         this.structManager = structManager;
     }
 

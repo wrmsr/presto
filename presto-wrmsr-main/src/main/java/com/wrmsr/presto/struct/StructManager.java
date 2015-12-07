@@ -37,6 +37,7 @@ import com.wrmsr.presto.util.CodeGeneration;
 import io.airlift.slice.Slice;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -65,6 +66,7 @@ public class StructManager
     private final Metadata metadata;
     private final BlockEncodingSerde blockEncodingSerde;
 
+    @Inject
     public StructManager(TypeRegistry typeRegistry, Metadata metadata, BlockEncodingSerde blockEncodingSerde)
     {
         this.typeRegistry = typeRegistry;

@@ -42,9 +42,11 @@ import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.type.RowType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.function.FunctionRegistration;
 import io.airlift.slice.Slice;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 
 import java.lang.invoke.MethodHandle;
 import java.util.Collection;
@@ -64,6 +66,7 @@ import static java.util.Locale.ENGLISH;
 
 public class DefineStructForQueryFunction
         extends SqlScalarFunction
+        implements FunctionRegistration.Self
 {
     private static final String FUNCTION_NAME = "define_struct_for_query";
     private static final Signature SIGNATURE = new Signature(
@@ -77,7 +80,14 @@ public class DefineStructForQueryFunction
     private final Metadata metadata;
     private final AccessControl accessControl;
 
-    public DefineStructForQueryFunction(StructManager structManager, SqlParser sqlParser, List<PlanOptimizer> planOptimizers, FeaturesConfig featuresConfig, Metadata metadata, AccessControl accessControl)
+    @Inject
+    public DefineStructForQueryFunction(
+            StructManager structManager,
+            SqlParser sqlParser,
+            List<PlanOptimizer> planOptimizers,
+            FeaturesConfig featuresConfig,
+            Metadata metadata,
+            AccessControl accessControl)
     {
         super(FUNCTION_NAME, SIGNATURE.getTypeParameters(), "varchar", ImmutableList.of("varchar", "varchar"));
         this.structManager = structManager;

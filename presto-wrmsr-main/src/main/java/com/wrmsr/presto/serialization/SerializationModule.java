@@ -11,30 +11,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.function;
+package com.wrmsr.presto.serialization;
 
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
-import com.wrmsr.presto.function.bitwise.BitwiseModule;
+import com.wrmsr.presto.function.FunctionRegistration;
 
-public class FunctionModule
-        implements Module
+public class SerializationModule
+    implements Module
 {
     @Override
     public void configure(Binder binder)
     {
-        binder.install(new BitwiseModule());
-
         Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
 
-        binder.bind(JdbcFunction.class).asEagerSingleton();
-        functionRegistrationBinder.addBinding().to(JdbcFunction.class);
-
-        functionRegistrationBinder.addBinding().toInstance(FunctionRegistration.of(flb -> {
-            flb
-                    .scalar(CompressionFunctions.class)
-                    .scalar(GrokFunctions.class);
-        }));
+        binder.bind(SerializeFunction.class).asEagerSingleton();
+        functionRegistrationBinder.addBinding().to(SerializeFunction.class);
     }
 }

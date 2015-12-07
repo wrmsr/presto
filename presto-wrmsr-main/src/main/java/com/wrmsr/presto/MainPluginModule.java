@@ -13,15 +13,18 @@
  */
 package com.wrmsr.presto;
 
-import com.google.inject.AbstractModule;
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.google.inject.PrivateBinder;
 import com.wrmsr.presto.config.MainConfig;
+import com.wrmsr.presto.connectorSupport.ConnectorSupportModule;
 import com.wrmsr.presto.function.FunctionModule;
 import com.wrmsr.presto.scripting.ScriptingModule;
+import com.wrmsr.presto.serialization.SerializationModule;
+import com.wrmsr.presto.struct.StructModule;
 
 public class MainPluginModule
-    implements Module
+        implements Module
 {
     private final MainConfig config;
 
@@ -35,7 +38,10 @@ public class MainPluginModule
     {
         binder.bind(MainConfig.class).toInstance(config);
 
+        binder.install(new ConnectorSupportModule());
         binder.install(new FunctionModule());
         binder.install(new ScriptingModule());
+        binder.install(new SerializationModule());
+        binder.install(new StructModule());
     }
 }

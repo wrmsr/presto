@@ -57,13 +57,13 @@ import static com.facebook.presto.sql.gen.SqlTypeByteCodeExpression.constantType
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.lang.String.format;
 
-public final class Hash
+public final class HashFunction
         extends SqlScalarFunction
 {
 
     public static final String NAME = "hash";
 
-    public Hash(int arity)
+    public HashFunction(int arity)
     {
         super(
                 NAME,
@@ -201,7 +201,7 @@ public final class Hash
             if (i > 0 && type.getTypeSignature().getBase().equals(StandardTypes.DOUBLE)) {
                 buildBlock.comment("arg1 != NaN")
                         .getVariable(scope.getVariable("arg" + i))
-                        .invokeStatic(Hash.class, "checkNotNaN", void.class, double.class);
+                        .invokeStatic(HashFunction.class, "checkNotNaN", void.class, double.class);
             }
 
             ByteCodeBlock writeBlock = new ByteCodeBlock()
@@ -277,6 +277,6 @@ public final class Hash
                 .invokeStatic(BigintOperators.class, "modulus", long.class, long.class, nativeContainerTypes.get(0))
                 .ret(nativeContainerTypes.get(0));
 
-        return defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(Hash.class.getClassLoader()));
+        return defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(HashFunction.class.getClassLoader()));
     }
 }
