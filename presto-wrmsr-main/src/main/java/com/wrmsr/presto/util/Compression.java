@@ -15,12 +15,18 @@ package com.wrmsr.presto.util;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.util.codec.Codec;
 import com.wrmsr.presto.util.codec.StreamCodec;
 import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.CompressorOutputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
+import org.apache.commons.compress.compressors.deflate.DeflateCompressorOutputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.apache.commons.compress.compressors.pack200.Pack200CompressorOutputStream;
+import org.apache.commons.compress.compressors.xz.XZCompressorOutputStream;
 import org.apache.commons.io.IOUtils;
 
 import java.io.ByteArrayInputStream;
@@ -29,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
@@ -202,4 +209,12 @@ public class Compression
             }
         }
     }
+
+    public static final Set<String> COMMONS_COMPRESSION_NAMES = ImmutableSet.of(
+            CompressorStreamFactory.GZIP,
+            CompressorStreamFactory.BZIP2,
+            CompressorStreamFactory.XZ,
+            CompressorStreamFactory.PACK200,
+            CompressorStreamFactory.DEFLATE
+    );
 }

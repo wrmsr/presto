@@ -13,19 +13,18 @@
  */
 package com.wrmsr.presto.codec;
 
-import com.wrmsr.presto.util.Compression;
-import com.wrmsr.presto.util.codec.Codec;
+import com.facebook.presto.spi.type.Type;
 
-public class CommonsCompressionTypeCodec
-        extends CompressionTypeCodec
+import java.util.List;
+import java.util.Optional;
+
+@FunctionalInterface
+public interface TypeCodecProvider
 {
-    public CommonsCompressionTypeCodec(String name)
+    Optional<TypeCodec> getTypeCodec(String name, Type fromType);
+
+    static TypeCodecProvider of(List<TypeCodec> typeCodecs)
     {
-        super(
-                name,
-                Codec.compose(
-                        SliceCodec.SLICE_CODEC,
-                        new Compression.CommonsCompressionCodec(name),
-                        Codec.flip(SliceCodec.SLICE_CODEC)));
+        return (name, fromType) -> typeCodecs.stream().filter(c -> c.getName().equals(name) && c.getFromType().equals(fromType)).findFirst();
     }
 }

@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.Consumer;
 
+@FunctionalInterface
 public interface FunctionRegistration
 {
     interface Self extends FunctionRegistration, SqlFunction

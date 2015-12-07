@@ -15,13 +15,23 @@ package com.wrmsr.presto.codec;
 
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.util.Compression;
+
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class CodecModule
-    implements Module
+        implements Module
 {
     @Override
     public void configure(Binder binder)
     {
+        Multibinder<TypeCodecProvider> typeCodecProviderBinder = Multibinder.newSetBinder(binder, TypeCodecProvider.class);
 
+        typeCodecProviderBinder.addBinding().toInstance(
+                TypeCodecProvider.of(
+                        Compression.COMMONS_COMPRESSION_NAMES.stream()
+                                .map(CommonsCompressionTypeCodec::new)
+                                .collect(toImmutableList())));
     }
 }
