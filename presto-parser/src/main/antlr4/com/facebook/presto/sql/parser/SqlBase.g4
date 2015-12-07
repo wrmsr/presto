@@ -30,15 +30,20 @@ statement
     : query                                                            #statementDefault
     | USE schema=identifier                                            #use
     | USE catalog=identifier '.' schema=identifier                     #use
-    | CREATE TABLE qualifiedName AS query                              #createTableAsSelect
     | CREATE TABLE qualifiedName
-        '(' tableElement (',' tableElement)* ')'                       #createTable
+        (WITH tableProperties)? AS query
+        (WITH (NO)? DATA)?                                             #createTableAsSelect
+    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
+        '(' tableElement (',' tableElement)* ')'
+        (WITH tableProperties)?                                        #createTable
     | DROP TABLE (IF EXISTS)? qualifiedName                            #dropTable
-    | INSERT INTO qualifiedName query                                  #insertInto
+    | INSERT INTO qualifiedName columnAliases? query                   #insertInto
     | DELETE FROM qualifiedName (WHERE booleanExpression)?             #delete
     | ALTER TABLE from=qualifiedName RENAME TO to=qualifiedName        #renameTable
     | ALTER TABLE tableName=qualifiedName
         RENAME COLUMN from=identifier TO to=identifier                 #renameColumn
+    | ALTER TABLE tableName=qualifiedName
+        ADD COLUMN column=tableElement                                 #addColumn
     | CREATE (OR REPLACE)? VIEW qualifiedName AS query                 #createView
     | DROP VIEW (IF EXISTS)? qualifiedName                             #dropView
     | EXPLAIN ('(' explainOption (',' explainOption)* ')')? statement  #explain
@@ -50,12 +55,12 @@ statement
     | DESC qualifiedName                                               #showColumns
     | SHOW FUNCTIONS                                                   #showFunctions
     | SHOW SESSION                                                     #showSession
-    | SET SESSION qualifiedName EQ STRING                              #setSession
+    | SET SESSION qualifiedName EQ expression                          #setSession
     | RESET SESSION qualifiedName                                      #resetSession
     | SHOW PARTITIONS (FROM | IN) qualifiedName
         (WHERE booleanExpression)?
         (ORDER BY sortItem (',' sortItem)*)?
-        (LIMIT limit=INTEGER_VALUE)?                                   #showPartitions
+        (LIMIT limit=(INTEGER_VALUE | ALL))?                           #showPartitions
     ;
 
 query
@@ -70,10 +75,18 @@ tableElement
     : identifier type
     ;
 
+tableProperties
+    : '(' tableProperty (',' tableProperty)* ')'
+    ;
+
+tableProperty
+    : identifier EQ expression
+    ;
+
 queryNoWith:
       queryTerm
       (ORDER BY sortItem (',' sortItem)*)?
-      (LIMIT limit=INTEGER_VALUE)?
+      (LIMIT limit=(INTEGER_VALUE | ALL))?
       (APPROXIMATE AT confidence=number CONFIDENCE)?
     ;
 
@@ -98,8 +111,25 @@ querySpecification
     : SELECT setQuantifier? selectItem (',' selectItem)*
       (FROM relation (',' relation)*)?
       (WHERE where=booleanExpression)?
-      (GROUP BY groupBy+=expression (',' groupBy+=expression)*)?
+      (GROUP BY groupingElement (',' groupingElement)*)?
       (HAVING having=booleanExpression)?
+    ;
+
+groupingElement
+    : groupingExpressions                                               #singleGroupingSet
+    | ROLLUP '(' (qualifiedName (',' qualifiedName)*)? ')'              #rollup
+    | CUBE '(' (qualifiedName (',' qualifiedName)*)? ')'                #cube
+    | GROUPING SETS '(' groupingSet (',' groupingSet)* ')'              #multipleGroupingSets
+    ;
+
+groupingExpressions
+    : '(' (expression (',' expression)*)? ')'
+    | expression
+    ;
+
+groupingSet
+    : '(' (qualifiedName (',' qualifiedName)*)? ')'
+    | qualifiedName
     ;
 
 namedQuery
@@ -212,11 +242,13 @@ primaryExpression
     | number                                                                         #numericLiteral
     | booleanValue                                                                   #booleanLiteral
     | STRING                                                                         #stringLiteral
+    | POSITION '(' valueExpression IN valueExpression ')'                            #position
     | '(' expression (',' expression)+ ')'                                           #rowConstructor
     | ROW '(' expression (',' expression)* ')'                                       #rowConstructor
-    | qualifiedName                                                                  #columnReference
     | qualifiedName '(' ASTERISK ')' over?                                           #functionCall
     | qualifiedName '(' (setQuantifier? expression (',' expression)*)? ')' over?     #functionCall
+    | identifier '->' expression                                                     #lambda
+    | '(' identifier (',' identifier)* ')' '->' expression                           #lambda
     | '(' query ')'                                                                  #subqueryExpression
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                         #searchedCase
@@ -224,13 +256,15 @@ primaryExpression
     | TRY_CAST '(' expression AS type ')'                                            #cast
     | ARRAY '[' (expression (',' expression)*)? ']'                                  #arrayConstructor
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript
-    | value=primaryExpression '.' fieldName=identifier                               #fieldReference
+    | identifier                                                                     #columnReference
+    | base=primaryExpression '.' fieldName=identifier                                #dereference
     | name=CURRENT_DATE                                                              #specialDateTimeFunction
     | name=CURRENT_TIME ('(' precision=INTEGER_VALUE ')')?                           #specialDateTimeFunction
     | name=CURRENT_TIMESTAMP ('(' precision=INTEGER_VALUE ')')?                      #specialDateTimeFunction
     | name=LOCALTIME ('(' precision=INTEGER_VALUE ')')?                              #specialDateTimeFunction
     | name=LOCALTIMESTAMP ('(' precision=INTEGER_VALUE ')')?                         #specialDateTimeFunction
     | SUBSTRING '(' valueExpression FROM valueExpression (FOR valueExpression)? ')'  #substring
+    | NORMALIZE '(' valueExpression (',' normalForm)? ')'                            #normalize
     | EXTRACT '(' identifier FROM valueExpression ')'                                #extract
     | '(' expression ')'                                                             #parenthesizedExpression
     ;
@@ -297,7 +331,7 @@ frameBound
 
 
 explainOption
-    : FORMAT value=(TEXT | GRAPHVIZ | JSON)  #explainFormat
+    : FORMAT value=(TEXT | GRAPHVIZ)         #explainFormat
     | TYPE value=(LOGICAL | DISTRIBUTED)     #explainType
     ;
 
@@ -324,19 +358,28 @@ number
 
 nonReserved
     : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS | SESSION
+    | ADD
     | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW | MAP
-    | DATE | TIME | TIMESTAMP | INTERVAL
+    | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
     | YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
     | EXPLAIN | FORMAT | TYPE | TEXT | GRAPHVIZ | LOGICAL | DISTRIBUTED
-    | TABLESAMPLE | SYSTEM | BERNOULLI | POISSONIZED | USE | JSON | TO
+    | TABLESAMPLE | SYSTEM | BERNOULLI | POISSONIZED | USE | TO
     | RESCALED | APPROXIMATE | AT | CONFIDENCE
     | SET | RESET
     | VIEW | REPLACE
     | IF | NULLIF | COALESCE
+    | normalForm
+    | POSITION
+    | NO | DATA
+    ;
+
+normalForm
+    : NFD | NFC | NFKD | NFKC
     ;
 
 SELECT: 'SELECT';
 FROM: 'FROM';
+ADD: 'ADD';
 AS: 'AS';
 ALL: 'ALL';
 SOME: 'SOME';
@@ -345,6 +388,10 @@ DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
 GROUP: 'GROUP';
 BY: 'BY';
+GROUPING: 'GROUPING';
+SETS: 'SETS';
+CUBE: 'CUBE';
+ROLLUP: 'ROLLUP';
 ORDER: 'ORDER';
 HAVING: 'HAVING';
 LIMIT: 'LIMIT';
@@ -355,6 +402,7 @@ OR: 'OR';
 AND: 'AND';
 IN: 'IN';
 NOT: 'NOT';
+NO: 'NO';
 EXISTS: 'EXISTS';
 BETWEEN: 'BETWEEN';
 LIKE: 'LIKE';
@@ -369,6 +417,7 @@ ESCAPE: 'ESCAPE';
 ASC: 'ASC';
 DESC: 'DESC';
 SUBSTRING: 'SUBSTRING';
+POSITION: 'POSITION';
 FOR: 'FOR';
 DATE: 'DATE';
 TIME: 'TIME';
@@ -428,7 +477,6 @@ FORMAT: 'FORMAT';
 TYPE: 'TYPE';
 TEXT: 'TEXT';
 GRAPHVIZ: 'GRAPHVIZ';
-JSON: 'JSON';
 LOGICAL: 'LOGICAL';
 DISTRIBUTED: 'DISTRIBUTED';
 CAST: 'CAST';
@@ -462,6 +510,13 @@ MAP: 'MAP';
 SET: 'SET';
 RESET: 'RESET';
 SESSION: 'SESSION';
+DATA: 'DATA';
+
+NORMALIZE: 'NORMALIZE';
+NFD : 'NFD';
+NFC : 'NFC';
+NFKD : 'NFKD';
+NFKC : 'NFKC';
 
 IF: 'IF';
 NULLIF: 'NULLIF';
@@ -548,5 +603,5 @@ WS
 // We use this to be able to ignore and recover all the text
 // when splitting statements with DelimiterLexer
 UNRECOGNIZED
-    : .+?
+    : .
     ;

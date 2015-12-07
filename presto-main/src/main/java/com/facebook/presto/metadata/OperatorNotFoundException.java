@@ -14,36 +14,36 @@
 package com.facebook.presto.metadata;
 
 import com.facebook.presto.spi.PrestoException;
-import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeSignature;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
 import static com.facebook.presto.spi.StandardErrorCode.OPERATOR_NOT_FOUND;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 
 public class OperatorNotFoundException extends PrestoException
 {
     private final OperatorType operatorType;
-    private final Type returnType;
-    private final List<Type> argumentTypes;
+    private final TypeSignature returnType;
+    private final List<TypeSignature> argumentTypes;
 
-    public OperatorNotFoundException(OperatorType operatorType, List<? extends Type> argumentTypes)
+    public OperatorNotFoundException(OperatorType operatorType, List<? extends TypeSignature> argumentTypes)
     {
         super(OPERATOR_NOT_FOUND, format("Operator %s(%s) not registered", operatorType, Joiner.on(", ").join(argumentTypes)));
-        this.operatorType = checkNotNull(operatorType, "operatorType is null");
+        this.operatorType = requireNonNull(operatorType, "operatorType is null");
         this.returnType = null;
-        this.argumentTypes = ImmutableList.copyOf(checkNotNull(argumentTypes, "argumentTypes is null"));
+        this.argumentTypes = ImmutableList.copyOf(requireNonNull(argumentTypes, "argumentTypes is null"));
     }
 
-    public OperatorNotFoundException(OperatorType operatorType, List<? extends Type> argumentTypes, Type returnType)
+    public OperatorNotFoundException(OperatorType operatorType, List<? extends TypeSignature> argumentTypes, TypeSignature returnType)
     {
         super(OPERATOR_NOT_FOUND, format("Operator %s(%s):%s not registered", operatorType, Joiner.on(", ").join(argumentTypes), returnType));
-        this.operatorType = checkNotNull(operatorType, "operatorType is null");
-        this.argumentTypes = ImmutableList.copyOf(checkNotNull(argumentTypes, "argumentTypes is null"));
-        this.returnType = checkNotNull(returnType, "returnType is null");
+        this.operatorType = requireNonNull(operatorType, "operatorType is null");
+        this.argumentTypes = ImmutableList.copyOf(requireNonNull(argumentTypes, "argumentTypes is null"));
+        this.returnType = requireNonNull(returnType, "returnType is null");
     }
 
     public OperatorType getOperatorType()
@@ -51,12 +51,12 @@ public class OperatorNotFoundException extends PrestoException
         return operatorType;
     }
 
-    public Type getReturnType()
+    public TypeSignature getReturnType()
     {
         return returnType;
     }
 
-    public List<Type> getArgumentTypes()
+    public List<TypeSignature> getArgumentTypes()
     {
         return argumentTypes;
     }

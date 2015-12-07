@@ -13,7 +13,7 @@
  */
 package com.facebook.presto.byteCode.expression;
 
-import com.facebook.presto.byteCode.Block;
+import com.facebook.presto.byteCode.ByteCodeBlock;
 import com.facebook.presto.byteCode.ByteCodeNode;
 import com.facebook.presto.byteCode.MethodGenerationContext;
 import com.facebook.presto.byteCode.OpCode;
@@ -24,9 +24,9 @@ import java.util.List;
 
 import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.primitives.Primitives.wrap;
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 
 class CastByteCodeExpression
         extends ByteCodeExpression
@@ -37,7 +37,7 @@ class CastByteCodeExpression
     {
         super(type);
 
-        this.instance = checkNotNull(instance, "instance is null");
+        this.instance = requireNonNull(instance, "instance is null");
 
         checkArgument(type.getPrimitiveType() != void.class, "Type %s can not be cast to %s", instance.getType(), type);
 
@@ -50,7 +50,7 @@ class CastByteCodeExpression
     @Override
     public ByteCodeNode getByteCode(MethodGenerationContext generationContext)
     {
-        Block block = new Block().append(instance.getByteCode(generationContext));
+        ByteCodeBlock block = new ByteCodeBlock().append(instance.getByteCode(generationContext));
 
         if (instance.getType().isPrimitive()) {
             Class<?> sourceType = instance.getType().getPrimitiveType();
@@ -75,8 +75,13 @@ class CastByteCodeExpression
         return block;
     }
 
-    private static Block castPrimitiveToPrimitive(Block block, Class<?> sourceType, Class<?> targetType)
+    private static ByteCodeBlock castPrimitiveToPrimitive(ByteCodeBlock block, Class<?> sourceType, Class<?> targetType)
     {
+        if (sourceType == boolean.class) {
+            if (targetType == boolean.class) {
+                return block;
+            }
+        }
         if (sourceType == byte.class) {
             if (targetType == byte.class) {
                 return block;
@@ -250,6 +255,8 @@ class CastByteCodeExpression
             return type.getPrimitiveType();
         }
         switch (type.getJavaClassName()) {
+            case "java.lang.Boolean":
+                return boolean.class;
             case "java.lang.Byte":
                 return byte.class;
             case "java.lang.Character":

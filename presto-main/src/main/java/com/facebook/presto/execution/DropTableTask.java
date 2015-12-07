@@ -15,14 +15,15 @@ package com.facebook.presto.execution;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.QualifiedTableName;
+import com.facebook.presto.metadata.QualifiedObjectName;
 import com.facebook.presto.metadata.TableHandle;
+import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.DropTable;
 
 import java.util.Optional;
 
-import static com.facebook.presto.metadata.MetadataUtil.createQualifiedTableName;
+import static com.facebook.presto.metadata.MetadataUtil.createQualifiedObjectName;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MISSING_TABLE;
 
 public class DropTableTask
@@ -35,9 +36,9 @@ public class DropTableTask
     }
 
     @Override
-    public void execute(DropTable statement, Session session, Metadata metadata, QueryStateMachine stateMachine)
+    public void execute(DropTable statement, Session session, Metadata metadata, AccessControl accessControl, QueryStateMachine stateMachine)
     {
-        QualifiedTableName tableName = createQualifiedTableName(session, statement.getTableName());
+        QualifiedObjectName tableName = createQualifiedObjectName(session, statement, statement.getTableName());
 
         Optional<TableHandle> tableHandle = metadata.getTableHandle(session, tableName);
         if (!tableHandle.isPresent()) {
@@ -47,6 +48,8 @@ public class DropTableTask
             return;
         }
 
-        metadata.dropTable(tableHandle.get());
+        accessControl.checkCanDropTable(session.getIdentity(), tableName);
+
+        metadata.dropTable(session, tableHandle.get());
     }
 }

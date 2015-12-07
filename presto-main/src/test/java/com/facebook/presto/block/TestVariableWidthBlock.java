@@ -13,8 +13,10 @@
  */
 package com.facebook.presto.block;
 
+import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
+import com.google.common.primitives.Ints;
 import io.airlift.slice.Slice;
 import org.testng.annotations.Test;
 
@@ -29,9 +31,25 @@ public class TestVariableWidthBlock
         assertVariableWithValues((Slice[]) alternatingNullValues(expectedValues));
     }
 
-    private static void assertVariableWithValues(Slice[] expectedValues)
+    @Test
+    public void testCopyPositions()
+            throws Exception
     {
-        VariableWidthBlockBuilder blockBuilder = new VariableWidthBlockBuilder(new BlockBuilderStatus());
+        Slice[] expectedValues = (Slice[]) alternatingNullValues(createExpectedValues(100));
+        BlockBuilder blockBuilder = createBlockBuilderWithValues(expectedValues);
+        assertBlockFilteredPositions(expectedValues, blockBuilder.build(), Ints.asList(0, 2, 4, 6, 7, 9, 10, 16));
+    }
+
+    private void assertVariableWithValues(Slice[] expectedValues)
+    {
+        BlockBuilder blockBuilder = createBlockBuilderWithValues(expectedValues);
+        assertBlock(blockBuilder, expectedValues);
+        assertBlock(blockBuilder.build(), expectedValues);
+    }
+
+    private static BlockBuilder createBlockBuilderWithValues(Slice[] expectedValues)
+    {
+        VariableWidthBlockBuilder blockBuilder = new VariableWidthBlockBuilder(new BlockBuilderStatus(), expectedValues.length, 32);
         for (Slice expectedValue : expectedValues) {
             if (expectedValue == null) {
                 blockBuilder.appendNull();
@@ -40,16 +58,6 @@ public class TestVariableWidthBlock
                 blockBuilder.writeBytes(expectedValue, 0, expectedValue.length()).closeEntry();
             }
         }
-        assertBlock(blockBuilder, expectedValues);
-        assertBlock(blockBuilder.build(), expectedValues);
-    }
-
-    private static Slice[] createExpectedValues(int positionCount)
-    {
-        Slice[] expectedValues = new Slice[positionCount];
-        for (int position = 0; position < positionCount; position++) {
-            expectedValues[position] = createExpectedValue(position);
-        }
-        return expectedValues;
+        return blockBuilder;
     }
 }

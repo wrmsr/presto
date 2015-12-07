@@ -84,7 +84,7 @@ public abstract class AbstractType
     @Override
     public int compareTo(Block leftBlock, int leftPosition, Block rightBlock, int rightPosition)
     {
-        throw new UnsupportedOperationException(getTypeSignature() + " type is not ordered");
+        throw new UnsupportedOperationException(getTypeSignature() + " type is not orderable");
     }
 
     @Override
@@ -137,6 +137,18 @@ public abstract class AbstractType
 
     @Override
     public void writeSlice(BlockBuilder blockBuilder, Slice value, int offset, int length)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getObject(Block block, int position)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeObject(BlockBuilder blockBuilder, Object value)
     {
         throw new UnsupportedOperationException();
     }

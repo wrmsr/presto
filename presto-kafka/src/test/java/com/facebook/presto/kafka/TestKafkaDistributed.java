@@ -62,31 +62,13 @@ public class TestKafkaDistributed
     }
 
     @Override
-    public void testCreateSampledTableAsSelectLimit()
-            throws Exception
-    {
-    }
-
-    @Override
     public void testCreateTableAsSelect()
             throws Exception
     {
     }
 
     @Override
-    public void testCreateTableAsSelectGroupBy()
-            throws Exception
-    {
-    }
-
-    @Override
-    public void testCreateTableAsSelectJoin()
-            throws Exception
-    {
-    }
-
-    @Override
-    public void testCreateTableAsSelectLimit()
+    public void testCreateTableAsSelectSampled()
             throws Exception
     {
     }
@@ -144,11 +126,21 @@ public class TestKafkaDistributed
     }
 
     //
-    // Kafka connector does not table column.
+    // Kafka connector does not rename column.
     //
 
     @Override
     public void testRenameColumn()
+            throws Exception
+    {
+    }
+
+    //
+    // Kafka connector does not add column.
+    //
+
+    @Override
+    public void testAddColumn()
             throws Exception
     {
     }

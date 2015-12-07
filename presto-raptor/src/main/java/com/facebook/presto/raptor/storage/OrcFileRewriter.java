@@ -33,7 +33,10 @@ import org.apache.hadoop.io.Text;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
 
 import static com.facebook.presto.raptor.util.Closer.closer;
 import static io.airlift.slice.SizeOf.SIZE_OF_BYTE;
@@ -89,6 +92,10 @@ public final class OrcFileRewriter
         long uncompressedSize = 0;
 
         while (true) {
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedIOException();
+            }
+
             row = rowsToDelete.nextClearBit(row);
             if (row >= inputRowCount) {
                 return new OrcFileInfo(rowCount, uncompressedSize);
@@ -135,6 +142,21 @@ public final class OrcFileRewriter
         }
         if (object instanceof BytesWritable) {
             return ((BytesWritable) object).getLength();
+        }
+        if (object instanceof List<?>) {
+            int size = 0;
+            for (Object element : (Iterable<?>) object) {
+                size += uncompressedSize(element);
+            }
+            return size;
+        }
+        if (object instanceof Map<?, ?>) {
+            int size = 0;
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) object).entrySet()) {
+                size += uncompressedSize(entry.getKey());
+                size += uncompressedSize(entry.getValue());
+            }
+            return size;
         }
         throw new IOException("Unhandled ORC object: " + object.getClass().getName());
     }

@@ -20,6 +20,7 @@ import com.facebook.presto.spi.type.Type;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static com.facebook.presto.spi.block.BlockBuilderStatus.DEFAULT_MAX_BLOCK_SIZE_IN_BYTES;
 import static com.facebook.presto.spi.block.PageBuilderStatus.DEFAULT_MAX_PAGE_SIZE_IN_BYTES;
@@ -65,6 +66,11 @@ public class PageBuilder
         }
     }
 
+    public Type getType(int channel)
+    {
+        return types.get(channel);
+    }
+
     public BlockBuilder getBlockBuilder(int channel)
     {
         return blockBuilders[channel];
@@ -96,6 +102,11 @@ public class PageBuilder
     public long getSizeInBytes()
     {
         return pageBuilderStatus.getSizeInBytes();
+    }
+
+    public long getRetainedSizeInBytes()
+    {
+        return Stream.of(blockBuilders).mapToLong(BlockBuilder::getRetainedSizeInBytes).sum();
     }
 
     public Page build()

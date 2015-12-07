@@ -13,7 +13,7 @@
  */
 package com.facebook.presto.byteCode.expression;
 
-import com.facebook.presto.byteCode.Block;
+import com.facebook.presto.byteCode.ByteCodeBlock;
 import com.facebook.presto.byteCode.ByteCodeNode;
 import com.facebook.presto.byteCode.FieldDefinition;
 import com.facebook.presto.byteCode.MethodGenerationContext;
@@ -30,8 +30,8 @@ import static com.facebook.presto.byteCode.Access.STATIC;
 import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.facebook.presto.byteCode.instruction.FieldInstruction.getStaticInstruction;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 
 class GetFieldByteCodeExpression
         extends ByteCodeExpression
@@ -47,7 +47,7 @@ class GetFieldByteCodeExpression
 
     public GetFieldByteCodeExpression(@Nullable ByteCodeExpression instance, Field field)
     {
-        this(instance, type(checkNotNull(field, "field is null").getDeclaringClass()), field.getName(), type(field.getType()));
+        this(instance, type(requireNonNull(field, "field is null").getDeclaringClass()), field.getName(), type(field.getType()));
 
         boolean isStatic = Modifier.isStatic(field.getModifiers());
         if (instance == null) {
@@ -60,7 +60,7 @@ class GetFieldByteCodeExpression
 
     public GetFieldByteCodeExpression(@Nullable ByteCodeExpression instance, FieldDefinition field)
     {
-        this(instance, checkNotNull(field, "field is null").getDeclaringClass().getType(), field.getName(), field.getType());
+        this(instance, requireNonNull(field, "field is null").getDeclaringClass().getType(), field.getName(), field.getType());
         if (instance == null) {
             checkArgument(field.getAccess().contains(STATIC), "Field is not static: %s", field);
         }
@@ -74,8 +74,8 @@ class GetFieldByteCodeExpression
         super(type);
         checkArgument(instance == null || !instance.getType().isPrimitive(), "Type %s does not have fields", getType());
         this.instance = instance;
-        this.declaringClass = checkNotNull(declaringClass, "declaringClass is null");
-        this.name = checkNotNull(name, "name is null");
+        this.declaringClass = requireNonNull(declaringClass, "declaringClass is null");
+        this.name = requireNonNull(name, "name is null");
     }
 
     @Override
@@ -85,7 +85,7 @@ class GetFieldByteCodeExpression
             return getStaticInstruction(declaringClass, name, getType());
         }
 
-        return new Block()
+        return new ByteCodeBlock()
                 .append(instance.getByteCode(generationContext))
                 .getField(declaringClass, name, getType());
     }
@@ -107,8 +107,8 @@ class GetFieldByteCodeExpression
 
     private static Field getDeclaredField(Class<?> declaringClass, String name)
     {
-        checkNotNull(declaringClass, "declaringClass is null");
-        checkNotNull(name, "name is null");
+        requireNonNull(declaringClass, "declaringClass is null");
+        requireNonNull(name, "name is null");
 
         try {
             return declaringClass.getField(name);

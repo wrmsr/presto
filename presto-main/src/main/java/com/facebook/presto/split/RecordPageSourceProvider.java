@@ -17,12 +17,13 @@ import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.ConnectorPageSourceProvider;
 import com.facebook.presto.spi.ConnectorRecordSetProvider;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.RecordPageSource;
 
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class RecordPageSourceProvider
         implements ConnectorPageSourceProvider
@@ -31,12 +32,12 @@ public class RecordPageSourceProvider
 
     public RecordPageSourceProvider(ConnectorRecordSetProvider recordSetProvider)
     {
-        this.recordSetProvider = checkNotNull(recordSetProvider, "recordSetProvider is null");
+        this.recordSetProvider = requireNonNull(recordSetProvider, "recordSetProvider is null");
     }
 
     @Override
-    public ConnectorPageSource createPageSource(ConnectorSplit split, List<ColumnHandle> columns)
+    public ConnectorPageSource createPageSource(ConnectorSession session, ConnectorSplit split, List<ColumnHandle> columns)
     {
-        return new RecordPageSource(recordSetProvider.getRecordSet(split, columns));
+        return new RecordPageSource(recordSetProvider.getRecordSet(session, split, columns));
     }
 }

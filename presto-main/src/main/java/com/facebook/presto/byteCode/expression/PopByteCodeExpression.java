@@ -13,7 +13,7 @@
  */
 package com.facebook.presto.byteCode.expression;
 
-import com.facebook.presto.byteCode.Block;
+import com.facebook.presto.byteCode.ByteCodeBlock;
 import com.facebook.presto.byteCode.ByteCodeNode;
 import com.facebook.presto.byteCode.MethodGenerationContext;
 import com.google.common.collect.ImmutableList;
@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 import static com.facebook.presto.byteCode.ParameterizedType.type;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 class PopByteCodeExpression
         extends ByteCodeExpression
@@ -31,13 +31,13 @@ class PopByteCodeExpression
     PopByteCodeExpression(ByteCodeExpression instance)
     {
         super(type(void.class));
-        this.instance = checkNotNull(instance, "instance is null");
+        this.instance = requireNonNull(instance, "instance is null");
     }
 
     @Override
     public ByteCodeNode getByteCode(MethodGenerationContext generationContext)
     {
-        return new Block()
+        return new ByteCodeBlock()
                 .append(instance.getByteCode(generationContext))
                 .pop(instance.getType());
     }

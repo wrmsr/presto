@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.operator;
 
+import com.facebook.presto.memory.LocalMemoryContext;
 import com.facebook.presto.metadata.Split;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorPageSource;
@@ -35,8 +36,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 
 public class ScanFilterAndProjectOperator
         implements SourceOperator, Closeable
@@ -51,6 +52,8 @@ public class ScanFilterAndProjectOperator
     private final PageBuilder pageBuilder;
     private final CursorProcessor cursorProcessor;
     private final PageProcessor pageProcessor;
+    private final LocalMemoryContext pageSourceMemoryContext;
+    private final LocalMemoryContext pageBuilderMemoryContext;
     private final SettableFuture<?> blocked = SettableFuture.create();
 
     private RecordCursor cursor;
@@ -74,13 +77,15 @@ public class ScanFilterAndProjectOperator
             Iterable<ColumnHandle> columns,
             Iterable<Type> types)
     {
-        this.cursorProcessor = checkNotNull(cursorProcessor, "cursorProcessor is null");
-        this.pageProcessor = checkNotNull(pageProcessor, "pageProcessor is null");
-        this.operatorContext = checkNotNull(operatorContext, "operatorContext is null");
-        this.planNodeId = checkNotNull(sourceId, "sourceId is null");
-        this.pageSourceProvider = checkNotNull(pageSourceProvider, "pageSourceManager is null");
-        this.types = ImmutableList.copyOf(checkNotNull(types, "types is null"));
-        this.columns = ImmutableList.copyOf(checkNotNull(columns, "columns is null"));
+        this.cursorProcessor = requireNonNull(cursorProcessor, "cursorProcessor is null");
+        this.pageProcessor = requireNonNull(pageProcessor, "pageProcessor is null");
+        this.operatorContext = requireNonNull(operatorContext, "operatorContext is null");
+        this.planNodeId = requireNonNull(sourceId, "sourceId is null");
+        this.pageSourceProvider = requireNonNull(pageSourceProvider, "pageSourceProvider is null");
+        this.types = ImmutableList.copyOf(requireNonNull(types, "types is null"));
+        this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns is null"));
+        this.pageSourceMemoryContext = operatorContext.getSystemMemoryContext().newLocalMemoryContext();
+        this.pageBuilderMemoryContext = operatorContext.getSystemMemoryContext().newLocalMemoryContext();
 
         this.pageBuilder = new PageBuilder(getTypes());
     }
@@ -100,7 +105,7 @@ public class ScanFilterAndProjectOperator
     @Override
     public Supplier<Optional<UpdatablePageSource>> addSplit(Split split)
     {
-        checkNotNull(split, "split is null");
+        requireNonNull(split, "split is null");
         checkState(this.split == null, "Table scan split already set");
 
         if (finishing) {
@@ -202,6 +207,9 @@ public class ScanFilterAndProjectOperator
 
             if (cursor != null) {
                 int rowsProcessed = cursorProcessor.process(operatorContext.getSession().toConnectorSession(), cursor, ROWS_PER_PAGE, pageBuilder);
+
+                pageSourceMemoryContext.setBytes(cursor.getSystemMemoryUsage());
+
                 long bytesProcessed = cursor.getCompletedBytes() - completedBytes;
                 long elapsedNanos = cursor.getReadTimeNanos() - readTimeNanos;
                 operatorContext.recordGeneratedInput(bytesProcessed, rowsProcessed, elapsedNanos);
@@ -235,23 +243,28 @@ public class ScanFilterAndProjectOperator
                         currentPosition = 0;
                     }
                 }
+
+                pageSourceMemoryContext.setBytes(pageSource.getSystemMemoryUsage());
             }
         }
 
         // only return a full page if buffer is full or we are finishing
         if (pageBuilder.isEmpty() || (!finishing && !pageBuilder.isFull())) {
+            pageBuilderMemoryContext.setBytes(pageBuilder.getRetainedSizeInBytes());
             return null;
         }
 
         Page page = pageBuilder.build();
         pageBuilder.reset();
+
+        pageBuilderMemoryContext.setBytes(pageBuilder.getRetainedSizeInBytes());
         return page;
     }
 
     private void createSourceIfNecessary()
     {
         if ((split != null) && (pageSource == null) && (cursor == null)) {
-            ConnectorPageSource source = pageSourceProvider.createPageSource(split, columns);
+            ConnectorPageSource source = pageSourceProvider.createPageSource(operatorContext.getSession(), split, columns);
             if (source instanceof RecordPageSource) {
                 cursor = ((RecordPageSource) source).getCursor();
             }
@@ -283,12 +296,12 @@ public class ScanFilterAndProjectOperator
                 List<Type> types)
         {
             this.operatorId = operatorId;
-            this.cursorProcessor = checkNotNull(cursorProcessor, "cursorProcessor is null");
-            this.pageProcessor = checkNotNull(pageProcessor, "pageProcessor is null");
-            this.sourceId = checkNotNull(sourceId, "sourceId is null");
-            this.pageSourceProvider = checkNotNull(pageSourceProvider, "pageSourceProvider is null");
-            this.columns = ImmutableList.copyOf(checkNotNull(columns, "columns is null"));
-            this.types = checkNotNull(types, "types is null");
+            this.cursorProcessor = requireNonNull(cursorProcessor, "cursorProcessor is null");
+            this.pageProcessor = requireNonNull(pageProcessor, "pageProcessor is null");
+            this.sourceId = requireNonNull(sourceId, "sourceId is null");
+            this.pageSourceProvider = requireNonNull(pageSourceProvider, "pageSourceProvider is null");
+            this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns is null"));
+            this.types = requireNonNull(types, "types is null");
         }
 
         @Override

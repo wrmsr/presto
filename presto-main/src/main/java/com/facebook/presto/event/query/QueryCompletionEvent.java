@@ -35,6 +35,7 @@ public class QueryCompletionEvent
 {
     private final QueryId queryId;
     private final String user;
+    private final String principal;
     private final String source;
     private final String serverVersion;
     private final String environment;
@@ -46,6 +47,8 @@ public class QueryCompletionEvent
     private final URI uri;
     private final List<String> fieldNames;
     private final String query;
+
+    private final Long peakMemoryBytes;
 
     private final DateTime createTime;
     private final DateTime executionStartTime;
@@ -64,6 +67,8 @@ public class QueryCompletionEvent
     private final ErrorCode errorCode;
     private final String failureType;
     private final String failureMessage;
+    private final String failureTask;
+    private final String failureHost;
 
     private final String outputStageJson;
     private final String failuresJson;
@@ -74,6 +79,7 @@ public class QueryCompletionEvent
     public QueryCompletionEvent(
             QueryId queryId,
             String user,
+            String principal,
             String source,
             String serverVersion,
             String environment,
@@ -85,6 +91,7 @@ public class QueryCompletionEvent
             URI uri,
             List<String> fieldNames,
             String query,
+            Long peakMemoryBytes,
             DateTime createTime,
             DateTime executionStartTime,
             DateTime endTime,
@@ -99,6 +106,8 @@ public class QueryCompletionEvent
             ErrorCode errorCode,
             String failureType,
             String failureMessage,
+            String failureTask,
+            String failureHost,
             String outputStageJson,
             String failuresJson,
             String inputsJson,
@@ -106,6 +115,7 @@ public class QueryCompletionEvent
     {
         this.queryId = queryId;
         this.user = user;
+        this.principal = principal;
         this.source = source;
         this.serverVersion = serverVersion;
         this.environment = environment;
@@ -117,6 +127,7 @@ public class QueryCompletionEvent
         this.uri = uri;
         this.errorCode = errorCode;
         this.fieldNames = ImmutableList.copyOf(fieldNames);
+        this.peakMemoryBytes = peakMemoryBytes;
         this.query = query;
         this.createTime = createTime;
         this.executionStartTime = executionStartTime;
@@ -131,6 +142,8 @@ public class QueryCompletionEvent
         this.splits = splits;
         this.failureType = failureType;
         this.failureMessage = failureMessage;
+        this.failureTask = failureTask;
+        this.failureHost = failureHost;
         this.outputStageJson = outputStageJson;
         this.failuresJson = failuresJson;
         this.inputsJson = inputsJson;
@@ -165,6 +178,12 @@ public class QueryCompletionEvent
     public String getUser()
     {
         return user;
+    }
+
+    @EventField
+    public String getPrincipal()
+    {
+        return principal;
     }
 
     @EventField
@@ -231,6 +250,12 @@ public class QueryCompletionEvent
     public String getQuery()
     {
         return query;
+    }
+
+    @EventField
+    public Long getPeakMemoryBytes()
+    {
+        return peakMemoryBytes;
     }
 
     @EventField
@@ -368,6 +393,18 @@ public class QueryCompletionEvent
     public String getFailureMessage()
     {
         return failureMessage;
+    }
+
+    @EventField
+    public String getFailureTask()
+    {
+        return failureTask;
+    }
+
+    @EventField
+    public String getFailureHost()
+    {
+        return failureHost;
     }
 
     @EventField

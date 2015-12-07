@@ -15,7 +15,9 @@ package com.facebook.presto.sql.tree;
 
 import javax.annotation.concurrent.Immutable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import java.util.Optional;
+
+import static java.util.Objects.requireNonNull;
 
 @Immutable
 public class Extract
@@ -47,8 +49,19 @@ public class Extract
 
     public Extract(Expression expression, Field field)
     {
-        checkNotNull(expression, "expression is null");
-        checkNotNull(field, "field is null");
+        this(Optional.empty(), expression, field);
+    }
+
+    public Extract(NodeLocation location, Expression expression, Field field)
+    {
+        this(Optional.of(location), expression, field);
+    }
+
+    private Extract(Optional<NodeLocation> location, Expression expression, Field field)
+    {
+        super(location);
+        requireNonNull(expression, "expression is null");
+        requireNonNull(field, "field is null");
 
         this.expression = expression;
         this.field = field;

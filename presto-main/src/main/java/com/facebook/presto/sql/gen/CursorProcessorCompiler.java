@@ -13,12 +13,12 @@
  */
 package com.facebook.presto.sql.gen;
 
-import com.facebook.presto.byteCode.Block;
+import com.facebook.presto.byteCode.ByteCodeBlock;
 import com.facebook.presto.byteCode.ByteCodeNode;
 import com.facebook.presto.byteCode.ClassDefinition;
-import com.facebook.presto.byteCode.Scope;
 import com.facebook.presto.byteCode.MethodDefinition;
 import com.facebook.presto.byteCode.Parameter;
+import com.facebook.presto.byteCode.Scope;
 import com.facebook.presto.byteCode.Variable;
 import com.facebook.presto.byteCode.control.ForLoop;
 import com.facebook.presto.byteCode.control.IfStatement;
@@ -36,13 +36,14 @@ import com.facebook.presto.sql.relational.InputReferenceExpression;
 import com.facebook.presto.sql.relational.RowExpression;
 import com.facebook.presto.sql.relational.RowExpressionVisitor;
 import com.google.common.primitives.Primitives;
+import io.airlift.slice.Slice;
 
 import java.util.List;
 
 import static com.facebook.presto.byteCode.Access.PUBLIC;
 import static com.facebook.presto.byteCode.Access.a;
-import static com.facebook.presto.byteCode.Parameter.arg;
 import static com.facebook.presto.byteCode.OpCode.NOP;
+import static com.facebook.presto.byteCode.Parameter.arg;
 import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.facebook.presto.sql.gen.ByteCodeUtils.generateWrite;
 import static java.lang.String.format;
@@ -89,25 +90,25 @@ public class CursorProcessorCompiler
         LabelNode done = new LabelNode("done");
         ForLoop forLoop = new ForLoop()
                 .initialize(NOP)
-                .condition(new Block()
+                .condition(new ByteCodeBlock()
                                 .comment("completedPositions < count")
                                 .getVariable(completedPositionsVariable)
                                 .getVariable(count)
                                 .invokeStatic(CompilerOperations.class, "lessThan", boolean.class, int.class, int.class)
                 )
-                .update(new Block()
+                .update(new ByteCodeBlock()
                                 .comment("completedPositions++")
                                 .incrementVariable(completedPositionsVariable, (byte) 1)
                 );
 
-        Block forLoopBody = new Block()
+        ByteCodeBlock forLoopBody = new ByteCodeBlock()
                 .comment("if (pageBuilder.isFull()) break;")
-                .append(new Block()
+                .append(new ByteCodeBlock()
                         .getVariable(pageBuilder)
                         .invokeVirtual(PageBuilder.class, "isFull", boolean.class)
                         .ifTrueGoto(done))
                 .comment("if (!cursor.advanceNextPosition()) break;")
-                .append(new Block()
+                .append(new ByteCodeBlock()
                         .getVariable(cursor)
                         .invokeInterface(RecordCursor.class, "advanceNextPosition", boolean.class)
                         .ifFalseGoto(done));
@@ -199,7 +200,7 @@ public class CursorProcessorCompiler
         Scope scope = method.getScope();
         Variable wasNullVariable = scope.declareVariable(type(boolean.class), "wasNull");
 
-        Block body = method.getBody()
+        ByteCodeBlock body = method.getBody()
                 .comment("boolean wasNull = false;")
                 .putVariable(wasNullVariable, false);
 
@@ -223,6 +224,9 @@ public class CursorProcessorCompiler
                 Type type = node.getType();
 
                 Class<?> javaType = type.getJavaType();
+                if (!javaType.isPrimitive() && javaType != Slice.class) {
+                    javaType = Object.class;
+                }
 
                 IfStatement ifStatement = new IfStatement();
                 ifStatement.condition()

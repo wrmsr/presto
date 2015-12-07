@@ -28,9 +28,9 @@ import java.util.Optional;
 
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Math.abs;
+import static java.util.Objects.requireNonNull;
 
 public class HashPartitionMaskOperator
         implements Operator
@@ -41,8 +41,8 @@ public class HashPartitionMaskOperator
         private final int operatorId;
         private final int partitionCount;
         private final Optional<Integer> hashChannel;
-        private final int[] maskChannels;
-        private final int[] partitionChannels;
+        private final List<Integer> maskChannels;
+        private final List<Integer> partitionChannels;
         private final List<Type> types;
         private int partition;
         private boolean closed;
@@ -58,14 +58,12 @@ public class HashPartitionMaskOperator
             this.operatorId = operatorId;
             checkArgument(partitionCount > 1, "partition count must be greater than 1");
             this.partitionCount = partitionCount;
-            checkNotNull(maskChannels, "maskChannels is null");
-            this.maskChannels = Ints.toArray(maskChannels);
+            this.maskChannels = ImmutableList.copyOf(requireNonNull(maskChannels, "maskChannels is null"));
 
-            checkNotNull(partitionChannels, "partitionChannels is null");
+            this.partitionChannels = ImmutableList.copyOf(requireNonNull(partitionChannels, "partitionChannels is null"));
             checkArgument(!partitionChannels.isEmpty(), "partitionChannels is empty");
-            this.partitionChannels = Ints.toArray(partitionChannels);
 
-            this.hashChannel = checkNotNull(hashChannel, "hashChannel is null");
+            this.hashChannel = requireNonNull(hashChannel, "hashChannel is null");
 
             this.types = ImmutableList.<Type>builder()
                     .addAll(sourceTypes)
@@ -99,6 +97,12 @@ public class HashPartitionMaskOperator
         {
             closed = true;
         }
+
+        @Override
+        public OperatorFactory duplicate()
+        {
+            return new HashPartitionMaskOperatorFactory(operatorId, partitionCount, types.subList(0, types.size() - 1), maskChannels, partitionChannels, hashChannel);
+        }
     }
 
     private final OperatorContext operatorContext;
@@ -115,17 +119,18 @@ public class HashPartitionMaskOperator
             int partition,
             int partitionCount,
             List<Type> types,
-            int[] maskChannels,
-            int[] partitionChannels,
+            List<Integer> maskChannels,
+            List<Integer> partitionChannels,
             Optional<Integer> hashChannel)
     {
         this.partition = partition;
         this.partitionCount = partitionCount;
-        this.operatorContext = checkNotNull(operatorContext, "operatorContext is null");
-        this.types = ImmutableList.copyOf(checkNotNull(types, "types is null"));
-        this.maskChannels = maskChannels;
+        this.operatorContext = requireNonNull(operatorContext, "operatorContext is null");
+        this.types = ImmutableList.copyOf(requireNonNull(types, "types is null"));
+        this.maskChannels = Ints.toArray(requireNonNull(maskChannels, "maskChannels is null"));
 
-        checkNotNull(hashChannel, "hashChannel is null");
+        requireNonNull(hashChannel, "hashChannel is null");
+        requireNonNull(partitionChannels, "partitionChannels is null");
 
         ImmutableList.Builder<Type> distinctTypes = ImmutableList.builder();
         for (int channel : partitionChannels) {
@@ -141,7 +146,7 @@ public class HashPartitionMaskOperator
             this.hashGenerator = new PrecomputedHashGenerator(hashChannel.get());
         }
         else {
-            this.hashGenerator = new InterpretedHashGenerator(partitionChannelTypes.build(), partitionChannels);
+            this.hashGenerator = new InterpretedHashGenerator(partitionChannelTypes.build(), Ints.toArray(partitionChannels));
         }
     }
 
@@ -181,7 +186,7 @@ public class HashPartitionMaskOperator
     @Override
     public void addInput(Page page)
     {
-        checkNotNull(page, "page is null");
+        requireNonNull(page, "page is null");
         checkState(!finishing, "Operator is finishing");
         checkState(outputPage == null, "Operator still has pending output");
 

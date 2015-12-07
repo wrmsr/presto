@@ -22,8 +22,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class RetryDriver
 {
@@ -38,6 +39,7 @@ public class RetryDriver
     private final Duration maxSleepTime;
     private final double scaleFactor;
     private final Duration maxRetryTime;
+    private final Function<Exception, Exception> exceptionMapper;
     private final List<Class<? extends Exception>> exceptionWhiteList;
     private final Optional<Runnable> retryRunnable;
 
@@ -47,6 +49,7 @@ public class RetryDriver
             Duration maxSleepTime,
             double scaleFactor,
             Duration maxRetryTime,
+            Function<Exception, Exception> exceptionMapper,
             List<Class<? extends Exception>> exceptionWhiteList,
             Optional<Runnable> retryRunnable)
     {
@@ -55,6 +58,7 @@ public class RetryDriver
         this.maxSleepTime = maxSleepTime;
         this.scaleFactor = scaleFactor;
         this.maxRetryTime = maxRetryTime;
+        this.exceptionMapper = exceptionMapper;
         this.exceptionWhiteList = exceptionWhiteList;
         this.retryRunnable = retryRunnable;
     }
@@ -66,6 +70,7 @@ public class RetryDriver
                 DEFAULT_SLEEP_TIME,
                 DEFAULT_SCALE_FACTOR,
                 DEFAULT_MAX_RETRY_TIME,
+                Function.identity(),
                 ImmutableList.of(),
                 Optional.empty());
     }
@@ -77,29 +82,34 @@ public class RetryDriver
 
     public final RetryDriver maxAttempts(int maxAttempts)
     {
-        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionWhiteList, retryRunnable);
+        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionWhiteList, retryRunnable);
     }
 
     public final RetryDriver exponentialBackoff(Duration minSleepTime, Duration maxSleepTime, Duration maxRetryTime, double scaleFactor)
     {
-        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionWhiteList, retryRunnable);
+        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionWhiteList, retryRunnable);
     }
 
     public final RetryDriver onRetry(Runnable retryRunnable)
     {
-        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionWhiteList, Optional.ofNullable(retryRunnable));
+        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionWhiteList, Optional.ofNullable(retryRunnable));
+    }
+
+    public final RetryDriver exceptionMapper(Function<Exception, Exception> exceptionMapper)
+    {
+        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionWhiteList, retryRunnable);
     }
 
     @SafeVarargs
     public final RetryDriver stopOn(Class<? extends Exception>... classes)
     {
-        checkNotNull(classes, "classes is null");
+        requireNonNull(classes, "classes is null");
         List<Class<? extends Exception>> exceptions = ImmutableList.<Class<? extends Exception>>builder()
                 .addAll(exceptionWhiteList)
                 .addAll(Arrays.asList(classes))
                 .build();
 
-        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptions, retryRunnable);
+        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptions, retryRunnable);
     }
 
     public RetryDriver stopOnIllegalExceptions()
@@ -110,8 +120,8 @@ public class RetryDriver
     public <V> V run(String callableName, Callable<V> callable)
             throws Exception
     {
-        checkNotNull(callableName, "callableName is null");
-        checkNotNull(callable, "callable is null");
+        requireNonNull(callableName, "callableName is null");
+        requireNonNull(callable, "callable is null");
 
         long startTime = System.nanoTime();
         int attempt = 0;
@@ -126,6 +136,7 @@ public class RetryDriver
                 return callable.call();
             }
             catch (Exception e) {
+                e = exceptionMapper.apply(e);
                 for (Class<? extends Exception> clazz : exceptionWhiteList) {
                     if (clazz.isInstance(e)) {
                         throw e;

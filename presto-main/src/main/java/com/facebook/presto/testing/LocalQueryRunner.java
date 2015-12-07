@@ -15,25 +15,38 @@ package com.facebook.presto.testing;
 
 import com.facebook.presto.ScheduledSplit;
 import com.facebook.presto.Session;
-import com.facebook.presto.SystemSessionProperties;
 import com.facebook.presto.TaskSource;
 import com.facebook.presto.block.BlockEncodingManager;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.connector.system.CatalogSystemTable;
 import com.facebook.presto.connector.system.NodeSystemTable;
 import com.facebook.presto.connector.system.SystemConnector;
+import com.facebook.presto.connector.system.TablePropertiesSystemTable;
+import com.facebook.presto.execution.CreateTableTask;
+import com.facebook.presto.execution.CreateViewTask;
+import com.facebook.presto.execution.DataDefinitionTask;
+import com.facebook.presto.execution.DropTableTask;
+import com.facebook.presto.execution.DropViewTask;
+import com.facebook.presto.execution.RenameColumnTask;
+import com.facebook.presto.execution.RenameTableTask;
+import com.facebook.presto.execution.ResetSessionTask;
+import com.facebook.presto.execution.SetSessionTask;
 import com.facebook.presto.execution.TaskManagerConfig;
 import com.facebook.presto.index.IndexManager;
 import com.facebook.presto.metadata.HandleResolver;
 import com.facebook.presto.metadata.InMemoryNodeManager;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.MetadataManager;
-import com.facebook.presto.metadata.QualifiedTableName;
+import com.facebook.presto.metadata.MetadataUtil;
+import com.facebook.presto.metadata.QualifiedObjectName;
 import com.facebook.presto.metadata.QualifiedTablePrefix;
+import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.Split;
 import com.facebook.presto.metadata.TableHandle;
 import com.facebook.presto.metadata.TableLayoutHandle;
 import com.facebook.presto.metadata.TableLayoutResult;
+import com.facebook.presto.metadata.TablePropertyManager;
+import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.operator.Driver;
 import com.facebook.presto.operator.DriverContext;
 import com.facebook.presto.operator.DriverFactory;
@@ -84,6 +97,14 @@ import com.facebook.presto.sql.planner.SubPlan;
 import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanNodeId;
 import com.facebook.presto.sql.planner.plan.TableScanNode;
+import com.facebook.presto.sql.tree.CreateTable;
+import com.facebook.presto.sql.tree.CreateView;
+import com.facebook.presto.sql.tree.DropTable;
+import com.facebook.presto.sql.tree.DropView;
+import com.facebook.presto.sql.tree.RenameColumn;
+import com.facebook.presto.sql.tree.RenameTable;
+import com.facebook.presto.sql.tree.ResetSession;
+import com.facebook.presto.sql.tree.SetSession;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.type.TypeRegistry;
 import com.facebook.presto.type.TypeUtils;
@@ -100,15 +121,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.sql.testing.TreeAssertions.assertFormattedSql;
 import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static io.airlift.concurrent.MoreFutures.getFutureValue;
 import static io.airlift.concurrent.Threads.daemonThreadsNamed;
+import static io.airlift.json.JsonCodec.jsonCodec;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 
 public class LocalQueryRunner
@@ -121,6 +146,7 @@ public class LocalQueryRunner
     private final InMemoryNodeManager nodeManager;
     private final TypeRegistry typeRegistry;
     private final MetadataManager metadata;
+    private final TestingAccessControlManager accessControl;
     private final SplitManager splitManager;
     private final BlockEncodingSerde blockEncodingSerde;
     private final PageSourceManager pageSourceManager;
@@ -129,14 +155,15 @@ public class LocalQueryRunner
 
     private final ExpressionCompiler compiler;
     private final ConnectorManager connectorManager;
-    private final boolean hashEnabled;
+    private final ImmutableMap<Class<? extends Statement>, DataDefinitionTask<?>> dataDefinitionTask;
 
     private boolean printPlan;
 
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
     public LocalQueryRunner(Session defaultSession)
     {
-        this.defaultSession = checkNotNull(defaultSession, "defaultSession is null");
-        this.hashEnabled = SystemSessionProperties.isOptimizeHashGenerationEnabled(defaultSession, false);
+        requireNonNull(defaultSession, "defaultSession is null");
         this.executor = newCachedThreadPool(daemonThreadsNamed("local-query-runner-%s"));
 
         this.sqlParser = new SqlParser();
@@ -147,13 +174,21 @@ public class LocalQueryRunner
 
         this.splitManager = new SplitManager();
         this.blockEncodingSerde = new BlockEncodingManager(typeRegistry);
-        this.metadata = new MetadataManager(new FeaturesConfig().setExperimentalSyntaxEnabled(true), typeRegistry, splitManager, blockEncodingSerde);
+        this.metadata = new MetadataManager(
+                new FeaturesConfig().setExperimentalSyntaxEnabled(true),
+                typeRegistry,
+                splitManager,
+                blockEncodingSerde,
+                new SessionPropertyManager(),
+                new TablePropertyManager());
+        this.accessControl = new TestingAccessControlManager();
         this.pageSourceManager = new PageSourceManager();
 
         this.compiler = new ExpressionCompiler(metadata);
 
         this.connectorManager = new ConnectorManager(
                 metadata,
+                accessControl,
                 splitManager,
                 pageSourceManager,
                 indexManager,
@@ -165,22 +200,37 @@ public class LocalQueryRunner
 
         Connector systemConnector = new SystemConnector(nodeManager, ImmutableSet.of(
                 new NodeSystemTable(nodeManager),
-                new CatalogSystemTable(metadata)));
+                new CatalogSystemTable(metadata),
+                new TablePropertiesSystemTable(metadata)));
 
         connectorManager.createConnection(SystemConnector.NAME, systemConnector);
-    }
 
-    public static LocalQueryRunner createHashEnabledQueryRunner(LocalQueryRunner localQueryRunner)
-    {
-        Session session = localQueryRunner.getDefaultSession();
-        Session.SessionBuilder builder = Session.builder()
-                .setUser(session.getUser())
-                .setSource(session.getSource())
-                .setCatalog(session.getCatalog())
-                .setTimeZoneKey(session.getTimeZoneKey())
-                .setLocale(session.getLocale())
-                .setSystemProperties(ImmutableMap.of("optimizer.optimize_hash_generation", "true"));
-        return new LocalQueryRunner(builder.build());
+        // rewrite session to use managed SessionPropertyMetadata
+        this.defaultSession = new Session(
+                defaultSession.getQueryId(),
+                defaultSession.getIdentity(),
+                defaultSession.getSource(),
+                defaultSession.getCatalog(),
+                defaultSession.getSchema(),
+                defaultSession.getTimeZoneKey(),
+                defaultSession.getLocale(),
+                defaultSession.getRemoteUserAddress(),
+                defaultSession.getUserAgent(),
+                defaultSession.getStartTime(),
+                defaultSession.getSystemProperties(),
+                defaultSession.getCatalogProperties(),
+                metadata.getSessionPropertyManager());
+
+        dataDefinitionTask = ImmutableMap.<Class<? extends Statement>, DataDefinitionTask<?>>builder()
+                .put(CreateTable.class, new CreateTableTask())
+                .put(CreateView.class, new CreateViewTask(jsonCodec(ViewDefinition.class), sqlParser, accessControl, new FeaturesConfig()))
+                .put(DropTable.class, new DropTableTask())
+                .put(DropView.class, new DropViewTask())
+                .put(RenameColumn.class, new RenameColumnTask())
+                .put(RenameTable.class, new RenameTableTask())
+                .put(ResetSession.class, new ResetSessionTask())
+                .put(SetSession.class, new SetSessionTask())
+                .build();
     }
 
     @Override
@@ -206,9 +256,16 @@ public class LocalQueryRunner
         return typeRegistry;
     }
 
+    @Override
     public Metadata getMetadata()
     {
         return metadata;
+    }
+
+    @Override
+    public TestingAccessControlManager getAccessControl()
+    {
+        return accessControl;
     }
 
     public ExecutorService getExecutor()
@@ -246,27 +303,22 @@ public class LocalQueryRunner
         return this;
     }
 
-    public boolean isHashEnabled()
-    {
-        return hashEnabled;
-    }
-
     public static class MaterializedOutputFactory
             implements OutputFactory
     {
-        private final AtomicReference<MaterializingOperator> materializingOperator = new AtomicReference<>();
+        private final AtomicReference<MaterializedResult.Builder> materializedResultBuilder = new AtomicReference<>();
 
-        private MaterializingOperator getMaterializingOperator()
+        public MaterializedResult getMaterializedResult()
         {
-            MaterializingOperator operator = materializingOperator.get();
-            checkState(operator != null, "Output not created");
-            return operator;
+            MaterializedResult.Builder resultBuilder = materializedResultBuilder.get();
+            checkState(resultBuilder != null, "Output not created");
+            return resultBuilder.build();
         }
 
         @Override
         public OperatorFactory createOutputOperator(int operatorId, List<Type> sourceTypes)
         {
-            checkNotNull(sourceTypes, "sourceType is null");
+            requireNonNull(sourceTypes, "sourceType is null");
 
             return new OperatorFactory()
             {
@@ -279,34 +331,51 @@ public class LocalQueryRunner
                 @Override
                 public Operator createOperator(DriverContext driverContext)
                 {
-                    OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, MaterializingOperator.class.getSimpleName());
-                    MaterializingOperator operator = new MaterializingOperator(operatorContext, sourceTypes);
-
-                    if (!materializingOperator.compareAndSet(null, operator)) {
-                        throw new IllegalArgumentException("Output already created");
+                    MaterializedResult.Builder resultBuilder = materializedResultBuilder.get();
+                    if (resultBuilder == null) {
+                        materializedResultBuilder.compareAndSet(null, MaterializedResult.resultBuilder(driverContext.getSession(), sourceTypes));
+                        resultBuilder = materializedResultBuilder.get();
                     }
-                    return operator;
+                    OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, MaterializingOperator.class.getSimpleName());
+                    return new MaterializingOperator(operatorContext, resultBuilder);
                 }
 
                 @Override
                 public void close()
                 {
                 }
+
+                @Override
+                public OperatorFactory duplicate()
+                {
+                    return createOutputOperator(operatorId, sourceTypes);
+                }
             };
         }
     }
 
     @Override
-    public List<QualifiedTableName> listTables(Session session, String catalog, String schema)
+    public List<QualifiedObjectName> listTables(Session session, String catalog, String schema)
     {
-        return getMetadata().listTables(session, new QualifiedTablePrefix(catalog, schema));
+        lock.readLock().lock();
+        try {
+            return getMetadata().listTables(session, new QualifiedTablePrefix(catalog, schema));
+        }
+        finally {
+            lock.readLock().unlock();
+        }
     }
 
     @Override
     public boolean tableExists(Session session, String table)
     {
-        QualifiedTableName name = new QualifiedTableName(session.getCatalog(), session.getSchema(), table);
-        return getMetadata().getTableHandle(session, name).isPresent();
+        lock.readLock().lock();
+        try {
+            return MetadataUtil.tableExists(getMetadata(), session, table);
+        }
+        finally {
+            lock.readLock().unlock();
+        }
     }
 
     @Override
@@ -318,24 +387,36 @@ public class LocalQueryRunner
     @Override
     public MaterializedResult execute(Session session, @Language("SQL") String sql)
     {
-        MaterializedOutputFactory outputFactory = new MaterializedOutputFactory();
+        lock.readLock().lock();
+        try {
+            MaterializedOutputFactory outputFactory = new MaterializedOutputFactory();
 
-        TaskContext taskContext = createTaskContext(executor, session);
-        List<Driver> drivers = createDrivers(session, sql, outputFactory, taskContext);
+            TaskContext taskContext = createTaskContext(executor, session);
+            List<Driver> drivers = createDrivers(session, sql, outputFactory, taskContext);
 
-        boolean done = false;
-        while (!done) {
-            boolean processed = false;
-            for (Driver driver : drivers) {
-                if (!driver.isFinished()) {
-                    driver.process();
-                    processed = true;
+            boolean done = false;
+            while (!done) {
+                boolean processed = false;
+                for (Driver driver : drivers) {
+                    if (!driver.isFinished()) {
+                        driver.process();
+                        processed = true;
+                    }
                 }
+                done = !processed;
             }
-            done = !processed;
-        }
 
-        return outputFactory.getMaterializingOperator().getMaterializedResult();
+            return outputFactory.getMaterializedResult();
+        }
+        finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public Lock getExclusiveLock()
+    {
+        return lock.writeLock();
     }
 
     public List<Driver> createDrivers(@Language("SQL") String sql, OutputFactory outputFactory, TaskContext taskContext)
@@ -356,14 +437,20 @@ public class LocalQueryRunner
                 .setOptimizeHashGeneration(true);
         PlanOptimizersFactory planOptimizersFactory = new PlanOptimizersFactory(metadata, sqlParser, indexManager, featuresConfig, true);
 
-        QueryExplainer queryExplainer = new QueryExplainer(session, planOptimizersFactory.get(), metadata, sqlParser, featuresConfig.isExperimentalSyntaxEnabled());
-        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, Optional.of(queryExplainer), featuresConfig.isExperimentalSyntaxEnabled());
+        QueryExplainer queryExplainer = new QueryExplainer(
+                planOptimizersFactory.get(),
+                metadata,
+                accessControl,
+                sqlParser,
+                dataDefinitionTask,
+                featuresConfig.isExperimentalSyntaxEnabled());
+        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, accessControl, Optional.of(queryExplainer), featuresConfig.isExperimentalSyntaxEnabled());
 
         Analysis analysis = analyzer.analyze(statement);
         Plan plan = new LogicalPlanner(session, planOptimizersFactory.get(), idAllocator, metadata).plan(analysis);
 
         if (printPlan) {
-            System.out.println(PlanPrinter.textLogicalPlan(plan.getRoot(), plan.getTypes(), metadata));
+            System.out.println(PlanPrinter.textLogicalPlan(plan.getRoot(), plan.getTypes(), metadata, session));
         }
 
         SubPlan subplan = new PlanFragmenter().createSubPlans(plan);
@@ -385,12 +472,14 @@ public class LocalQueryRunner
         );
 
         // plan query
-        LocalExecutionPlan localExecutionPlan = executionPlanner.plan(session,
+        LocalExecutionPlan localExecutionPlan = executionPlanner.plan(
+                session,
                 subplan.getFragment().getRoot(),
                 subplan.getFragment().getOutputLayout(),
                 plan.getTypes(),
-                subplan.getFragment().getDistribution(),
-                outputFactory);
+                outputFactory,
+                true,
+                false);
 
         // generate sources
         List<TaskSource> sources = new ArrayList<>();
@@ -398,7 +487,7 @@ public class LocalQueryRunner
         for (TableScanNode tableScan : findTableScanNodes(subplan.getFragment().getRoot())) {
             TableLayoutHandle layout = tableScan.getLayout().get();
 
-            SplitSource splitSource = splitManager.getSplits(layout);
+            SplitSource splitSource = splitManager.getSplits(session, layout);
 
             ImmutableSet.Builder<ScheduledSplit> scheduledSplits = ImmutableSet.builder();
             while (!splitSource.isFinished()) {
@@ -446,26 +535,30 @@ public class LocalQueryRunner
             String tableName,
             String... columnNames)
     {
+        checkArgument(session.getCatalog().isPresent(), "catalog not set");
+        checkArgument(session.getSchema().isPresent(), "schema not set");
+
         // look up the table
-        TableHandle tableHandle = metadata.getTableHandle(session, new QualifiedTableName(session.getCatalog(), session.getSchema(), tableName)).orElse(null);
-        checkArgument(tableHandle != null, "Table %s does not exist", tableName);
+        QualifiedObjectName qualifiedTableName = new QualifiedObjectName(session.getCatalog().get(), session.getSchema().get(), tableName);
+        TableHandle tableHandle = metadata.getTableHandle(session, qualifiedTableName).orElse(null);
+        checkArgument(tableHandle != null, "Table %s does not exist", qualifiedTableName);
 
         // lookup the columns
-        Map<String, ColumnHandle> allColumnHandles = metadata.getColumnHandles(tableHandle);
+        Map<String, ColumnHandle> allColumnHandles = metadata.getColumnHandles(session, tableHandle);
         ImmutableList.Builder<ColumnHandle> columnHandlesBuilder = ImmutableList.builder();
         ImmutableList.Builder<Type> columnTypesBuilder = ImmutableList.builder();
         for (String columnName : columnNames) {
             ColumnHandle columnHandle = allColumnHandles.get(columnName);
             checkArgument(columnHandle != null, "Table %s does not have a column %s", tableName, columnName);
             columnHandlesBuilder.add(columnHandle);
-            ColumnMetadata columnMetadata = metadata.getColumnMetadata(tableHandle, columnHandle);
+            ColumnMetadata columnMetadata = metadata.getColumnMetadata(session, tableHandle, columnHandle);
             columnTypesBuilder.add(columnMetadata.getType());
         }
         List<ColumnHandle> columnHandles = columnHandlesBuilder.build();
         List<Type> columnTypes = columnTypesBuilder.build();
 
         // get the split for this table
-        List<TableLayoutResult> layouts = metadata.getLayouts(tableHandle, Constraint.alwaysTrue(), Optional.empty());
+        List<TableLayoutResult> layouts = metadata.getLayouts(session, tableHandle, Constraint.alwaysTrue(), Optional.empty());
         Split split = getLocalQuerySplit(layouts.get(0).getLayout().getHandle());
 
         return new OperatorFactory()
@@ -480,13 +573,19 @@ public class LocalQueryRunner
             public Operator createOperator(DriverContext driverContext)
             {
                 OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, "BenchmarkSource");
-                ConnectorPageSource pageSource = pageSourceManager.createPageSource(split, columnHandles);
+                ConnectorPageSource pageSource = pageSourceManager.createPageSource(session, split, columnHandles);
                 return new PageSourceOperator(pageSource, columnTypes, operatorContext);
             }
 
             @Override
             public void close()
             {
+            }
+
+            @Override
+            public OperatorFactory duplicate()
+            {
+                throw new UnsupportedOperationException();
             }
         };
     }
@@ -506,7 +605,7 @@ public class LocalQueryRunner
 
     private Split getLocalQuerySplit(TableLayoutHandle handle)
     {
-        SplitSource splitSource = splitManager.getSplits(handle);
+        SplitSource splitSource = splitManager.getSplits(defaultSession, handle);
         List<Split> splits = new ArrayList<>();
         splits.addAll(getFutureValue(splitSource.getNextBatch(1000)));
         while (!splitSource.isFinished()) {

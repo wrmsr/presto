@@ -17,7 +17,7 @@ import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorPartitionResult;
 import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.spi.TupleDomain;
+import com.facebook.presto.spi.predicate.TupleDomain;
 import com.google.common.collect.ImmutableMap;
 import org.h2.Driver;
 
@@ -64,6 +64,9 @@ final class TestingDatabase
         connection.createStatement().execute("CREATE SCHEMA tpch");
         connection.createStatement().execute("CREATE TABLE tpch.orders(orderkey bigint primary key, custkey bigint)");
         connection.createStatement().execute("CREATE TABLE tpch.lineitem(orderkey bigint primary key, partkey bigint)");
+
+        connection.createStatement().execute("CREATE SCHEMA exa_ple");
+        connection.createStatement().execute("CREATE TABLE exa_ple.num_ers(te_t varchar primary key, \"VA%UE\" bigint)");
 
         connection.commit();
     }

@@ -13,7 +13,7 @@
  */
 package com.facebook.presto.byteCode.expression;
 
-import com.facebook.presto.byteCode.Block;
+import com.facebook.presto.byteCode.ByteCodeBlock;
 import com.facebook.presto.byteCode.ByteCodeNode;
 import com.facebook.presto.byteCode.MethodGenerationContext;
 import com.facebook.presto.byteCode.ParameterizedType;
@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 class InvokeByteCodeExpression
         extends ByteCodeExpression
@@ -38,12 +38,12 @@ class InvokeByteCodeExpression
             Iterable<? extends ByteCodeExpression> parameters)
     {
         return new InvokeByteCodeExpression(
-                checkNotNull(instance, "instance is null"),
+                requireNonNull(instance, "instance is null"),
                 instance.getType(),
-                checkNotNull(methodName, "methodName is null"),
-                checkNotNull(returnType, "returnType is null"),
-                checkNotNull(parameterTypes, "parameterTypes is null"),
-                checkNotNull(parameters, "parameters is null"));
+                requireNonNull(methodName, "methodName is null"),
+                requireNonNull(returnType, "returnType is null"),
+                requireNonNull(parameterTypes, "parameterTypes is null"),
+                requireNonNull(parameters, "parameters is null"));
     }
 
     @Nullable
@@ -62,20 +62,20 @@ class InvokeByteCodeExpression
             Iterable<ParameterizedType> parameterTypes,
             Iterable<? extends ByteCodeExpression> parameters)
     {
-        super(checkNotNull(returnType, "returnType is null"));
+        super(requireNonNull(returnType, "returnType is null"));
         checkArgument(instance == null || !instance.getType().isPrimitive(), "Type %s does not have methods", getType());
         this.instance = instance;
-        this.methodTargetType = checkNotNull(methodTargetType, "methodTargetType is null");
-        this.methodName = checkNotNull(methodName, "methodName is null");
+        this.methodTargetType = requireNonNull(methodTargetType, "methodTargetType is null");
+        this.methodName = requireNonNull(methodName, "methodName is null");
         this.returnType = returnType;
-        this.parameterTypes = ImmutableList.copyOf(checkNotNull(parameterTypes, "parameterTypes is null"));
-        this.parameters = ImmutableList.copyOf(checkNotNull(parameters, "parameters is null"));
+        this.parameterTypes = ImmutableList.copyOf(requireNonNull(parameterTypes, "parameterTypes is null"));
+        this.parameters = ImmutableList.copyOf(requireNonNull(parameters, "parameters is null"));
     }
 
     @Override
     public ByteCodeNode getByteCode(MethodGenerationContext generationContext)
     {
-        Block block = new Block();
+        ByteCodeBlock block = new ByteCodeBlock();
         if (instance != null) {
             block.append(instance);
         }

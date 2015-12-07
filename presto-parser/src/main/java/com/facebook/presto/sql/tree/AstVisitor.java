@@ -232,6 +232,11 @@ public abstract class AstVisitor<R, C>
         return visitExpression(node, context);
     }
 
+    protected R visitLambdaExpression(LambdaExpression node, C context)
+    {
+        return visitExpression(node, context);
+    }
+
     protected R visitSimpleCaseExpression(SimpleCaseExpression node, C context)
     {
         return visitExpression(node, context);
@@ -253,6 +258,11 @@ public abstract class AstVisitor<R, C>
     }
 
     protected R visitQualifiedNameReference(QualifiedNameReference node, C context)
+    {
+        return visitExpression(node, context);
+    }
+
+    protected R visitDereferenceExpression(DereferenceExpression node, C context)
     {
         return visitExpression(node, context);
     }
@@ -443,6 +453,11 @@ public abstract class AstVisitor<R, C>
     }
 
     protected R visitRenameColumn(RenameColumn node, C context)
+    {
+        return visitStatement(node, context);
+    }
+
+    protected R visitAddColumn(AddColumn node, C context)
     {
         return visitStatement(node, context);
     }

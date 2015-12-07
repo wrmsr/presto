@@ -20,10 +20,12 @@ public class FeaturesConfig
 {
     private boolean experimentalSyntaxEnabled;
     private boolean distributedIndexJoinsEnabled;
-    private boolean distributedJoinsEnabled;
+    private boolean distributedJoinsEnabled = true;
+    private boolean redistributeWrites = true;
     private boolean optimizeMetadataQueries;
-    private boolean optimizeHashGeneration;
+    private boolean optimizeHashGeneration = true;
     private boolean optimizeSingleDistinct = true;
+    private boolean intermediateAggregationsEnabled = false;
 
     @LegacyConfig("analyzer.experimental-syntax-enabled")
     @Config("experimental-syntax-enabled")
@@ -54,6 +56,18 @@ public class FeaturesConfig
     public FeaturesConfig setDistributedJoinsEnabled(boolean distributedJoinsEnabled)
     {
         this.distributedJoinsEnabled = distributedJoinsEnabled;
+        return this;
+    }
+
+    public boolean isRedistributeWrites()
+    {
+        return redistributeWrites;
+    }
+
+    @Config("redistribute-writes")
+    public FeaturesConfig setRedistributeWrites(boolean redistributeWrites)
+    {
+        this.redistributeWrites = redistributeWrites;
         return this;
     }
 
@@ -95,6 +109,18 @@ public class FeaturesConfig
     public FeaturesConfig setOptimizeSingleDistinct(boolean optimizeSingleDistinct)
     {
         this.optimizeSingleDistinct = optimizeSingleDistinct;
+        return this;
+    }
+
+    public boolean isIntermediateAggregationsEnabled()
+    {
+        return intermediateAggregationsEnabled;
+    }
+
+    @Config("optimizer.use-intermediate-aggregations")
+    public FeaturesConfig setIntermediateAggregationsEnabled(boolean intermediateAggregationsEnabled)
+    {
+        this.intermediateAggregationsEnabled = intermediateAggregationsEnabled;
         return this;
     }
 }

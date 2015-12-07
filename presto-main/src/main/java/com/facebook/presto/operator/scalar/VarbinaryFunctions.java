@@ -17,6 +17,7 @@ import com.facebook.presto.operator.Description;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.type.SqlType;
+import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
@@ -107,6 +108,38 @@ public final class VarbinaryFunctions
             result[i / 2] = (byte) ((hexDigitCharToInt(slice.getByte(i)) << 4) | hexDigitCharToInt(slice.getByte(i + 1)));
         }
         return Slices.wrappedBuffer(result);
+    }
+
+    @Description("compute md5 hash")
+    @ScalarFunction
+    @SqlType(StandardTypes.VARBINARY)
+    public static Slice md5(@SqlType(StandardTypes.VARBINARY) Slice slice)
+    {
+        return Slices.wrappedBuffer(Hashing.md5().hashBytes(slice.getBytes()).asBytes());
+    }
+
+    @Description("compute sha1 hash")
+    @ScalarFunction
+    @SqlType(StandardTypes.VARBINARY)
+    public static Slice sha1(@SqlType(StandardTypes.VARBINARY) Slice slice)
+    {
+        return Slices.wrappedBuffer(Hashing.sha1().hashBytes(slice.getBytes()).asBytes());
+    }
+
+    @Description("compute sha256 hash")
+    @ScalarFunction
+    @SqlType(StandardTypes.VARBINARY)
+    public static Slice sha256(@SqlType(StandardTypes.VARBINARY) Slice slice)
+    {
+        return Slices.wrappedBuffer(Hashing.sha256().hashBytes(slice.getBytes()).asBytes());
+    }
+
+    @Description("compute sha512 hash")
+    @ScalarFunction
+    @SqlType(StandardTypes.VARBINARY)
+    public static Slice sha512(@SqlType(StandardTypes.VARBINARY) Slice slice)
+    {
+        return Slices.wrappedBuffer(Hashing.sha512().hashBytes(slice.getBytes()).asBytes());
     }
 
     private static int hexDigitCharToInt(byte b)

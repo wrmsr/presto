@@ -15,14 +15,15 @@ package com.facebook.presto.execution;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.QualifiedTableName;
+import com.facebook.presto.metadata.QualifiedObjectName;
 import com.facebook.presto.metadata.ViewDefinition;
+import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.tree.DropView;
 
 import java.util.Optional;
 
-import static com.facebook.presto.metadata.MetadataUtil.createQualifiedTableName;
+import static com.facebook.presto.metadata.MetadataUtil.createQualifiedObjectName;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MISSING_TABLE;
 
 public class DropViewTask
@@ -35,9 +36,9 @@ public class DropViewTask
     }
 
     @Override
-    public void execute(DropView statement, Session session, Metadata metadata, QueryStateMachine stateMachine)
+    public void execute(DropView statement, Session session, Metadata metadata, AccessControl accessControl, QueryStateMachine stateMachine)
     {
-        QualifiedTableName name = createQualifiedTableName(session, statement.getName());
+        QualifiedObjectName name = createQualifiedObjectName(session, statement, statement.getName());
 
         Optional<ViewDefinition> view = metadata.getView(session, name);
         if (!view.isPresent()) {
@@ -46,6 +47,8 @@ public class DropViewTask
             }
             return;
         }
+
+        accessControl.checkCanDropView(session.getIdentity(), name);
 
         metadata.dropView(session, name);
     }

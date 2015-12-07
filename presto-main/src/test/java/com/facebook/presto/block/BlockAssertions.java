@@ -13,11 +13,12 @@
  */
 package com.facebook.presto.block;
 
-import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.block.RunLengthEncodedBlock;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.type.ArrayType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,17 +29,15 @@ import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
-import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
+import static com.facebook.presto.spi.type.TimestampWithTimeZoneType.TIMESTAMP_WITH_TIME_ZONE;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Locale.ENGLISH;
+import static com.facebook.presto.testing.TestingConnectorSession.SESSION;
+import static java.util.Objects.requireNonNull;
 import static org.testng.Assert.assertEquals;
 
 public final class BlockAssertions
 {
-    public static final ConnectorSession SESSION = new ConnectorSession("user", UTC_KEY, ENGLISH, System.currentTimeMillis(), null);
-
     private BlockAssertions()
     {
     }
@@ -78,7 +77,7 @@ public final class BlockAssertions
 
     public static Block createStringsBlock(String... values)
     {
-        checkNotNull(values, "varargs 'values' is null");
+        requireNonNull(values, "varargs 'values' is null");
 
         return createStringsBlock(Arrays.asList(values));
     }
@@ -110,9 +109,26 @@ public final class BlockAssertions
         return builder.build();
     }
 
+    public static Block createStringArraysBlock(Iterable<? extends Iterable<String>> values)
+    {
+        ArrayType arrayType = new ArrayType(VARCHAR);
+        BlockBuilder builder = arrayType.createBlockBuilder(new BlockBuilderStatus(), 100);
+
+        for (Iterable<String> value : values) {
+            if (value == null) {
+                builder.appendNull();
+            }
+            else {
+                arrayType.writeObject(builder, createStringsBlock(value));
+            }
+        }
+
+        return builder.build();
+    }
+
     public static Block createBooleansBlock(Boolean... values)
     {
-        checkNotNull(values, "varargs 'values' is null");
+        requireNonNull(values, "varargs 'values' is null");
 
         return createBooleansBlock(Arrays.asList(values));
     }
@@ -157,7 +173,7 @@ public final class BlockAssertions
 
     public static Block createLongsBlock(Long... values)
     {
-        checkNotNull(values, "varargs 'values' is null");
+        requireNonNull(values, "varargs 'values' is null");
 
         return createLongsBlock(Arrays.asList(values));
     }
@@ -189,6 +205,24 @@ public final class BlockAssertions
         return builder.build();
     }
 
+    public static Block createLongRepeatBlock(int value, int length)
+    {
+        BlockBuilder builder = BIGINT.createFixedSizeBlockBuilder(length);
+        for (int i = 0; i < length; i++) {
+            BIGINT.writeLong(builder, value);
+        }
+        return builder.build();
+    }
+
+    public static Block createTimestampsWithTimezoneBlock(Long... values)
+    {
+        BlockBuilder builder = TIMESTAMP_WITH_TIME_ZONE.createFixedSizeBlockBuilder(values.length);
+        for (long value : values) {
+            TIMESTAMP_WITH_TIME_ZONE.writeLong(builder, value);
+        }
+        return builder.build();
+    }
+
     public static Block createBooleanSequenceBlock(int start, int end)
     {
         BlockBuilder builder = BOOLEAN.createFixedSizeBlockBuilder(end - start);
@@ -202,7 +236,7 @@ public final class BlockAssertions
 
     public static Block createDoublesBlock(Double... values)
     {
-        checkNotNull(values, "varargs 'values' is null");
+        requireNonNull(values, "varargs 'values' is null");
 
         return createDoublesBlock(Arrays.asList(values));
     }
@@ -234,6 +268,23 @@ public final class BlockAssertions
         return builder.build();
     }
 
+    public static Block createArrayBigintBlock(Iterable<? extends Iterable<Long>> values)
+    {
+        ArrayType arrayType = new ArrayType(BIGINT);
+        BlockBuilder builder = arrayType.createBlockBuilder(new BlockBuilderStatus(), 100);
+
+        for (Iterable<Long> value : values) {
+            if (value == null) {
+                builder.appendNull();
+            }
+            else {
+                arrayType.writeObject(builder, createLongsBlock(value));
+            }
+        }
+
+        return builder.build();
+    }
+
     public static Block createDateSequenceBlock(int start, int end)
     {
         BlockBuilder builder = DATE.createFixedSizeBlockBuilder(end - start);
@@ -254,5 +305,19 @@ public final class BlockAssertions
         }
 
         return builder.build();
+    }
+
+    public static RunLengthEncodedBlock createRLEBlock(double value, int positionCount)
+    {
+        BlockBuilder blockBuilder = DOUBLE.createBlockBuilder(new BlockBuilderStatus(), 1);
+        DOUBLE.writeDouble(blockBuilder, value);
+        return new RunLengthEncodedBlock(blockBuilder.build(), positionCount);
+    }
+
+    public static RunLengthEncodedBlock createRLEBlock(long value, int positionCount)
+    {
+        BlockBuilder blockBuilder = BIGINT.createBlockBuilder(new BlockBuilderStatus(), 1);
+        BIGINT.writeLong(blockBuilder, value);
+        return new RunLengthEncodedBlock(blockBuilder.build(), positionCount);
     }
 }

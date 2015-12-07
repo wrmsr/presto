@@ -30,7 +30,7 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 
 import static com.facebook.presto.sql.analyzer.ExpressionAnalyzer.getExpressionTypesFromInput;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class InterpretedProjectionFunction
         implements ProjectionFunction
@@ -55,7 +55,7 @@ public class InterpretedProjectionFunction
             inputTypes.put(entry.getValue(), symbolTypes.get(entry.getKey()));
         }
         IdentityHashMap<Expression, Type> expressionTypes = getExpressionTypesFromInput(session, metadata, sqlParser, inputTypes.build(), rewritten);
-        this.type = checkNotNull(expressionTypes.get(rewritten), "type is null");
+        this.type = requireNonNull(expressionTypes.get(rewritten), "type is null");
 
         evaluator = ExpressionInterpreter.expressionInterpreter(rewritten, metadata, session, expressionTypes);
     }
@@ -102,7 +102,7 @@ public class InterpretedProjectionFunction
             type.writeSlice(output, slice, 0, slice.length());
         }
         else {
-            throw new UnsupportedOperationException("not yet implemented: " + type);
+            type.writeObject(output, value);
         }
     }
 }

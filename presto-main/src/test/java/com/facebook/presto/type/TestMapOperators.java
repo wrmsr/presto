@@ -14,8 +14,14 @@
 package com.facebook.presto.type;
 
 import com.facebook.presto.operator.scalar.AbstractTestFunctions;
+import com.facebook.presto.operator.scalar.ScalarFunction;
+import com.facebook.presto.spi.block.Block;
+import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.block.InterleavedBlockBuilder;
 import com.facebook.presto.spi.type.SqlTimestamp;
 import com.facebook.presto.spi.type.SqlVarbinary;
+import com.facebook.presto.spi.type.StandardTypes;
+import com.facebook.presto.spi.type.Type;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -27,6 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.facebook.presto.SessionTestUtils.TEST_SESSION;
+import static com.facebook.presto.block.BlockSerdeUtil.writeBlock;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
@@ -34,37 +41,54 @@ import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
 import static com.facebook.presto.spi.type.VarbinaryType.VARBINARY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.type.JsonType.JSON;
-import static com.facebook.presto.type.MapType.toStackRepresentation;
 import static com.facebook.presto.type.UnknownType.UNKNOWN;
+import static com.facebook.presto.util.StructuralTestUtil.arrayBlockOf;
+import static com.facebook.presto.util.StructuralTestUtil.mapBlockOf;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.testng.Assert.assertEquals;
 
 public class TestMapOperators
         extends AbstractTestFunctions
 {
+    private TestMapOperators()
+    {
+        registerScalar(getClass());
+    }
+
+    @ScalarFunction
+    @SqlType(StandardTypes.JSON)
+    public static Slice uncheckedToJson(@SqlType(StandardTypes.VARCHAR) Slice slice)
+    {
+        return slice;
+    }
+
     @Test
     public void testStackRepresentation()
             throws Exception
     {
-        Slice array = ArrayType.toStackRepresentation(ImmutableList.of(1L, 2L), BIGINT);
-        Slice slice = toStackRepresentation(ImmutableMap.of(1.0, array), DOUBLE, new ArrayType(BIGINT));
+        Block array = arrayBlockOf(BIGINT, 1L, 2L);
+        Block actualBlock = mapBlockOf(DOUBLE, new ArrayType(BIGINT), ImmutableMap.of(1.0, array));
+        DynamicSliceOutput actualSliceOutput = new DynamicSliceOutput(100);
+        writeBlock(actualSliceOutput, actualBlock);
 
-        DynamicSliceOutput output = new DynamicSliceOutput(100);
-        output.appendInt(2) // size of map * 2
-                .appendInt(8) // length of double value 1.0
-                .appendInt(33) // length of array
-                .appendByte(0) // null flags
-                .appendInt(41) // length of data
-                .appendDouble(1.0) // value 1
+        Block expectedBlock = new InterleavedBlockBuilder(ImmutableList.<Type>of(DOUBLE, new ArrayType(BIGINT)), new BlockBuilderStatus(), 3)
+                .writeDouble(1.0)
+                .closeEntry()
+                .writeObject(
+                        BIGINT
+                        .createBlockBuilder(new BlockBuilderStatus(), 1)
+                        .writeLong(1L)
+                        .closeEntry()
+                        .writeLong(2L)
+                        .closeEntry()
+                        .build()
+                )
+                .closeEntry()
+                .build();
+        DynamicSliceOutput expectedSliceOutput = new DynamicSliceOutput(100);
+        writeBlock(expectedSliceOutput, expectedBlock);
 
-                .appendInt(2)
-                .appendInt(8)
-                .appendInt(8)
-                .appendByte(0)
-                .appendInt(16)
-                .appendLong(1)
-                .appendLong(2);
-
-        assertEquals(slice, output.slice());
+        assertEquals(actualSliceOutput.slice(), expectedSliceOutput.slice());
     }
 
     @Test
@@ -129,25 +153,51 @@ public class TestMapOperators
     public void testJsonToMap()
             throws Exception
     {
-        assertFunction("CAST(CAST('{\"1\":2, \"3\": 4}' AS JSON) AS MAP<BIGINT, BIGINT>)",
+        assertFunction("CAST(JSON '{\"1\":2, \"3\": 4}' AS MAP<BIGINT, BIGINT>)",
                 new MapType(BIGINT, BIGINT),
                 ImmutableMap.of(1L, 2L, 3L, 4L));
-        assertFunction("CAST(CAST('{\"1\":2.0, \"3\": 4.0}' AS JSON) AS MAP<BIGINT, DOUBLE>)",
+        assertFunction("CAST(JSON '{\"1\":2.0, \"3\": 4.0}' AS MAP<BIGINT, DOUBLE>)",
                 new MapType(BIGINT, DOUBLE),
                 ImmutableMap.of(1L, 2.0, 3L, 4.0));
-        assertFunction("CAST(CAST('{\"1\":[2, 3], \"4\": [5]}' AS JSON) AS MAP<BIGINT, ARRAY<BIGINT>>)",
+        assertFunction("CAST(JSON '{\"1\":[2, 3], \"4\": [5]}' AS MAP<BIGINT, ARRAY<BIGINT>>)",
                 new MapType(BIGINT, new ArrayType(BIGINT)),
                 ImmutableMap.of(1L, ImmutableList.of(2L, 3L), 4L, ImmutableList.of(5L)));
-        assertFunction("CAST(CAST('{\"puppies\":\"kittens\"}' AS JSON) AS MAP<VARCHAR, VARCHAR>)",
+        assertFunction("CAST(JSON '{\"puppies\":\"kittens\"}' AS MAP<VARCHAR, VARCHAR>)",
                 new MapType(VARCHAR, VARCHAR),
                 ImmutableMap.of("puppies", "kittens"));
-        assertFunction("CAST(CAST('{\"true\":\"kittens\"}' AS JSON) AS MAP<BOOLEAN, VARCHAR>)",
+        assertFunction("CAST(JSON '{\"true\":\"kittens\"}' AS MAP<BOOLEAN, VARCHAR>)",
                 new MapType(BOOLEAN, VARCHAR),
                 ImmutableMap.of(true, "kittens"));
-        assertFunction("CAST(CAST('null' AS JSON) AS MAP<BOOLEAN, VARCHAR>)",
+        assertFunction("CAST(JSON 'null' AS MAP<BOOLEAN, VARCHAR>)",
                 new MapType(BOOLEAN, VARCHAR),
                 null);
-        assertInvalidCast("CAST(CAST('{\"true\":\"kittens\"}' AS JSON) AS MAP<BOOLEAN, VARBINARY>)");
+        assertFunction("CAST(JSON '{\"k1\": 5, \"k2\":[1, 2, 3], \"k3\":\"e\", \"k4\":{\"a\": \"b\"}, \"k5\":null, \"k6\":\"null\", \"k7\":[null]}' AS MAP<VARCHAR, JSON>)",
+                new MapType(VARCHAR, JSON),
+                ImmutableMap.builder()
+                        .put("k1", "5")
+                        .put("k2", "[1,2,3]")
+                        .put("k3", "\"e\"")
+                        .put("k4", "{\"a\":\"b\"}")
+                        .put("k5", "null")
+                        .put("k6", "\"null\"")
+                        .put("k7", "[null]")
+                        .build()
+        );
+
+        // These two tests verifies that partial json cast preserves input order
+        // The second test should never happen in real life because valid json in presto requires natural key ordering.
+        // However, it is added to make sure that the order in the first test is not a coincidence.
+        assertFunction("CAST(JSON '{\"k1\": {\"1klmnopq\":1, \"2klmnopq\":2, \"3klmnopq\":3, \"4klmnopq\":4, \"5klmnopq\":5, \"6klmnopq\":6, \"7klmnopq\":7}}' AS MAP<VARCHAR, JSON>)",
+                new MapType(VARCHAR, JSON),
+                ImmutableMap.of("k1", "{\"1klmnopq\":1,\"2klmnopq\":2,\"3klmnopq\":3,\"4klmnopq\":4,\"5klmnopq\":5,\"6klmnopq\":6,\"7klmnopq\":7}")
+        );
+        assertFunction("CAST(unchecked_to_json('{\"k1\": {\"7klmnopq\":7, \"6klmnopq\":6, \"5klmnopq\":5, \"4klmnopq\":4, \"3klmnopq\":3, \"2klmnopq\":2, \"1klmnopq\":1}}') AS MAP<VARCHAR, JSON>)",
+                new MapType(VARCHAR, JSON),
+                ImmutableMap.of("k1", "{\"7klmnopq\":7,\"6klmnopq\":6,\"5klmnopq\":5,\"4klmnopq\":4,\"3klmnopq\":3,\"2klmnopq\":2,\"1klmnopq\":1}")
+        );
+
+        assertInvalidCast("CAST(JSON '{\"true\":\"kittens\"}' AS MAP<BOOLEAN, VARBINARY>)");
+        assertInvalidCast("CAST(JSON '{\"[1, 2]\": 1}' AS MAP<ARRAY<BIGINT>, BIGINT>)");
     }
 
     @Test
@@ -180,9 +230,10 @@ public class TestMapOperators
         assertFunction("MAP_KEYS(MAP(ARRAY['puppies'], ARRAY['kittens']))", new ArrayType(VARCHAR), ImmutableList.of("puppies"));
         assertFunction("MAP_KEYS(MAP(ARRAY[TRUE], ARRAY[2]))", new ArrayType(BOOLEAN), ImmutableList.of(true));
         assertFunction("MAP_KEYS(MAP(ARRAY[from_unixtime(1)], ARRAY[1.0]))", new ArrayType(TIMESTAMP), ImmutableList.of(new SqlTimestamp(1000, TEST_SESSION.getTimeZoneKey())));
-        assertFunction("MAP_KEYS(MAP(ARRAY[CAST('puppies' as varbinary)], ARRAY['kittens']))", new ArrayType(VARBINARY), ImmutableList.of(new SqlVarbinary("puppies".getBytes("utf-8"))));
+        assertFunction("MAP_KEYS(MAP(ARRAY[CAST('puppies' as varbinary)], ARRAY['kittens']))", new ArrayType(VARBINARY), ImmutableList.of(new SqlVarbinary("puppies".getBytes(UTF_8))));
         assertFunction("MAP_KEYS(MAP(ARRAY[1,2],  ARRAY[ARRAY[1, 2], ARRAY[3]]))", new ArrayType(BIGINT), ImmutableList.of(1L, 2L));
         assertFunction("MAP_KEYS(MAP(ARRAY[1,4], ARRAY[MAP(ARRAY[2], ARRAY[3]), MAP(ARRAY[5], ARRAY[6])]))",  new ArrayType(BIGINT), ImmutableList.of(1L, 4L));
+        assertFunction("MAP_KEYS(MAP(ARRAY [ARRAY [1], ARRAY [2, 3]],  ARRAY [ARRAY [3, 4], ARRAY [5]]))", new ArrayType(new ArrayType(BIGINT)), ImmutableList.of(ImmutableList.of(1L), ImmutableList.of(2L, 3L)));
     }
 
     @Test

@@ -39,9 +39,9 @@ import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.sql.gen.JoinCompiler.LookupSourceFactory;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static io.airlift.slice.SizeOf.sizeOf;
 import static io.airlift.units.DataSize.Unit.BYTE;
+import static java.util.Objects.requireNonNull;
 
 /**
  * PagesIndex a low-level data structure which contains the address of every value position of every channel.
@@ -74,7 +74,7 @@ public class PagesIndex
 
     public PagesIndex(List<Type> types, int expectedPositions)
     {
-        this.types = ImmutableList.copyOf(checkNotNull(types, "types is null"));
+        this.types = ImmutableList.copyOf(requireNonNull(types, "types is null"));
         this.valueAddresses = new LongArrayList(expectedPositions);
 
         //noinspection rawtypes
@@ -152,8 +152,6 @@ public class PagesIndex
             return;
         }
 
-        positionCount += page.getPositionCount();
-
         int pageIndex = (channels.length > 0) ? channels[0].size() : 0;
         for (int i = 0; i < channels.length; i++) {
             Block block = page.getBlock(i);
@@ -180,7 +178,6 @@ public class PagesIndex
     public void compact()
     {
         for (int channel = 0; channel < types.size(); channel++) {
-            Type type = types.get(channel);
             ObjectArrayList<Block> blocks = channels[channel];
             for (int i = nextBlockToCompact; i < blocks.size(); i++) {
                 Block block = blocks.get(i);
@@ -360,13 +357,8 @@ public class PagesIndex
         try {
             LookupSourceFactory lookupSourceFactory = joinCompiler.compileLookupSourceFactory(types, joinChannels);
 
-            ImmutableList.Builder<Type> joinChannelTypes = ImmutableList.builder();
-            for (Integer joinChannel : joinChannels) {
-                joinChannelTypes.add(types.get(joinChannel));
-            }
             LookupSource lookupSource = lookupSourceFactory.createLookupSource(
                     valueAddresses,
-                    joinChannelTypes.build(),
                     ImmutableList.<List<Block>>copyOf(channels),
                     hashChannel);
 
@@ -383,11 +375,7 @@ public class PagesIndex
                 joinChannels,
                 hashChannel);
 
-        ImmutableList.Builder<Type> hashTypes = ImmutableList.builder();
-        for (Integer channel : joinChannels) {
-            hashTypes.add(types.get(channel));
-        }
-        return new InMemoryJoinHash(valueAddresses, hashTypes.build(), hashStrategy);
+        return new InMemoryJoinHash(valueAddresses, hashStrategy);
     }
 
     @Override

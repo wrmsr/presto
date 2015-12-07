@@ -17,6 +17,7 @@ import com.facebook.presto.OutputBuffers;
 import com.facebook.presto.Session;
 import com.facebook.presto.TaskSource;
 import com.facebook.presto.event.query.QueryMonitor;
+import com.facebook.presto.execution.StateMachine.StateChangeListener;
 import com.facebook.presto.memory.LocalMemoryManager;
 import com.facebook.presto.memory.MemoryManagerConfig;
 import com.facebook.presto.memory.MemoryPoolAssignment;
@@ -29,7 +30,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.airlift.concurrent.ThreadPoolExecutorMBean;
 import io.airlift.log.Logger;
 import io.airlift.node.NodeInfo;
@@ -47,12 +47,12 @@ import javax.inject.Inject;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
@@ -98,8 +98,8 @@ public class SqlTaskManager
             TaskManagerConfig config,
             MemoryManagerConfig memoryManagerConfig)
     {
-        checkNotNull(nodeInfo, "nodeInfo is null");
-        checkNotNull(config, "config is null");
+        requireNonNull(nodeInfo, "nodeInfo is null");
+        requireNonNull(config, "config is null");
         infoCacheTime = config.getInfoMaxAge();
         clientTimeout = config.getClientTimeout();
 
@@ -115,7 +115,6 @@ public class SqlTaskManager
 
         this.localMemoryManager = requireNonNull(localMemoryManager, "localMemoryManager is null");
         DataSize maxQueryMemoryPerNode = memoryManagerConfig.getMaxQueryMemoryPerNode();
-        boolean clusterMemoryManagerEnabled = memoryManagerConfig.isClusterMemoryManagerEnabled();
 
         queryContexts = CacheBuilder.newBuilder().weakValues().build(new CacheLoader<QueryId, QueryContext>()
         {
@@ -123,7 +122,7 @@ public class SqlTaskManager
             public QueryContext load(QueryId key)
                     throws Exception
             {
-                return new QueryContext(clusterMemoryManagerEnabled, maxQueryMemoryPerNode, localMemoryManager.getPool(LocalMemoryManager.GENERAL_POOL), taskNotificationExecutor);
+                return new QueryContext(key, maxQueryMemoryPerNode, localMemoryManager.getPool(LocalMemoryManager.GENERAL_POOL), localMemoryManager.getPool(LocalMemoryManager.SYSTEM_POOL), taskNotificationExecutor);
             }
         });
 
@@ -233,7 +232,7 @@ public class SqlTaskManager
     @Override
     public TaskInfo getTaskInfo(TaskId taskId)
     {
-        checkNotNull(taskId, "taskId is null");
+        requireNonNull(taskId, "taskId is null");
 
         SqlTask sqlTask = tasks.getUnchecked(taskId);
         sqlTask.recordHeartbeat();
@@ -241,10 +240,10 @@ public class SqlTaskManager
     }
 
     @Override
-    public ListenableFuture<TaskInfo> getTaskInfo(TaskId taskId, TaskState currentState)
+    public CompletableFuture<TaskInfo> getTaskInfo(TaskId taskId, TaskState currentState)
     {
-        checkNotNull(taskId, "taskId is null");
-        checkNotNull(currentState, "currentState is null");
+        requireNonNull(taskId, "taskId is null");
+        requireNonNull(currentState, "currentState is null");
 
         SqlTask sqlTask = tasks.getUnchecked(taskId);
         sqlTask.recordHeartbeat();
@@ -254,11 +253,11 @@ public class SqlTaskManager
     @Override
     public TaskInfo updateTask(Session session, TaskId taskId, PlanFragment fragment, List<TaskSource> sources, OutputBuffers outputBuffers)
     {
-        checkNotNull(session, "session is null");
-        checkNotNull(taskId, "taskId is null");
-        checkNotNull(fragment, "fragment is null");
-        checkNotNull(sources, "sources is null");
-        checkNotNull(outputBuffers, "outputBuffers is null");
+        requireNonNull(session, "session is null");
+        requireNonNull(taskId, "taskId is null");
+        requireNonNull(fragment, "fragment is null");
+        requireNonNull(sources, "sources is null");
+        requireNonNull(outputBuffers, "outputBuffers is null");
 
         SqlTask sqlTask = tasks.getUnchecked(taskId);
         sqlTask.recordHeartbeat();
@@ -266,12 +265,12 @@ public class SqlTaskManager
     }
 
     @Override
-    public ListenableFuture<BufferResult> getTaskResults(TaskId taskId, TaskId outputName, long startingSequenceId, DataSize maxSize)
+    public CompletableFuture<BufferResult> getTaskResults(TaskId taskId, TaskId outputName, long startingSequenceId, DataSize maxSize)
     {
-        checkNotNull(taskId, "taskId is null");
-        checkNotNull(outputName, "outputName is null");
+        requireNonNull(taskId, "taskId is null");
+        requireNonNull(outputName, "outputName is null");
         Preconditions.checkArgument(startingSequenceId >= 0, "startingSequenceId is negative");
-        checkNotNull(maxSize, "maxSize is null");
+        requireNonNull(maxSize, "maxSize is null");
 
         return tasks.getUnchecked(taskId).getTaskResults(outputName, startingSequenceId, maxSize);
     }
@@ -279,8 +278,8 @@ public class SqlTaskManager
     @Override
     public TaskInfo abortTaskResults(TaskId taskId, TaskId outputId)
     {
-        checkNotNull(taskId, "taskId is null");
-        checkNotNull(outputId, "outputId is null");
+        requireNonNull(taskId, "taskId is null");
+        requireNonNull(outputId, "outputId is null");
 
         return tasks.getUnchecked(taskId).abortTaskResults(outputId);
     }
@@ -288,7 +287,7 @@ public class SqlTaskManager
     @Override
     public TaskInfo cancelTask(TaskId taskId)
     {
-        checkNotNull(taskId, "taskId is null");
+        requireNonNull(taskId, "taskId is null");
 
         return tasks.getUnchecked(taskId).cancel();
     }
@@ -296,7 +295,7 @@ public class SqlTaskManager
     @Override
     public TaskInfo abortTask(TaskId taskId)
     {
-        checkNotNull(taskId, "taskId is null");
+        requireNonNull(taskId, "taskId is null");
 
         return tasks.getUnchecked(taskId).abort();
     }
@@ -357,5 +356,12 @@ public class SqlTaskManager
                 .forEach(task -> tempIoStats.merge(task.getIoStats()));
 
         cachedStats.resetTo(tempIoStats);
+    }
+
+    @Override
+    public void addStateChangeListener(TaskId taskId, StateChangeListener<TaskState> stateChangeListener)
+    {
+        requireNonNull(taskId, "taskId is null");
+        tasks.getUnchecked(taskId).addStateChangeListener(stateChangeListener);
     }
 }

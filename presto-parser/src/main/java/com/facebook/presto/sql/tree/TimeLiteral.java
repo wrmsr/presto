@@ -13,7 +13,9 @@
  */
 package com.facebook.presto.sql.tree;
 
-import com.google.common.base.Preconditions;
+import java.util.Optional;
+
+import static java.util.Objects.requireNonNull;
 
 public class TimeLiteral
         extends Literal
@@ -22,7 +24,18 @@ public class TimeLiteral
 
     public TimeLiteral(String value)
     {
-        Preconditions.checkNotNull(value, "value is null");
+        this(Optional.empty(), value);
+    }
+
+    public TimeLiteral(NodeLocation location, String value)
+    {
+        this(Optional.of(location), value);
+    }
+
+    private TimeLiteral(Optional<NodeLocation> location, String value)
+    {
+        super(location);
+        requireNonNull(value, "value is null");
         this.value = value;
     }
 

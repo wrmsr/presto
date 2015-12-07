@@ -31,10 +31,12 @@ public class TestFeaturesConfig
         assertRecordedDefaults(ConfigAssertions.recordDefaults(FeaturesConfig.class)
                 .setExperimentalSyntaxEnabled(false)
                 .setDistributedIndexJoinsEnabled(false)
-                .setDistributedJoinsEnabled(false)
+                .setDistributedJoinsEnabled(true)
+                .setRedistributeWrites(true)
                 .setOptimizeMetadataQueries(false)
-                .setOptimizeHashGeneration(false)
-                .setOptimizeSingleDistinct(true));
+                .setOptimizeHashGeneration(true)
+                .setOptimizeSingleDistinct(true)
+                .setIntermediateAggregationsEnabled(false));
     }
 
     @Test
@@ -43,27 +45,33 @@ public class TestFeaturesConfig
         Map<String, String> propertiesLegacy = new ImmutableMap.Builder<String, String>()
                 .put("analyzer.experimental-syntax-enabled", "true")
                 .put("distributed-index-joins-enabled", "true")
-                .put("distributed-joins-enabled", "true")
+                .put("distributed-joins-enabled", "false")
+                .put("redistribute-writes", "false")
                 .put("optimizer.optimize-metadata-queries", "true")
-                .put("optimizer.optimize-hash-generation", "true")
+                .put("optimizer.optimize-hash-generation", "false")
                 .put("optimizer.optimize-single-distinct", "false")
+                .put("optimizer.use-intermediate-aggregations", "true")
                 .build();
         Map<String, String> properties = new ImmutableMap.Builder<String, String>()
                 .put("experimental-syntax-enabled", "true")
                 .put("distributed-index-joins-enabled", "true")
-                .put("distributed-joins-enabled", "true")
+                .put("distributed-joins-enabled", "false")
+                .put("redistribute-writes", "false")
                 .put("optimizer.optimize-metadata-queries", "true")
-                .put("optimizer.optimize-hash-generation", "true")
+                .put("optimizer.optimize-hash-generation", "false")
                 .put("optimizer.optimize-single-distinct", "false")
+                .put("optimizer.use-intermediate-aggregations", "true")
                 .build();
 
         FeaturesConfig expected = new FeaturesConfig()
                 .setExperimentalSyntaxEnabled(true)
                 .setDistributedIndexJoinsEnabled(true)
-                .setDistributedJoinsEnabled(true)
+                .setDistributedJoinsEnabled(false)
+                .setRedistributeWrites(false)
                 .setOptimizeMetadataQueries(true)
-                .setOptimizeHashGeneration(true)
-                .setOptimizeSingleDistinct(false);
+                .setOptimizeHashGeneration(false)
+                .setOptimizeSingleDistinct(false)
+                .setIntermediateAggregationsEnabled(true);
 
         assertFullMapping(properties, expected);
         assertDeprecatedEquivalence(FeaturesConfig.class, properties, propertiesLegacy);

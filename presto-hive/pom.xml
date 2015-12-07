@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.facebook.presto</groupId>
         <artifactId>presto-root</artifactId>
-        <version>0.107</version>
+        <version>0.129-SNAPSHOT</version>
     </parent>
 
     <artifactId>presto-hive</artifactId>
@@ -89,11 +89,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.airlift</groupId>
-            <artifactId>discovery</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
         </dependency>
@@ -130,7 +125,18 @@
 
         <dependency>
             <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
+            <artifactId>aws-java-sdk-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>joda-time</groupId>
+                    <artifactId>joda-time</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>joda-time</groupId>

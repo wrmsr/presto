@@ -25,7 +25,6 @@ import org.joda.time.DateTime;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Objects.requireNonNull;
 
 public class QueryStats
@@ -52,6 +51,7 @@ public class QueryStats
     private final int completedDrivers;
 
     private final DataSize totalMemoryReservation;
+    private final DataSize peakMemoryReservation;
 
     private final Duration totalScheduledTime;
     private final Duration totalCpuTime;
@@ -89,6 +89,7 @@ public class QueryStats
         this.runningDrivers = 0;
         this.completedDrivers = 0;
         this.totalMemoryReservation = null;
+        this.peakMemoryReservation = null;
         this.totalScheduledTime = null;
         this.totalCpuTime = null;
         this.totalUserTime = null;
@@ -126,6 +127,7 @@ public class QueryStats
             @JsonProperty("completedDrivers") int completedDrivers,
 
             @JsonProperty("totalMemoryReservation") DataSize totalMemoryReservation,
+            @JsonProperty("peakMemoryReservation") DataSize peakMemoryReservation,
 
             @JsonProperty("totalScheduledTime") Duration totalScheduledTime,
             @JsonProperty("totalCpuTime") Duration totalCpuTime,
@@ -143,9 +145,9 @@ public class QueryStats
             @JsonProperty("outputDataSize") DataSize outputDataSize,
             @JsonProperty("outputPositions") long outputPositions)
     {
-        this.createTime = checkNotNull(createTime, "createTime is null");
+        this.createTime = requireNonNull(createTime, "createTime is null");
         this.executionStartTime = executionStartTime;
-        this.lastHeartbeat = checkNotNull(lastHeartbeat, "lastHeartbeat is null");
+        this.lastHeartbeat = requireNonNull(lastHeartbeat, "lastHeartbeat is null");
         this.endTime = endTime;
 
         this.elapsedTime = elapsedTime;
@@ -170,23 +172,24 @@ public class QueryStats
         checkArgument(completedDrivers >= 0, "completedDrivers is negative");
         this.completedDrivers = completedDrivers;
 
-        this.totalMemoryReservation = checkNotNull(totalMemoryReservation, "totalMemoryReservation is null");
-        this.totalScheduledTime = checkNotNull(totalScheduledTime, "totalScheduledTime is null");
-        this.totalCpuTime = checkNotNull(totalCpuTime, "totalCpuTime is null");
-        this.totalUserTime = checkNotNull(totalUserTime, "totalUserTime is null");
-        this.totalBlockedTime = checkNotNull(totalBlockedTime, "totalBlockedTime is null");
+        this.totalMemoryReservation = requireNonNull(totalMemoryReservation, "totalMemoryReservation is null");
+        this.peakMemoryReservation = requireNonNull(peakMemoryReservation, "peakMemoryReservation is null");
+        this.totalScheduledTime = requireNonNull(totalScheduledTime, "totalScheduledTime is null");
+        this.totalCpuTime = requireNonNull(totalCpuTime, "totalCpuTime is null");
+        this.totalUserTime = requireNonNull(totalUserTime, "totalUserTime is null");
+        this.totalBlockedTime = requireNonNull(totalBlockedTime, "totalBlockedTime is null");
         this.fullyBlocked = fullyBlocked;
         this.blockedReasons = ImmutableSet.copyOf(requireNonNull(blockedReasons, "blockedReasons is null"));
 
-        this.rawInputDataSize = checkNotNull(rawInputDataSize, "rawInputDataSize is null");
+        this.rawInputDataSize = requireNonNull(rawInputDataSize, "rawInputDataSize is null");
         checkArgument(rawInputPositions >= 0, "rawInputPositions is negative");
         this.rawInputPositions = rawInputPositions;
 
-        this.processedInputDataSize = checkNotNull(processedInputDataSize, "processedInputDataSize is null");
+        this.processedInputDataSize = requireNonNull(processedInputDataSize, "processedInputDataSize is null");
         checkArgument(processedInputPositions >= 0, "processedInputPositions is negative");
         this.processedInputPositions = processedInputPositions;
 
-        this.outputDataSize = checkNotNull(outputDataSize, "outputDataSize is null");
+        this.outputDataSize = requireNonNull(outputDataSize, "outputDataSize is null");
         checkArgument(outputPositions >= 0, "outputPositions is negative");
         this.outputPositions = outputPositions;
     }
@@ -291,6 +294,12 @@ public class QueryStats
     public DataSize getTotalMemoryReservation()
     {
         return totalMemoryReservation;
+    }
+
+    @JsonProperty
+    public DataSize getPeakMemoryReservation()
+    {
+        return peakMemoryReservation;
     }
 
     @JsonProperty

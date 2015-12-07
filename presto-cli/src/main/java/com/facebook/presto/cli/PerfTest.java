@@ -24,9 +24,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
-import io.airlift.command.Command;
-import io.airlift.command.HelpOption;
-import io.airlift.command.Option;
+import io.airlift.airline.Command;
+import io.airlift.airline.HelpOption;
+import io.airlift.airline.Option;
 import io.airlift.http.client.HttpClient;
 import io.airlift.http.client.HttpClientConfig;
 import io.airlift.http.client.Request;
@@ -58,12 +58,11 @@ import static com.facebook.presto.cli.ClientOptions.parseServer;
 import static com.facebook.presto.sql.parser.StatementSplitter.Statement;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.io.ByteStreams.nullOutputStream;
 import static com.google.common.net.HttpHeaders.USER_AGENT;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
-import static io.airlift.command.SingleCommand.singleCommand;
+import static io.airlift.airline.SingleCommand.singleCommand;
 import static io.airlift.concurrent.Threads.daemonThreadsNamed;
 import static io.airlift.http.client.HttpUriBuilder.uriBuilderFrom;
 import static io.airlift.http.client.Request.Builder.preparePost;
@@ -71,6 +70,7 @@ import static io.airlift.http.client.StaticBodyGenerator.createStaticBodyGenerat
 import static io.airlift.http.client.StatusResponseHandler.createStatusResponseHandler;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 
 @Command(name = "presto", description = "Presto interactive console")
@@ -87,10 +87,10 @@ public class PerfTest
     public String server = "localhost:8080";
 
     @Option(name = "--catalog", title = "catalog", description = "Default catalog")
-    public String catalog = "default";
+    public String catalog;
 
     @Option(name = "--schema", title = "schema", description = "Default schema")
-    public String schema = "default";
+    public String schema;
 
     @Option(name = {"-f", "--file"}, title = "file", description = "Execute statements from file and exit")
     public String file;
@@ -121,7 +121,7 @@ public class PerfTest
         }
     }
 
-    private void executeQueries(List<String> queries, ParallelQueryRunner parallelQueryRunner, int parallelism)
+    private static void executeQueries(List<String> queries, ParallelQueryRunner parallelQueryRunner, int parallelism)
             throws Exception
     {
         Duration duration = parallelQueryRunner.executeCommands(parallelism, queries);
@@ -172,7 +172,7 @@ public class PerfTest
         {
             checkArgument(parallelism >= 0, "parallelism is negative");
             checkArgument(parallelism <= runners.size(), "parallelism is greater than maxParallelism");
-            checkNotNull(queries, "queries is null");
+            requireNonNull(queries, "queries is null");
 
             CountDownLatch remainingQueries = new CountDownLatch(queries.size());
             BlockingQueue<String> queue = new ArrayBlockingQueue<>(queries.size(), false, queries);
@@ -240,11 +240,10 @@ public class PerfTest
             HttpClientConfig clientConfig = new HttpClientConfig();
             clientConfig.setConnectTimeout(new Duration(10, TimeUnit.SECONDS));
             clientConfig.setIdleTimeout(new Duration(timeout, TimeUnit.SECONDS));
-            clientConfig.setKeepAliveInterval(new Duration(timeout, TimeUnit.SECONDS));
             httpClient = new JettyHttpClient(clientConfig);
         }
 
-        public ListenableFuture<?> execute(final BlockingQueue<String> queue, final CountDownLatch remainingQueries)
+        public ListenableFuture<?> execute(BlockingQueue<String> queue, CountDownLatch remainingQueries)
         {
             return executor.submit(() -> {
                 for (String query = queue.poll(); query != null; query = queue.poll()) {

@@ -18,6 +18,7 @@ import com.facebook.presto.metadata.MetadataManager;
 import com.facebook.presto.operator.scalar.FunctionAssertions;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.RecordCursor;
+import com.facebook.presto.spi.type.SqlTimestampWithTimeZone;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.ExpressionInterpreter;
@@ -49,6 +50,7 @@ import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
 import static com.facebook.presto.spi.type.IntervalDayTimeType.INTERVAL_DAY_TIME;
 import static com.facebook.presto.spi.type.TimeType.TIME;
+import static com.facebook.presto.spi.type.TimeZoneKey.getTimeZoneKey;
 import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.sql.ExpressionFormatter.formatExpression;
@@ -571,12 +573,38 @@ public class TestExpressionInterpreter
                         "when unbound_long = 1234 then 33 " +
                         "else 1 " +
                         "end");
+
+        assertOptimizedEquals("case when 0 / 0 = 0 then 1 end",
+                "case when 0 / 0 = 0 then 1 end");
+
+        assertOptimizedEquals("if(false, 1, 0 / 0)", "if (false, 1, 0 / 0)");
     }
 
     @Test
     public void testSimpleCase()
             throws Exception
     {
+        assertOptimizedEquals("case 1 " +
+                "when 1 then 32 + 1 " +
+                "when 1 then 34 " +
+                "end",
+                "33");
+
+        assertOptimizedEquals("case null " +
+                "when true then 33 " +
+                "end",
+                "null");
+        assertOptimizedEquals("case null " +
+                "when true then 33 " +
+                "else 33 " +
+                "end",
+                "33");
+        assertOptimizedEquals("case 33 " +
+                "when null then 1 " +
+                "else 33 " +
+                "end",
+                "33");
+
         assertOptimizedEquals("case true " +
                 "when true then 33 " +
                 "end",
@@ -629,6 +657,107 @@ public class TestExpressionInterpreter
                         "when 1234 then 33 " +
                         "else 1 " +
                         "end");
+
+        assertOptimizedEquals("case 33 " +
+                        "when 0 then 0 " +
+                        "when 33 then unbound_long " +
+                        "else 1 " +
+                        "end",
+                        "unbound_long");
+        assertOptimizedEquals("case 33 " +
+                        "when 0 then 0 " +
+                        "when 33 then 1 " +
+                        "when unbound_long then 2 " +
+                        "else 1 " +
+                        "end",
+                        "1");
+        assertOptimizedEquals("case 33 " +
+                        "when unbound_long then 0 " +
+                        "when 1 then 1 " +
+                        "when 33 then 2 " +
+                        "else 0 " +
+                        "end",
+                        "case 33 " +
+                        "when unbound_long then 0 " +
+                        "else 2 " +
+                        "end");
+        assertOptimizedEquals("case 33 " +
+                        "when 0 then 0 " +
+                        "when 1 then 1 " +
+                        "else unbound_long " +
+                        "end",
+                        "unbound_long");
+        assertOptimizedEquals("case 33 " +
+                        "when unbound_long then 0 " +
+                        "when 1 then 1 " +
+                        "when unbound_long2 then 2 " +
+                        "else 3 " +
+                        "end",
+                        "case 33 " +
+                        "when unbound_long then 0 " +
+                        "when unbound_long2 then 2 " +
+                        "else 3 " +
+                        "end");
+
+        assertOptimizedEquals("case true " +
+                "when unbound_long = 1 then 1 " +
+                "when 0 / 0 = 0 then 2 " +
+                "else 33 end",
+                "" +
+                        "case true " +
+                        "when unbound_long = 1 then 1 " +
+                        "when 0 / 0 = 0 then 2 else 33 " +
+                        "end");
+
+        assertOptimizedEquals("case bound_long " +
+                "when 123 * 10 + unbound_long then 1 = 1 " +
+                "else 1 = 2 " +
+                "end",
+                "" +
+                        "case bound_long when 1230 + unbound_long then true " +
+                        "else false " +
+                        "end");
+
+        assertOptimizedEquals("case bound_long " +
+                "when unbound_long then 2 + 2 " +
+                "end",
+                "" +
+                        "case bound_long " +
+                        "when unbound_long then 4 " +
+                        "end");
+
+        assertOptimizedEquals("case bound_long " +
+                "when unbound_long then 2 + 2 " +
+                "when 1 then null " +
+                "when 2 then null " +
+                "end",
+                "" +
+                        "case bound_long " +
+                        "when unbound_long then 4 " +
+                        "end");
+
+        assertOptimizedEquals("case 1 " +
+                "when 0 / 0 then 1 " +
+                "when 0 / 0 then 2 " +
+                "else 1 " +
+                "end",
+                "" +
+                        "case 1 " +
+                        "when 0 / 0 then 1 " +
+                        "when 0 / 0 then 2 " +
+                        "else 1 " +
+                        "end");
+    }
+
+    @Test
+    public void testCoalesce()
+            throws Exception
+    {
+        assertOptimizedEquals("coalesce(2 * 3 * unbound_long, 1 - 1, null)", "coalesce(6 * unbound_long, 0)");
+        assertOptimizedEquals("coalesce(2 * 3 * unbound_long, 1.0/2.0, null)", "coalesce(6 * unbound_long, 0.5)");
+        assertOptimizedEquals("coalesce(unbound_long, 2, 1.0/2.0, 12.34, null)", "coalesce(unbound_long, 2.0, 0.5, 12.34)");
+        assertOptimizedEquals("coalesce(0 / 0 > 1, unbound_boolean, 0 / 0 = 0)",
+                "coalesce(0 / 0 > 1, unbound_boolean, 0 / 0 = 0)");
     }
 
     @Test
@@ -745,21 +874,6 @@ public class TestExpressionInterpreter
         assertOptimizedEquals("unbound_string like unbound_pattern escape unbound_string", "unbound_string like unbound_pattern escape unbound_string");
     }
 
-    @Test
-    public void testFailedExpressionOptimization()
-            throws Exception
-    {
-        assertOptimizedEquals("if(unbound_boolean, 1, 0 / 0)", "CASE WHEN unbound_boolean THEN 1 ELSE 0 / 0 END");
-        assertOptimizedEquals("if(unbound_boolean, 0 / 0, 1)", "CASE WHEN unbound_boolean THEN 0 / 0 ELSE 1 END");
-        assertOptimizedEqualsSelf("case unbound_long when 1 then 1 when 0 / 0 then 2 end");
-        assertOptimizedEqualsSelf("case unbound_boolean when true then 1 else 0 / 0 end");
-        assertOptimizedEqualsSelf("case unbound_boolean when true then 0 / 0 else 1 end");
-        assertOptimizedEqualsSelf("case when unbound_boolean then 1 when 0 / 0 = 0 then 2 end");
-        assertOptimizedEqualsSelf("case when unbound_boolean then 1 else 0 / 0  end");
-        assertOptimizedEqualsSelf("case when unbound_boolean then 0 / 0 else 1 end");
-        assertOptimizedEqualsSelf("coalesce(unbound_boolean, 0 / 0 = 0)");
-    }
-
     @Test(expectedExceptions = PrestoException.class)
     public void testOptimizeDivideByZero()
             throws Exception
@@ -768,17 +882,23 @@ public class TestExpressionInterpreter
     }
 
     @Test(expectedExceptions = PrestoException.class)
-    public void testOptimizeConstantIfDivideByZero()
-            throws Exception
+    public void testArraySubscriptConstantNegativeIndex()
     {
-        optimize("if(false, 1, 0 / 0)");
+        optimize("ARRAY [1, 2, 3][-1]");
     }
 
     @Test(expectedExceptions = PrestoException.class)
-    public void testOptimizeConstantSearchedCaseDivideByZero()
-            throws Exception
+    public void testArraySubscriptConstantZeroIndex()
     {
-        optimize("case when 0 / 0 = 0 then 1 end");
+        optimize("ARRAY [1, 2, 3][0]");
+    }
+
+    @Test
+    public void testMapSubscriptConstantIndexes()
+    {
+        optimize("MAP(ARRAY [1, 2], ARRAY [3, 4])[-1]");
+        optimize("MAP(ARRAY [1, 2], ARRAY [3, 4])[0]");
+        optimize("MAP(ARRAY [1, 2], ARRAY [3, 4])[5]");
     }
 
     @Test(timeOut = 60000)
@@ -860,6 +980,8 @@ public class TestExpressionInterpreter
                         return new DateTime(2001, 8, 22, 3, 4, 5, 321, DateTimeZone.UTC).getMillis();
                     case "bound_pattern":
                         return Slices.wrappedBuffer("%el%".getBytes(UTF_8));
+                    case "bound_timestamp_with_timezone":
+                        return new SqlTimestampWithTimeZone(new DateTime(1970, 1, 1, 1, 0, 0, 999, DateTimeZone.UTC).getMillis(), getTimeZoneKey("Z"));
                 }
 
                 return new QualifiedNameReference(symbol.toQualifiedName());

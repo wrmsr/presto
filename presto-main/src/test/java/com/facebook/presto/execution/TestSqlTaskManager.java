@@ -15,13 +15,13 @@ package com.facebook.presto.execution;
 
 import com.facebook.presto.ScheduledSplit;
 import com.facebook.presto.TaskSource;
-import com.facebook.presto.UnpartitionedPagePartitionFunction;
+import com.facebook.presto.client.NodeVersion;
 import com.facebook.presto.event.query.QueryMonitor;
 import com.facebook.presto.memory.LocalMemoryManager;
 import com.facebook.presto.memory.MemoryManagerConfig;
 import com.facebook.presto.memory.ReservedSystemMemoryConfig;
-import com.facebook.presto.metadata.NodeVersion;
 import com.facebook.presto.operator.ExchangeClient;
+import com.facebook.presto.operator.ExchangeClientSupplier;
 import com.facebook.presto.spi.Node;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -36,7 +36,6 @@ import org.testng.annotations.Test;
 
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import static com.facebook.presto.OutputBuffers.INITIAL_EMPTY_OUTPUT_BUFFERS;
 import static com.facebook.presto.SessionTestUtils.TEST_SESSION;
@@ -110,20 +109,24 @@ public class TestSqlTaskManager
                     taskId,
                     PLAN_FRAGMENT,
                     ImmutableList.of(new TaskSource(TABLE_SCAN_NODE_ID, ImmutableSet.of(SPLIT), true)),
-                    INITIAL_EMPTY_OUTPUT_BUFFERS.withBuffer(OUT, new UnpartitionedPagePartitionFunction()).withNoMoreBufferIds());
+                    INITIAL_EMPTY_OUTPUT_BUFFERS.withBuffer(OUT, 0).withNoMoreBufferIds());
             assertEquals(taskInfo.getState(), TaskState.RUNNING);
 
             taskInfo = sqlTaskManager.getTaskInfo(taskId);
             assertEquals(taskInfo.getState(), TaskState.RUNNING);
 
             BufferResult results = sqlTaskManager.getTaskResults(taskId, OUT, 0, new DataSize(1, Unit.MEGABYTE)).get();
-            assertEquals(results.isBufferClosed(), false);
+            assertEquals(results.isBufferComplete(), false);
             assertEquals(results.getPages().size(), 1);
             assertEquals(results.getPages().get(0).getPositionCount(), 1);
 
             results = sqlTaskManager.getTaskResults(taskId, OUT, results.getToken() + results.getPages().size(), new DataSize(1, Unit.MEGABYTE)).get();
-            assertEquals(results.isBufferClosed(), true);
+            assertEquals(results.isBufferComplete(), true);
             assertEquals(results.getPages().size(), 0);
+
+            // complete the task by calling abort on it
+            TaskInfo info = sqlTaskManager.abortTaskResults(taskId, OUT);
+            assertEquals(info.getOutputBuffers().getState(), SharedBuffer.BufferState.FINISHED);
 
             taskInfo = sqlTaskManager.getTaskInfo(taskId, taskInfo.getState()).get(1, TimeUnit.SECONDS);
             assertEquals(taskInfo.getState(), TaskState.FINISHED);
@@ -198,7 +201,7 @@ public class TestSqlTaskManager
                     taskId,
                     PLAN_FRAGMENT,
                     ImmutableList.of(new TaskSource(TABLE_SCAN_NODE_ID, ImmutableSet.of(SPLIT), true)),
-                    INITIAL_EMPTY_OUTPUT_BUFFERS.withBuffer(OUT, new UnpartitionedPagePartitionFunction()).withNoMoreBufferIds());
+                    INITIAL_EMPTY_OUTPUT_BUFFERS.withBuffer(OUT, 0).withNoMoreBufferIds());
             assertEquals(taskInfo.getState(), TaskState.RUNNING);
 
             taskInfo = sqlTaskManager.getTaskInfo(taskId);
@@ -257,10 +260,10 @@ public class TestSqlTaskManager
     }
 
     public static class MockExchangeClientSupplier
-            implements Supplier<ExchangeClient>
+            implements ExchangeClientSupplier
     {
         @Override
-        public ExchangeClient get()
+        public ExchangeClient get(SystemMemoryUsageListener systemMemoryUsageListener)
         {
             throw new UnsupportedOperationException();
         }

@@ -19,7 +19,10 @@ import io.airlift.slice.Slices;
 
 import java.util.Arrays;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
+
+import static com.facebook.presto.spi.block.BlockValidationUtil.checkValidPositions;
 
 public class SliceArrayBlock
         extends AbstractVariableWidthBlock
@@ -31,6 +34,11 @@ public class SliceArrayBlock
 
     public SliceArrayBlock(int positionCount, Slice[] values)
     {
+        this(positionCount, values, false);
+    }
+
+    public SliceArrayBlock(int positionCount, Slice[] values, boolean valueSlicesAreDistinct)
+    {
         this.positionCount = positionCount;
 
         if (values.length < positionCount) {
@@ -39,10 +47,12 @@ public class SliceArrayBlock
         this.values = values;
 
         sizeInBytes = getSliceArraySizeInBytes(values);
-        retainedSizeInBytes = getSliceArrayRetainedSizeInBytes(values);
+
+        // if values are distinct, use the already computed value
+        retainedSizeInBytes = valueSlicesAreDistinct ? sizeInBytes : getSliceArrayRetainedSizeInBytes(values);
     }
 
-    Slice[] getValues()
+    public Slice[] getValues()
     {
         return values;
     }
@@ -69,6 +79,20 @@ public class SliceArrayBlock
     public BlockEncoding getEncoding()
     {
         return new SliceArrayBlockEncoding();
+    }
+
+    @Override
+    public Block copyPositions(List<Integer> positions)
+    {
+        checkValidPositions(positions, positionCount);
+
+        Slice[] newValues = new Slice[positions.size()];
+        for (int i = 0; i < positions.size(); i++) {
+            if (!isEntryNull(positions.get(i))) {
+                newValues[i] = Slices.copyOf(values[positions.get(i)]);
+            }
+        }
+        return new SliceArrayBlock(positions.size(), newValues);
     }
 
     @Override
@@ -118,6 +142,27 @@ public class SliceArrayBlock
         return new SliceArrayBlock(length, deepCopyAndCompact(values, positionOffset, length));
     }
 
+    static Slice[] deepCopyAndCompactDictionary(Slice[] values, int[] ids, int positionOffset, int length)
+    {
+        Slice[] newValues = new Slice[length];
+        // Compact the slices. Use an IdentityHashMap because this could be very expensive otherwise.
+        Map<Slice, Slice> distinctValues = new IdentityHashMap<>();
+        for (int i = positionOffset; i < positionOffset + length; i++) {
+            Slice slice = values[ids[i]];
+            if (slice == null) {
+                continue;
+            }
+
+            Slice distinct = distinctValues.get(slice);
+            if (distinct == null) {
+                distinct = Slices.copyOf(slice);
+                distinctValues.put(slice, distinct);
+            }
+            newValues[i] = distinct;
+        }
+        return newValues;
+    }
+
     static Slice[] deepCopyAndCompact(Slice[] values, int positionOffset, int length)
     {
         Slice[] newValues = Arrays.copyOfRange(values, positionOffset, positionOffset + length);
@@ -131,7 +176,7 @@ public class SliceArrayBlock
             Slice distinct = distinctValues.get(slice);
             if (distinct == null) {
                 distinct = Slices.copyOf(slice);
-                distinctValues.put(distinct, distinct);
+                distinctValues.put(slice, distinct);
             }
             newValues[i] = distinct;
         }
@@ -147,7 +192,7 @@ public class SliceArrayBlock
         return sb.toString();
     }
 
-    static int getSliceArraySizeInBytes(Slice[] values)
+    public static int getSliceArraySizeInBytes(Slice[] values)
     {
         long sizeInBytes = SizeOf.sizeOf(values);
         for (Slice value : values) {
@@ -164,7 +209,7 @@ public class SliceArrayBlock
     static int getSliceArrayRetainedSizeInBytes(Slice[] values)
     {
         long sizeInBytes = SizeOf.sizeOf(values);
-        Map<Object, Boolean> uniqueRetained = new IdentityHashMap<>();
+        Map<Object, Boolean> uniqueRetained = new IdentityHashMap<>(values.length);
         for (Slice value : values) {
             if (value != null && value.getBase() != null && uniqueRetained.put(value.getBase(), true) == null) {
                 sizeInBytes += value.getRetainedSize();

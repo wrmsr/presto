@@ -13,6 +13,7 @@
  */
 package com.facebook.presto.spi;
 
+import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.Type;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
@@ -29,6 +30,7 @@ import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
 import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
+import static com.facebook.presto.spi.type.TimestampWithTimeZoneType.TIMESTAMP_WITH_TIME_ZONE;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 
 public class InMemoryRecordSet
@@ -130,7 +132,7 @@ public class InMemoryRecordSet
         {
             checkState(record != null, "no current record");
             checkNotNull(record.get(field), "value is null");
-            return (Long) record.get(field);
+            return ((Number) record.get(field)).longValue();
         }
 
         @Override
@@ -154,6 +156,15 @@ public class InMemoryRecordSet
                 return Slices.utf8Slice((String) value);
             }
             throw new IllegalArgumentException("Field " + field + " is not a String, but is a " + value.getClass().getName());
+        }
+
+        @Override
+        public Object getObject(int field)
+        {
+            checkState(record != null, "no current record");
+            Object value = record.get(field);
+            checkNotNull(value, "value is null");
+            return value;
         }
 
         @Override
@@ -214,8 +225,9 @@ public class InMemoryRecordSet
                 if (BOOLEAN.equals(type)) {
                     checkArgument(value instanceof Boolean, "Expected value %d to be an instance of Boolean, but is a %s", i, value.getClass().getSimpleName());
                 }
-                else if (BIGINT.equals(type) || DATE.equals(type) || TIMESTAMP.equals(type)) {
-                    checkArgument(value instanceof Long, "Expected value %d to be an instance of Long, but is a %s", i, value.getClass().getSimpleName());
+                else if (BIGINT.equals(type) || DATE.equals(type) || TIMESTAMP.equals(type) || TIMESTAMP_WITH_TIME_ZONE.equals(type)) {
+                    checkArgument(value instanceof Integer || value instanceof Long,
+                            "Expected value %d to be an instance of Integer or Long, but is a %s", i, value.getClass().getSimpleName());
                 }
                 else if (DOUBLE.equals(type)) {
                     checkArgument(value instanceof Double, "Expected value %d to be an instance of Double, but is a %s", i, value.getClass().getSimpleName());
@@ -264,13 +276,13 @@ public class InMemoryRecordSet
     {
         long completedBytes = 0;
         for (Object value : record) {
-            if (value instanceof Boolean) {
+            if (value == null) {
+                // do nothing
+            }
+            else if (value instanceof Boolean) {
                 completedBytes++;
             }
-            else if (value instanceof Long) {
-                completedBytes += 8;
-            }
-            else if (value instanceof Double) {
+            else if (value instanceof Number) {
                 completedBytes += 8;
             }
             else if (value instanceof String) {
@@ -278,6 +290,12 @@ public class InMemoryRecordSet
             }
             else if (value instanceof byte[]) {
                 completedBytes += ((byte[]) value).length;
+            }
+            else if (value instanceof Block) {
+                completedBytes += ((Block) value).getSizeInBytes();
+            }
+            else {
+                throw new IllegalArgumentException("Unknown type: " + value.getClass());
             }
         }
         return completedBytes;

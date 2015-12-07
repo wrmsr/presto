@@ -30,8 +30,8 @@ import java.io.File;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 
 public class HdfsConfigurationUpdater
 {
@@ -55,11 +55,12 @@ public class HdfsConfigurationUpdater
     private final DataSize s3MultipartMinPartSize;
     private final File s3StagingDirectory;
     private final List<String> resourcePaths;
+    private final boolean pinS3ClientToCurrentRegion;
 
     @Inject
     public HdfsConfigurationUpdater(HiveClientConfig hiveClientConfig)
     {
-        checkNotNull(hiveClientConfig, "hiveClientConfig is null");
+        requireNonNull(hiveClientConfig, "hiveClientConfig is null");
         checkArgument(hiveClientConfig.getDfsTimeout().toMillis() >= 1, "dfsTimeout must be at least 1 ms");
 
         this.socksProxy = hiveClientConfig.getMetastoreSocksProxy();
@@ -82,6 +83,7 @@ public class HdfsConfigurationUpdater
         this.s3MultipartMinPartSize = hiveClientConfig.getS3MultipartMinPartSize();
         this.s3StagingDirectory = hiveClientConfig.getS3StagingDirectory();
         this.resourcePaths = hiveClientConfig.getResourceConfigFiles();
+        this.pinS3ClientToCurrentRegion = hiveClientConfig.isPinS3ClientToCurrentRegion();
     }
 
     public void updateConfiguration(Configuration config)
@@ -143,6 +145,7 @@ public class HdfsConfigurationUpdater
         config.setInt(PrestoS3FileSystem.S3_MAX_CONNECTIONS, s3MaxConnections);
         config.setLong(PrestoS3FileSystem.S3_MULTIPART_MIN_FILE_SIZE, s3MultipartMinFileSize.toBytes());
         config.setLong(PrestoS3FileSystem.S3_MULTIPART_MIN_PART_SIZE, s3MultipartMinPartSize.toBytes());
+        config.setBoolean(PrestoS3FileSystem.S3_PIN_CLIENT_TO_CURRENT_REGION, pinS3ClientToCurrentRegion);
     }
 
     public static class NoOpDNSToSwitchMapping

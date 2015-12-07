@@ -18,6 +18,9 @@ import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
 
+import java.util.List;
+
+import static com.facebook.presto.spi.block.BlockValidationUtil.checkValidPositions;
 import static io.airlift.slice.SizeOf.SIZE_OF_BYTE;
 import static io.airlift.slice.SizeOf.SIZE_OF_DOUBLE;
 import static io.airlift.slice.SizeOf.SIZE_OF_FLOAT;
@@ -36,18 +39,13 @@ public class FixedWidthBlockBuilder
 
     private int currentEntrySize;
 
-    public FixedWidthBlockBuilder(int fixedSize, BlockBuilderStatus blockBuilderStatus)
-    {
-        this(fixedSize, blockBuilderStatus, blockBuilderStatus.getMaxBlockSizeInBytes());
-    }
-
-    public FixedWidthBlockBuilder(int fixedSize, BlockBuilderStatus blockBuilderStatus, int expectedSize)
+    public FixedWidthBlockBuilder(int fixedSize, BlockBuilderStatus blockBuilderStatus, int expectedEntries)
     {
         super(fixedSize);
 
         this.blockBuilderStatus = blockBuilderStatus;
-        this.sliceOutput = new DynamicSliceOutput(expectedSize);
-        this.valueIsNull = new DynamicSliceOutput(1024);
+        this.sliceOutput = new DynamicSliceOutput(fixedSize * expectedEntries);
+        this.valueIsNull = new DynamicSliceOutput(expectedEntries);
     }
 
     public FixedWidthBlockBuilder(int fixedSize, int positionCount)
@@ -92,6 +90,21 @@ public class FixedWidthBlockBuilder
             return Integer.MAX_VALUE;
         }
         return (int) size;
+    }
+
+    @Override
+    public Block copyPositions(List<Integer> positions)
+    {
+        checkValidPositions(positions, positionCount);
+
+        SliceOutput newSlice = new DynamicSliceOutput(positions.size() * fixedSize);
+        SliceOutput newValueIsNull = new DynamicSliceOutput(positions.size());
+
+        for (int position : positions) {
+            newValueIsNull.appendByte(valueIsNull.getUnderlyingSlice().getByte(position));
+            newSlice.appendBytes(getRawSlice().getBytes(position * fixedSize, fixedSize));
+        }
+        return new FixedWidthBlock(fixedSize, positions.size(), newSlice.slice(), newValueIsNull.slice());
     }
 
     @Override

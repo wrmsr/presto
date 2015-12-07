@@ -16,6 +16,7 @@ package com.facebook.presto.byteCode.expression;
 import com.facebook.presto.byteCode.ByteCodeNode;
 import com.facebook.presto.byteCode.ByteCodeVisitor;
 import com.facebook.presto.byteCode.FieldDefinition;
+import com.facebook.presto.byteCode.MethodDefinition;
 import com.facebook.presto.byteCode.MethodGenerationContext;
 import com.facebook.presto.byteCode.ParameterizedType;
 import com.google.common.collect.ImmutableList;
@@ -23,11 +24,13 @@ import org.objectweb.asm.MethodVisitor;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.List;
 
 import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.facebook.presto.byteCode.expression.ByteCodeExpressions.constantInt;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.transform;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A ByteCodeExpression is chain of Java like expressions that results in at most
@@ -50,7 +53,7 @@ public abstract class ByteCodeExpression
 
     protected ByteCodeExpression(ParameterizedType type)
     {
-        this.type = checkNotNull(type, "type is null");
+        this.type = requireNonNull(type, "type is null");
     }
 
     public final ParameterizedType getType()
@@ -120,7 +123,14 @@ public abstract class ByteCodeExpression
 
     public final ByteCodeExpression invoke(Method method, ByteCodeExpression... parameters)
     {
-        return invoke(method, ImmutableList.copyOf(checkNotNull(parameters, "parameters is null")));
+        return invoke(method, ImmutableList.copyOf(requireNonNull(parameters, "parameters is null")));
+    }
+
+    public final ByteCodeExpression invoke(MethodDefinition method, Iterable<? extends ByteCodeExpression> parameters)
+    {
+        List<ByteCodeExpression> params = ImmutableList.copyOf(parameters);
+        checkArgument(method.getParameters().size() == params.size(), "Expected %s params found %s", method.getParameters().size(), params.size());
+        return invoke(method.getName(), method.getReturnType(), parameters);
     }
 
     public final ByteCodeExpression invoke(Method method, Iterable<? extends ByteCodeExpression> parameters)
@@ -130,7 +140,7 @@ public abstract class ByteCodeExpression
 
     public final ByteCodeExpression invoke(String methodName, Class<?> returnType, ByteCodeExpression... parameters)
     {
-        return invoke(methodName, type(returnType), ImmutableList.copyOf(checkNotNull(parameters, "parameters is null")));
+        return invoke(methodName, type(returnType), ImmutableList.copyOf(requireNonNull(parameters, "parameters is null")));
     }
 
     public final ByteCodeExpression invoke(String methodName, Class<?> returnType, Iterable<? extends ByteCodeExpression> parameters)
@@ -140,7 +150,7 @@ public abstract class ByteCodeExpression
 
     public final ByteCodeExpression invoke(String methodName, ParameterizedType returnType, Iterable<? extends ByteCodeExpression> parameters)
     {
-        checkNotNull(parameters, "parameters is null");
+        requireNonNull(parameters, "parameters is null");
 
         return invoke(methodName,
                 returnType,
@@ -150,12 +160,12 @@ public abstract class ByteCodeExpression
 
     public final ByteCodeExpression invoke(String methodName, Class<?> returnType, Iterable<? extends Class<?>> parameterTypes, ByteCodeExpression... parameters)
     {
-        return invoke(methodName, type(returnType), transform(parameterTypes, ParameterizedType::type), ImmutableList.copyOf(checkNotNull(parameters, "parameters is null")));
+        return invoke(methodName, type(returnType), transform(parameterTypes, ParameterizedType::type), ImmutableList.copyOf(requireNonNull(parameters, "parameters is null")));
     }
 
     public final ByteCodeExpression invoke(String methodName, ParameterizedType returnType, Iterable<ParameterizedType> parameterTypes, ByteCodeExpression... parameters)
     {
-        return invoke(methodName, returnType, parameterTypes, ImmutableList.copyOf(checkNotNull(parameters, "parameters is null")));
+        return invoke(methodName, returnType, parameterTypes, ImmutableList.copyOf(requireNonNull(parameters, "parameters is null")));
     }
 
     public final ByteCodeExpression invoke(
@@ -182,6 +192,21 @@ public abstract class ByteCodeExpression
         return new GetElementByteCodeExpression(this, index);
     }
 
+    public final ByteCodeExpression setElement(int index, ByteCodeExpression value)
+    {
+        return new SetArrayElementByteCodeExpression(this, constantInt(index), value);
+    }
+
+    public final ByteCodeExpression setElement(ByteCodeExpression index, ByteCodeExpression value)
+    {
+        return new SetArrayElementByteCodeExpression(this, index, value);
+    }
+
+    public final ByteCodeExpression length()
+    {
+        return new ArrayLengthByteCodeExpression(this);
+    }
+
     public final ByteCodeExpression ret()
     {
         return new ReturnByteCodeExpression(this);
@@ -205,5 +230,10 @@ public abstract class ByteCodeExpression
     public final <T> T accept(ByteCodeNode parent, ByteCodeVisitor<T> visitor)
     {
         return visitor.visitByteCodeExpression(parent, this);
+    }
+
+    public ByteCodeExpression instanceOf(Class<?> type)
+    {
+        return InstanceOfByteCodeExpression.instanceOf(this, type);
     }
 }

@@ -13,12 +13,15 @@
  */
 package com.facebook.presto.server;
 
+import com.facebook.presto.GroupByHashPageIndexerFactory;
 import com.facebook.presto.PagesIndexPageSorter;
 import com.facebook.presto.block.BlockEncodingManager;
+import com.facebook.presto.block.BlockJsonSerde;
+import com.facebook.presto.client.NodeVersion;
 import com.facebook.presto.client.QueryResults;
+import com.facebook.presto.client.ServerInfo;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.connector.informationSchema.InformationSchemaModule;
-import com.facebook.presto.connector.jmx.JmxConnectorFactory;
 import com.facebook.presto.connector.system.SystemTablesModule;
 import com.facebook.presto.event.query.QueryCompletionEvent;
 import com.facebook.presto.event.query.QueryCreatedEvent;
@@ -49,10 +52,9 @@ import com.facebook.presto.metadata.CatalogManagerConfig;
 import com.facebook.presto.metadata.HandleJsonModule;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.MetadataManager;
-import com.facebook.presto.metadata.NodeVersion;
-import com.facebook.presto.operator.ExchangeClient;
 import com.facebook.presto.operator.ExchangeClientConfig;
 import com.facebook.presto.operator.ExchangeClientFactory;
+import com.facebook.presto.operator.ExchangeClientSupplier;
 import com.facebook.presto.operator.ForExchange;
 import com.facebook.presto.operator.ForScheduler;
 import com.facebook.presto.operator.index.IndexJoinLookupStats;
@@ -60,7 +62,9 @@ import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.ConnectorPageSourceProvider;
 import com.facebook.presto.spi.ConnectorSplit;
+import com.facebook.presto.spi.PageIndexerFactory;
 import com.facebook.presto.spi.PageSorter;
+import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockEncodingFactory;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.type.Type;
@@ -83,12 +87,14 @@ import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.type.TypeDeserializer;
 import com.facebook.presto.type.TypeRegistry;
+import com.facebook.presto.util.FinalizerService;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.MapBinder;
+import io.airlift.concurrent.BoundedExecutor;
 import io.airlift.configuration.AbstractConfigurationAwareModule;
 import io.airlift.discovery.client.ServiceDescriptor;
 import io.airlift.slice.Slice;
@@ -98,10 +104,9 @@ import javax.inject.Singleton;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Supplier;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.inject.multibindings.MapBinder.newMapBinder;
@@ -114,6 +119,8 @@ import static io.airlift.http.client.HttpClientBinder.httpClientBinder;
 import static io.airlift.jaxrs.JaxrsBinder.jaxrsBinder;
 import static io.airlift.json.JsonBinder.jsonBinder;
 import static io.airlift.json.JsonCodecBinder.jsonCodecBinder;
+import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.Executors.newScheduledThreadPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.weakref.jmx.guice.ExportBinder.newExporter;
@@ -125,7 +132,7 @@ public class ServerMainModule
 
     public ServerMainModule(SqlParserOptions sqlParserOptions)
     {
-        this.sqlParserOptions = checkNotNull(sqlParserOptions, "sqlParserOptions is null");
+        this.sqlParserOptions = requireNonNull(sqlParserOptions, "sqlParserOptions is null");
     }
 
     @Override
@@ -173,7 +180,7 @@ public class ServerMainModule
         jaxrsBinder(binder).bind(PagesResponseWriter.class);
 
         // exchange client
-        binder.bind(new TypeLiteral<Supplier<ExchangeClient>>() {}).to(ExchangeClientFactory.class).in(Scopes.SINGLETON);
+        binder.bind(new TypeLiteral<ExchangeClientSupplier>() {}).to(ExchangeClientFactory.class).in(Scopes.SINGLETON);
         httpClientBinder(binder).bindHttpClient("exchange", ForExchange.class)
                 .withTracing()
                 .withConfigDefaults(config -> {
@@ -242,9 +249,6 @@ public class ServerMainModule
         binder.bind(ConnectorManager.class).in(Scopes.SINGLETON);
         MapBinder<String, ConnectorFactory> connectorFactoryBinder = newMapBinder(binder, String.class, ConnectorFactory.class);
 
-        // jmx connector
-        connectorFactoryBinder.addBinding("jmx").to(JmxConnectorFactory.class);
-
         // information schema
         binder.install(new InformationSchemaModule());
 
@@ -297,6 +301,10 @@ public class ServerMainModule
                     config.setRequestTimeout(new Duration(10, SECONDS));
                 });
 
+        // server info resource
+        binder.bind(ServerInfo.class).toInstance(new ServerInfo(nodeVersion));
+        jaxrsBinder(binder).bind(ServerInfoResource.class);
+
         // plugin manager
         binder.bind(PluginManager.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(PluginManagerConfig.class);
@@ -308,6 +316,8 @@ public class ServerMainModule
         binder.bind(BlockEncodingManager.class).in(Scopes.SINGLETON);
         binder.bind(BlockEncodingSerde.class).to(BlockEncodingManager.class).in(Scopes.SINGLETON);
         newSetBinder(binder, new TypeLiteral<BlockEncodingFactory<?>>() {});
+        jsonBinder(binder).addSerializerBinding(Block.class).to(BlockJsonSerde.Serializer.class);
+        jsonBinder(binder).addDeserializerBinding(Block.class).to(BlockJsonSerde.Deserializer.class);
 
         // thread visualizer
         jaxrsBinder(binder).bind(ThreadResource.class);
@@ -317,6 +327,12 @@ public class ServerMainModule
 
         // PageSorter
         binder.bind(PageSorter.class).to(PagesIndexPageSorter.class).in(Scopes.SINGLETON);
+
+        // PageIndexer
+        binder.bind(PageIndexerFactory.class).to(GroupByHashPageIndexerFactory.class).in(Scopes.SINGLETON);
+
+        // Finalizer
+        binder.bind(FinalizerService.class).in(Scopes.SINGLETON);
     }
 
     @Provides
@@ -329,10 +345,26 @@ public class ServerMainModule
 
     @Provides
     @Singleton
-    @ForAsyncHttpResponse
-    public static ScheduledExecutorService createAsyncHttpResponseExecutor(TaskManagerConfig config)
+    @ForAsyncHttp
+    public static ExecutorService createAsyncHttpResponseCoreExecutor()
     {
-        return newScheduledThreadPool(config.getHttpNotificationThreads(), daemonThreadsNamed("async-http-response-%s"));
+        return newCachedThreadPool(daemonThreadsNamed("async-http-response-%s"));
+    }
+
+    @Provides
+    @Singleton
+    @ForAsyncHttp
+    public static BoundedExecutor createAsyncHttpResponseExecutor(@ForAsyncHttp ExecutorService coreExecutor, TaskManagerConfig config)
+    {
+        return new BoundedExecutor(coreExecutor, config.getHttpResponseThreads());
+    }
+
+    @Provides
+    @Singleton
+    @ForAsyncHttp
+    public static ScheduledExecutorService createAsyncHttpTimeoutExecutor(TaskManagerConfig config)
+    {
+        return newScheduledThreadPool(config.getHttpTimeoutThreads(), daemonThreadsNamed("async-http-timeout-%s"));
     }
 
     private static String detectPrestoVersion()

@@ -13,9 +13,9 @@
  */
 package com.facebook.presto.sql.tree;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Optional;
+
+import static java.util.Objects.requireNonNull;
 
 public class AllColumns
         extends SelectItem
@@ -24,12 +24,25 @@ public class AllColumns
 
     public AllColumns()
     {
+        super(Optional.empty());
         prefix = Optional.empty();
     }
 
-    public AllColumns(QualifiedName prefix)
+    public AllColumns(NodeLocation location)
     {
-        Preconditions.checkNotNull(prefix, "prefix is null");
+        super(Optional.of(location));
+        prefix = Optional.empty();
+    }
+
+    public AllColumns(NodeLocation location, QualifiedName prefix)
+    {
+        this(Optional.of(location), prefix);
+    }
+
+    private AllColumns(Optional<NodeLocation> location, QualifiedName prefix)
+    {
+        super(location);
+        requireNonNull(prefix, "prefix is null");
         this.prefix = Optional.of(prefix);
     }
 
