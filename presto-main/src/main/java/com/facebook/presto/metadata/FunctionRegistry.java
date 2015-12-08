@@ -224,10 +224,18 @@ public class FunctionRegistry
     private final LoadingCache<SpecializedFunctionKey, WindowFunctionSupplier> specializedWindowCache;
     private volatile FunctionMap functions = new FunctionMap();
 
+    private final Set<SignatureBinder> signatureBinders;
+
     public FunctionRegistry(TypeManager typeManager, BlockEncodingSerde blockEncodingSerde, boolean experimentalSyntaxEnabled)
+    {
+        this(typeManager, blockEncodingSerde, experimentalSyntaxEnabled, ImmutableSet.of());
+    }
+
+    public FunctionRegistry(TypeManager typeManager, BlockEncodingSerde blockEncodingSerde, boolean experimentalSyntaxEnabled, Set<SignatureBinder> signatureBinders)
     {
         this.typeManager = requireNonNull(typeManager, "typeManager is null");
         this.blockEncodingSerde = requireNonNull(blockEncodingSerde, "blockEncodingSerde is null");
+        this.signatureBinders = requireNonNull(signatureBinders);
 
         specializedScalarCache = CacheBuilder.newBuilder()
                 .maximumSize(1000)
@@ -372,7 +380,7 @@ public class FunctionRegistry
     }
 
     @Nullable
-    private static Signature bindSignature(Signature signature, List<? extends Type> types, boolean allowCoercion, TypeManager typeManager)
+    public static Signature bindSignature(Signature signature, List<? extends Type> types, boolean allowCoercion, TypeManager typeManager)
     {
         List<TypeSignature> argumentTypes = signature.getArgumentTypes();
         Map<String, Type> boundParameters = signature.bindTypeParameters(types, allowCoercion, typeManager);
@@ -397,7 +405,7 @@ public class FunctionRegistry
         return new Signature(signature.getName(), signature.getKind(), bindParameters(signature.getReturnType(), boundParameters), boundArguments.build());
     }
 
-    private static TypeSignature bindParameters(TypeSignature typeSignature, Map<String, Type> boundParameters)
+    public static TypeSignature bindParameters(TypeSignature typeSignature, Map<String, Type> boundParameters)
     {
         List<TypeSignature> parameters = typeSignature.getParameters().stream().map(signature -> bindParameters(signature, boundParameters)).collect(toImmutableList());
         String base = typeSignature.getBase();
@@ -437,8 +445,23 @@ public class FunctionRegistry
                 .collect(toImmutableList());
 
         List<Type> resolvedTypes = resolveTypes(parameterTypes, typeManager);
+
         // search for exact match
         Signature match = null;
+        for (SqlFunction function : candidates) {
+            for (SignatureBinder signatureBinder : signatureBinders) {
+                Signature signature = signatureBinder.bindSignature(function.getSignature(), resolvedTypes, false, typeManager);
+                if (signature != null) {
+                    checkArgument(match == null, "Ambiguous call to %s with parameters %s", name, parameterTypes);
+                    match = signature;
+                }
+            }
+        }
+
+        if (match != null) {
+            return match;
+        }
+
         for (SqlFunction function : candidates) {
             Signature signature = bindSignature(function.getSignature(), resolvedTypes, false, typeManager);
             if (signature != null) {

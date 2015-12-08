@@ -32,10 +32,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.inject.multibindings.Multibinder.newSetBinder;
 import static io.airlift.configuration.ConfigBinder.configBinder;
 
 public class PreloadedPlugins
@@ -45,8 +42,6 @@ public class PreloadedPlugins
     private PreloadedPlugins()
     {
     }
-
-    // fml
 
     public static Iterable<Module> processServerModules(Iterable<Module> modules)
     {
@@ -97,14 +92,14 @@ public class PreloadedPlugins
         return ImmutableList.of(
                 new GuiceUtils.OverrideConfigurationAwareModule(
                         ImmutableList.<Module>of(
-                            new Module()
-                            {
-                                @Override
-                                public void configure(Binder binder)
+                                new Module()
                                 {
-                                    binder.bind(new TypeLiteral<Optional<PreloadedPluginSet>>() {}).toInstance(Optional.of(preloadedPlugins));
+                                    @Override
+                                    public void configure(Binder binder)
+                                    {
+                                        binder.bind(new TypeLiteral<Optional<PreloadedPluginSet>>() {}).toInstance(Optional.of(preloadedPlugins));
+                                    }
                                 }
-                            }
                         ),
                         ImmutableSet.<Module>of(finalModule)
                 ));

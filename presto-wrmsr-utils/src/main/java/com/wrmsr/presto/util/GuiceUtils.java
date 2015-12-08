@@ -100,6 +100,11 @@ public class GuiceUtils
         }
     }
 
+    public static AbstractConfigurationAwareModule combine(Iterable<? extends Module> modules)
+    {
+        return new CombineConfigurationAwareModule(modules);
+    }
+
     public static final class RealOverriddenModuleBuilder
             implements OverriddenModuleBuilder
     {
@@ -346,5 +351,10 @@ public class GuiceUtils
                 element.acceptVisitor(this);
             }
         }
+    }
+
+    public static OverriddenModuleBuilder override(Iterable<? extends Module> baseModules)
+    {
+        return new RealOverriddenModuleBuilder(baseModules);
     }
 }

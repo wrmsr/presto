@@ -16,6 +16,7 @@ package com.wrmsr.presto.codec;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.util.Compression;
 
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
@@ -26,6 +27,8 @@ public class CodecModule
     @Override
     public void configure(Binder binder)
     {
+        binder.bind(TypeCodecManager.class).asEagerSingleton();
+
         Multibinder<TypeCodecProvider> typeCodecProviderBinder = Multibinder.newSetBinder(binder, TypeCodecProvider.class);
 
         typeCodecProviderBinder.addBinding().toInstance(
@@ -33,5 +36,12 @@ public class CodecModule
                         Compression.COMMONS_COMPRESSION_NAMES.stream()
                                 .map(CommonsCompressionTypeCodec::new)
                                 .collect(toImmutableList())));
+
+        Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
+
+        binder.bind(EncodeFunction.class).asEagerSingleton();
+        functionRegistrationBinder.addBinding().to(EncodeFunction.class);
+        binder.bind(DecodeFunction.class).asEagerSingleton();
+        functionRegistrationBinder.addBinding().to(DecodeFunction.class);
     }
 }

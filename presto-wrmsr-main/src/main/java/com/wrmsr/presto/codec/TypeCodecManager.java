@@ -10,12 +10,12 @@ import java.util.Set;
 public class TypeCodecManager
     implements TypeCodecProvider
 {
-    private final Set<TypeCodec> typeCodecs;
+    private final Set<TypeCodecProvider> typeCodecProviders;
 
     @Inject
-    public TypeCodecManager(Set<TypeCodec> typeCodecs)
+    public TypeCodecManager(Set<TypeCodecProvider> typeCodecProviders)
     {
-        this.typeCodecs = typeCodecs;
+        this.typeCodecProviders = typeCodecProviders;
     }
 
     public Optional<TypeCodec> getTypeCodec(String name, Type fromType)

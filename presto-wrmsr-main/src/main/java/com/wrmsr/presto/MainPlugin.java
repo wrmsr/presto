@@ -24,6 +24,8 @@ import com.facebook.presto.execution.QueryManager;
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.SessionPropertyManager;
+import com.facebook.presto.metadata.Signature;
+import com.facebook.presto.metadata.SignatureBinder;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.server.PluginManager;
@@ -33,6 +35,7 @@ import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
@@ -47,6 +50,7 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
+import com.google.inject.multibindings.Multibinder;
 import com.google.inject.util.Modules;
 import com.wrmsr.presto.config.ConnectorsConfigNode;
 import com.wrmsr.presto.config.ExecConfigNode;
@@ -70,6 +74,7 @@ import com.wrmsr.presto.metaconnector.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.metaconnector.partitioner.PartitionerModule;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
+import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.Configs;
 import io.airlift.json.JsonCodec;
@@ -77,6 +82,7 @@ import io.airlift.log.Logger;
 import io.airlift.units.Duration;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 
 import java.io.File;
@@ -441,8 +447,24 @@ public class MainPlugin
                 @Override
                 public Module apply(Module module)
                 {
-                    // jaxrsBinder(binder).bind(ShutdownResource.class);
-                    return module;
+                    return GuiceUtils.combine(ImmutableList.of(module, new Module() {
+                        @Override
+                        public void configure(Binder binder)
+                        {
+                            Multibinder<SignatureBinder> signatureBinderBinder = Multibinder.newSetBinder(binder, SignatureBinder.class);
+
+                            signatureBinderBinder.addBinding().toInstance(new SignatureBinder() {
+                                @Nullable
+                                @Override
+                                public Signature bindSignature(Signature signature, List<? extends Type> types, boolean allowCoercion, TypeManager typeManager)
+                                {
+                                    return null;
+                                }
+                            });
+
+                            // jaxrsBinder(binder).bind(ShutdownResource.class);
+                        }
+                    }));
                 }
             }));
         }

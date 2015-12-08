@@ -2,19 +2,19 @@ package com.wrmsr.presto.codec;
 
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.SqlScalarFunction;
-import com.facebook.presto.metadata.TypeParameter;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.function.FunctionRegistration;
 
-import java.util.List;
 import java.util.Map;
 
 import static com.facebook.presto.metadata.Signature.typeParameter;
 
 public class DecodeFunction
-    extends SqlScalarFunction
+        extends SqlScalarFunction
+        implements FunctionRegistration.Self
 {
     public static final String NAME = "decode";
 
@@ -44,6 +44,6 @@ public class DecodeFunction
     @Override
     public String getDescription()
     {
-        return "decodes lol";
+        return "decode";
     }
 }
