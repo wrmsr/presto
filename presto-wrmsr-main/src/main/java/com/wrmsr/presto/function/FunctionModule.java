@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.function;
 
+import com.facebook.presto.metadata.SignatureBinder;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
@@ -25,6 +26,8 @@ public class FunctionModule
     public void configure(Binder binder)
     {
         binder.install(new BitwiseModule());
+
+        Multibinder<SignatureBinder> signatureBinderBinder = Multibinder.newSetBinder(binder, SignatureBinder.class);
 
         Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
 

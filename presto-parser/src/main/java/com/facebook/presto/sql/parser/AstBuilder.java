@@ -1383,19 +1383,7 @@ class AstBuilder
 
     private static String getType(SqlBaseParser.TypeContext type)
     {
-        if (type.simpleType() != null) {
-            return type.simpleType().getText();
-        }
-
-        if (type.ARRAY() != null) {
-            return "ARRAY<" + getType(type.type(0)) + ">";
-        }
-
-        if (type.MAP() != null) {
-            return "MAP<" + getType(type.type(0)) + "," + getType(type.type(1)) + ">";
-        }
-
-        throw new IllegalArgumentException("Unsupported type specification: " + type.getText());
+        return type.getText();
     }
 
     private static void check(boolean condition, String message, ParserRuleContext context)

@@ -13,8 +13,10 @@
  */
 package com.wrmsr.presto;
 
+import com.facebook.presto.metadata.SignatureBinder;
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.codec.CodecModule;
 import com.wrmsr.presto.config.MainConfig;
 import com.wrmsr.presto.connector.ConnectorModule;

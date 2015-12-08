@@ -477,7 +477,7 @@ public class MainPlugin
                     Signature boundSignature = signatureBinder.bindSignature(signature, types, allowCoercion, typeManager);
                     if (signature != null) {
                         checkArgument(match == null, "Ambiguous call to %s with parameters %s", signature.getName(), types);
-                        match = signature;
+                        match = boundSignature;
                     }
                 }
                 return match;

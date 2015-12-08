@@ -14,10 +14,20 @@
 package com.wrmsr.presto;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.execution.QueryId;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.spi.block.*;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.*;
+import com.facebook.presto.sql.parser.SqlParser;
+import com.facebook.presto.sql.tree.Cast;
+import com.facebook.presto.sql.tree.Expression;
+import com.facebook.presto.sql.tree.FunctionCall;
+import com.facebook.presto.sql.tree.Node;
+import com.facebook.presto.sql.tree.NullLiteral;
+import com.facebook.presto.sql.tree.QualifiedName;
+import com.facebook.presto.sql.tree.Statement;
+import com.facebook.presto.sql.tree.StringLiteral;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
@@ -37,11 +47,14 @@ import java.util.Optional;
 import static com.facebook.presto.byteCode.Parameter.arg;
 import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
+import static com.facebook.presto.sql.SqlFormatter.formatSql;
 import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.google.common.base.Preconditions.checkState;
+import static java.lang.String.format;
 import static java.util.Locale.ENGLISH;
+import static org.testng.Assert.fail;
 
 public class TestMainPlugin
         extends AbstractTestQueryFramework
@@ -71,6 +84,7 @@ public class TestMainPlugin
     {
        Session defaultSession = Session.builder(new SessionPropertyManager())
                .setSource("test")
+               .setQueryId(QueryId.valueOf("test"))
                .setCatalog("local")
                .setSchema(TINY_SCHEMA_NAME)
                .setTimeZoneKey(UTC_KEY)
@@ -175,5 +189,50 @@ public class TestMainPlugin
         // Class<?> cls = StructManager.generateBox(rowType.getTypeSignature().getBase());
         // cls.getDeclaredConstructor(Slice.class).newInstance(new Object[]{null});
         // System.out.println(cls);
+    }
+
+    private static final SqlParser SQL_PARSER = new SqlParser();
+
+    @Test
+    public void testParam()
+            throws Exception
+    {
+        assertCast("encoded('gzip')", "encoded('gzip')");
+    }
+
+    private static void assertCast(String type)
+    {
+        assertCast(type, type);
+    }
+
+    private static void assertCast(String type, String expected)
+    {
+        assertExpression("CAST(null AS " + type + ")", new Cast(new NullLiteral(), expected));
+    }
+
+    private static void assertStatement(String query, Statement expected)
+    {
+        assertParsed(query, expected, SQL_PARSER.createStatement(query));
+    }
+
+    private static void assertExpression(String expression, Expression expected)
+    {
+        assertParsed(expression, expected, SQL_PARSER.createExpression(expression));
+    }
+
+    private static void assertParsed(String input, Node expected, Node parsed)
+    {
+        if (!parsed.equals(expected)) {
+            fail(format("expected\n\n%s\n\nto parse as\n\n%s\n\nbut was\n\n%s\n",
+                    indent(input),
+                    indent(formatSql(expected)),
+                    indent(formatSql(parsed))));
+        }
+    }
+
+    private static String indent(String value)
+    {
+        String indent = "    ";
+        return indent + value.trim().replaceAll("\n", "\n" + indent);
     }
 }

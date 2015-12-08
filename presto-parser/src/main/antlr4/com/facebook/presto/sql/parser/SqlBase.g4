@@ -292,15 +292,17 @@ intervalField
 
 type
     : type ARRAY
-    | ARRAY '<' type '>'
-    | MAP '<' type ',' type '>'
-    | simpleType
+    | TIME_WITH_TIME_ZONE
+    | TIMESTAMP_WITH_TIME_ZONE
+    | identifier ('<' typeTypeParameter (',' typeTypeParameter)* '>')? ('(' literalTypeParameter (',' literalTypeParameter)* ')')?
     ;
 
-simpleType
-    : TIME_WITH_TIME_ZONE
-    | TIMESTAMP_WITH_TIME_ZONE
-    | identifier
+typeTypeParameter
+    : type
+    ;
+
+literalTypeParameter
+    : STRING
     ;
 
 whenClause

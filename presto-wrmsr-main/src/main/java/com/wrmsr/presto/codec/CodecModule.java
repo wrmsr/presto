@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.codec;
 
+import com.facebook.presto.metadata.SignatureBinder;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
@@ -30,6 +31,7 @@ public class CodecModule
         binder.bind(TypeCodecManager.class).asEagerSingleton();
 
         Multibinder<TypeCodecProvider> typeCodecProviderBinder = Multibinder.newSetBinder(binder, TypeCodecProvider.class);
+        Multibinder<SignatureBinder> signatureBinderBinder = Multibinder.newSetBinder(binder, SignatureBinder.class);
 
         typeCodecProviderBinder.addBinding().toInstance(
                 TypeCodecProvider.of(
@@ -41,6 +43,7 @@ public class CodecModule
 
         binder.bind(EncodeFunction.class).asEagerSingleton();
         functionRegistrationBinder.addBinding().to(EncodeFunction.class);
+        signatureBinderBinder.addBinding().to(EncodeFunction.class);
         binder.bind(DecodeFunction.class).asEagerSingleton();
         functionRegistrationBinder.addBinding().to(DecodeFunction.class);
     }
