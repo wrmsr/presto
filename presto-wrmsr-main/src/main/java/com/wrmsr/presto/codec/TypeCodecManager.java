@@ -21,7 +21,7 @@ public class TypeCodecManager
         this.typeCodecProviders = typeCodecProviders;
     }
 
-    public Optional<TypeCodec> getTypeCodec(String name, Type fromType)
+    public Optional<TypeCodec> getTypeCodec(String name, Optional<Type> fromType)
     {
         Optional<TypeCodec> ret = Optional.empty();
         for (TypeCodecProvider tpv : typeCodecProviders) {

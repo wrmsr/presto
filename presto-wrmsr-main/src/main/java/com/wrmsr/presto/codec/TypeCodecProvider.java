@@ -21,12 +21,12 @@ import java.util.Optional;
 @FunctionalInterface
 public interface TypeCodecProvider
 {
-    Optional<TypeCodec> getTypeCodec(String name, Type fromType);
+    Optional<TypeCodec> getTypeCodec(String name, Optional<Type> fromType);
 
     static TypeCodecProvider of(List<TypeCodec> typeCodecs)
     {
         return (name, fromType) -> typeCodecs.stream()
-                .filter(c -> c.getName().toLowerCase().equals(name.toLowerCase()) && c.getFromType().equals(fromType))
+                .filter(c -> c.getName().toLowerCase().equals(name.toLowerCase()) && fromType.isPresent() && c.getFromType().equals(fromType.get()))
                 .findFirst();
     }
 }
