@@ -68,7 +68,6 @@ import com.facebook.presto.operator.window.WindowFunctionSupplier;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
-import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.TypeSignature;
@@ -83,7 +82,6 @@ import com.facebook.presto.type.HyperLogLogOperators;
 import com.facebook.presto.type.IntervalDayTimeOperators;
 import com.facebook.presto.type.IntervalYearMonthOperators;
 import com.facebook.presto.type.LikeFunctions;
-import com.facebook.presto.type.RowParametricType;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TimeOperators;
 import com.facebook.presto.type.TimeWithTimeZoneOperators;
@@ -224,18 +222,18 @@ public class FunctionRegistry
     private final LoadingCache<SpecializedFunctionKey, WindowFunctionSupplier> specializedWindowCache;
     private volatile FunctionMap functions = new FunctionMap();
 
-    private final Set<SignatureBinder> signatureBinders;
+    private final Set<FunctionResolver> functionResolvers;
 
     public FunctionRegistry(TypeManager typeManager, BlockEncodingSerde blockEncodingSerde, boolean experimentalSyntaxEnabled)
     {
         this(typeManager, blockEncodingSerde, experimentalSyntaxEnabled, ImmutableSet.of());
     }
 
-    public FunctionRegistry(TypeManager typeManager, BlockEncodingSerde blockEncodingSerde, boolean experimentalSyntaxEnabled, Set<SignatureBinder> signatureBinders)
+    public FunctionRegistry(TypeManager typeManager, BlockEncodingSerde blockEncodingSerde, boolean experimentalSyntaxEnabled, Set<FunctionResolver> functionResolvers)
     {
         this.typeManager = requireNonNull(typeManager, "typeManager is null");
         this.blockEncodingSerde = requireNonNull(blockEncodingSerde, "blockEncodingSerde is null");
-        this.signatureBinders = requireNonNull(signatureBinders);
+        this.functionResolvers = requireNonNull(functionResolvers);
 
         specializedScalarCache = CacheBuilder.newBuilder()
                 .maximumSize(1000)
@@ -449,20 +447,6 @@ public class FunctionRegistry
         // search for exact match
         Signature match = null;
         for (SqlFunction function : candidates) {
-            for (SignatureBinder signatureBinder : signatureBinders) {
-                Signature signature = signatureBinder.bindSignature(function.getSignature(), resolvedTypes, false, typeManager);
-                if (signature != null) {
-                    checkArgument(match == null, "Ambiguous call to %s with parameters %s", name, parameterTypes);
-                    match = signature;
-                }
-            }
-        }
-
-        if (match != null) {
-            return match;
-        }
-
-        for (SqlFunction function : candidates) {
             Signature signature = bindSignature(function.getSignature(), resolvedTypes, false, typeManager);
             if (signature != null) {
                 checkArgument(match == null, "Ambiguous call to %s with parameters %s", name, parameterTypes);
@@ -518,6 +502,14 @@ public class FunctionRegistry
             SqlFunction fieldReference = getRowFieldReference(name.getSuffix(), parameterTypes.get(0));
             if (fieldReference != null) {
                 return bindSignature(fieldReference.getSignature(), resolvedTypes, true, typeManager);
+            }
+        }
+
+        for (FunctionResolver functionResolver : functionResolvers) {
+            Signature signature = functionResolver.resolveFunction(name, parameterTypes, approximate);
+            if (signature != null) {
+                checkArgument(match == null, "Ambiguous call to %s with parameters %s", name, parameterTypes);
+                match = signature;
             }
         }
 

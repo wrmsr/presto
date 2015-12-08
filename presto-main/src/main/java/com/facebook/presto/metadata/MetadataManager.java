@@ -145,9 +145,9 @@ public class MetadataManager
             BlockEncodingSerde blockEncodingSerde,
             SessionPropertyManager sessionPropertyManager,
             TablePropertyManager tablePropertyManager,
-            Set<SignatureBinder> signatureBinders)
+            Set<FunctionResolver> functionResolvers)
     {
-        functions = new FunctionRegistry(typeManager, blockEncodingSerde, featuresConfig.isExperimentalSyntaxEnabled(), signatureBinders);
+        functions = new FunctionRegistry(typeManager, blockEncodingSerde, featuresConfig.isExperimentalSyntaxEnabled(), functionResolvers);
         this.typeManager = requireNonNull(typeManager, "types is null");
         this.viewCodec = requireNonNull(viewCodec, "viewCodec is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");

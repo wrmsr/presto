@@ -17,8 +17,7 @@ public class EncodedType
 
     public EncodedType(TypeCodec typeCodec)
     {
-        super(new TypeSignature(NAME, ImmutableList.of(typeCodec.getFromType().getTypeSignature()), ImmutableList.of(typeCodec.getName())),
-                typeCodec.getToType().getJavaType());
+        super(new TypeSignature(NAME, ImmutableList.of(typeCodec.getFromType().getTypeSignature()), ImmutableList.of(typeCodec.getName())), typeCodec.getToType().getJavaType());
         this.typeCodec = typeCodec;
     }
 

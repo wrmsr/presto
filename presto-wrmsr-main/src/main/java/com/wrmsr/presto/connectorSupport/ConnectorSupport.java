@@ -60,4 +60,6 @@ public abstract class ConnectorSupport<C extends Connector>
     {
         throw new UnsupportedOperationException();
     }
+
+    // getEventSource
 }

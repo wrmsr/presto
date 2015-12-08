@@ -2,14 +2,16 @@ package com.wrmsr.presto.codec;
 
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Signature;
-import com.facebook.presto.metadata.SignatureBinder;
+import com.facebook.presto.metadata.FunctionResolver;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.sql.tree.QualifiedName;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.function.FunctionRegistration;
-import com.wrmsr.presto.function.SignatureBinderRegistration;
+import com.wrmsr.presto.function.FunctionResolverRegistration;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -21,24 +23,24 @@ import static com.facebook.presto.metadata.Signature.typeParameter;
 
 public class EncodeFunction
         extends SqlScalarFunction
-        implements FunctionRegistration.Self, SignatureBinder, SignatureBinderRegistration.Self
+        implements FunctionRegistration.Self, FunctionResolver, FunctionResolverRegistration.Self
 {
     public static final String NAME = "encode";
 
-    private final TypeCodecManager typeCodecManager;
+    private final TypeCodecProvider typeCodecProvider;
 
     @Inject
-    public EncodeFunction(TypeCodecManager typeCodecManager)
+    public EncodeFunction(TypeCodecProvider typeCodecProvider)
     {
         super(NAME, ImmutableList.of(typeParameter("F"), typeParameter("T")), "T", ImmutableList.of("varchar", "F"));
-        this.typeCodecManager = typeCodecManager;
+        this.typeCodecProvider = typeCodecProvider;
     }
 
     @Nullable
     @Override
-    public Signature bindSignature(Signature signature, List<? extends Type> types, boolean allowCoercion, TypeManager typeManager)
+    public Signature resolveFunction(QualifiedName name, List<TypeSignature> parameterTypes, boolean approximate)
     {
-        if (NAME.equals(signature.getName())) {
+        if (NAME.equals(name)) {
         }
         return null;
     }

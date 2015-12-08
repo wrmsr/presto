@@ -11,28 +11,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.function;
+package com.facebook.presto.metadata;
 
-import com.facebook.presto.metadata.SignatureBinder;
-import com.google.common.collect.ImmutableList;
+import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.sql.tree.QualifiedName;
+
+import javax.annotation.Nullable;
 
 import java.util.List;
 
-public interface SignatureBinderRegistration
+@FunctionalInterface
+public interface FunctionResolver
 {
-    interface Self
-            extends SignatureBinderRegistration, SignatureBinder
-    {
-        default List<SignatureBinder> getSignatureBinders()
-        {
-            return ImmutableList.of(this);
-        }
-    }
-
-    List<SignatureBinder> getSignatureBinders();
-
-    static SignatureBinderRegistration of(List<SignatureBinder> factories)
-    {
-        return () -> factories;
-    }
+    @Nullable
+    Signature resolveFunction(QualifiedName name, List<TypeSignature> parameterTypes, boolean approximate);
 }

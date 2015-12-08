@@ -13,11 +13,12 @@
  */
 package com.wrmsr.presto.codec;
 
-import com.facebook.presto.metadata.SignatureBinder;
+import com.facebook.presto.metadata.FunctionResolver;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.function.FunctionRegistration;
+import com.wrmsr.presto.function.FunctionResolverRegistration;
 import com.wrmsr.presto.type.ParametricTypeRegistration;
 import com.wrmsr.presto.util.Compression;
 
@@ -30,9 +31,10 @@ public class CodecModule
     public void configure(Binder binder)
     {
         binder.bind(TypeCodecManager.class).asEagerSingleton();
+        binder.bind(TypeCodecProvider.class).to(TypeCodecManager.class);
 
         Multibinder<TypeCodecProvider> typeCodecProviderBinder = Multibinder.newSetBinder(binder, TypeCodecProvider.class);
-        Multibinder<SignatureBinder> signatureBinderBinder = Multibinder.newSetBinder(binder, SignatureBinder.class);
+        Multibinder<FunctionResolverRegistration> functionResolverRegistrationBinder = Multibinder.newSetBinder(binder, FunctionResolverRegistration.class);
         Multibinder<ParametricTypeRegistration> parametricTypeRegistrationBinder = Multibinder.newSetBinder(binder, ParametricTypeRegistration.class);
 
         binder.bind(EncodedParametricType.class).asEagerSingleton();
@@ -48,7 +50,7 @@ public class CodecModule
 
         binder.bind(EncodeFunction.class).asEagerSingleton();
         functionRegistrationBinder.addBinding().to(EncodeFunction.class);
-        signatureBinderBinder.addBinding().to(EncodeFunction.class);
+        functionResolverRegistrationBinder.addBinding().to(EncodeFunction.class);
         binder.bind(DecodeFunction.class).asEagerSingleton();
         functionRegistrationBinder.addBinding().to(DecodeFunction.class);
     }

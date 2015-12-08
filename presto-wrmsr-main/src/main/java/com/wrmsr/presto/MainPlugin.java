@@ -25,7 +25,7 @@ import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.Signature;
-import com.facebook.presto.metadata.SignatureBinder;
+import com.facebook.presto.metadata.FunctionResolver;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.server.PluginManager;
@@ -36,9 +36,11 @@ import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
+import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.type.ParametricType;
 import com.facebook.presto.type.TypeRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -66,7 +68,6 @@ import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
 import com.wrmsr.presto.type.ParametricTypeRegistration;
 import com.wrmsr.presto.type.PropertiesFunction;
-import com.wrmsr.presto.type.PropertiesType;
 import com.wrmsr.presto.type.TypeRegistration;
 import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.Serialization;
@@ -457,27 +458,27 @@ public class MainPlugin
         }
     }
 
-    private final AtomicReference<Set<SignatureBinder>> signatureBinders = new AtomicReference<>(ImmutableSet.of());
+    private final AtomicReference<Set<FunctionResolver>> functionResolvers = new AtomicReference<>(ImmutableSet.of());
 
     private void postInject()
     {
-        signatureBinders.set(injector.getInstance(Key.get(new TypeLiteral<Set<SignatureBinder>>() {})));
+        functionResolvers.set(injector.getInstance(Key.get(new TypeLiteral<Set<FunctionResolver>>() {})));
     }
 
-    private SignatureBinder buildSignatureBinder()
+    private FunctionResolver buildFunctionResolver()
     {
-        return new SignatureBinder()
+        return new FunctionResolver()
         {
             @Nullable
             @Override
-            public Signature bindSignature(Signature signature, List<? extends Type> types, boolean allowCoercion, TypeManager typeManager)
+            public Signature resolveFunction(QualifiedName name, List<TypeSignature> parameterTypes, boolean approximate)
             {
                 Signature match = null;
-                for (SignatureBinder signatureBinder : signatureBinders.get()) {
-                    Signature boundSignature = signatureBinder.bindSignature(signature, types, allowCoercion, typeManager);
-                    if (signature != null) {
-                        checkArgument(match == null, "Ambiguous call to %s with parameters %s", signature.getName(), types);
-                        match = boundSignature;
+                for (FunctionResolver functionResolver : functionResolvers.get()) {
+                    Signature cur = functionResolver.resolveFunction(name, parameterTypes, approximate);
+                    if (cur != null) {
+                        checkArgument(match == null, "Ambiguous call to %s with parameters %s", name, parameterTypes);
+                        match = cur;
                     }
                 }
                 return match;
@@ -492,8 +493,8 @@ public class MainPlugin
             @Override
             public void configure(Binder binder)
             {
-                Multibinder<SignatureBinder> signatureBinderBinder = Multibinder.newSetBinder(binder, SignatureBinder.class);
-                signatureBinderBinder.addBinding().toInstance(buildSignatureBinder());
+                Multibinder<FunctionResolver> signatureBinderBinder = Multibinder.newSetBinder(binder, FunctionResolver.class);
+                signatureBinderBinder.addBinding().toInstance(buildFunctionResolver());
 
                 // jaxrsBinder(binder).bind(ShutdownResource.class);
             }

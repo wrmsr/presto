@@ -22,10 +22,10 @@ public class CommonsCompressionTypeCodec
     public CommonsCompressionTypeCodec(String name)
     {
         super(
-                name,
+                name.toUpperCase(),
                 Codec.compose(
                         SliceCodec.SLICE_CODEC,
-                        new Compression.CommonsCompressionCodec(name),
+                        new Compression.CommonsCompressionCodec(name.toLowerCase()),
                         Codec.flip(SliceCodec.SLICE_CODEC)));
     }
 }

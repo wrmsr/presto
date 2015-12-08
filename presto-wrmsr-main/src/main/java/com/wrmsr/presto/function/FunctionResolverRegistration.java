@@ -11,18 +11,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.metadata;
+package com.wrmsr.presto.function;
 
-import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.spi.type.TypeManager;
-
-import javax.annotation.Nullable;
+import com.facebook.presto.metadata.FunctionResolver;
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-@FunctionalInterface
-public interface SignatureBinder
+public interface FunctionResolverRegistration
 {
-    @Nullable
-    Signature bindSignature(Signature signature, List<? extends Type> types, boolean allowCoercion, TypeManager typeManager);
+    interface Self
+            extends FunctionResolverRegistration, FunctionResolver
+    {
+        default List<FunctionResolver> getFunctionResolvers()
+        {
+            return ImmutableList.of(this);
+        }
+    }
+
+    List<FunctionResolver> getFunctionResolvers();
+
+    static FunctionResolverRegistration of(List<FunctionResolver> factories)
+    {
+        return () -> factories;
+    }
 }

@@ -25,6 +25,8 @@ public interface TypeCodecProvider
 
     static TypeCodecProvider of(List<TypeCodec> typeCodecs)
     {
-        return (name, fromType) -> typeCodecs.stream().filter(c -> c.getName().equals(name) && c.getFromType().equals(fromType)).findFirst();
+        return (name, fromType) -> typeCodecs.stream()
+                .filter(c -> c.getName().toLowerCase().equals(name.toLowerCase()) && c.getFromType().equals(fromType))
+                .findFirst();
     }
 }
