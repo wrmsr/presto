@@ -2,14 +2,11 @@ package com.wrmsr.presto.function;
 
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcConnector;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
-import com.facebook.presto.spi.Connector;
-import com.facebook.presto.spi.ConnectorSession;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.wrmsr.presto.jdbc.util.ScriptRunner;
+import com.wrmsr.presto.util.jdbc.ScriptRunner;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
@@ -19,7 +16,6 @@ import java.io.StringReader;
 import java.lang.invoke.MethodHandle;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.List;
 
 // String conn, String... command
 // FIXME use connectorSupport

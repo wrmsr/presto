@@ -13,19 +13,15 @@
  */
 package com.wrmsr.presto.reactor;
 
-import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
-import com.google.inject.Module;
 import com.google.inject.Provides;
-import com.wrmsr.presto.jdbc.ExtendedJdbcClient;
-import com.wrmsr.presto.jdbc.ExtendedJdbcConfig;
-import com.wrmsr.presto.jdbc.h2.H2Client;
-import com.wrmsr.presto.jdbc.h2.H2ClientModule;
-import org.h2.Driver;
+import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConfig;
+import com.wrmsr.presto.connector.jdbc.h2.H2Client;
+import com.wrmsr.presto.connector.jdbc.h2.H2ClientModule;
 
 import java.io.File;
 import java.util.Map;

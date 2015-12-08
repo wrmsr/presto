@@ -44,8 +44,8 @@ import com.google.common.io.Files;
 import com.wrmsr.presto.connectorSupport.ConnectorSupport;
 import com.wrmsr.presto.connectorSupport.ExtendedJdbcConnectorSupport;
 import com.wrmsr.presto.connectorSupport.TpchConnectorSupport;
-import com.wrmsr.presto.jdbc.ExtendedJdbcConnector;
-import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
+import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnector;
+import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnectorFactory;
 import org.intellij.lang.annotations.Language;
 
 import java.io.File;

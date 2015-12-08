@@ -44,6 +44,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -58,22 +59,16 @@ import com.wrmsr.presto.config.MainConfig;
 import com.wrmsr.presto.config.MainConfigNode;
 import com.wrmsr.presto.config.PluginsConfigNode;
 import com.wrmsr.presto.config.SystemConfigNode;
+import com.wrmsr.presto.connector.ConnectorFactoryRegistration;
+import com.wrmsr.presto.connector.partitioner.PartitionerConnectorFactory;
+import com.wrmsr.presto.connector.partitioner.PartitionerModule;
 import com.wrmsr.presto.flat.FlatConnectorFactory;
 import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.function.FunctionRegistration;
-import com.wrmsr.presto.type.PropertiesFunction;
-import com.wrmsr.presto.type.PropertiesType;
-import com.wrmsr.presto.jdbc.ExtendedJdbcConnectorFactory;
-import com.wrmsr.presto.jdbc.h2.H2ClientModule;
-import com.wrmsr.presto.jdbc.mysql.ExtendedMySqlClientModule;
-import com.wrmsr.presto.jdbc.postgresql.ExtendedPostgreSqlClientModule;
-import com.wrmsr.presto.jdbc.redshift.RedshiftClientModule;
-import com.wrmsr.presto.jdbc.sqlite.SqliteClientModule;
-import com.wrmsr.presto.jdbc.temp.TempClientModule;
-import com.wrmsr.presto.metaconnector.partitioner.PartitionerConnectorFactory;
-import com.wrmsr.presto.metaconnector.partitioner.PartitionerModule;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
+import com.wrmsr.presto.type.PropertiesFunction;
+import com.wrmsr.presto.type.PropertiesType;
 import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.Configs;
@@ -96,8 +91,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
@@ -111,11 +108,11 @@ public class MainPlugin
 {
     private static final Logger log = Logger.get(MainPlugin.class);
 
-    private Map<String, String> optionalConfig = ImmutableMap.of();
     private final MainConfig config;
     private final Object lock = new Object();
     private volatile Injector injector;
 
+    private MainOptionalConfig optionalConfig;
     private ConnectorManager connectorManager;
     private TypeRegistry typeRegistry;
     private NodeManager nodeManager;
@@ -141,7 +138,7 @@ public class MainPlugin
     @Override
     public void setOptionalConfig(Map<String, String> optionalConfig)
     {
-        this.optionalConfig = ImmutableMap.copyOf(checkNotNull(optionalConfig, "optionalConfig is null"));
+        this.optionalConfig = new MainOptionalConfig(ImmutableMap.copyOf(checkNotNull(optionalConfig, "optionalConfig is null")));
     }
 
     @Inject
@@ -265,6 +262,7 @@ public class MainPlugin
             @Override
             public void configure(Binder binder)
             {
+                binder.bind(MainOptionalConfig.class).toInstance(checkNotNull(optionalConfig));
                 binder.bind(ConnectorManager.class).toInstance(checkNotNull(connectorManager));
                 binder.bind(TypeRegistry.class).toInstance(checkNotNull(typeRegistry));
                 binder.bind(NodeManager.class).toInstance(checkNotNull(nodeManager));
@@ -299,6 +297,7 @@ public class MainPlugin
             synchronized (lock) {
                 if (injector == null) {
                     injector = buildInjector();
+                    postInject();
                 }
             }
         }
@@ -336,6 +335,13 @@ public class MainPlugin
             Set<FunctionRegistration> frs = getInjector().getInstance(Key.get(new TypeLiteral<Set<FunctionRegistration>>() {}));
             for (FunctionRegistration fr : frs) {
                 metadata.addFunctions(fr.getFunctions(typeRegistry));
+            }
+
+            Set<ConnectorFactoryRegistration> cfrs = getInjector().getInstance(Key.get(new TypeLiteral<Set<ConnectorFactoryRegistration>>() {}));
+            for (ConnectorFactoryRegistration cfr : cfrs) {
+                for (ConnectorFactory cf : cfr.getConnectorFactories()) {
+                    connectorManager.addConnectorFactory(cf);
+                }
             }
 
             metadata.addFunctions(
@@ -438,6 +444,49 @@ public class MainPlugin
         }
     }
 
+    private final AtomicReference<Set<SignatureBinder>> signatureBinders = new AtomicReference<>(ImmutableSet.of());
+
+    private void postInject()
+    {
+        signatureBinders.set(injector.getInstance(Key.get(new TypeLiteral<Set<SignatureBinder>>() {})));
+    }
+
+    private SignatureBinder buildSignatureBinder()
+    {
+        return new SignatureBinder()
+        {
+            @Nullable
+            @Override
+            public Signature bindSignature(Signature signature, List<? extends Type> types, boolean allowCoercion, TypeManager typeManager)
+            {
+                Signature match = null;
+                for (SignatureBinder signatureBinder : signatureBinders.get()) {
+                    Signature boundSignature = signatureBinder.bindSignature(signature, types, allowCoercion, typeManager);
+                    if (signature != null) {
+                        checkArgument(match == null, "Ambiguous call to %s with parameters %s", signature.getName(), types);
+                        match = signature;
+                    }
+                }
+                return match;
+            }
+        };
+    }
+
+    private Module processModule(Module module)
+    {
+        return GuiceUtils.combine(ImmutableList.of(module, new Module()
+        {
+            @Override
+            public void configure(Binder binder)
+            {
+                Multibinder<SignatureBinder> signatureBinderBinder = Multibinder.newSetBinder(binder, SignatureBinder.class);
+                signatureBinderBinder.addBinding().toInstance(buildSignatureBinder());
+
+                // jaxrsBinder(binder).bind(ShutdownResource.class);
+            }
+        }));
+    }
+
     @Override
     public <T> List<T> getServices(Class<T> type)
     {
@@ -447,60 +496,35 @@ public class MainPlugin
                 @Override
                 public Module apply(Module module)
                 {
-                    return GuiceUtils.combine(ImmutableList.of(module, new Module() {
-                        @Override
-                        public void configure(Binder binder)
-                        {
-                            Multibinder<SignatureBinder> signatureBinderBinder = Multibinder.newSetBinder(binder, SignatureBinder.class);
-
-                            signatureBinderBinder.addBinding().toInstance(new SignatureBinder() {
-                                @Nullable
-                                @Override
-                                public Signature bindSignature(Signature signature, List<? extends Type> types, boolean allowCoercion, TypeManager typeManager)
-                                {
-                                    return null;
-                                }
-                            });
-
-                            // jaxrsBinder(binder).bind(ShutdownResource.class);
-                        }
-                    }));
+                    return processModule(module);
                 }
             }));
         }
-        if (type == ConnectorFactory.class) {
+
+        else if (type == ConnectorFactory.class) {
             return ImmutableList.of(
-                    type.cast(new PartitionerConnectorFactory(optionalConfig, new PartitionerModule(null), getClassLoader(), connectorManager)),
+                    type.cast(new PartitionerConnectorFactory(optionalConfig.getValue(), new PartitionerModule(null), getClassLoader(), connectorManager)),
 
-                    type.cast(new FlatConnectorFactory(optionalConfig, new FlatModule(), getClassLoader())),
-
-                    type.cast(new ExtendedJdbcConnectorFactory("extended-mysql", new ExtendedMySqlClientModule(), optionalConfig, ImmutableMap.of(), getClassLoader())),
-                    type.cast(new ExtendedJdbcConnectorFactory("extended-postgresql", new ExtendedPostgreSqlClientModule(), optionalConfig, ImmutableMap.of(), getClassLoader())),
-                    type.cast(new ExtendedJdbcConnectorFactory("redshift", new RedshiftClientModule(), optionalConfig, RedshiftClientModule.createProperties(), getClassLoader())),
-                    type.cast(new ExtendedJdbcConnectorFactory("h2", new H2ClientModule(), optionalConfig, ImmutableMap.of(), getClassLoader())),
-                    type.cast(new ExtendedJdbcConnectorFactory("sqlite", new SqliteClientModule(), optionalConfig, ImmutableMap.of(), getClassLoader())),
-                    type.cast(new ExtendedJdbcConnectorFactory("temp", new TempClientModule(), optionalConfig, TempClientModule.createProperties(), getClassLoader()))
+                    type.cast(new FlatConnectorFactory(optionalConfig.getValue(), new FlatModule(), getClassLoader()))
             );
         }
+
         else if (type == Type.class) {
             return ImmutableList.of(
                     type.cast(PropertiesType.PROPERTIES)
             );
         }
-        /*
-        else if (type == com.facebook.presto.metadata.FunctionFactory.class) {
-            return ImmutableList.of(
-                    type.cast(new ExtensionFunctionFactory(typeRegistry, metadata.getFunctionRegistry()))
-            );
-        }
-        */
+
         else if (type == ServerEvent.Listener.class) {
             return ImmutableList.of(type.cast(this));
         }
-        return ImmutableList.of();
+
+        else {
+            return ImmutableList.of();
+        }
     }
 
-    private static ClassLoader getClassLoader()
+    protected static ClassLoader getClassLoader()
     {
         return firstNonNull(Thread.currentThread().getContextClassLoader(), MainPlugin.class.getClassLoader());
     }
