@@ -2,7 +2,6 @@ package com.wrmsr.presto.codec;
 
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.type.ParametricType;
-import com.wrmsr.presto.type.ParametricTypeRegistration;
 
 import javax.inject.Inject;
 
@@ -11,7 +10,7 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class EncodedParametricType
-        implements ParametricType, ParametricTypeRegistration.Self
+        implements ParametricType
 {
     private final TypeCodec typeCodec;
 

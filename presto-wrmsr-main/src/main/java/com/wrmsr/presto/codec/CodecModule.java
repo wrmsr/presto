@@ -14,14 +14,13 @@
 package com.wrmsr.presto.codec;
 
 import com.facebook.presto.metadata.FunctionResolver;
+import com.facebook.presto.metadata.SqlFunction;
+import com.facebook.presto.type.ParametricType;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.function.FunctionRegistration;
-import com.wrmsr.presto.type.ParametricTypeRegistration;
 import com.wrmsr.presto.util.Compression;
-
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class CodecModule
         implements Module
@@ -32,22 +31,22 @@ public class CodecModule
         binder.bind(TypeCodecManager.class).asEagerSingleton();
 
         Multibinder<FunctionResolver> functionResolverBinder = Multibinder.newSetBinder(binder, FunctionResolver.class);
-        Multibinder<ParametricTypeRegistration> parametricTypeRegistrationBinder = Multibinder.newSetBinder(binder, ParametricTypeRegistration.class);
+        Multibinder<ParametricType> parametricTypeBinder = Multibinder.newSetBinder(binder, ParametricType.class);
 
         binder.bind(EncodedParametricType.class).asEagerSingleton();
-        parametricTypeRegistrationBinder.addBinding().to(EncodedParametricType.class);
+        parametricTypeBinder.addBinding().to(EncodedParametricType.class);
 
-        typeCodecProviderBinder.addBinding().toInstance(
-                TypeCodecProvider.of(
-                        Compression.COMMONS_COMPRESSION_NAMES.stream()
-                                .map(CommonsCompressionTypeCodec::new)
-                                .collect(toImmutableList())));
+        Multibinder<TypeCodec> typeCodecBinder = Multibinder.newSetBinder(binder, TypeCodec.class);
 
-        Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
+        Compression.COMMONS_COMPRESSION_NAMES.stream()
+                .map(CommonsCompressionTypeCodec::new)
+                .forEach(c -> typeCodecBinder.addBinding().toInstance(c));
+
+        Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
 
         binder.bind(EncodeFunction.class).asEagerSingleton();
         binder.bind(DecodeFunction.class).asEagerSingleton();
-        functionRegistrationBinder.addBinding().to(DecodeFunction.class);
+        functionBinder.addBinding().to(DecodeFunction.class);
         functionResolverBinder.addBinding().to(DecodeFunction.class);
     }
 }

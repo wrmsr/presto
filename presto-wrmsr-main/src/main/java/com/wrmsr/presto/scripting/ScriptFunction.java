@@ -22,6 +22,7 @@ import com.facebook.presto.type.SqlType;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.util.Box;
 import io.airlift.slice.Slice;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -64,7 +65,6 @@ public class ScriptFunction
         ScriptFunction create(Type retType, int arity);
     }
 
-    /*
     public final static class Registration
             implements FunctionRegistration
     {
@@ -95,7 +95,6 @@ public class ScriptFunction
             return functions;
         }
     }
-    */
 
     @Inject
     public ScriptFunction(ScriptingManager scriptingManager, @Assisted Type retType, @Assisted int arity) // bahahaha

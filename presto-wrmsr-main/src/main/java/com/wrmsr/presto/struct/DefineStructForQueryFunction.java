@@ -42,7 +42,6 @@ import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.type.RowType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.function.FunctionRegistration;
 import io.airlift.slice.Slice;
 
 import javax.annotation.Nullable;
@@ -66,7 +65,6 @@ import static java.util.Locale.ENGLISH;
 
 public class DefineStructForQueryFunction
         extends SqlScalarFunction
-        implements FunctionRegistration.Self
 {
     private static final String FUNCTION_NAME = "define_struct_for_query";
     private static final Signature SIGNATURE = new Signature(

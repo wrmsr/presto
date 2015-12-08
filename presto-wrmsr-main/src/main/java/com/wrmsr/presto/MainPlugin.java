@@ -13,8 +13,6 @@
  */
 package com.wrmsr.presto;
 
-// import com.facebook.presto.metadata.FunctionFactory;
-
 import com.facebook.presto.Session;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.execution.QueryId;
@@ -26,6 +24,7 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.FunctionResolver;
+import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.server.PluginManager;
@@ -62,13 +61,10 @@ import com.wrmsr.presto.config.MainConfig;
 import com.wrmsr.presto.config.MainConfigNode;
 import com.wrmsr.presto.config.PluginsConfigNode;
 import com.wrmsr.presto.config.SystemConfigNode;
-import com.wrmsr.presto.connector.ConnectorFactoryRegistration;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
-import com.wrmsr.presto.type.ParametricTypeRegistration;
 import com.wrmsr.presto.type.PropertiesFunction;
-import com.wrmsr.presto.type.TypeRegistration;
 import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.Configs;
@@ -100,8 +96,6 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Serialization.YAML_OBJECT_MAPPER;
 import static java.util.Objects.requireNonNull;
-
-// import com.facebook.presto.type.ParametricType;
 
 public class MainPlugin
         implements Plugin, ServerEvent.Listener
@@ -332,18 +326,14 @@ public class MainPlugin
                 }
             }
 
-            Set<TypeRegistration> trs = getInjector().getInstance(Key.get(new TypeLiteral<Set<TypeRegistration>>() {}));
-            for (TypeRegistration tr : trs) {
-                for (Type t : tr.getTypes()) {
-                    typeRegistry.addType(t);
-                }
+            Set<Type> ts = getInjector().getInstance(Key.get(new TypeLiteral<Set<Type>>() {}));
+            for (Type t : ts) {
+                typeRegistry.addType(t);
             }
 
-            Set<ParametricTypeRegistration> ptrs = getInjector().getInstance(Key.get(new TypeLiteral<Set<ParametricTypeRegistration>>() {}));
-            for (ParametricTypeRegistration ptr : ptrs) {
-                for (ParametricType pt : ptr.getParametricTypes()) {
-                    typeRegistry.addParametricType(pt);
-                }
+            Set<ParametricType> pts = getInjector().getInstance(Key.get(new TypeLiteral<Set<ParametricType>>() {}));
+            for (ParametricType pt : pts) {
+                typeRegistry.addParametricType(pt);
             }
 
             Set<FunctionRegistration> frs = getInjector().getInstance(Key.get(new TypeLiteral<Set<FunctionRegistration>>() {}));
@@ -351,11 +341,14 @@ public class MainPlugin
                 metadata.addFunctions(fr.getFunctions(typeRegistry));
             }
 
-            Set<ConnectorFactoryRegistration> cfrs = getInjector().getInstance(Key.get(new TypeLiteral<Set<ConnectorFactoryRegistration>>() {}));
-            for (ConnectorFactoryRegistration cfr : cfrs) {
-                for (ConnectorFactory cf : cfr.getConnectorFactories()) {
-                    connectorManager.addConnectorFactory(cf);
-                }
+            Set<SqlFunction> sfs = getInjector().getInstance(Key.get(new TypeLiteral<Set<SqlFunction>>() {}));
+            for (SqlFunction sf : sfs) {
+                metadata.addFunctions(new FunctionListBuilder(typeRegistry).function(sf).getFunctions());
+            }
+
+            Set<ConnectorFactory> cfs = getInjector().getInstance(Key.get(new TypeLiteral<Set<ConnectorFactory>>() {}));
+            for (ConnectorFactory cf : cfs) {
+                connectorManager.addConnectorFactory(cf);
             }
 
             metadata.addFunctions(

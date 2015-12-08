@@ -14,7 +14,6 @@
 package com.wrmsr.presto.struct;
 
 import com.google.common.collect.ImmutableList;
-import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.function.StringVarargsFunction;
 import io.airlift.slice.Slice;
 
@@ -28,7 +27,6 @@ import static com.google.common.collect.Lists.newArrayList;
 
 public class DefineStructFunction
         extends StringVarargsFunction
-        implements FunctionRegistration.Self
 {
     private final StructManager structManager;
 

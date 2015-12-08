@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.connector;
 
+import com.facebook.presto.spi.ConnectorFactory;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
@@ -30,27 +31,27 @@ public class ConnectorModule
     @Override
     public void configure(Binder binder)
     {
-        Multibinder<ConnectorFactoryRegistration> connectorFactoryRegistrationBinder = Multibinder.newSetBinder(binder, ConnectorFactoryRegistration.class);
+        Multibinder<ConnectorFactory> connectorFactoryBinder = Multibinder.newSetBinder(binder, ConnectorFactory.class);
 
         binder.bind(PartitionerConnectorFactory.class).asEagerSingleton();
-        connectorFactoryRegistrationBinder.addBinding().to(PartitionerConnectorFactory.class);
+        connectorFactoryBinder.addBinding().to(PartitionerConnectorFactory.class);
 
         binder.bind(H2ConnectorFactory.class).asEagerSingleton();
-        connectorFactoryRegistrationBinder.addBinding().to(H2ConnectorFactory.class);
+        connectorFactoryBinder.addBinding().to(H2ConnectorFactory.class);
 
         binder.bind(ExtendedMySqlConnectorFactory.class).asEagerSingleton();
-        connectorFactoryRegistrationBinder.addBinding().to(ExtendedMySqlConnectorFactory.class);
+        connectorFactoryBinder.addBinding().to(ExtendedMySqlConnectorFactory.class);
 
         binder.bind(ExtendedPostgreSqlConnectorFactory.class).asEagerSingleton();
-        connectorFactoryRegistrationBinder.addBinding().to(ExtendedPostgreSqlConnectorFactory.class);
+        connectorFactoryBinder.addBinding().to(ExtendedPostgreSqlConnectorFactory.class);
 
         binder.bind(RedshiftConnectorFactory.class).asEagerSingleton();
-        connectorFactoryRegistrationBinder.addBinding().to(RedshiftConnectorFactory.class);
+        connectorFactoryBinder.addBinding().to(RedshiftConnectorFactory.class);
 
         binder.bind(SqliteConnectorFactory.class).asEagerSingleton();
-        connectorFactoryRegistrationBinder.addBinding().to(SqliteConnectorFactory.class);
+        connectorFactoryBinder.addBinding().to(SqliteConnectorFactory.class);
 
         binder.bind(TempConnectorFactory.class).asEagerSingleton();
-        connectorFactoryRegistrationBinder.addBinding().to(TempConnectorFactory.class);
+        connectorFactoryBinder.addBinding().to(TempConnectorFactory.class);
     }
 }

@@ -15,7 +15,6 @@ package com.wrmsr.presto.connector.jdbc.postgresql;
 
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.MainOptionalConfig;
-import com.wrmsr.presto.connector.ConnectorFactoryRegistration;
 import com.wrmsr.presto.connector.Connectors;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnectorFactory;
 import com.wrmsr.presto.connector.jdbc.mysql.ExtendedMySqlClientModule;
@@ -24,7 +23,6 @@ import javax.inject.Inject;
 
 public class ExtendedPostgreSqlConnectorFactory
         extends ExtendedJdbcConnectorFactory
-        implements ConnectorFactoryRegistration.Self
 {
     public ExtendedPostgreSqlConnectorFactory()
     {
