@@ -11,7 +11,6 @@ import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.sql.tree.QualifiedName;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.function.FunctionRegistration;
-import com.wrmsr.presto.function.FunctionResolverRegistration;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -23,7 +22,7 @@ import static com.facebook.presto.metadata.Signature.typeParameter;
 
 public class EncodeFunction
         extends SqlScalarFunction
-        implements FunctionRegistration.Self, FunctionResolver, FunctionResolverRegistration.Self
+        implements FunctionRegistration.Self, FunctionResolver
 {
     public static final String NAME = "encode";
 

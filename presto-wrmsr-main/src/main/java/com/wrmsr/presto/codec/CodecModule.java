@@ -18,7 +18,6 @@ import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.function.FunctionRegistration;
-import com.wrmsr.presto.function.FunctionResolverRegistration;
 import com.wrmsr.presto.type.ParametricTypeRegistration;
 import com.wrmsr.presto.util.Compression;
 
@@ -34,7 +33,7 @@ public class CodecModule
         binder.bind(TypeCodecProvider.class).to(TypeCodecManager.class);
 
         Multibinder<TypeCodecProvider> typeCodecProviderBinder = Multibinder.newSetBinder(binder, TypeCodecProvider.class);
-        Multibinder<FunctionResolverRegistration> functionResolverRegistrationBinder = Multibinder.newSetBinder(binder, FunctionResolverRegistration.class);
+        Multibinder<FunctionResolver> functionResolverBinder = Multibinder.newSetBinder(binder, FunctionResolver.class);
         Multibinder<ParametricTypeRegistration> parametricTypeRegistrationBinder = Multibinder.newSetBinder(binder, ParametricTypeRegistration.class);
 
         binder.bind(EncodedParametricType.class).asEagerSingleton();
@@ -50,7 +49,7 @@ public class CodecModule
 
         binder.bind(EncodeFunction.class).asEagerSingleton();
         functionRegistrationBinder.addBinding().to(EncodeFunction.class);
-        functionResolverRegistrationBinder.addBinding().to(EncodeFunction.class);
+        functionResolverBinder.addBinding().to(EncodeFunction.class);
         binder.bind(DecodeFunction.class).asEagerSingleton();
         functionRegistrationBinder.addBinding().to(DecodeFunction.class);
     }
