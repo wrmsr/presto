@@ -1,6 +1,7 @@
 package com.wrmsr.presto.codec;
 
 import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.metadata.FunctionResolver;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.type.Type;
@@ -14,7 +15,7 @@ import static com.facebook.presto.metadata.Signature.typeParameter;
 
 public class DecodeFunction
         extends SqlScalarFunction
-        implements FunctionRegistration.Self
+        implements FunctionRegistration.Self, FunctionResolver
 {
     public static final String NAME = "decode";
 

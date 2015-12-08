@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.struct.StructManager;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
@@ -47,7 +46,6 @@ import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 // FIXME LOLOL RECURSION LINKED LISTS
 public class SerializeFunction
         extends SqlScalarFunction
-        implements FunctionRegistration.Self
 {
     private static final String FUNCTION_NAME = "serialize";
     private static final MethodHandle METHOD_HANDLE = methodHandle(SerializeFunction.class, "serialize", SerializationContext.class, ConnectorSession.class, Object.class);

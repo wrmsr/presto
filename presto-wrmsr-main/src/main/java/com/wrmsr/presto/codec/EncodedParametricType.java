@@ -9,41 +9,30 @@ import javax.inject.Inject;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.wrmsr.presto.codec.EncodedType.NAME;
 
 public class EncodedParametricType
-    implements ParametricType, ParametricTypeRegistration.Self
+        implements ParametricType, ParametricTypeRegistration.Self
 {
-    private final TypeCodecManager typeCodecManager;
+    private final TypeCodec typeCodec;
 
     @Inject
-    public EncodedParametricType(TypeCodecManager typeCodecManager)
+    public EncodedParametricType(TypeCodec typeCodec)
     {
-        this.typeCodecManager = typeCodecManager;
+        this.typeCodec = typeCodec;
     }
 
     @Override
     public String getName()
     {
-        return NAME;
+        return typeCodec.getName();
     }
 
     @Override
-    public Type createType(List<Type> types, List<Object> literals)
+    public EncodedType createType(List<Type> types, List<Object> literals)
     {
-        checkArgument(literals.size() == 1);
-        checkArgument(literals.get(0) instanceof String);
-        String codecName = (String) literals.get(0);
-        if (types.isEmpty()) {
-            return new PartialEncodedType(codecName);
-        }
-        else if (types.size() == 1) {
-            Type fromType = types.get(0);
-            TypeCodec typeCodec = typeCodecManager.getTypeCodec(codecName, fromType).get();
-            return new EncodedType(typeCodec);
-        }
-        else {
-            throw new IllegalArgumentException();
-        }
+        checkArgument(literals.size() == 0);
+        checkArgument(types.size() == 1);
+        Type fromType = types.get(0);
+        return new EncodedType(typeCodec, fromType);
     }
 }

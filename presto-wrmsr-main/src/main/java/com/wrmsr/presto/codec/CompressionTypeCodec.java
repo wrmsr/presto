@@ -23,20 +23,17 @@ import java.util.function.Function;
 public class CompressionTypeCodec
     extends TypeCodec
 {
-    public CompressionTypeCodec(String name, Codec<Slice, Slice> codec)
-    {
-        super(name, VarbinaryType.VARBINARY, VarbinaryType.VARBINARY, new Codec<Object, Object>() {
-            @Override
-            public Object decode(Object data)
-            {
-                return codec.decode((Slice) data);
-            }
+    private final Codec<byte[], byte[]> codec;
 
-            @Override
-            public Object encode(Object data)
-            {
-                return codec.encode((Slice) data);
-            }
-        });
+    public CompressionTypeCodec(String name, Codec<byte[], byte[]> codec)
+    {
+        super(name);
+        this.codec = codec;
+    }
+
+    @Override
+    public <T> Codec<T, Slice> getCodec(Type fromType)
+    {
+        return null;
     }
 }

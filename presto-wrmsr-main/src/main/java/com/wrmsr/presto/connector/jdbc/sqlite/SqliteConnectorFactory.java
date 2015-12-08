@@ -15,16 +15,13 @@ package com.wrmsr.presto.connector.jdbc.sqlite;
 
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.MainOptionalConfig;
-import com.wrmsr.presto.connector.ConnectorFactoryRegistration;
 import com.wrmsr.presto.connector.Connectors;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnectorFactory;
-import com.wrmsr.presto.connector.jdbc.redshift.RedshiftClientModule;
 
 import javax.inject.Inject;
 
 public class SqliteConnectorFactory
         extends ExtendedJdbcConnectorFactory
-        implements ConnectorFactoryRegistration.Self
 {
     public SqliteConnectorFactory()
     {

@@ -13,10 +13,10 @@
  */
 package com.wrmsr.presto.struct;
 
+import com.facebook.presto.metadata.SqlFunction;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
-import com.wrmsr.presto.function.FunctionRegistration;
 
 public class StructModule
     implements Module
@@ -26,12 +26,12 @@ public class StructModule
     {
         binder.bind(StructManager.class).asEagerSingleton();
 
-        Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
+        Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
 
         binder.bind(DefineStructForQueryFunction.class).asEagerSingleton();
-        functionRegistrationBinder.addBinding().to(DefineStructForQueryFunction.class);
+        functionBinder.addBinding().to(DefineStructForQueryFunction.class);
 
         binder.bind(DefineStructFunction.class).asEagerSingleton();
-        functionRegistrationBinder.addBinding().to(DefineStructFunction.class);
+        functionBinder.addBinding().to(DefineStructFunction.class);
     }
 }

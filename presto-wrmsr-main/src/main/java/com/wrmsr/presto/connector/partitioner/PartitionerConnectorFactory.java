@@ -19,7 +19,6 @@ import com.facebook.presto.spi.Connector;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.wrmsr.presto.MainOptionalConfig;
-import com.wrmsr.presto.connector.ConnectorFactoryRegistration;
 import com.wrmsr.presto.connector.Connectors;
 import com.wrmsr.presto.connector.MetaconnectorConnectorFactory;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcClient;
@@ -34,7 +33,6 @@ import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
 
 public class PartitionerConnectorFactory
         extends MetaconnectorConnectorFactory
-        implements ConnectorFactoryRegistration.Self
 {
     @Inject
     public PartitionerConnectorFactory(MainOptionalConfig optionalConfig, ConnectorManager connectorManager)

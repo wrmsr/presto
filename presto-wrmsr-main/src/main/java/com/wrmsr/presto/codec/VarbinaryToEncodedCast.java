@@ -25,10 +25,10 @@ import com.facebook.presto.spi.type.TypeManager;
 import java.util.List;
 import java.util.Map;
 
-public class AnyToEncodedCast
+public class VarbinaryToEncodedCast
     extends SqlOperator
 {
-    public AnyToEncodedCast(OperatorType operatorType, List<TypeParameter> typeParameters, String returnType, List<String> argumentTypes)
+    public VarbinaryToEncodedCast(OperatorType operatorType, List<TypeParameter> typeParameters, String returnType, List<String> argumentTypes)
     {
         super(operatorType, typeParameters, returnType, argumentTypes);
     }

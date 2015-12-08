@@ -13,11 +13,14 @@
  */
 package com.wrmsr.presto.codec;
 
+import com.facebook.presto.spi.block.Block;
 import com.wrmsr.presto.util.codec.Codec;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
 public class SliceCodec
 {
-    public static final Codec<Slice, byte[]> SLICE_CODEC = Codec.of(Slice::getBytes, Slices::wrappedBuffer);
+    public static final Codec<Slice, byte[]> SLICE_TO_BYTES_CODEC = Codec.of(Slice::getBytes, Slices::wrappedBuffer);
+
+    // public static final Codec<Block, Slice> BLOCK_TO_SLICE_CODEC
 }

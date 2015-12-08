@@ -22,32 +22,19 @@ import static com.facebook.presto.metadata.Signature.typeParameter;
 
 public class EncodeFunction
         extends SqlScalarFunction
-        implements FunctionRegistration.Self, FunctionResolver
 {
-    public static final String NAME = "encode";
-
-    private final TypeCodecProvider typeCodecProvider;
+    private final TypeCodec typeCodec;
 
     @Inject
-    public EncodeFunction(TypeCodecProvider typeCodecProvider)
+    public EncodeFunction(TypeCodec typeCodec)
     {
-        super(NAME, ImmutableList.of(typeParameter("F"), typeParameter("T")), "T", ImmutableList.of("varchar", "F"));
-        this.typeCodecProvider = typeCodecProvider;
-    }
-
-    @Nullable
-    @Override
-    public Signature resolveFunction(QualifiedName name, List<TypeSignature> parameterTypes, boolean approximate)
-    {
-        if (NAME.equals(name)) {
-        }
-        return null;
+        super(typeCodec.getName(), ImmutableList.of(typeParameter("T")), typeCodec.getName() + "<T>", ImmutableList.of("T"));
+        this.typeCodec = typeCodec;
     }
 
     @Override
     public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
-//        typeCodecManager.getTypeCodec()
         return null;
     }
 
@@ -66,6 +53,6 @@ public class EncodeFunction
     @Override
     public String getDescription()
     {
-        return "encode";
+        return "encode " + typeCodec.getName();
     }
 }

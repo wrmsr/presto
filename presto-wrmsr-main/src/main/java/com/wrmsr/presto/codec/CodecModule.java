@@ -30,9 +30,7 @@ public class CodecModule
     public void configure(Binder binder)
     {
         binder.bind(TypeCodecManager.class).asEagerSingleton();
-        binder.bind(TypeCodecProvider.class).to(TypeCodecManager.class);
 
-        Multibinder<TypeCodecProvider> typeCodecProviderBinder = Multibinder.newSetBinder(binder, TypeCodecProvider.class);
         Multibinder<FunctionResolver> functionResolverBinder = Multibinder.newSetBinder(binder, FunctionResolver.class);
         Multibinder<ParametricTypeRegistration> parametricTypeRegistrationBinder = Multibinder.newSetBinder(binder, ParametricTypeRegistration.class);
 
@@ -48,9 +46,8 @@ public class CodecModule
         Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
 
         binder.bind(EncodeFunction.class).asEagerSingleton();
-        functionRegistrationBinder.addBinding().to(EncodeFunction.class);
-        functionResolverBinder.addBinding().to(EncodeFunction.class);
         binder.bind(DecodeFunction.class).asEagerSingleton();
         functionRegistrationBinder.addBinding().to(DecodeFunction.class);
+        functionResolverBinder.addBinding().to(DecodeFunction.class);
     }
 }

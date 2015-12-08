@@ -13,6 +13,8 @@
  */
 package com.wrmsr.presto.type;
 
+import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.type.ParametricType;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Module;
@@ -24,9 +26,9 @@ public class TypeModule
     @Override
     public void configure(Binder binder)
     {
-        Multibinder<TypeRegistration> typeRegistrationBinder = Multibinder.newSetBinder(binder, TypeRegistration.class);
-        Multibinder<ParametricTypeRegistration> parametricTypeRegistrationBinder = Multibinder.newSetBinder(binder, ParametricTypeRegistration.class);
+        Multibinder<Type> typeBinder = Multibinder.newSetBinder(binder, Type.class);
+        Multibinder<ParametricType> parametricTypeBinder = Multibinder.newSetBinder(binder, ParametricType.class);
 
-        typeRegistrationBinder.addBinding().toInstance(TypeRegistration.of(ImmutableList.of(PropertiesType.PROPERTIES)));
+        typeBinder.addBinding().toInstance(PropertiesType.PROPERTIES);
     }
 }

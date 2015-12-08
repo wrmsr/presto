@@ -14,7 +14,6 @@
 package com.wrmsr.presto.connector.jdbc.redshift;
 
 import com.wrmsr.presto.MainOptionalConfig;
-import com.wrmsr.presto.connector.ConnectorFactoryRegistration;
 import com.wrmsr.presto.connector.Connectors;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnectorFactory;
 
@@ -22,7 +21,6 @@ import javax.inject.Inject;
 
 public class RedshiftConnectorFactory
         extends ExtendedJdbcConnectorFactory
-        implements ConnectorFactoryRegistration.Self
 {
     public RedshiftConnectorFactory()
     {

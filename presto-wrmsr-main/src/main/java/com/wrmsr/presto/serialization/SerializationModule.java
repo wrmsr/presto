@@ -13,10 +13,10 @@
  */
 package com.wrmsr.presto.serialization;
 
+import com.facebook.presto.metadata.SqlFunction;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
-import com.wrmsr.presto.function.FunctionRegistration;
 
 public class SerializationModule
     implements Module
@@ -24,9 +24,9 @@ public class SerializationModule
     @Override
     public void configure(Binder binder)
     {
-        Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
+        Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
 
         binder.bind(SerializeFunction.class).asEagerSingleton();
-        functionRegistrationBinder.addBinding().to(SerializeFunction.class);
+        functionBinder.addBinding().to(SerializeFunction.class);
     }
 }

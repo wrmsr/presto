@@ -15,7 +15,6 @@ package com.wrmsr.presto.connector.jdbc.h2;
 
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.MainOptionalConfig;
-import com.wrmsr.presto.connector.ConnectorFactoryRegistration;
 import com.wrmsr.presto.connector.Connectors;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnectorFactory;
 
@@ -23,7 +22,6 @@ import javax.inject.Inject;
 
 public class H2ConnectorFactory
         extends ExtendedJdbcConnectorFactory
-        implements ConnectorFactoryRegistration.Self
 {
     public H2ConnectorFactory()
     {
