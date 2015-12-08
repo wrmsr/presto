@@ -134,9 +134,4 @@ public class ExtendedJdbcConnectorFactory
             }
         }));
     }
-
-    protected static ClassLoader getClassLoader()
-    {
-        return firstNonNull(Thread.currentThread().getContextClassLoader(), ExtendedJdbcConnector.class.getClassLoader());
-    }
 }

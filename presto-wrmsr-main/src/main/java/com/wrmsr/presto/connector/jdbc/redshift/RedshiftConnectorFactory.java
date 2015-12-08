@@ -15,6 +15,7 @@ package com.wrmsr.presto.connector.jdbc.redshift;
 
 import com.wrmsr.presto.MainOptionalConfig;
 import com.wrmsr.presto.connector.ConnectorFactoryRegistration;
+import com.wrmsr.presto.connector.Connectors;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnectorFactory;
 
 import javax.inject.Inject;
@@ -31,6 +32,6 @@ public class RedshiftConnectorFactory
     @Inject
     public RedshiftConnectorFactory(MainOptionalConfig optionalConfig)
     {
-        super("redshift", new RedshiftClientModule(), optionalConfig.getValue(), RedshiftClientModule.createProperties(), getClassLoader());
+        super("redshift", new RedshiftClientModule(), optionalConfig.getValue(), RedshiftClientModule.createProperties(), Connectors.getClassLoader());
     }
 }

@@ -15,6 +15,7 @@ package com.wrmsr.presto.connector.jdbc.temp;
 
 import com.wrmsr.presto.MainOptionalConfig;
 import com.wrmsr.presto.connector.ConnectorFactoryRegistration;
+import com.wrmsr.presto.connector.Connectors;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnectorFactory;
 
 import javax.inject.Inject;
@@ -31,6 +32,6 @@ public class TempConnectorFactory
     @Inject
     public TempConnectorFactory(MainOptionalConfig optionalConfig)
     {
-        super("temp", new TempClientModule(), optionalConfig.getValue(), TempClientModule.createProperties(), getClassLoader());
+        super("temp", new TempClientModule(), optionalConfig.getValue(), TempClientModule.createProperties(), Connectors.getClassLoader());
     }
 }

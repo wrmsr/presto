@@ -503,8 +503,6 @@ public class MainPlugin
 
         else if (type == ConnectorFactory.class) {
             return ImmutableList.of(
-                    type.cast(new PartitionerConnectorFactory(optionalConfig.getValue(), new PartitionerModule(null), getClassLoader(), connectorManager)),
-
                     type.cast(new FlatConnectorFactory(optionalConfig.getValue(), new FlatModule(), getClassLoader()))
             );
         }

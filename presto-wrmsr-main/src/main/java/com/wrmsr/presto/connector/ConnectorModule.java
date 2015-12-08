@@ -22,6 +22,7 @@ import com.wrmsr.presto.connector.jdbc.postgresql.ExtendedPostgreSqlConnectorFac
 import com.wrmsr.presto.connector.jdbc.redshift.RedshiftConnectorFactory;
 import com.wrmsr.presto.connector.jdbc.sqlite.SqliteConnectorFactory;
 import com.wrmsr.presto.connector.jdbc.temp.TempConnectorFactory;
+import com.wrmsr.presto.connector.partitioner.PartitionerConnectorFactory;
 
 public class ConnectorModule
     implements Module
@@ -30,6 +31,9 @@ public class ConnectorModule
     public void configure(Binder binder)
     {
         Multibinder<ConnectorFactoryRegistration> connectorFactoryRegistrationBinder = Multibinder.newSetBinder(binder, ConnectorFactoryRegistration.class);
+
+        binder.bind(PartitionerConnectorFactory.class).asEagerSingleton();
+        connectorFactoryRegistrationBinder.addBinding().to(PartitionerConnectorFactory.class);
 
         binder.bind(H2ConnectorFactory.class).asEagerSingleton();
         connectorFactoryRegistrationBinder.addBinding().to(H2ConnectorFactory.class);
