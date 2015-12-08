@@ -39,6 +39,7 @@ import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
+import com.facebook.presto.type.ParametricType;
 import com.facebook.presto.type.TypeRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
@@ -60,15 +61,13 @@ import com.wrmsr.presto.config.MainConfigNode;
 import com.wrmsr.presto.config.PluginsConfigNode;
 import com.wrmsr.presto.config.SystemConfigNode;
 import com.wrmsr.presto.connector.ConnectorFactoryRegistration;
-import com.wrmsr.presto.connector.partitioner.PartitionerConnectorFactory;
-import com.wrmsr.presto.connector.partitioner.PartitionerModule;
-import com.wrmsr.presto.flat.FlatConnectorFactory;
-import com.wrmsr.presto.flat.FlatModule;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
+import com.wrmsr.presto.type.ParametricTypeRegistration;
 import com.wrmsr.presto.type.PropertiesFunction;
 import com.wrmsr.presto.type.PropertiesType;
+import com.wrmsr.presto.type.TypeRegistration;
 import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.Configs;
@@ -332,6 +331,20 @@ public class MainPlugin
                 }
             }
 
+            Set<TypeRegistration> trs = getInjector().getInstance(Key.get(new TypeLiteral<Set<TypeRegistration>>() {}));
+            for (TypeRegistration tr : trs) {
+                for (Type t : tr.getTypes()) {
+                    typeRegistry.addType(t);
+                }
+            }
+
+            Set<ParametricTypeRegistration> ptrs = getInjector().getInstance(Key.get(new TypeLiteral<Set<ParametricTypeRegistration>>() {}));
+            for (ParametricTypeRegistration ptr : ptrs) {
+                for (ParametricType pt : ptr.getParametricTypes()) {
+                    typeRegistry.addParametricType(pt);
+                }
+            }
+
             Set<FunctionRegistration> frs = getInjector().getInstance(Key.get(new TypeLiteral<Set<FunctionRegistration>>() {}));
             for (FunctionRegistration fr : frs) {
                 metadata.addFunctions(fr.getFunctions(typeRegistry));
@@ -499,18 +512,6 @@ public class MainPlugin
                     return processModule(module);
                 }
             }));
-        }
-
-        else if (type == ConnectorFactory.class) {
-            return ImmutableList.of(
-                    type.cast(new FlatConnectorFactory(optionalConfig.getValue(), new FlatModule(), getClassLoader()))
-            );
-        }
-
-        else if (type == Type.class) {
-            return ImmutableList.of(
-                    type.cast(PropertiesType.PROPERTIES)
-            );
         }
 
         else if (type == ServerEvent.Listener.class) {

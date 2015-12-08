@@ -11,22 +11,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.flat;
+package com.wrmsr.presto.type;
 
-import io.airlift.configuration.Config;
+import com.facebook.presto.type.ParametricType;
+import com.google.common.collect.ImmutableList;
 
-public class FlatConfig
+import java.util.List;
+
+public interface ParametricTypeRegistration
 {
-    private String filePath;
-
-    public String getFilePath()
+    interface Self
+            extends ParametricTypeRegistration, ParametricType
     {
-        return filePath;
+        default List<ParametricType> getParametricTypes()
+        {
+            return ImmutableList.of(this);
+        }
     }
 
-    @Config("file-path")
-    public void setFilePath(String filePath)
+    List<ParametricType> getParametricTypes();
+
+    static ParametricTypeRegistration of(List<ParametricType> parametricTypes)
     {
-        this.filePath = filePath;
+        return () -> parametricTypes;
     }
 }

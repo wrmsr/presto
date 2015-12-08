@@ -23,6 +23,7 @@ import com.wrmsr.presto.function.FunctionModule;
 import com.wrmsr.presto.scripting.ScriptingModule;
 import com.wrmsr.presto.serialization.SerializationModule;
 import com.wrmsr.presto.struct.StructModule;
+import com.wrmsr.presto.type.TypeModule;
 
 public class MainPluginModule
         implements Module
@@ -46,5 +47,6 @@ public class MainPluginModule
         binder.install(new ScriptingModule());
         binder.install(new SerializationModule());
         binder.install(new StructModule());
+        binder.install(new TypeModule());
     }
 }

@@ -11,17 +11,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.flat;
+package com.wrmsr.presto.type;
 
-import com.facebook.presto.spi.ConnectorInsertTableHandle;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.facebook.presto.spi.type.Type;
+import com.google.common.collect.ImmutableList;
 
-public class FlatInsertTableHandle
-        extends ConnectorIdOnlyHandle
-        implements ConnectorInsertTableHandle
+import java.util.List;
+
+public interface TypeRegistration
 {
-    public FlatInsertTableHandle(@JsonProperty("connectorId") String connectorId)
+    interface Self
+            extends TypeRegistration, Type
     {
-        super(connectorId);
+        default List<Type> getTypes()
+        {
+            return ImmutableList.of(this);
+        }
+    }
+
+    List<Type> getTypes();
+
+    static TypeRegistration of(List<Type> types)
+    {
+        return () -> types;
     }
 }

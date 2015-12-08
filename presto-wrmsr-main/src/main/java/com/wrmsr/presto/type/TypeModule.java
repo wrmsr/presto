@@ -13,6 +13,20 @@
  */
 package com.wrmsr.presto.type;
 
+import com.google.common.collect.ImmutableList;
+import com.google.inject.Binder;
+import com.google.inject.Module;
+import com.google.inject.multibindings.Multibinder;
+
 public class TypeModule
+    implements Module
 {
+    @Override
+    public void configure(Binder binder)
+    {
+        Multibinder<TypeRegistration> typeRegistrationBinder = Multibinder.newSetBinder(binder, TypeRegistration.class);
+        Multibinder<ParametricTypeRegistration> parametricTypeRegistrationBinder = Multibinder.newSetBinder(binder, ParametricTypeRegistration.class);
+
+        typeRegistrationBinder.addBinding().toInstance(TypeRegistration.of(ImmutableList.of(PropertiesType.PROPERTIES)));
+    }
 }

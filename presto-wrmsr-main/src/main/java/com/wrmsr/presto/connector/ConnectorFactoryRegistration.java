@@ -14,7 +14,6 @@
 package com.wrmsr.presto.connector;
 
 import com.facebook.presto.spi.ConnectorFactory;
-import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
