@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.codec;
 
-import com.facebook.presto.metadata.FunctionResolver;
 import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.type.ParametricType;
 import com.google.inject.Binder;
@@ -29,19 +28,13 @@ public class CodecModule
     {
         binder.bind(TypeCodecManager.class).asEagerSingleton();
 
-        Multibinder<FunctionResolver> functionResolverBinder = Multibinder.newSetBinder(binder, FunctionResolver.class);
         Multibinder<ParametricType> parametricTypeBinder = Multibinder.newSetBinder(binder, ParametricType.class);
-
+        Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
         Multibinder<TypeCodec> typeCodecBinder = Multibinder.newSetBinder(binder, TypeCodec.class);
 
         Compression.COMMONS_COMPRESSION_NAMES.stream()
                 .map(CommonsCompressionTypeCodec::new)
                 .forEach(c -> typeCodecBinder.addBinding().toInstance(c));
 
-        Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
-
-        binder.bind(DecodeFunction.class).asEagerSingleton();
-        functionBinder.addBinding().to(DecodeFunction.class);
-        functionResolverBinder.addBinding().to(DecodeFunction.class);
     }
 }

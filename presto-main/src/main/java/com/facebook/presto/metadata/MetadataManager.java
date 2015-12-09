@@ -126,6 +126,7 @@ public class MetadataManager
         this(featuresConfig, typeManager, createTestingViewCodec(), splitManager, blockEncodingSerde, sessionPropertyManager, tablePropertyManager);
     }
 
+    @Inject
     public MetadataManager(FeaturesConfig featuresConfig,
             TypeManager typeManager,
             JsonCodec<ViewDefinition> viewCodec,
@@ -134,20 +135,7 @@ public class MetadataManager
             SessionPropertyManager sessionPropertyManager,
             TablePropertyManager tablePropertyManager)
     {
-        this(featuresConfig, typeManager, viewCodec, splitManager, blockEncodingSerde, sessionPropertyManager, tablePropertyManager, ImmutableSet.of());
-    }
-
-    @Inject
-    public MetadataManager(FeaturesConfig featuresConfig,
-            TypeManager typeManager,
-            JsonCodec<ViewDefinition> viewCodec,
-            SplitManager splitManager,
-            BlockEncodingSerde blockEncodingSerde,
-            SessionPropertyManager sessionPropertyManager,
-            TablePropertyManager tablePropertyManager,
-            Set<FunctionResolver> functionResolvers)
-    {
-        functions = new FunctionRegistry(typeManager, blockEncodingSerde, featuresConfig.isExperimentalSyntaxEnabled(), functionResolvers);
+        functions = new FunctionRegistry(typeManager, blockEncodingSerde, featuresConfig.isExperimentalSyntaxEnabled());
         this.typeManager = requireNonNull(typeManager, "types is null");
         this.viewCodec = requireNonNull(viewCodec, "viewCodec is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");

@@ -20,10 +20,8 @@ import com.facebook.presto.execution.QueryIdGenerator;
 import com.facebook.presto.execution.QueryInfo;
 import com.facebook.presto.execution.QueryManager;
 import com.facebook.presto.metadata.FunctionListBuilder;
-import com.facebook.presto.metadata.FunctionResolver;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.SessionPropertyManager;
-import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.security.AccessControl;
@@ -34,24 +32,20 @@ import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
-import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.type.ParametricType;
 import com.facebook.presto.type.TypeRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
-import com.google.inject.multibindings.Multibinder;
 import com.google.inject.util.Modules;
 import com.wrmsr.presto.config.ConnectorsConfigNode;
 import com.wrmsr.presto.config.ExecConfigNode;
@@ -61,7 +55,6 @@ import com.wrmsr.presto.config.PluginsConfigNode;
 import com.wrmsr.presto.config.SystemConfigNode;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.server.ModuleProcessor;
-import com.wrmsr.presto.server.PreloadedPlugins;
 import com.wrmsr.presto.server.ServerEvent;
 import com.wrmsr.presto.type.PropertiesFunction;
 import com.wrmsr.presto.util.GuiceUtils;
@@ -73,7 +66,6 @@ import io.airlift.log.Logger;
 import io.airlift.units.Duration;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 
 import java.io.File;
@@ -87,10 +79,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
@@ -460,32 +450,8 @@ public class MainPlugin
         }
     }
 
-    private final AtomicReference<Set<FunctionResolver>> functionResolvers = new AtomicReference<>(ImmutableSet.of());
-
     private void postInject()
     {
-        functionResolvers.set(injector.getInstance(Key.get(new TypeLiteral<Set<FunctionResolver>>() {})));
-    }
-
-    private FunctionResolver buildFunctionResolver()
-    {
-        return new FunctionResolver()
-        {
-            @Nullable
-            @Override
-            public Signature resolveFunction(QualifiedName name, List<TypeSignature> parameterTypes, boolean approximate)
-            {
-                Signature match = null;
-                for (FunctionResolver functionResolver : functionResolvers.get()) {
-                    Signature cur = functionResolver.resolveFunction(name, parameterTypes, approximate);
-                    if (cur != null) {
-                        checkArgument(match == null, "Ambiguous call to %s with parameters %s", name, parameterTypes);
-                        match = cur;
-                    }
-                }
-                return match;
-            }
-        };
     }
 
     private Module processModule(Module module)
@@ -495,9 +461,6 @@ public class MainPlugin
             @Override
             public void configure(Binder binder)
             {
-                Multibinder<FunctionResolver> signatureBinderBinder = Multibinder.newSetBinder(binder, FunctionResolver.class);
-                signatureBinderBinder.addBinding().toInstance(buildFunctionResolver());
-
                 // jaxrsBinder(binder).bind(ShutdownResource.class);
             }
         }));

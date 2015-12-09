@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.function;
 
-import com.facebook.presto.metadata.FunctionResolver;
 import com.facebook.presto.metadata.SqlFunction;
 import com.google.inject.Binder;
 import com.google.inject.Module;
@@ -30,7 +29,6 @@ public class FunctionModule
 
         Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
         Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
-        Multibinder<FunctionResolver> functionResolverBinder = Multibinder.newSetBinder(binder, FunctionResolver.class);
 
         binder.bind(ConnectorExecFunction.class).asEagerSingleton();
         functionBinder.addBinding().to(ConnectorExecFunction.class);

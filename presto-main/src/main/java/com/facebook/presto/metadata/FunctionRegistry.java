@@ -222,18 +222,10 @@ public class FunctionRegistry
     private final LoadingCache<SpecializedFunctionKey, WindowFunctionSupplier> specializedWindowCache;
     private volatile FunctionMap functions = new FunctionMap();
 
-    private final Set<FunctionResolver> functionResolvers;
-
     public FunctionRegistry(TypeManager typeManager, BlockEncodingSerde blockEncodingSerde, boolean experimentalSyntaxEnabled)
-    {
-        this(typeManager, blockEncodingSerde, experimentalSyntaxEnabled, ImmutableSet.of());
-    }
-
-    public FunctionRegistry(TypeManager typeManager, BlockEncodingSerde blockEncodingSerde, boolean experimentalSyntaxEnabled, Set<FunctionResolver> functionResolvers)
     {
         this.typeManager = requireNonNull(typeManager, "typeManager is null");
         this.blockEncodingSerde = requireNonNull(blockEncodingSerde, "blockEncodingSerde is null");
-        this.functionResolvers = requireNonNull(functionResolvers);
 
         specializedScalarCache = CacheBuilder.newBuilder()
                 .maximumSize(1000)
@@ -502,14 +494,6 @@ public class FunctionRegistry
             SqlFunction fieldReference = getRowFieldReference(name.getSuffix(), parameterTypes.get(0));
             if (fieldReference != null) {
                 return bindSignature(fieldReference.getSignature(), resolvedTypes, true, typeManager);
-            }
-        }
-
-        for (FunctionResolver functionResolver : functionResolvers) {
-            Signature signature = functionResolver.resolveFunction(name, parameterTypes, approximate);
-            if (signature != null) {
-                checkArgument(match == null, "Ambiguous call to %s with parameters %s", name, parameterTypes);
-                match = signature;
             }
         }
 
