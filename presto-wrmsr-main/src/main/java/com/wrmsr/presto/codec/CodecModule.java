@@ -19,7 +19,6 @@ import com.facebook.presto.type.ParametricType;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
-import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.util.Compression;
 
 public class CodecModule
@@ -33,9 +32,6 @@ public class CodecModule
         Multibinder<FunctionResolver> functionResolverBinder = Multibinder.newSetBinder(binder, FunctionResolver.class);
         Multibinder<ParametricType> parametricTypeBinder = Multibinder.newSetBinder(binder, ParametricType.class);
 
-        binder.bind(EncodedParametricType.class).asEagerSingleton();
-        parametricTypeBinder.addBinding().to(EncodedParametricType.class);
-
         Multibinder<TypeCodec> typeCodecBinder = Multibinder.newSetBinder(binder, TypeCodec.class);
 
         Compression.COMMONS_COMPRESSION_NAMES.stream()
@@ -44,7 +40,6 @@ public class CodecModule
 
         Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
 
-        binder.bind(EncodeFunction.class).asEagerSingleton();
         binder.bind(DecodeFunction.class).asEagerSingleton();
         functionBinder.addBinding().to(DecodeFunction.class);
         functionResolverBinder.addBinding().to(DecodeFunction.class);

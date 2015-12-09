@@ -20,10 +20,10 @@ import com.facebook.presto.execution.QueryIdGenerator;
 import com.facebook.presto.execution.QueryInfo;
 import com.facebook.presto.execution.QueryManager;
 import com.facebook.presto.metadata.FunctionListBuilder;
+import com.facebook.presto.metadata.FunctionResolver;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.Signature;
-import com.facebook.presto.metadata.FunctionResolver;
 import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.security.AccessControl;
@@ -34,7 +34,6 @@ import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
@@ -48,7 +47,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
-import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
@@ -63,11 +61,13 @@ import com.wrmsr.presto.config.PluginsConfigNode;
 import com.wrmsr.presto.config.SystemConfigNode;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.server.ModuleProcessor;
+import com.wrmsr.presto.server.PreloadedPlugins;
 import com.wrmsr.presto.server.ServerEvent;
 import com.wrmsr.presto.type.PropertiesFunction;
 import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.Configs;
+import io.airlift.bootstrap.Bootstrap;
 import io.airlift.json.JsonCodec;
 import io.airlift.log.Logger;
 import io.airlift.units.Duration;
@@ -282,7 +282,16 @@ public class MainPlugin
 
     private Injector buildInjector()
     {
-        return Guice.createInjector(buildModule());
+        Bootstrap app = new Bootstrap(buildModule());
+
+        try {
+            return app.strictConfig().initialize();
+        }
+        catch (Throwable e) {
+            log.error(e);
+            System.exit(1);
+            throw new IllegalStateException();
+        }
     }
 
     private Injector getInjector()

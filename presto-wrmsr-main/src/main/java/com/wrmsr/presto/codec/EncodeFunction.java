@@ -18,7 +18,6 @@ public class EncodeFunction
 {
     private final TypeCodec typeCodec;
 
-    @Inject
     public EncodeFunction(TypeCodec typeCodec)
     {
         super(typeCodec.getName(), ImmutableList.of(typeParameter("T")), typeCodec.getName() + "<T>", ImmutableList.of("T"));

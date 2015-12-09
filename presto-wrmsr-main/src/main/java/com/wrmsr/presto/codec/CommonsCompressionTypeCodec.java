@@ -21,6 +21,6 @@ public class CommonsCompressionTypeCodec
 {
     public CommonsCompressionTypeCodec(String name)
     {
-        super(name.toUpperCase(), new Compression.CommonsCompressionCodec(name.toLowerCase()));
+        super(name.toLowerCase(), new Compression.CommonsCompressionCodec(name));
     }
 }

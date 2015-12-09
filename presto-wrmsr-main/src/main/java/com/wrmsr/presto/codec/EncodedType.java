@@ -10,6 +10,8 @@ import com.facebook.presto.spi.type.TypeSignature;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 
+import java.util.List;
+
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 
 public class EncodedType
@@ -47,5 +49,17 @@ public class EncodedType
     public void appendTo(Block block, int position, BlockBuilder blockBuilder)
     {
 
+    }
+
+    @Override
+    public List<Type> getTypeParameters()
+    {
+        return ImmutableList.of(fromType);
+    }
+
+    @Override
+    public String getDisplayName()
+    {
+        return "array<" + fromType.getDisplayName() + ">";
     }
 }
