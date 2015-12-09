@@ -11,10 +11,12 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Serialization.roundTrip;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableSet;
 
 public abstract class MergingConfig<N extends MergingConfigNode>
 {
@@ -98,6 +100,12 @@ public abstract class MergingConfig<N extends MergingConfigNode>
     public <T extends MergingConfigNode<T>> List<T> getNodes(Class<T> cls)
     {
         return nodes.stream().filter(cls::isInstance).map(cls::cast).collect(toImmutableList());
+    }
+
+    public Set<Class<? extends MergingConfigNode>> getNodeTypes()
+    {
+        return nodes.stream().map(n -> (Class<? extends MergingConfigNode>) n.getClass()).collect(toImmutableSet());
+
     }
 
     @SuppressWarnings({"unchecked"})

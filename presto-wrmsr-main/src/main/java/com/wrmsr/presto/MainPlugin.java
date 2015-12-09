@@ -301,7 +301,7 @@ public class MainPlugin
 
     private void setSystemProperties()
     {
-        for (Map.Entry<String, String> e : config.getMergedNode(SystemConfigNode.class).getEntries().entrySet()) {
+        for (Map.Entry<String, String> e : config.getMergedNode(SystemConfigNode.class)) {
             System.setProperty(e.getKey(), e.getValue());
         }
     }
@@ -310,16 +310,12 @@ public class MainPlugin
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.PluginsLoaded) {
-            for (MainConfigNode node : config.getNodes()) {
-                if (node instanceof PluginsConfigNode) {
-                    for (String plugin : ((PluginsConfigNode) node).getItems()) {
-                        try {
-                            pluginManager.loadPlugin(plugin);
-                        }
-                        catch (Exception e) {
-                            throw Throwables.propagate(e);
-                        }
-                    }
+            for (String plugin : config.getMergedNode(PluginsConfigNode.class)) {
+                try {
+                    pluginManager.loadPlugin(plugin);
+                }
+                catch (Exception e) {
+                    throw Throwables.propagate(e);
                 }
             }
 
