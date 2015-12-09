@@ -13,8 +13,8 @@
  */
 package com.facebook.presto.spi.block;
 
-import io.airlift.slice.DynamicSliceOutput;
 import io.airlift.slice.Slice;
+import io.airlift.slice.SliceOutput;
 import io.airlift.slice.Slices;
 
 import java.util.ArrayList;
@@ -45,8 +45,9 @@ public abstract class AbstractArrayBlock
     @Override
     public Block copyPositions(List<Integer> positions)
     {
-        DynamicSliceOutput newOffsets = new DynamicSliceOutput(positions.size() * Integer.BYTES);
-        DynamicSliceOutput newValueIsNull = new DynamicSliceOutput(positions.size());
+        SliceOutput newOffsets = Slices.allocate(positions.size() * Integer.BYTES).getOutput();
+        SliceOutput newValueIsNull = Slices.allocate(positions.size()).getOutput();
+
         List<Integer> valuesPositions = new ArrayList<>();
         int countNewOffset = 0;
         for (int position : positions) {
@@ -129,12 +130,6 @@ public abstract class AbstractArrayBlock
     public int getSizeInBytes()
     {
         return getValues().getSizeInBytes() + getOffsets().length() + getValueIsNull().length();
-    }
-
-    @Override
-    public int getRetainedSizeInBytes()
-    {
-        return getValues().getRetainedSizeInBytes() + getOffsets().getRetainedSize() + getValueIsNull().getRetainedSize();
     }
 
     @Override
