@@ -5,8 +5,8 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
-public abstract class UnknownMergingConfigNode
-    implements MergingConfigNode
+public abstract class UnknownMergingConfigNode<N extends UnknownMergingConfigNode<N>>
+    implements MergingConfigNode<N>
 {
     private final String type;
     private final Object object;

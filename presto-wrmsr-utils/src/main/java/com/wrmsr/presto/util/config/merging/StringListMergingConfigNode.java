@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.List;
 
-public abstract class StringListMergingConfigNode
-    extends ListMergingConfigNode<String>
+public abstract class StringListMergingConfigNode<N extends StringListMergingConfigNode<N>>
+    extends ListMergingConfigNode<N, String>
 {
     public StringListMergingConfigNode(List<String> items)
     {

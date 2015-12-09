@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 import java.util.List;
 
-public abstract class IncludeMergingConfigNode
-    extends StringListMergingConfigNode
+public abstract class IncludeMergingConfigNode<N extends IncludeMergingConfigNode<N>>
+    extends StringListMergingConfigNode<N>
 {
     /*
     @JsonCreator

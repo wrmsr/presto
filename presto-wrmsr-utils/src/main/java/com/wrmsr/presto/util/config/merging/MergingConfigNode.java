@@ -1,6 +1,9 @@
 package com.wrmsr.presto.util.config.merging;
 
-public interface MergingConfigNode
+public interface MergingConfigNode<N extends MergingConfigNode>
 {
-    // TODO FIXME interface MergingConfigNode<T extends MergingConfigNode> { T merge(T other); })
+    default N merge(N other)
+    {
+        throw new UnsupportedOperationException();
+    }
 }

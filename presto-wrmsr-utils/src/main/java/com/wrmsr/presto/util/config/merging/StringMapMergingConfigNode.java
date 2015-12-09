@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.Map;
 
-public abstract class StringMapMergingConfigNode
-    extends MapMergingConfigNode<String, String>
+public abstract class StringMapMergingConfigNode<N extends StringMapMergingConfigNode<N>>
+    extends MapMergingConfigNode<N, String, String>
 {
     public StringMapMergingConfigNode(Map<String, String> entries)
     {

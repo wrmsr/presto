@@ -18,7 +18,7 @@ import com.wrmsr.presto.util.config.merging.MergingConfigNode;
         @JsonSubTypes.Type(value = ScriptingConfigNode.class, name = "scripting"),
         @JsonSubTypes.Type(value = SystemConfigNode.class, name = "system"),
 })
-public interface MainConfigNode
-        extends MergingConfigNode
+public interface MainConfigNode<N extends MainConfigNode<N>>
+        extends MergingConfigNode<N>
 {
 }

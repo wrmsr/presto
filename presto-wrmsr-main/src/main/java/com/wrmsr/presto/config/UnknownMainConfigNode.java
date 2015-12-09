@@ -6,7 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.config.merging.UnknownMergingConfigNode;
 
 public final class UnknownMainConfigNode
-    extends UnknownMergingConfigNode implements MainConfigNode
+    extends UnknownMergingConfigNode<UnknownMainConfigNode> implements MainConfigNode<UnknownMainConfigNode>
 {
     @JsonCreator
     public UnknownMainConfigNode(String type, Object object)

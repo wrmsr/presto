@@ -1,22 +1,17 @@
 package com.wrmsr.presto.util.config.merging;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
-import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.wrmsr.presto.util.Serialization;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Serialization.roundTrip;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
@@ -26,7 +21,8 @@ public abstract class MergingConfig<N extends MergingConfigNode>
     @FunctionalInterface
     public interface UnknownNodeHandler<N extends MergingConfigNode>
     {
-        N handle(String type, Object contents) throws IOException;
+        N handle(String type, Object contents)
+                throws IOException;
     }
 
     public static <N extends MergingConfigNode> List<N> nodesFrom(ObjectMapper mapper, List<Map<String, Object>> contents, Class<? extends N> ncls)
@@ -61,6 +57,7 @@ public abstract class MergingConfig<N extends MergingConfigNode>
         return builder.build();
     }
 
+    @SuppressWarnings({"unchecked"})
     public static <N extends MergingConfigNode> List<Map<String, Object>> fromNodes(ObjectMapper mapper, List<N> nodes, Class<? extends N> ncls)
     {
         Map<Class<?>, String> nodeTypeMap = Serialization.getJsonSubtypeMap(mapper, ncls).inverse();
@@ -98,30 +95,29 @@ public abstract class MergingConfig<N extends MergingConfigNode>
         return nodes;
     }
 
-    public <T extends MergingConfigNode> List<T> getNodes(Class<T> cls)
+    public <T extends MergingConfigNode<T>> List<T> getNodes(Class<T> cls)
     {
         return nodes.stream().filter(cls::isInstance).map(cls::cast).collect(toImmutableList());
     }
 
     @SuppressWarnings({"unchecked"})
-    public <T> List<T> getList(Class<? extends ListMergingConfigNode<T>> cls)
+    public <T extends MergingConfigNode<T>> T getMergedNode(Class<T> cls)
     {
-        return getNodes(cls).stream().flatMap(n -> n.getItems().stream()).collect(toImmutableList());
-    }
-
-    @SuppressWarnings({"unchecked"})
-    public <K, V> Map<K, V> getMap(Class<? extends MapMergingConfigNode<K, V>> cls)
-    {
-        Map<K, V> map = newHashMap();
-        for (MapMergingConfigNode node : getNodes(cls)) {
-            Set<Map.Entry<K, V>> entries = node.getEntries().entrySet();
-            for (Map.Entry<K, V> entry : entries) {
-                if (!map.containsKey(entry.getKey())) {
-                    map.put(entry.getKey(), entry.getValue());
-                }
+        List<T> nodes = getNodes(cls);
+        if (nodes.isEmpty()) {
+            try {
+                return (T) cls.getDeclaredMethod("newDefault").invoke(null);
             }
-
+            catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                throw Throwables.propagate(e);
+            }
         }
-        return ImmutableMap.copyOf(map);
+        else {
+            T node = nodes.get(0);
+            for (int i = 1; i < nodes.size(); ++i) {
+                node = node.merge(nodes.get(i));
+            }
+            return node;
+        }
     }
 }

@@ -7,8 +7,7 @@ import com.wrmsr.presto.util.config.merging.StringMapMergingConfigNode;
 import java.util.Map;
 
 public final class LogConfigNode
-    extends StringMapMergingConfigNode
-        implements MainConfigNode
+    extends StringMapMergingConfigNode<LogConfigNode> implements MainConfigNode<LogConfigNode>
 {
     @JsonCreator
     public static LogConfigNode valueOf(Object object)

@@ -12,7 +12,7 @@ import java.util.Map;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public final class ConnectorsConfigNode
-    extends MapMergingConfigNode<String, ConnectorsConfigNode.Entry> implements MainConfigNode
+    extends MapMergingConfigNode<ConnectorsConfigNode, String, ConnectorsConfigNode.Entry> implements MainConfigNode<ConnectorsConfigNode>
 {
     public static final class Entry
     {

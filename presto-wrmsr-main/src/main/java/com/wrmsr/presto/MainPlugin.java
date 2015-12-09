@@ -26,6 +26,7 @@ import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.server.PluginManager;
+import com.facebook.presto.server.TaskUpdateRequest;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
@@ -85,6 +86,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Serialization.YAML_OBJECT_MAPPER;
+import static io.airlift.json.JsonCodecBinder.jsonCodecBinder;
 import static java.util.Objects.requireNonNull;
 
 public class MainPlugin
@@ -299,12 +301,8 @@ public class MainPlugin
 
     private void setSystemProperties()
     {
-        for (MainConfigNode node : config.getNodes()) {
-            if (node instanceof SystemConfigNode) {
-                for (Map.Entry<String, String> e : ((SystemConfigNode) node).getEntries().entrySet()) {
-                    System.setProperty(e.getKey(), e.getValue());
-                }
-            }
+        for (Map.Entry<String, String> e : config.getMergedNode(SystemConfigNode.class).getEntries().entrySet()) {
+            System.setProperty(e.getKey(), e.getValue());
         }
     }
 
@@ -461,6 +459,8 @@ public class MainPlugin
             @Override
             public void configure(Binder binder)
             {
+                jsonCodecBinder(binder).bindJsonCodec(TaskUpdateRequest.class);
+
                 // jaxrsBinder(binder).bind(ShutdownResource.class);
             }
         }));

@@ -7,7 +7,7 @@ import com.wrmsr.presto.util.config.merging.StringMapMergingConfigNode;
 import java.util.Map;
 
 public final class SystemConfigNode
-    extends StringMapMergingConfigNode implements MainConfigNode
+    extends StringMapMergingConfigNode<SystemConfigNode> implements MainConfigNode<SystemConfigNode>
 {
     @JsonCreator
     public static SystemConfigNode valueOf(Object object)
