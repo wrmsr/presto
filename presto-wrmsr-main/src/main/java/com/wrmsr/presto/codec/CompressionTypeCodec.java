@@ -18,22 +18,30 @@ import com.facebook.presto.spi.type.VarbinaryType;
 import com.wrmsr.presto.util.codec.Codec;
 import io.airlift.slice.Slice;
 
-import java.util.function.Function;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.wrmsr.presto.codec.SliceCodec.SLICE_TO_BYTES_CODEC;
 
 public class CompressionTypeCodec
-    extends TypeCodec
+        extends TypeCodec
 {
-    private final Codec<byte[], byte[]> codec;
+    private final Codec<byte[], byte[]> bytesCodec;
+    private final Codec<Slice, Slice> sliceCodec;
 
-    public CompressionTypeCodec(String name, Codec<byte[], byte[]> codec)
+    public CompressionTypeCodec(String name, Codec<byte[], byte[]> bytesCodec)
     {
         super(name);
-        this.codec = codec;
+        this.bytesCodec = bytesCodec;
+        this.sliceCodec = Codec.compose(
+                SLICE_TO_BYTES_CODEC,
+                bytesCodec,
+                Codec.flip(SLICE_TO_BYTES_CODEC));
     }
 
+    @SuppressWarnings({"unchecked"})
     @Override
     public <T> Codec<T, Slice> getCodec(Type fromType)
     {
-        return null;
+        checkArgument(fromType.equals(VarbinaryType.VARBINARY));
+        return (Codec<T, Slice>) sliceCodec;
     }
 }
