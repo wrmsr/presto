@@ -11,14 +11,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.codec;
+package com.wrmsr.presto.util;
 
 import com.facebook.presto.spi.block.Block;
 import com.wrmsr.presto.util.codec.Codec;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
-public class SliceCodec
+public class SliceCodecs
 {
     public static final Codec<Slice, byte[]> SLICE_TO_BYTES_CODEC = Codec.of(Slice::getBytes, Slices::wrappedBuffer);
 

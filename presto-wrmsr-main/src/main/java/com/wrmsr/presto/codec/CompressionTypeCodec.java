@@ -19,7 +19,7 @@ import com.wrmsr.presto.util.codec.Codec;
 import io.airlift.slice.Slice;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.wrmsr.presto.codec.SliceCodec.SLICE_TO_BYTES_CODEC;
+import static com.wrmsr.presto.util.SliceCodecs.SLICE_TO_BYTES_CODEC;
 
 public class CompressionTypeCodec
         extends TypeCodec
