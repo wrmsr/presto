@@ -15,7 +15,7 @@ public class MainConfig
     @JsonCreator
     public static MainConfig valueOf(List<Map<String, Object>> contents)
     {
-        return new MainConfig(nodesFrom(OBJECT_MAPPER.get(), contents, MainConfigNode.class, UnknownMainConfigNode::new));
+        return new MainConfig(nodesFrom(OBJECT_MAPPER.get(), contents, MainConfigNode.class, UnknownConfig::new));
     }
 
     public MainConfig(List<MainConfigNode> nodes)

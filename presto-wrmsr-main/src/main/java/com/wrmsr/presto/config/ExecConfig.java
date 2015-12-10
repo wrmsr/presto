@@ -24,7 +24,7 @@ list
 string
 file
 */
-public class ExecConfigNode
+public class ExecConfig
         implements MainConfigNode
 {
     @JsonTypeInfo(
@@ -250,14 +250,14 @@ public class ExecConfigNode
     }
 
     @JsonCreator
-    public static ExecConfigNode valueOf(Object object)
+    public static ExecConfig valueOf(Object object)
     {
-        return new ExecConfigNode(SubjectList.valueOf(object));
+        return new ExecConfig(SubjectList.valueOf(object));
     }
 
     protected final SubjectList subjects;
 
-    public ExecConfigNode(SubjectList subjects)
+    public ExecConfig(SubjectList subjects)
     {
         this.subjects = subjects;
     }

@@ -16,6 +16,7 @@ package com.wrmsr.presto;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.wrmsr.presto.codec.CodecModule;
+import com.wrmsr.presto.config.ConfigModule;
 import com.wrmsr.presto.config.MainConfig;
 import com.wrmsr.presto.connector.ConnectorModule;
 import com.wrmsr.presto.connectorSupport.ConnectorSupportModule;
@@ -38,7 +39,7 @@ public class MainPluginModule
     @Override
     public void configure(Binder binder)
     {
-        binder.bind(MainConfig.class).toInstance(config);
+        binder.install(new ConfigModule(config));
 
         binder.install(new CodecModule());
         binder.install(new ConnectorModule());

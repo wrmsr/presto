@@ -11,8 +11,8 @@ import java.util.Map;
 
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
-public final class ConnectorsConfigNode
-    extends MapMergingConfigNode<ConnectorsConfigNode, String, ConnectorsConfigNode.Entry> implements MainConfigNode<ConnectorsConfigNode>
+public final class ConnectorsConfig
+    extends MapMergingConfigNode<ConnectorsConfig, String, ConnectorsConfig.Entry> implements MainConfigNode<ConnectorsConfig>
 {
     public static final class Entry
     {
@@ -34,18 +34,10 @@ public final class ConnectorsConfigNode
         {
             return entries;
         }
-
-        @Override
-        public String toString()
-        {
-            return "Entry{" +
-                    "entries=" + entries +
-                    '}';
-        }
     }
 
     @JsonCreator
-    public ConnectorsConfigNode(Map<String, Entry> entries)
+    public ConnectorsConfig(Map<String, Entry> entries)
     {
         super(entries);
     }

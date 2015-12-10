@@ -48,12 +48,12 @@ import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
 import com.google.inject.util.Modules;
-import com.wrmsr.presto.config.ConnectorsConfigNode;
-import com.wrmsr.presto.config.ExecConfigNode;
+import com.wrmsr.presto.config.ConnectorsConfig;
+import com.wrmsr.presto.config.ExecConfig;
 import com.wrmsr.presto.config.MainConfig;
 import com.wrmsr.presto.config.MainConfigNode;
-import com.wrmsr.presto.config.PluginsConfigNode;
-import com.wrmsr.presto.config.SystemConfigNode;
+import com.wrmsr.presto.config.PluginsConfig;
+import com.wrmsr.presto.config.SystemConfig;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
@@ -301,7 +301,7 @@ public class MainPlugin
 
     private void setSystemProperties()
     {
-        for (Map.Entry<String, String> e : config.getMergedNode(SystemConfigNode.class)) {
+        for (Map.Entry<String, String> e : config.getMergedNode(SystemConfig.class)) {
             System.setProperty(e.getKey(), e.getValue());
         }
     }
@@ -310,7 +310,7 @@ public class MainPlugin
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.PluginsLoaded) {
-            for (String plugin : config.getMergedNode(PluginsConfigNode.class)) {
+            for (String plugin : config.getMergedNode(PluginsConfig.class)) {
                 try {
                     pluginManager.loadPlugin(plugin);
                 }
@@ -361,8 +361,8 @@ public class MainPlugin
 
         else if (event instanceof ServerEvent.ConnectorsLoaded) {
             for (MainConfigNode node : config.getNodes()) {
-                if (node instanceof ConnectorsConfigNode) {
-                    for (Map.Entry<String, ConnectorsConfigNode.Entry> e : ((ConnectorsConfigNode) node).getEntries().entrySet()) {
+                if (node instanceof ConnectorsConfig) {
+                    for (Map.Entry<String, ConnectorsConfig.Entry> e : ((ConnectorsConfig) node).getEntries().entrySet()) {
                         Object rt;
                         try {
                             rt = OBJECT_MAPPER.get().readValue(OBJECT_MAPPER.get().writeValueAsString(e.getValue()), Map.class);
@@ -385,16 +385,16 @@ public class MainPlugin
 
         else if (event instanceof ServerEvent.DataSourcesLoaded) {
             for (MainConfigNode node : config.getNodes()) {
-                if (node instanceof ExecConfigNode) {
-                    for (ExecConfigNode.Subject subject : ((ExecConfigNode) node).getSubjects().getSubjects()) {
-                        if (subject instanceof ExecConfigNode.SqlSubject) {
-                            for (ExecConfigNode.Verb verb : ((ExecConfigNode.SqlSubject) subject).getVerbs().getVerbs()) {
+                if (node instanceof ExecConfig) {
+                    for (ExecConfig.Subject subject : ((ExecConfig) node).getSubjects().getSubjects()) {
+                        if (subject instanceof ExecConfig.SqlSubject) {
+                            for (ExecConfig.Verb verb : ((ExecConfig.SqlSubject) subject).getVerbs().getVerbs()) {
                                 ImmutableList.Builder<String> builder = ImmutableList.builder();
-                                if (verb instanceof ExecConfigNode.StringVerb) {
-                                    builder.add(((ExecConfigNode.StringVerb) verb).getStatement());
+                                if (verb instanceof ExecConfig.StringVerb) {
+                                    builder.add(((ExecConfig.StringVerb) verb).getStatement());
                                 }
-                                else if (verb instanceof ExecConfigNode.FileVerb) {
-                                    File file = new File(((ExecConfigNode.FileVerb) verb).getPath());
+                                else if (verb instanceof ExecConfig.FileVerb) {
+                                    File file = new File(((ExecConfig.FileVerb) verb).getPath());
                                     byte[] b = new byte[(int) file.length()];
                                     try (FileInputStream fis = new FileInputStream(file)) {
                                         fis.read(b);
@@ -429,10 +429,10 @@ public class MainPlugin
                             }
                         }
 
-                        else if (subject instanceof ExecConfigNode.ConnectorSubject) {
+                        else if (subject instanceof ExecConfig.ConnectorSubject) {
 
                         }
-                        else if (subject instanceof ExecConfigNode.ScriptSubject) {
+                        else if (subject instanceof ExecConfig.ScriptSubject) {
 
                         }
                         else {

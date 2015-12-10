@@ -5,11 +5,11 @@ import com.wrmsr.presto.util.config.merging.StringListMergingConfigNode;
 
 import java.util.List;
 
-public final class PluginsConfigNode
-    extends StringListMergingConfigNode<PluginsConfigNode> implements MainConfigNode<PluginsConfigNode>
+public final class PluginsConfig
+    extends StringListMergingConfigNode<PluginsConfig> implements MainConfigNode<PluginsConfig>
 {
     @JsonCreator
-    public PluginsConfigNode(List<String> items)
+    public PluginsConfig(List<String> items)
     {
         super(items);
     }

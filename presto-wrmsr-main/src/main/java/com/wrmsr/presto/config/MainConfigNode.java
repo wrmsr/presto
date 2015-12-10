@@ -10,13 +10,13 @@ import com.wrmsr.presto.util.config.merging.MergingConfigNode;
         // defaultImpl = UnknownConfigNode.class
 )
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = ConnectorsConfigNode.class, name = "connectors"),
-        @JsonSubTypes.Type(value = ExecConfigNode.class, name = "exec"),
-        @JsonSubTypes.Type(value = LogConfigNode.class, name = "log"),
-        @JsonSubTypes.Type(value = PluginsConfigNode.class, name = "plugins"),
-        @JsonSubTypes.Type(value = JvmConfigNode.class, name = "jvm"),
-        @JsonSubTypes.Type(value = ScriptingConfigNode.class, name = "scripting"),
-        @JsonSubTypes.Type(value = SystemConfigNode.class, name = "system"),
+        @JsonSubTypes.Type(value = ConnectorsConfig.class, name = "connectors"),
+        @JsonSubTypes.Type(value = ExecConfig.class, name = "exec"),
+        @JsonSubTypes.Type(value = LogConfig.class, name = "log"),
+        @JsonSubTypes.Type(value = PluginsConfig.class, name = "plugins"),
+        @JsonSubTypes.Type(value = JvmConfig.class, name = "jvm"),
+        @JsonSubTypes.Type(value = ScriptingConfig.class, name = "scripting"),
+        @JsonSubTypes.Type(value = SystemConfig.class, name = "system"),
 })
 public interface MainConfigNode<N extends MainConfigNode<N>>
         extends MergingConfigNode<N>

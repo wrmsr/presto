@@ -6,16 +6,16 @@ import com.wrmsr.presto.util.config.merging.StringMapMergingConfigNode;
 
 import java.util.Map;
 
-public final class JvmConfigNode
-    extends StringMapMergingConfigNode<JvmConfigNode> implements MainConfigNode<JvmConfigNode>
+public final class LogConfig
+    extends StringMapMergingConfigNode<LogConfig> implements MainConfigNode<LogConfig>
 {
     @JsonCreator
-    public static JvmConfigNode valueOf(Object object)
+    public static LogConfig valueOf(Object object)
     {
-        return new JvmConfigNode(Configs.flatten(object));
+        return new LogConfig(Configs.flatten(object));
     }
 
-    public JvmConfigNode(Map<String, String> entries)
+    public LogConfig(Map<String, String> entries)
     {
         super(entries);
     }

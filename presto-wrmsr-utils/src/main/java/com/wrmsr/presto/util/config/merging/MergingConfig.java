@@ -105,7 +105,6 @@ public abstract class MergingConfig<N extends MergingConfigNode>
     public Set<Class<? extends MergingConfigNode>> getNodeTypes()
     {
         return nodes.stream().map(n -> (Class<? extends MergingConfigNode>) n.getClass()).collect(toImmutableSet());
-
     }
 
     @SuppressWarnings({"unchecked"})
