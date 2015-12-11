@@ -20,7 +20,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.util.Exceptions;
 import com.wrmsr.presto.util.Serialization;
+import com.wrmsr.presto.util.collect.ImmutableCollectors;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 
