@@ -267,4 +267,9 @@ public class ExecConfig
     {
         return subjects;
     }
+
+    public static ExecConfig newDefault()
+    {
+        return new ExecConfig(new SubjectList(ImmutableList.of()));
+    }
 }

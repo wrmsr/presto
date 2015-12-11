@@ -41,11 +41,11 @@ import com.facebook.presto.tpch.TpchConnectorFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-import com.wrmsr.presto.connectorSupport.ConnectorSupport;
 import com.wrmsr.presto.connectorSupport.ExtendedJdbcConnectorSupport;
 import com.wrmsr.presto.connectorSupport.TpchConnectorSupport;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnectorFactory;
+import com.wrmsr.presto.spi.ConnectorSupport;
 import org.intellij.lang.annotations.Language;
 
 import java.io.File;
@@ -192,8 +192,8 @@ public class TestHelper
             connectors = lqr.getConnectorManager().getConnectors();
 
             connectorSupport = ImmutableMap.<String, ConnectorSupport>builder()
-                   .put("tpch", new TpchConnectorSupport(session, connectors.get("tpch"), "tiny"))
-                    .put("test", new ExtendedJdbcConnectorSupport(session, (ExtendedJdbcConnector) connectors.get("test")))
+                   .put("tpch", new TpchConnectorSupport(session.toConnectorSession(), connectors.get("tpch"), "tiny"))
+                    .put("test", new ExtendedJdbcConnectorSupport(session.toConnectorSession(), (ExtendedJdbcConnector) connectors.get("test")))
                    .build();
         }
     }
