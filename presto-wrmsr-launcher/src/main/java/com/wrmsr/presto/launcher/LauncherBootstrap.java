@@ -13,17 +13,14 @@
  */
 package com.wrmsr.presto.launcher;
 
-import org.testng.annotations.Test;
+import com.wrmsr.presto.util.Repositories;
 
-public class TestPrestoWrapperMain
+public class LauncherBootstrap
 {
-    public TestPrestoWrapperMain()
+    public static void main(String[] args) throws Throwable
     {
-    }
-
-    @Test
-    public void testSanity()
-            throws Exception
-    {
+        Repositories.setupClassLoaderForModule(LauncherBootstrap.class.getClassLoader(), "presto-wrmsr-launcher");
+        Class<?> cls = Class.forName("com.wrmsr.presto.launcher.LauncherMain");
+        cls.getDeclaredMethod("main", String[].class).invoke(null, new Object[]{args});
     }
 }

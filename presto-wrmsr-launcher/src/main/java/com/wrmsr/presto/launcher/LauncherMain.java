@@ -28,7 +28,6 @@ import io.airlift.resolver.ArtifactResolver;
 import jnr.posix.POSIX;
 import org.sonatype.aether.artifact.Artifact;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -103,9 +102,9 @@ ec2
 hdfs
 */
 
-public class PrestoWrapperMain
+public class LauncherMain
 {
-    private PrestoWrapperMain()
+    private LauncherMain()
     {
     }
 
@@ -118,7 +117,7 @@ public class PrestoWrapperMain
         // InetAddress i = InetAddress.getAllByName("www.google.com")[0];
         // System.out.println(i);
 
-        PrestoWrapperMain.args = args;
+        LauncherMain.args = args;
 
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
@@ -180,12 +179,6 @@ public class PrestoWrapperMain
         @Option(type = OptionType.GLOBAL, name = {"-a", "--autoconf"}, description = "Autoconfigure")
         public boolean autoconfigure;
 
-        public PrestoWrapperConfig readConfig()
-        {
-            // lol fixme
-            throw new UnsupportedOperationException();
-        }
-
         @Override
         public void run()
         {
@@ -204,7 +197,7 @@ public class PrestoWrapperMain
                     catch (URISyntaxException e) {
                         throw Throwables.propagate(e);
                     }
-                    newArgs.addAll(Arrays.asList(PrestoWrapperMain.args));
+                    newArgs.addAll(Arrays.asList(LauncherMain.args));
                     POSIX posix = POSIXUtils.getPOSIX();
                     posix.libc().execv(jvmLocation, newArgs.toArray(new String[newArgs.size()]));
                 }
@@ -277,7 +270,7 @@ public class PrestoWrapperMain
             checkState(new File(java).exists());
             String jar;
             try {
-                jar = new File(PrestoWrapperMain.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath();
+                jar = new File(LauncherMain.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath();
             }
             catch (Exception e) {
                 throw Throwables.propagate(e);
@@ -456,7 +449,7 @@ public class PrestoWrapperMain
         catch (ParserConfigurationException e) {
             throw new RuntimeException(e);
         }
-        InputStream pomIn = PrestoWrapperMain.class.getClassLoader().getResourceAsStream("META-INF/maven/com.wrmsr.presto/presto-wrmsr-launcher/pom.xml");
+        InputStream pomIn = LauncherMain.class.getClassLoader().getResourceAsStream("META-INF/maven/com.wrmsr.presto/presto-wrmsr-launcher/pom.xml");
         if (pomIn == null) {
             try {
                 pomIn = new FileInputStream(new File("presto-wrmsr-launcher/pom.xml"));

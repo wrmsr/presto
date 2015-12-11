@@ -43,7 +43,13 @@ public class ConnectorSupportManager
 
     public Optional<ConnectorSupport> getConnectorSupport(ConnectorSession connectorSession, Connector connector)
     {
-        return connectorSupportFactories.stream().flatMap(f -> f.getConnectorSupport(connectorSession, connector)).findFirst();
+        for (ConnectorSupportFactory f : connectorSupportFactories) {
+            Optional<ConnectorSupport> cs = f.getConnectorSupport(connectorSession, connector);
+            if (cs.isPresent()) {
+                return cs;
+            }
+        }
+        return Optional.empty();
     }
 
     public PkLayout<String> getTableTupleLayout(ConnectorSupport t, SchemaTableName schemaTableName)

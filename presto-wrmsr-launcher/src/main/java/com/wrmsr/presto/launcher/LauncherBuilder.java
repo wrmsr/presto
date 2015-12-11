@@ -49,18 +49,18 @@ import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toMap;
 
-public class PrestoWrapperBuilder
+public class LauncherBuilder
 {
-    private static final Logger log = Logger.get(PrestoWrapperBuilder.class);
+    private static final Logger log = Logger.get(LauncherBuilder.class);
 
-    private PrestoWrapperBuilder()
+    private LauncherBuilder()
     {
     }
 
     public static void main(String[] args)
             throws Throwable
     {
-        new PrestoWrapperBuilder().run(args);
+        new LauncherBuilder().run(args);
     }
 
     public static abstract class Entry
@@ -447,7 +447,7 @@ public class PrestoWrapperBuilder
         bo.close();
 
         byte[] launcherBytes;
-        try (InputStream launcherStream = PrestoWrapperBuilder.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/launcher")) {
+        try (InputStream launcherStream = LauncherBuilder.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/launcher")) {
             launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, Charsets.UTF_8)).getBytes();
         }
 
