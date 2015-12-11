@@ -28,12 +28,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-hive-utils</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
             <version>${hive.version}</version>

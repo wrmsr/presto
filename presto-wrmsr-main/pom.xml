@@ -87,12 +87,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-hive-utils</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>com.facebook.presto</groupId>
             <artifactId>presto-main</artifactId>
             <scope>provided</scope>

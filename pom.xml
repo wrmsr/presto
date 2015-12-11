@@ -106,7 +106,6 @@
         <module>presto-wrmsr-cluster</module>
         <module>presto-wrmsr-main</module>
         <module>presto-wrmsr-hadoop</module>
-        <module>presto-wrmsr-hive-utils</module>
         <module>presto-wrmsr-jython</module>
         <!-- <module>presto-wrmsr-jruby</module> -->
         <!-- <module>presto-wrmsr-lucene</module> -->

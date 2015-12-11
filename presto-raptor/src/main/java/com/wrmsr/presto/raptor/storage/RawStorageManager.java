@@ -13,8 +13,6 @@
  */
 package com.wrmsr.presto.raptor.storage;
 
-import com.facebook.presto.hadoop.shaded.com.google.common.base.Strings;
-import com.facebook.presto.hadoop.shaded.com.google.common.base.Throwables;
 import com.facebook.presto.raptor.RaptorColumnHandle;
 import com.facebook.presto.raptor.backup.BackupStore;
 import com.facebook.presto.raptor.metadata.ShardDelta;
@@ -27,13 +25,13 @@ import com.facebook.presto.raptor.storage.StorageManagerConfig;
 import com.facebook.presto.raptor.storage.StoragePageSink;
 import com.facebook.presto.raptor.storage.StorageService;
 import com.facebook.presto.raptor.util.CurrentNodeId;
-import com.facebook.presto.raptor.util.PageBuffer;
 import com.facebook.presto.spi.ConnectorPageSource;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.VarbinaryType;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.airlift.json.JsonCodec;
@@ -43,6 +41,7 @@ import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 
 import javax.inject.Inject;
+
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.File;
@@ -62,8 +61,7 @@ import static com.facebook.presto.raptor.storage.Row.extractRow;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static io.airlift.units.DataSize.Unit.BYTE;
-import static io.airlift.units.Duration.nanosSince;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.Math.min;
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 
@@ -184,7 +182,8 @@ public class RawStorageManager
         return new ShardInfo(shardUuid, nodes, ImmutableList.of(), rowCount, file.length(), file.length());
     }
 
-    private class RawStoragePageSink implements StoragePageSink
+    private class RawStoragePageSink
+            implements StoragePageSink
     {
         private final Long columnId;
         private final Type columnType;
@@ -305,7 +304,7 @@ public class RawStorageManager
                 throw new PrestoException(RAPTOR_ERROR, "ioex", e);
             }
 
-            if (!Strings.isNullOrEmpty(compression)) {
+            if (!isNullOrEmpty(compression)) {
                 try {
                     writer = new CompressorStreamFactory().createCompressorOutputStream(compression, writer);
                 }
@@ -363,7 +362,7 @@ public class RawStorageManager
             }
             rowCount++;
             size += row.getSizeInBytes();
-            if (!Strings.isNullOrEmpty(delimiter)) {
+            if (!isNullOrEmpty(delimiter)) {
                 byte[] delimiterBytes = delimiter.getBytes();
                 try {
                     writer.write(delimiterBytes, 0, delimiterBytes.length);
