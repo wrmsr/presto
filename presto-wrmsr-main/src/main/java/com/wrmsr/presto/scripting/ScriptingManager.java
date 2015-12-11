@@ -13,8 +13,6 @@
  */
 package com.wrmsr.presto.scripting;
 
-import com.facebook.presto.server.PluginManager;
-import com.google.common.collect.MapMaker;
 import com.wrmsr.presto.spi.ScriptEngineProvider;
 import org.apache.commons.lang.NotImplementedException;
 
@@ -24,13 +22,12 @@ import java.util.Map;
 
 public class ScriptingManager
 {
-    private final PluginManager pluginManager;
-    private final Map<String, ScriptEngineProvider> scriptEngineProviders = new MapMaker().makeMap();
+    private volatile Map<String, ScriptEngineProvider> scriptEngineProviders;
 
     @Inject
-    public ScriptingManager(PluginManager pluginManager)
+    public ScriptingManager(Map<String, ScriptEngineProvider> scriptEngineProviders)
     {
-        this.pluginManager = pluginManager;
+        this.scriptEngineProviders = scriptEngineProviders;
     }
 
     public Scripting getScripting(String name)

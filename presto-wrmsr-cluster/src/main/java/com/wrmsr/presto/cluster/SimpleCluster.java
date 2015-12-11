@@ -1,37 +1,132 @@
 package com.wrmsr.presto.cluster;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.wrmsr.presto.util.Box;
+import io.airlift.units.DataSize;
+
 import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class SimpleCluster
     implements Cluster
 {
-    public static class Node
+    public static class Config
     {
-        private final RemoteRunner.Target target;
-        private final File root;
-
-        public Node(RemoteRunner.Target target, File root)
+        public static class Node
         {
-            this.target = target;
-            this.root = root;
+            public static class Name
+                    extends Box<String>
+            {
+                @JsonCreator
+                public Name(String value)
+                {
+                    super(value);
+                }
+
+                @JsonValue
+                @Override
+                public String getValue()
+                {
+                    return super.getValue();
+                }
+            }
+
+            public static abstract class Size
+            {
+
+            }
+
+            public static class DedicatedSize
+                    extends Size
+            {
+            }
+
+            public static class SharedSize
+                    extends Size
+            {
+            }
+
+            public static class ManualSize
+                    extends Size
+            {
+                private final DataSize heap;
+
+                public ManualSize(DataSize heap)
+                {
+                    this.heap = heap;
+                }
+            }
+
+            protected final RemoteRunner.Target target;
+            protected final Path root;
+            protected final int port;
+            protected final boolean isMaster;
+            protected final Path data;
+            protected final Size size;
+
+            public Node(RemoteRunner.Target target, Path root, int port, boolean isMaster, Path data, Size size)
+            {
+                this.target = target;
+                this.root = root;
+                this.port = port;
+                this.isMaster = isMaster;
+                this.data = data;
+                this.size = size;
+            }
+
+            public RemoteRunner.Target getTarget()
+            {
+                return target;
+            }
+
+            public Path getRoot()
+            {
+                return root;
+            }
+
+            public int getPort()
+            {
+                return port;
+            }
+
+            public boolean isMaster()
+            {
+                return isMaster;
+            }
+
+            public Path getData()
+            {
+                return data;
+            }
         }
 
-        public RemoteRunner.Target getTarget()
+        protected final Optional<Map> nodeDefaults;
+        protected final Map<Node.Name, Node> nodes;
+
+        public Config(Optional<Map> nodeDefaults, Map<Node.Name, Node> nodes)
         {
-            return target;
+            this.nodeDefaults = nodeDefaults;
+            this.nodes = nodes;
         }
     }
 
-    private final List<Node> nodes;
-    private final RemoteRunner remoteRunner;
-    private final File root;
+    protected final Config config;
+    protected final RemoteRunner remoteRunner;
+    protected final Config.Node masterNode;
 
-    public SimpleCluster(List<Node> nodes, RemoteRunner remoteRunner, File root)
+    public SimpleCluster(Config config, RemoteRunner remoteRunner, Config.Node masterNode)
     {
-        this.nodes = nodes;
+        this.config = config;
         this.remoteRunner = remoteRunner;
-        this.root = root;
+        this.masterNode = masterNode;
     }
 
     @Override
@@ -47,5 +142,29 @@ public class SimpleCluster
     @Override
     public void stop()
     {
+    }
+
+    protected String buildNodeUri(Config.Node node)
+    {
+        return String.format("http://%s:%d", node.getTarget().getHost(), node.getPort());
+    }
+
+    protected Map<String, String> buildNodeProperties(Config.Node.Name name, Config.Node node)
+    {
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder()
+                .put("http-server.http.port", Integer.toString(node.getPort()))
+                .put("discovery.uri", buildNodeUri(masterNode))
+                .put("node.data-dir", node.getData().toString());
+        if (node.isMaster()) {
+            return ImmutableMap.<String, String>builder()
+                    .put("coordinator", "true")
+                    .put("discovery-server.enabled", "true")
+                    .build();
+        }
+        else {
+            return ImmutableMap.<String, String>builder()
+                    .put("coordinator", "false")
+                    .build();
+        }
     }
 }

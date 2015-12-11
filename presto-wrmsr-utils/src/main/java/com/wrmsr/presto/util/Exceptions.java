@@ -24,13 +24,6 @@ public class Exceptions
     {
     }
 
-    public static String getStackTraceString(Throwable yelpException)
-    {
-        StringWriter trace = new StringWriter();
-        yelpException.printStackTrace(new PrintWriter(trace));
-        return trace.toString();
-    }
-
     @FunctionalInterface
     public interface ThrowingFunction<T, R> {
 

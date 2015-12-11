@@ -1708,3 +1708,6 @@ reinterpret_cast
 ffi > scripting
 
 http://techblog.netflix.com/2015/02/rad-outlier-detection-on-big-data.html?m=1 ayy grrl
+
+local fig
+uuid, master

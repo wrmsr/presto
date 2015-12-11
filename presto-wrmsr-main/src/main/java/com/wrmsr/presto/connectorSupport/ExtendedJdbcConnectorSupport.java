@@ -6,12 +6,14 @@ import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
 import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.type.Type;
 import com.google.common.base.Throwables;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnector;
+import com.wrmsr.presto.spi.ConnectorSupport;
 import com.wrmsr.presto.util.jdbc.ScriptRunner;
 
 import java.io.StringReader;
@@ -26,9 +28,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class ExtendedJdbcConnectorSupport
         extends ConnectorSupport<ExtendedJdbcConnector>
 {
-    public ExtendedJdbcConnectorSupport(Session session, ExtendedJdbcConnector connector)
+    public ExtendedJdbcConnectorSupport(ConnectorSession connectorSession, ExtendedJdbcConnector connector)
     {
-        super(session, connector);
+        super(connectorSession, connector);
     }
 
     public ExtendedJdbcClient getClient()

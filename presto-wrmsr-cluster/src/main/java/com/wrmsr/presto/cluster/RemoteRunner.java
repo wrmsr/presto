@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Optional;
 
 public abstract class RemoteRunner
 {
@@ -47,13 +48,15 @@ public abstract class RemoteRunner
         private final int port;
         private final String user;
         private final Auth auth;
+        private final Optional<String> root;
 
-        public Target(String host, int port, String user, Auth auth)
+        public Target(String host, int port, String user, Auth auth, Optional<String> root)
         {
             this.host = host;
             this.port = port;
             this.user = user;
             this.auth = auth;
+            this.root = root;
         }
 
         public String getHost()
@@ -74,6 +77,11 @@ public abstract class RemoteRunner
         public Auth getAuth()
         {
             return auth;
+        }
+
+        public Optional<String> getRoot()
+        {
+            return root;
         }
     }
 

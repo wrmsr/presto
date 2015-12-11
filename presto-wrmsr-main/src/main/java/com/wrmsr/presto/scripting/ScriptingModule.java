@@ -4,8 +4,10 @@ import com.facebook.presto.metadata.SqlFunction;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryProvider;
+import com.google.inject.multibindings.MapBinder;
 import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.function.FunctionRegistration;
+import com.wrmsr.presto.spi.ScriptEngineProvider;
 
 public class ScriptingModule
         implements Module
@@ -14,6 +16,7 @@ public class ScriptingModule
     public void configure(Binder binder)
     {
         Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
+        MapBinder<String, ScriptEngineProvider> scriptENgineProviderBinder = MapBinder.newMapBinder(binder, String.class, ScriptEngineProvider.class);
 
         binder.bind(ScriptingManager.class).asEagerSingleton();
 

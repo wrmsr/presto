@@ -1,8 +1,8 @@
 package com.wrmsr.presto.connectorSupport;
 
-import com.facebook.presto.Session;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.Connector;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.type.Type;
@@ -11,6 +11,7 @@ import com.facebook.presto.tpch.TpchTableHandle;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.spi.ConnectorSupport;
 
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,7 @@ public class TpchConnectorSupport
             .put("orders", ImmutableList.of("orderkey"))
             .build();
 
-    public TpchConnectorSupport(Session session, Connector connector, String defaultSchema)
+    public TpchConnectorSupport(ConnectorSession session, Connector connector, String defaultSchema)
     {
         super(session, connector);
         checkArgument(schemas.contains(defaultSchema));

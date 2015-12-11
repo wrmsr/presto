@@ -13,12 +13,50 @@
  */
 package com.wrmsr.presto.connectorSupport;
 
+import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.Connector;
+import com.facebook.presto.spi.ConnectorMetadata;
+import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.ConnectorTableHandle;
+import com.facebook.presto.spi.SchemaTableName;
+import com.wrmsr.presto.reactor.tuples.PkLayout;
+import com.wrmsr.presto.spi.ConnectorSupport;
+import com.wrmsr.presto.spi.ConnectorSupportFactory;
+
+import javax.inject.Inject;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class ConnectorSupportManager
 {
-    public ConnectorSupport getConnectorSupport(Connector connector)
+    private volatile Set<ConnectorSupportFactory> connectorSupportFactories;
+
+    @Inject
+    public ConnectorSupportManager(Set<ConnectorSupportFactory> connectorSupportFactories)
     {
-        throw new UnsupportedOperationException();
+        this.connectorSupportFactories = connectorSupportFactories;
     }
+
+    public Optional<ConnectorSupport> getConnectorSupport(ConnectorSession connectorSession, Connector connector)
+    {
+        return connectorSupportFactories.stream().flatMap(f -> f.getConnectorSupport(connectorSession, connector)).findFirst();
+    }
+
+    public PkLayout<String> getTableTupleLayout(ConnectorSupport t, SchemaTableName schemaTableName)
+    {
+        List<String> pk = t.getPrimaryKey(schemaTableName);
+        ConnectorSession cs = t.getConnectorSession();
+        ConnectorMetadata m = t.getConnector().getMetadata();
+        ConnectorTableHandle th = m.getTableHandle(cs, schemaTableName);
+        List<ColumnHandle> chs = m.getColumnHandles(cs, th).values().stream().collect(toImmutableList());
+        return new PkLayout<>(
+                chs.stream().map(t::getColumnName).collect(toImmutableList()),
+                chs.stream().map(t::getColumnType).collect(toImmutableList()),
+                pk);
+    }
+
 }

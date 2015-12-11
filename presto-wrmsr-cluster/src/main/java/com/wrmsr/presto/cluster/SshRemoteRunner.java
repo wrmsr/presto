@@ -1,5 +1,6 @@
 package com.wrmsr.presto.cluster;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.leacox.process.FinalizedProcess;
@@ -10,13 +11,21 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class SshRemoteRunner
         extends RemoteRunner
 {
-    private List<String> getTargetArgs(Target target)
+    public static String shellEscape(String s)
+    {
+        return "'" + s.replace("'", "'\"'\"'") + "'";
+    }
+
+    private List<String> buildTargetArgs(Target target)
     {
         ImmutableList.Builder<String> builder = ImmutableList.builder();
         if (target.getAuth() instanceof IdentityFileAuth) {
@@ -41,7 +50,7 @@ public class SshRemoteRunner
         runCommand(target, "rm", "-rf", remote);
         ImmutableList.Builder<String> builder = ImmutableList.builder();
         builder.add("scp", "-r");
-        builder.addAll(getTargetArgs(target));
+        builder.addAll(buildTargetArgs(target));
         builder.add(local.getAbsolutePath());
         builder.add(String.format("%s@%s:%s", target.getUser(), target.getHost(), remote));
 
@@ -67,7 +76,7 @@ public class SshRemoteRunner
         checkArgument(!remote.contains("..") && !remote.startsWith("/"));
         ImmutableList.Builder<String> builder = ImmutableList.builder();
         builder.add("rsync", "-r");
-        builder.addAll(getTargetArgs(target));
+        builder.addAll(buildTargetArgs(target));
         builder.add(local.getAbsolutePath());
         builder.add(String.format("%s@%s:%s", target.getUser(), target.getHost(), remote));
 
@@ -94,17 +103,27 @@ public class SshRemoteRunner
         syncDirectoriesScp(target, local, remote);
     }
 
+    private List<String> buildRunCommandArgs(Target target, String command, String... args)
+    {
+        ImmutableList.Builder<String> builder = ImmutableList.builder();
+        builder.add("ssh", "-t");
+        builder.add(String.format("%s@%s", target.getUser(), target.getHost()));
+        builder.addAll(buildTargetArgs(target));
+        if (target.getRoot().isPresent()) {
+            String escapedCommand = Joiner.on(' ').join(Stream.concat(Stream.of(command), Stream.of(args)).map(s -> shellEscape(s)).collect(toImmutableList()));
+            builder.add(Joiner.on(' ').join("cd", shellEscape(target.getRoot().get()), "&&", escapedCommand));
+        }
+        else {
+            builder.add(command);
+            builder.addAll(Arrays.asList(args));
+        }
+        return builder.build();
+    }
+
     @Override
     public int runCommand(Target target, String command, String... args)
     {
-        ImmutableList.Builder<String> builder = ImmutableList.builder();
-        builder.add("ssh");
-        builder.add(String.format("%s@%s", target.getUser(), target.getHost()));
-        builder.addAll(getTargetArgs(target));
-        builder.add(command);
-        builder.addAll(Arrays.asList(args));
-
-        FinalizedProcessBuilder pb = new FinalizedProcessBuilder(builder.build())
+        FinalizedProcessBuilder pb = new FinalizedProcessBuilder(buildRunCommandArgs(target, command, args))
                 .gobbleInputStream(true)
                 .gobbleErrorStream(true);
         try (FinalizedProcess process = pb.start()) {
@@ -122,14 +141,7 @@ public class SshRemoteRunner
     @Override
     public int runCommand(Handler handler, Target target, String command, String... args)
     {
-        ImmutableList.Builder<String> builder = ImmutableList.builder();
-        builder.add("ssh");
-        builder.add(String.format("%s@%s", target.getUser(), target.getHost()));
-        builder.addAll(getTargetArgs(target));
-        builder.add(command);
-        builder.addAll(Arrays.asList(args));
-
-        FinalizedProcessBuilder pb = new FinalizedProcessBuilder(builder.build());
+        FinalizedProcessBuilder pb = new FinalizedProcessBuilder(buildRunCommandArgs(target, command, args));
         try (FinalizedProcess process = pb.start()) {
             handler.handle(process.getOutputStream(), process.getInputStream(), process.getErrorStream());
             return process.waitFor(timeout);
@@ -146,6 +158,14 @@ public class SshRemoteRunner
     public static void main(String[] args)
             throws Throwable
     {
-        new SshRemoteRunner(60 * 1000).runCommand(new Target("dev8-devc", 22, "wtimoney", new IdentityFileAuth(new File(System.getProperty("user.home") + "/.ssh/id_rsa"))), "echo", "hi");
+        new SshRemoteRunner(60 * 1000)
+                .runCommand(
+                        new Target(
+                                "dev8-devc",
+                                22,
+                                "wtimoney",
+                                new IdentityFileAuth(new File(System.getProperty("user.home") + "/.ssh/id_rsa")),
+                                Optional.of("presto")),
+                        "touch", "hi");
     }
 }
