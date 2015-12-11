@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.util;
+package com.wrmsr.presto.cluster;
 
 import com.google.common.collect.ImmutableList;
 import com.leacox.process.FinalizedProcess;

@@ -17,9 +17,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 
-/**
- * Created by wtimoney on 5/22/15.
- */
 public class ParentLastURLClassLoader extends ClassLoader
 {
     private ChildURLClassLoader childClassLoader;

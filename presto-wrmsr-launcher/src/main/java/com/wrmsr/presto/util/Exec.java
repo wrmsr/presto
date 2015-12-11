@@ -25,13 +25,22 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.UIKeyboardInteractive;
 import com.jcraft.jsch.UserInfo;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
+
+import java.awt.Container;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
@@ -42,14 +51,17 @@ import java.util.Map;
 
 public interface Exec
 {
-    void exec(String path, String[] params, Map<String, String> env) throws IOException;
+    void exec(String path, String[] params, Map<String, String> env)
+            throws IOException;
 
-    default void exec(String path, String[] params) throws IOException
+    default void exec(String path, String[] params)
+            throws IOException
     {
         exec(path, params, null);
     }
 
-    abstract class AbstractExec implements Exec
+    abstract class AbstractExec
+            implements Exec
     {
         public static String[] convertEnv(Map<String, String> env)
         {
@@ -62,16 +74,15 @@ public interface Exec
         }
     }
 
-    class ProcessBuilderExec extends AbstractExec
+    class ProcessBuilderExec
+            extends AbstractExec
     {
-
         public static final Method environment;
 
         static {
             try {
                 environment = ProcessBuilder.class.getDeclaredMethod("environment", String[].class);
                 environment.setAccessible(true);
-
             }
             catch (NoSuchMethodException e) {
                 throw new IllegalStateException(e);
@@ -79,12 +90,13 @@ public interface Exec
         }
 
         @Override
-        public void exec(String path, String[] params, Map<String, String> env) throws IOException
+        public void exec(String path, String[] params, Map<String, String> env)
+                throws IOException
         {
             ProcessBuilder pb = new ProcessBuilder();
             String[] envArr = convertEnv(env);
             try {
-                environment.invoke(pb, new Object[]{envArr});
+                environment.invoke(pb, new Object[] {envArr});
             }
             catch (Exception e) {
                 throw new IllegalStateException(e);
@@ -107,7 +119,29 @@ public interface Exec
         }
     }
 
-    static void main(String[] arg)
+    static void main(String[] args)
+            throws Throwable
+    {
+        String privateKey = "~/.ssh/id_rsa";
+
+        JSch jsch = new JSch();
+        Session session = null;
+        Channel channel = null;
+        ChannelSftp channelSftp = null;
+
+        jsch.addIdentity(privateKey, "passphrase");
+
+        session = jsch.getSession("wtimoney", "dev7-devb");
+
+        java.util.Properties config = new java.util.Properties();
+        config.put("StrictHostKeyChecking", "no");
+        config.put("ForwardAgent", "yes");
+
+        session.setConfig(config);
+        session.connect();
+    }
+
+    static void fuckyou(String[] arg)
     {
         try {
             JSch jsch = new JSch();
@@ -120,17 +154,26 @@ public interface Exec
                 // host = JOptionPane.showInputDialog("Enter username@hostname",
                 //         System.getProperty("user.name") + "@localhost"
                 // );
-                host = "ec2-user@10.40.14.217";
+                //host = "ec2-user@10.40.14.217";
+                host = "wtimoney@dev8-devc";
             }
             String user = host.substring(0, host.indexOf('@'));
             host = host.substring(host.indexOf('@') + 1);
-            jsch.addIdentity(System.getProperty("user.home") + "/Dropbox/yelp_wtimoney_dev.pem");
+            jsch.addIdentity(System.getProperty("user.home") + "/.ssh/id_rsa");
 
             Session session = jsch.getSession(user, host, 22);
 
             java.util.Properties config = new java.util.Properties();
             config.put("StrictHostKeyChecking", "no");
+            config.put("PreferredAuthentications", "keyboard-interactive,password,publickey");
+            config.put("ForwardAgent", "yes");
+            config.put("StrictHostKeyChecking", "no");
+            config.put("IdentityFile", "~/.ssh/id_rsa");
+            config.put("UserKnownHostsFile", "~/.ssh/known_hosts");
             session.setConfig(config);
+            session.setConfig("cipher.s2c", "aes128-cbc,3des-cbc,blowfish-cbc");
+            session.setConfig("cipher.c2s", "aes128-cbc,3des-cbc,blowfish-cbc");
+            session.setConfig("CheckCiphers", "aes128-cbc");
 
             /*
 
@@ -178,8 +221,8 @@ http://www.jcraft.com/jsch/examples/
             */
 
             // username and password will be given via UserInfo interface.
-            UserInfo ui = new MyUserInfo();
-            session.setUserInfo(ui);
+            // UserInfo ui = new MyUserInfo();
+            // session.setUserInfo(ui);
             session.connect();
 
             String command = JOptionPane.showInputDialog("Enter command", "set|grep SSH");
@@ -233,7 +276,8 @@ http://www.jcraft.com/jsch/examples/
         }
     }
 
-    class MyUserInfo implements UserInfo, UIKeyboardInteractive
+    class MyUserInfo
+            implements UserInfo, UIKeyboardInteractive
     {
         public String getPassword()
         {
@@ -293,10 +337,10 @@ http://www.jcraft.com/jsch/examples/
         private Container panel;
 
         public String[] promptKeyboardInteractive(String destination,
-                                                  String name,
-                                                  String instruction,
-                                                  String[] prompt,
-                                                  boolean[] echo)
+                String name,
+                String instruction,
+                String[] prompt,
+                boolean[] echo)
         {
             panel = new JPanel();
             panel.setLayout(new GridBagLayout());

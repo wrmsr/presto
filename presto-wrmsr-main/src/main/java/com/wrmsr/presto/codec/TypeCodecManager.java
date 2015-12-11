@@ -47,8 +47,9 @@ public class TypeCodecManager
         typeRegistry.addParametricType(pt);
         SqlFunction ef = new EncodeFunction(typeCodec);
         SqlFunction df = new DecodeFunction(typeCodec);
-        SqlFunction cf = new VarbinaryToEncodedCast(typeCodec);
-        metadata.addFunctions(ImmutableList.of(ef, df, cf));
+        SqlFunction cf0 = new VarbinaryToEncodedCast(typeCodec);
+        SqlFunction cf1 = new EncodedToVarbinaryCast(typeCodec);
+        metadata.addFunctions(ImmutableList.of(ef, df, cf0, cf1));
         typeCodecs.put(typeCodec.getName(), typeCodec);
     }
 

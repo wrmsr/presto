@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.util;
+package com.wrmsr.presto.cluster.util;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -352,7 +352,7 @@ public class JarSync
 
         public Map<String, Entry> getEntryMap()
         {
-            return entries.stream().collect(toImmutableMap(Entry::getName, e -> e));
+            return entries.stream().collect(ImmutableCollectors.toImmutableMap(Entry::getName, e -> e));
         }
 
         public Plan plan(Manifest other)
@@ -916,10 +916,10 @@ public class JarSync
         PipedInputStream sinkInput = new PipedInputStream();
         PipedOutputStream sinkOutput = new PipedOutputStream(sinkInput);
 
-        Thread sourceThread = new Thread(runtimeThrowing(() -> sourceDriver.run(mapper, sinkInput, sourceOutput)));
+        Thread sourceThread = new Thread(Exceptions.runtimeThrowing(() -> sourceDriver.run(mapper, sinkInput, sourceOutput)));
         sourceThread.start();
 
-        Thread sinkThread = new Thread(runtimeThrowing(() -> sinkDriver.run(mapper, sourceInput, sinkOutput)));
+        Thread sinkThread = new Thread(Exceptions.runtimeThrowing(() -> sinkDriver.run(mapper, sourceInput, sinkOutput)));
         sinkThread.start();
 
         sourceThread.join();

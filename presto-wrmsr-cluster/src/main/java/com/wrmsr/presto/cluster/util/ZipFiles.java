@@ -15,7 +15,7 @@
  */
 // http://www.onicos.com/staff/iz/formats/zip.html
 // http://result42.com/projects/ZipFileLayout
-package com.wrmsr.presto.launcher.util;
+package com.wrmsr.presto.cluster.util;
 
 import java.io.File;
 import java.io.IOException;
