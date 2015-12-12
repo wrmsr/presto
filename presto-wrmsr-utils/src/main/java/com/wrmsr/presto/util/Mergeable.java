@@ -20,6 +20,7 @@ public interface Mergeable<T extends Mergeable<T>>
     {
         @SuppressWarnings({"unchecked"})
         T t = (T) this;
+        t = t.merge(first);
         for (int i = 0; i < rest.length; ++i) {
             t = t.merge(rest[i]);
         }

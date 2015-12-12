@@ -3,12 +3,12 @@ package com.wrmsr.presto.config;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.wrmsr.presto.util.config.merging.MapMergingConfigNode;
+import com.wrmsr.presto.util.config.mergeable.MapMergeableConfigNode;
 
 import java.util.Map;
 
 public class ScriptingConfig
-        extends MapMergingConfigNode<ScriptingConfig, String, ScriptingConfig.Entry>
+        extends MapMergeableConfigNode<ScriptingConfig, String, ScriptingConfig.Entry>
         implements MainConfigNode<ScriptingConfig>
 {
     public static final class Entry

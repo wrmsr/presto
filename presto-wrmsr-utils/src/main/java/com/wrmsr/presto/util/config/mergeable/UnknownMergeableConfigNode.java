@@ -1,22 +1,22 @@
-package com.wrmsr.presto.util.config.merging;
+package com.wrmsr.presto.util.config.mergeable;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
-public abstract class UnknownMergingConfigNode<N extends UnknownMergingConfigNode<N>>
-    implements MergingConfigNode<N>
+public abstract class UnknownMergeableConfigNode<N extends UnknownMergeableConfigNode<N>>
+    implements MergeableConfigNode<N>
 {
     private final String type;
     private final Object object;
 
-    public UnknownMergingConfigNode()
+    public UnknownMergeableConfigNode()
     {
         throw new UnsupportedOperationException();
     }
 
-    public UnknownMergingConfigNode(String type, Object object)
+    public UnknownMergeableConfigNode(String type, Object object)
     {
         this.type = type;
         this.object = object;

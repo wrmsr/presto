@@ -1,25 +1,23 @@
-package com.wrmsr.presto.util.config.merging;
+package com.wrmsr.presto.util.config.mergeable;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
-public abstract class MapMergingConfigNode<N extends MapMergingConfigNode<N, K, V>, K, V>
-    implements MergingConfigNode<N>, Iterable<Map.Entry<K, V>>
+public abstract class MapMergeableConfigNode<N extends MapMergeableConfigNode<N, K, V>, K, V>
+    implements MergeableConfigNode<N>, Iterable<Map.Entry<K, V>>
 {
     protected final Map<K, V> entries;
 
-    public MapMergingConfigNode()
+    public MapMergeableConfigNode()
     {
         this.entries = ImmutableMap.of();
     }
 
-    public MapMergingConfigNode(Map<K, V> entries)
+    public MapMergeableConfigNode(Map<K, V> entries)
     {
         this.entries = ImmutableMap.copyOf(entries);
     }

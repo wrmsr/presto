@@ -1,4 +1,4 @@
-package com.wrmsr.presto.util.config.merging;
+package com.wrmsr.presto.util.config.mergeable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
@@ -20,17 +20,17 @@ import static com.wrmsr.presto.util.Serialization.roundTrip;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableSet;
 
-public abstract class MergingConfig<N extends MergingConfigNode>
-        implements Mergeable<MergingConfig<N>>
+public abstract class MergeableConfig<N extends MergeableConfigNode>
+        implements Mergeable<MergeableConfig<N>>
 {
     @FunctionalInterface
-    public interface UnknownNodeHandler<N extends MergingConfigNode>
+    public interface UnknownNodeHandler<N extends MergeableConfigNode>
     {
         N handle(String type, Object contents)
                 throws IOException;
     }
 
-    public static <N extends MergingConfigNode> List<N> nodesFrom(ObjectMapper mapper, List<Map<String, Object>> contents, Class<? extends N> ncls)
+    public static <N extends MergeableConfigNode> List<N> nodesFrom(ObjectMapper mapper, List<Map<String, Object>> contents, Class<? extends N> ncls)
     {
         return nodesFrom(mapper, contents, ncls, (t, c) -> {
             throw new IllegalArgumentException(t);
@@ -38,7 +38,7 @@ public abstract class MergingConfig<N extends MergingConfigNode>
     }
 
     // FIXME http://stackoverflow.com/a/33637156 ? would have to centralize mapper, would have to special case plugin loading cuz lol
-    public static <N extends MergingConfigNode> List<N> nodesFrom(ObjectMapper mapper, List<Map<String, Object>> contents, Class<? extends N> ncls, UnknownNodeHandler<N> unh)
+    public static <N extends MergeableConfigNode> List<N> nodesFrom(ObjectMapper mapper, List<Map<String, Object>> contents, Class<? extends N> ncls, UnknownNodeHandler<N> unh)
     {
         Map<String, Class<?>> nodeTypeMap = Serialization.getJsonSubtypeMap(mapper, ncls);
         ImmutableList.Builder<N> builder = ImmutableList.builder();
@@ -63,13 +63,13 @@ public abstract class MergingConfig<N extends MergingConfigNode>
     }
 
     @SuppressWarnings({"unchecked"})
-    public static <N extends MergingConfigNode> List<Map<String, Object>> fromNodes(ObjectMapper mapper, List<N> nodes, Class<? extends N> ncls)
+    public static <N extends MergeableConfigNode> List<Map<String, Object>> fromNodes(ObjectMapper mapper, List<N> nodes, Class<? extends N> ncls)
     {
         Map<Class<?>, String> nodeTypeMap = Serialization.getJsonSubtypeMap(mapper, ncls).inverse();
         ImmutableList.Builder<Map<String, Object>> builder = ImmutableList.builder();
         for (N node : nodes) {
-            if (node instanceof UnknownMergingConfigNode) {
-                builder.add(((UnknownMergingConfigNode) node).jsonValue());
+            if (node instanceof UnknownMergeableConfigNode) {
+                builder.add(((UnknownMergeableConfigNode) node).jsonValue());
             }
             else {
                 String type = nodeTypeMap.get(node.getClass());
@@ -84,13 +84,13 @@ public abstract class MergingConfig<N extends MergingConfigNode>
     protected final List<N> nodes;
     protected final Class<N> nodeClass;
 
-    public MergingConfig(Class<N> nodeClass)
+    public MergeableConfig(Class<N> nodeClass)
     {
         this.nodeClass = nodeClass;
         nodes = ImmutableList.of();
     }
 
-    public MergingConfig(List<N> nodes, Class<N> nodeClass)
+    public MergeableConfig(List<N> nodes, Class<N> nodeClass)
     {
         this.nodes = ImmutableList.copyOf(nodes);
         this.nodeClass = nodeClass;
@@ -106,22 +106,22 @@ public abstract class MergingConfig<N extends MergingConfigNode>
         return nodes;
     }
 
-    public <T extends MergingConfigNode<T>> List<T> getNodes(Class<T> cls)
+    public <T extends MergeableConfigNode<T>> List<T> getNodes(Class<T> cls)
     {
         return nodes.stream().filter(cls::isInstance).map(cls::cast).collect(toImmutableList());
     }
 
-    public Set<Class<? extends MergingConfigNode>> getNodeTypes()
+    public Set<Class<? extends MergeableConfigNode>> getNodeTypes()
     {
-        return nodes.stream().map(n -> (Class<? extends MergingConfigNode>) n.getClass()).collect(toImmutableSet());
+        return nodes.stream().map(n -> (Class<? extends MergeableConfigNode>) n.getClass()).collect(toImmutableSet());
     }
 
     @SuppressWarnings({"unchecked"})
-    public <T extends MergingConfigNode<T>> T getMergedNode(Class<T> cls)
+    public <T extends MergeableConfigNode<T>> T getMergedNode(Class<T> cls)
     {
         List<T> nodes = getNodes(cls);
         if (nodes.isEmpty()) {
-            return Mergeable.unit(cls);
+            return (T) Mergeable.unit((Class) cls);
         }
         else {
             T node = nodes.get(0);
@@ -134,7 +134,7 @@ public abstract class MergingConfig<N extends MergingConfigNode>
 
     @SuppressWarnings({"unchecked"})
     @Override
-    public MergingConfig<N> merge(MergingConfig<N> other)
+    public MergeableConfig<N> merge(MergeableConfig<N> other)
     {
         ImmutableList.Builder<N> builder = ImmutableList.<N>builder()
                 .addAll(nodes)
@@ -145,35 +145,5 @@ public abstract class MergingConfig<N extends MergingConfigNode>
         catch (ReflectiveOperationException e) {
             throw Throwables.propagate(e);
         }
-    }
-
-    public static <T extends MergingConfig> T readFile(File file, Class<T> cls)
-    {
-        byte[] cfgBytes;
-        try {
-            cfgBytes = Files.readAllBytes(file.toPath());
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
-        String cfgStr = new String(cfgBytes);
-
-        List<Object> parts = Serialization.splitYaml(cfgStr);
-        if (parts.size() != 1) {
-            throw new IllegalArgumentException();
-        }
-
-        String partStr = Serialization.YAML.get().dump(parts.get(0));
-        ObjectMapper objectMapper = YAML_OBJECT_MAPPER.get();
-        MainConfig fileConfig;
-        try {
-            fileConfig = objectMapper.readValue(partStr.getBytes(), MainConfig.class);
-            OBJECT_MAPPER.get().writeValueAsString(fileConfig);
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
-
-        return fileConfig;
     }
 }

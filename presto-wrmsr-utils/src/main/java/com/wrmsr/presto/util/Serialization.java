@@ -34,17 +34,19 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.util.codec.Codec;
 import io.airlift.json.ObjectMapperProvider;
 import io.airlift.slice.Slice;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
-import com.wrmsr.presto.util.codec.Codec;
+import java.util.Properties;
 
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
@@ -63,7 +65,7 @@ public class Serialization
 
     public static ObjectMapper forkObjectMapper(ObjectMapper mapper, JsonFactory jf)
     {
-       return new ObjectMapper(
+        return new ObjectMapper(
                 jf,
                 (DefaultSerializerProvider) mapper.getSerializerProvider(),
                 (DefaultDeserializationContext) mapper.getDeserializationContext());
@@ -95,6 +97,37 @@ public class Serialization
             .put("xml", XML_OBJECT_MAPPER)
             .build();
 
+    public static <T> T readPropertiesFile(File file, Class<T> cls)
+    {
+        Properties props = new Properties();
+        try (FileInputStream fis = new FileInputStream(file)) {
+            props.load(fis);
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+        ObjectMapper mapper = OBJECT_MAPPER.get();
+        return roundTrip(mapper, props, cls);
+    }
+
+    public static <T> T readFile(File file, Class<T> cls)
+    {
+        String ext = com.google.common.io.Files.getFileExtension(file.getName());
+        if (ext.equals("properties")) {
+            return readPropertiesFile(file, cls);
+        }
+        else {
+            try {
+                byte[] cfgBytes = java.nio.file.Files.readAllBytes(file.toPath());
+                ObjectMapper mapper = OBJECT_MAPPERS_BY_EXTENSION.get(ext).get();
+                return mapper.readValue(cfgBytes, cls);
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+    }
+
     public static String toJsonString(Object object)
     {
         try {
@@ -107,7 +140,8 @@ public class Serialization
 
     public static <T> Codec<T, byte[]> codecFor(Supplier<ObjectMapper> mapper, Class<T> cls)
     {
-        return new Codec<T, byte[]>() {
+        return new Codec<T, byte[]>()
+        {
             @Override
             public T decode(byte[] data)
             {

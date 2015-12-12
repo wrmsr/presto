@@ -1,10 +1,10 @@
 package com.wrmsr.presto.launcher.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.wrmsr.presto.util.config.merging.UnknownMergingConfigNode;
+import com.wrmsr.presto.util.config.mergeable.UnknownMergeableConfigNode;
 
 public final class UnknownConfig
-        extends UnknownMergingConfigNode<UnknownConfig>
+        extends UnknownMergeableConfigNode<UnknownConfig>
         implements LauncherConfigContainer.Node<UnknownConfig>
 {
     @JsonCreator

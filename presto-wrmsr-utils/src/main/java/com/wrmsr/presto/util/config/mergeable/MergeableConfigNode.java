@@ -1,4 +1,4 @@
-package com.wrmsr.presto.util.config.merging;
+package com.wrmsr.presto.util.config.mergeable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wrmsr.presto.util.Mergeable;
@@ -6,7 +6,7 @@ import com.wrmsr.presto.util.Serialization;
 
 import java.util.Map;
 
-public interface MergingConfigNode<N extends MergingConfigNode> extends Mergeable<N>
+public interface MergeableConfigNode<N extends MergeableConfigNode> extends Mergeable<MergeableConfigNode<N>>
 {
     @SuppressWarnings({"unchecked"})
     default N merge(N other)

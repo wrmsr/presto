@@ -2,7 +2,7 @@ package com.wrmsr.presto.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.wrmsr.presto.util.config.merging.MergingConfigNode;
+import com.wrmsr.presto.util.config.mergeable.MergeableConfigNode;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
@@ -19,6 +19,6 @@ import com.wrmsr.presto.util.config.merging.MergingConfigNode;
         @JsonSubTypes.Type(value = SystemConfig.class, name = "system"),
 })
 public interface MainConfigNode<N extends MainConfigNode<N>>
-        extends MergingConfigNode<N>
+        extends MergeableConfigNode<N>
 {
 }

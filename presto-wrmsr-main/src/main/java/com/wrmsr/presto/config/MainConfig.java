@@ -2,7 +2,7 @@ package com.wrmsr.presto.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.wrmsr.presto.util.config.merging.MergingConfig;
+import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 
 import java.util.List;
 import java.util.Map;
@@ -10,7 +10,7 @@ import java.util.Map;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
 public class MainConfig
-        extends MergingConfig<MainConfigNode>
+        extends MergeableConfig<MainConfigNode>
 {
     @JsonCreator
     public static MainConfig valueOf(List<Map<String, Object>> contents)

@@ -1,4 +1,4 @@
-package com.wrmsr.presto.util.config.merging;
+package com.wrmsr.presto.util.config.mergeable;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -8,8 +8,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-public abstract class ListMergingConfigNode<N extends ListMergingConfigNode<N, T>, T>
-    implements MergingConfigNode<N>, Iterable<T>
+public abstract class ListMergeableConfigNode<N extends ListMergeableConfigNode<N, T>, T>
+    implements MergeableConfigNode<N>, Iterable<T>
 {
     @SuppressWarnings({"unchecked"})
     public static <T> List<T> unpack(Object object, Class<T> cls)
@@ -27,12 +27,12 @@ public abstract class ListMergingConfigNode<N extends ListMergingConfigNode<N, T
 
     protected final List<T> items;
 
-    public ListMergingConfigNode()
+    public ListMergeableConfigNode()
     {
         this.items = ImmutableList.of();
     }
 
-    public ListMergingConfigNode(List<T> items)
+    public ListMergeableConfigNode(List<T> items)
     {
         this.items = ImmutableList.copyOf(items);
     }

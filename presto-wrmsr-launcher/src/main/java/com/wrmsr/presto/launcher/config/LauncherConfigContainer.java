@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.wrmsr.presto.util.config.merging.MergingConfig;
-import com.wrmsr.presto.util.config.merging.MergingConfigNode;
+import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
+import com.wrmsr.presto.util.config.mergeable.MergeableConfigNode;
 
 import java.util.List;
 import java.util.Map;
@@ -13,7 +13,7 @@ import java.util.Map;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
 public class LauncherConfigContainer
-        extends MergingConfig<LauncherConfigContainer.Node>
+        extends MergeableConfig<LauncherConfigContainer.Node>
 {
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
@@ -23,7 +23,7 @@ public class LauncherConfigContainer
             @JsonSubTypes.Type(value = LauncherConfig.class, name = "launcher"),
     })
     public interface Node<N extends Node<N>>
-        extends MergingConfigNode<N>
+        extends MergeableConfigNode<N>
     {
     }
 

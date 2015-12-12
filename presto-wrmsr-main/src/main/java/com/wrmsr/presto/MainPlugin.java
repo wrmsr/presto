@@ -213,32 +213,7 @@ public class MainPlugin
 
     private static MainConfig loadConfig(Path path)
     {
-        byte[] cfgBytes;
-        try {
-            cfgBytes = Files.readAllBytes(path);
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
-        String cfgStr = new String(cfgBytes);
-
-        List<Object> parts = Serialization.splitYaml(cfgStr);
-        if (parts.size() != 1) {
-            throw new IllegalArgumentException();
-        }
-
-        String partStr = Serialization.YAML.get().dump(parts.get(0));
-        ObjectMapper objectMapper = YAML_OBJECT_MAPPER.get();
-        MainConfig fileConfig;
-        try {
-            fileConfig = objectMapper.readValue(partStr.getBytes(), MainConfig.class);
-            OBJECT_MAPPER.get().writeValueAsString(fileConfig);
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
-
-        return fileConfig;
+        return Serialization.readFile(path.toFile(), MainConfig.class);
     }
 
     private Module buildInjectedModule()

@@ -2,12 +2,12 @@ package com.wrmsr.presto.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.wrmsr.presto.util.config.Configs;
-import com.wrmsr.presto.util.config.merging.StringMapMergingConfigNode;
+import com.wrmsr.presto.util.config.mergeable.StringMapMergeableConfigNode;
 
 import java.util.Map;
 
 public final class LogConfig
-    extends StringMapMergingConfigNode<LogConfig> implements MainConfigNode<LogConfig>
+    extends StringMapMergeableConfigNode<LogConfig> implements MainConfigNode<LogConfig>
 {
     @JsonCreator
     public static LogConfig valueOf(Object object)
