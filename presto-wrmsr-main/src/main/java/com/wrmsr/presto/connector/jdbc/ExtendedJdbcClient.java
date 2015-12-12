@@ -16,12 +16,7 @@ package com.wrmsr.presto.connector.jdbc;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
-import com.facebook.presto.plugin.jdbc.JdbcPartition;
-import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
-import com.facebook.presto.spi.ConnectorSplitSource;
-import com.facebook.presto.spi.FixedSplitSource;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.util.jdbc.ScriptRunner;
 import io.airlift.log.Logger;
 
@@ -39,7 +34,6 @@ import java.util.Properties;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.collect.Maps.fromProperties;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Files.downloadFile;
 import static com.wrmsr.presto.util.Jvm.addClasspathUrl;
@@ -91,21 +85,21 @@ public class ExtendedJdbcClient
         return extendedConfig.getIsRemotelyAccessible();
     }
 
-    @Override
-    public ConnectorSplitSource getPartitionSplits(JdbcPartition jdbcPartition)
-    {
-        JdbcTableHandle jdbcTableHandle = jdbcPartition.getJdbcTableHandle();
-        ExtendedJdbcSplit jdbcSplit = new ExtendedJdbcSplit(
-                connectorId,
-                jdbcTableHandle.getCatalogName(),
-                jdbcTableHandle.getSchemaName(),
-                jdbcTableHandle.getTableName(),
-                connectionUrl,
-                fromProperties(connectionProperties),
-                jdbcPartition.getTupleDomain(),
-                isRemotelyAccessible());
-        return new FixedSplitSource(connectorId, ImmutableList.of(jdbcSplit));
-    }
+//    @Override
+//    public ConnectorSplitSource getPartitionSplits(JdbcPartition jdbcPartition)
+//    {
+//        JdbcTableHandle jdbcTableHandle = jdbcPartition.getJdbcTableHandle();
+//        ExtendedJdbcSplit jdbcSplit = new ExtendedJdbcSplit(
+//                connectorId,
+//                jdbcTableHandle.getCatalogName(),
+//                jdbcTableHandle.getSchemaName(),
+//                jdbcTableHandle.getTableName(),
+//                connectionUrl,
+//                fromProperties(connectionProperties),
+//                jdbcPartition.getTupleDomain(),
+//                isRemotelyAccessible());
+//        return new FixedSplitSource(connectorId, ImmutableList.of(jdbcSplit));
+//    }
 
     private static final Map<String, File> downloadedDrivers = newHashMap();
 
@@ -148,7 +142,7 @@ public class ExtendedJdbcClient
     {
         Class<? extends Driver> cls;
         try {
-           cls = (Class<? extends Driver>) Class.forName(fqcn);
+            cls = (Class<? extends Driver>) Class.forName(fqcn);
         }
         catch (ClassNotFoundException e) {
             throw Throwables.propagate(e);
