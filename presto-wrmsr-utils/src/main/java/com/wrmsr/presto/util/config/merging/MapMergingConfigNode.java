@@ -14,6 +14,11 @@ public abstract class MapMergingConfigNode<N extends MapMergingConfigNode<N, K, 
 {
     protected final Map<K, V> entries;
 
+    public MapMergingConfigNode()
+    {
+        this.entries = ImmutableMap.of();
+    }
+
     public MapMergingConfigNode(Map<K, V> entries)
     {
         this.entries = ImmutableMap.copyOf(entries);
@@ -48,16 +53,6 @@ public abstract class MapMergingConfigNode<N extends MapMergingConfigNode<N, K, 
             throw Throwables.propagate(e);
         }
         return merged;
-    }
-
-    public static <N extends MapMergingConfigNode<N, K, V>, K, V> MapMergingConfigNode<N, K, V> newDefault(Class<N> cls)
-    {
-        try {
-            return cls.getConstructor(Map.class).newInstance(ImmutableMap.of());
-        }
-        catch (IllegalAccessException | NoSuchMethodException | InstantiationException | InvocationTargetException e) {
-            throw Throwables.propagate(e);
-        }
     }
 
     @Override

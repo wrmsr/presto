@@ -11,6 +11,11 @@ public abstract class UnknownMergingConfigNode<N extends UnknownMergingConfigNod
     private final String type;
     private final Object object;
 
+    public UnknownMergingConfigNode()
+    {
+        throw new UnsupportedOperationException();
+    }
+
     public UnknownMergingConfigNode(String type, Object object)
     {
         this.type = type;
@@ -31,5 +36,11 @@ public abstract class UnknownMergingConfigNode<N extends UnknownMergingConfigNod
     public Map<String, Object> jsonValue()
     {
         return ImmutableMap.of(type, object);
+    }
+
+    @Override
+    public N merge(N other)
+    {
+        throw new UnsupportedOperationException();
     }
 }

@@ -25,7 +25,16 @@ import io.airlift.resolver.DefaultArtifact;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.artifact.ArtifactType;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
@@ -106,7 +115,8 @@ public class LauncherBuilder
         }
     }
 
-    public static class FileEntry extends Entry
+    public static class FileEntry
+            extends Entry
     {
         private final File file;
 
@@ -148,7 +158,8 @@ public class LauncherBuilder
         }
     }
 
-    public static class BytesEntry extends Entry
+    public static class BytesEntry
+            extends Entry
     {
         public final byte[] bytes;
 
@@ -190,7 +201,8 @@ public class LauncherBuilder
         }
     }
 
-    private void add(File source, JarOutputStream target) throws IOException
+    private void add(File source, JarOutputStream target)
+            throws IOException
     {
         if (source.isDirectory()) {
             String name = source.getPath().replace("\\", "/");
@@ -231,14 +243,14 @@ public class LauncherBuilder
         Logging.initialize();
 
         Runtime rt = Runtime.getRuntime();
-        Process proc = rt.exec(new String[]{"git", "rev-parse", "--verify", "HEAD"});
+        Process proc = rt.exec(new String[] {"git", "rev-parse", "--verify", "HEAD"});
         BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
         BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
         String rev = stdInput.readLine();
         proc.waitFor(10, TimeUnit.SECONDS);
         checkState(proc.exitValue() == 0);
 
-        for (String logName : new String[]{"com.ning.http.client.providers.netty.NettyAsyncHttpProvider"}) {
+        for (String logName : new String[] {"com.ning.http.client.providers.netty.NettyAsyncHttpProvider"}) {
             java.util.logging.Logger.getLogger(logName).setLevel(Level.WARNING);
         }
 
@@ -321,8 +333,8 @@ public class LauncherBuilder
                         rel = a.getGroupId().replace(".", "/") + "/" + jarFileName;
                     }
                     else {
-                       file = a.getFile();
-                       rel = repository.toURI().relativize(file.toURI()).getPath();
+                        file = a.getFile();
+                        rel = repository.toURI().relativize(file.toURI()).getPath();
                     }
                     checkState(file.exists());
                     File localFile = new File(localPath, "target/" + file.getName());
@@ -415,7 +427,7 @@ public class LauncherBuilder
                 if (!contents.contains(pathPart)) {
                     JarEntry je = new JarEntry(pathPart);
                     jo.putNextEntry(je);
-                    jo.write(new byte[]{}, 0, 0);
+                    jo.write(new byte[] {}, 0, 0);
                     contents.add(pathPart);
                 }
             }
@@ -454,9 +466,9 @@ public class LauncherBuilder
         // TODO suffix with git sha
         String exePath = System.getProperty("user.home") + "/presto/presto";
         try (InputStream fi = new BufferedInputStream(new FileInputStream(outPath));
-             OutputStream fo = new BufferedOutputStream(new FileOutputStream(exePath))) {
+                OutputStream fo = new BufferedOutputStream(new FileOutputStream(exePath))) {
             fo.write(launcherBytes, 0, launcherBytes.length);
-            fo.write(new byte[]{'\n', '\n'});
+            fo.write(new byte[] {'\n', '\n'});
             byte[] buf = new byte[65536];
             int anz;
             while ((anz = fi.read(buf)) != -1) {

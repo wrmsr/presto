@@ -5,10 +5,12 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.wrmsr.presto.util.Mergeable;
 import com.wrmsr.presto.util.Serialization;
 
+import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +21,7 @@ import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableSet;
 
 public abstract class MergingConfig<N extends MergingConfigNode>
+        implements Mergeable<MergingConfig<N>>
 {
     @FunctionalInterface
     public interface UnknownNodeHandler<N extends MergingConfigNode>
@@ -81,6 +84,12 @@ public abstract class MergingConfig<N extends MergingConfigNode>
     protected final List<N> nodes;
     protected final Class<N> nodeClass;
 
+    public MergingConfig(Class<N> nodeClass)
+    {
+        this.nodeClass = nodeClass;
+        nodes = ImmutableList.of();
+    }
+
     public MergingConfig(List<N> nodes, Class<N> nodeClass)
     {
         this.nodes = ImmutableList.copyOf(nodes);
@@ -112,12 +121,7 @@ public abstract class MergingConfig<N extends MergingConfigNode>
     {
         List<T> nodes = getNodes(cls);
         if (nodes.isEmpty()) {
-            try {
-                return (T) cls.getDeclaredMethod("newDefault").invoke(null);
-            }
-            catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                throw Throwables.propagate(e);
-            }
+            return Mergeable.unit(cls);
         }
         else {
             T node = nodes.get(0);
@@ -126,5 +130,50 @@ public abstract class MergingConfig<N extends MergingConfigNode>
             }
             return node;
         }
+    }
+
+    @SuppressWarnings({"unchecked"})
+    @Override
+    public MergingConfig<N> merge(MergingConfig<N> other)
+    {
+        ImmutableList.Builder<N> builder = ImmutableList.<N>builder()
+                .addAll(nodes)
+                .addAll(other.getNodes());
+        try {
+            return getClass().getDeclaredConstructor(List.class).newInstance(builder.build());
+        }
+        catch (ReflectiveOperationException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    public static <T extends MergingConfig> T readFile(File file, Class<T> cls)
+    {
+        byte[] cfgBytes;
+        try {
+            cfgBytes = Files.readAllBytes(file.toPath());
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+        String cfgStr = new String(cfgBytes);
+
+        List<Object> parts = Serialization.splitYaml(cfgStr);
+        if (parts.size() != 1) {
+            throw new IllegalArgumentException();
+        }
+
+        String partStr = Serialization.YAML.get().dump(parts.get(0));
+        ObjectMapper objectMapper = YAML_OBJECT_MAPPER.get();
+        MainConfig fileConfig;
+        try {
+            fileConfig = objectMapper.readValue(partStr.getBytes(), MainConfig.class);
+            OBJECT_MAPPER.get().writeValueAsString(fileConfig);
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+
+        return fileConfig;
     }
 }

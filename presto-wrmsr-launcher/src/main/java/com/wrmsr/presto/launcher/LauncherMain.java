@@ -18,12 +18,18 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.wrmsr.presto.launcher.util.JvmConfiguration;
-import com.wrmsr.presto.util.Repositories;
+import com.wrmsr.presto.launcher.config.LauncherConfigContainer;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
+import com.wrmsr.presto.launcher.util.JvmConfiguration;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
 import com.wrmsr.presto.launcher.util.ParentLastURLClassLoader;
-import io.airlift.airline.*;
+import com.wrmsr.presto.util.Repositories;
+import io.airlift.airline.Arguments;
+import io.airlift.airline.Cli;
+import io.airlift.airline.Command;
+import io.airlift.airline.Help;
+import io.airlift.airline.Option;
+import io.airlift.airline.OptionType;
 import io.airlift.resolver.ArtifactResolver;
 import jnr.posix.POSIX;
 import org.sonatype.aether.artifact.Artifact;
@@ -47,12 +53,18 @@ import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 /*
 --heap
@@ -144,7 +156,8 @@ public class LauncherMain
     }
 
     @Command(name = "launch", description = "Launches presto server (argless)")
-    public static class Launch implements Runnable
+    public static class Launch
+            implements Runnable
     {
         private List<URL> classloaderUrls;
 
@@ -155,29 +168,41 @@ public class LauncherMain
             }
             return classloaderUrls;
         }
+
         @Override
         public void run()
         {
-            runStaticMethod(getClassloaderUrls(), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[]{String[].class}, new Object[]{new String[]{}});
+            runStaticMethod(getClassloaderUrls(), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[] {String[].class}, new Object[] {new String[] {}});
         }
     }
 
-    public static abstract class WrapperCommand implements Runnable
+    public static abstract class LauncherCommand
+            implements Runnable
     {
-        @Option(type = OptionType.GLOBAL, name = "-v", description = "Verbose mode")
-        public boolean verbose;
-
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
-        public String configFile;
+        public List<String> configFiles = new ArrayList<>();
 
-        @Option(type = OptionType.GLOBAL, name = {"-d", "--debug-port"}, description = "Specify jvm debug port")
-        public int debugPort;
+        public static File DEFAULT_CONFIG_FILE = new File("presto.yaml");
 
-        @Option(type = OptionType.GLOBAL, name = {"-s", "--debug-suspend"}, description = "Specify jvm debugging starts suspended")
-        public boolean debugSuspend;
-
-        @Option(type = OptionType.GLOBAL, name = {"-a", "--autoconf"}, description = "Autoconfigure")
-        public boolean autoconfigure;
+        public LauncherConfigContainer loadConfigContainer()
+        {
+            List<File> files;
+            if (configFiles.isEmpty()) {
+                if (!DEFAULT_CONFIG_FILE.exists()) {
+                    return new LauncherConfigContainer();
+                }
+                else {
+                    files = ImmutableList.of(DEFAULT_CONFIG_FILE);
+                }
+            }
+            else {
+                files = configFiles.stream().map(File::new).collect(toImmutableList());
+            }
+            LauncherConfigContainer container = new LauncherConfigContainer();
+            for (File file : files) {
+                container = container
+            }
+        }
 
         @Override
         public void run()
@@ -210,14 +235,16 @@ public class LauncherMain
             }
         }
 
-        public abstract void innerRun() throws Throwable;
+        public abstract void innerRun()
+                throws Throwable;
 
         public synchronized void deleteRepositoryOnExit()
         {
             if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 File r = new File(Repositories.getRepositoryPath());
                 checkState(r.exists() && r.isDirectory());
-                Runtime.getRuntime().addShutdownHook(new Thread() {
+                Runtime.getRuntime().addShutdownHook(new Thread()
+                {
                     @Override
                     public void run()
                     {
@@ -233,12 +260,9 @@ public class LauncherMain
         }
     }
 
-    public static abstract class DaemonCommand extends WrapperCommand
+    public static abstract class DaemonCommand
+            extends LauncherCommand
     {
-        @Option(name = {"-p", "--pid-file"}, description = "Specify pid file path")
-        public String pidFile;
-        public static final String PID_FILE_PROPERTY_KEY = "wrmsr.launcher.pid-file";
-
         private DaemonProcess daemonProcess;
 
         public synchronized boolean hasPidFile()
@@ -256,7 +280,8 @@ public class LauncherMain
         }
     }
 
-    public static abstract class ServerCommand extends DaemonCommand
+    public static abstract class ServerCommand
+            extends DaemonCommand
     {
         @Option(name = {"-r", "--reexec"}, description = "Whether or not to reexec with appropriate JVM settings")
         public boolean reexec;
@@ -302,10 +327,10 @@ public class LauncherMain
         {
             Launch launch = reexec ? null : new Launch();
             if (Strings.isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
-                System.setProperty("plugin.preloaded",  "|presto-wrmsr-main");
+                System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
             }
             if (Strings.isNullOrEmpty(System.getProperty("node.environment"))) {
-                System.setProperty("node.environment",  "development");
+                System.setProperty("node.environment", "development");
             }
             if (Strings.isNullOrEmpty(System.getProperty("node.id"))) {
                 System.setProperty("node.id", UUID.randomUUID().toString());
@@ -342,10 +367,12 @@ public class LauncherMain
     }
 
     @Command(name = "run", description = "Runs presto server")
-    public static class Run extends ServerCommand
+    public static class Run
+            extends ServerCommand
     {
         @Override
-        public void innerRun() throws Throwable
+        public void innerRun()
+                throws Throwable
         {
             if (hasPidFile()) {
                 getDaemonProcess().writePid();
@@ -354,7 +381,8 @@ public class LauncherMain
         }
     }
 
-    public abstract static class StartCommand extends ServerCommand
+    public abstract static class StartCommand
+            extends ServerCommand
     {
         public void run(boolean restart)
         {
@@ -366,30 +394,36 @@ public class LauncherMain
     }
 
     @Command(name = "start", description = "Starts presto server")
-    public static class Start extends StartCommand
+    public static class Start
+            extends StartCommand
     {
         @Override
-        public void innerRun() throws Throwable
+        public void innerRun()
+                throws Throwable
         {
             run(false);
         }
     }
 
     @Command(name = "stop", description = "Stops presto server")
-    public static class Stop extends DaemonCommand
+    public static class Stop
+            extends DaemonCommand
     {
         @Override
-        public void innerRun() throws Throwable
+        public void innerRun()
+                throws Throwable
         {
             getDaemonProcess().stop();
         }
     }
 
     @Command(name = "restart", description = "Restarts presto server")
-    public static class Restart extends StartCommand
+    public static class Restart
+            extends StartCommand
     {
         @Override
-        public void innerRun() throws Throwable
+        public void innerRun()
+                throws Throwable
         {
             getDaemonProcess().stop();
             run(true);
@@ -397,10 +431,12 @@ public class LauncherMain
     }
 
     @Command(name = "status", description = "Gets status of presto server")
-    public static class Status extends DaemonCommand
+    public static class Status
+            extends DaemonCommand
     {
         @Override
-        public void innerRun() throws Throwable
+        public void innerRun()
+                throws Throwable
         {
             if (!getDaemonProcess().alive()) {
                 System.exit(DaemonProcess.LSB_NOT_RUNNING);
@@ -410,13 +446,15 @@ public class LauncherMain
     }
 
     @Command(name = "kill", description = "Kills presto server")
-    public static class Kill extends DaemonCommand
+    public static class Kill
+            extends DaemonCommand
     {
         @Arguments(description = "arguments")
         private List<String> args = newArrayList();
 
         @Override
-        public void innerRun() throws Throwable
+        public void innerRun()
+                throws Throwable
         {
             deleteRepositoryOnExit();
             if (args.isEmpty()) {
@@ -444,7 +482,7 @@ public class LauncherMain
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dBuilder;
         try {
-           dBuilder = dbFactory.newDocumentBuilder();
+            dBuilder = dbFactory.newDocumentBuilder();
         }
         catch (ParserConfigurationException e) {
             throw new RuntimeException(e);
@@ -518,11 +556,6 @@ public class LauncherMain
         }
     }
 
-    public static ClassLoader constructModuleClassloader(String name)
-    {
-        return new ParentLastURLClassLoader(resolveModuleClassloaderUrls(name));
-    }
-
     public static void runStaticMethod(String className, String methodName, Class<?>[] parameterTypes, Object[] args)
     {
         try {
@@ -538,7 +571,8 @@ public class LauncherMain
 
     public static void runStaticMethod(List<URL> urls, String className, String methodName, Class<?>[] parameterTypes, Object[] args)
     {
-        Thread t = new Thread() {
+        Thread t = new Thread()
+        {
             @Override
             public void run()
             {
@@ -561,7 +595,8 @@ public class LauncherMain
         }
     }
 
-    public static abstract class PassthroughCommand extends WrapperCommand
+    public static abstract class PassthroughCommand
+            extends LauncherCommand
     {
         public abstract String getModuleName();
 
@@ -571,12 +606,13 @@ public class LauncherMain
         private List<String> args = newArrayList();
 
         @Override
-        public void innerRun() throws Throwable
+        public void innerRun()
+                throws Throwable
         {
             deleteRepositoryOnExit();
             String moduleName = getModuleName();
             Class<?>[] parameterTypes = new Class<?>[] {String[].class};
-            Object[] args = new Object[] { this.args.toArray(new String[this.args.size()])};
+            Object[] args = new Object[] {this.args.toArray(new String[this.args.size()])};
             if (moduleName == null) {
                 runStaticMethod(getClassName(), "main", parameterTypes, args);
             }
@@ -587,7 +623,8 @@ public class LauncherMain
     }
 
     @Command(name = "cli", description = "Starts presto cli")
-    public static class CliCommand extends PassthroughCommand
+    public static class CliCommand
+            extends PassthroughCommand
     {
         @Override
         public String getModuleName()
@@ -603,7 +640,8 @@ public class LauncherMain
     }
 
     @Command(name = "hive", description = "Executes Hive command")
-    public static class Hive extends PassthroughCommand
+    public static class Hive
+            extends PassthroughCommand
     {
         @Override
         public String getModuleName()
@@ -619,7 +657,8 @@ public class LauncherMain
     }
 
     @Command(name = "hdfs", description = "Executes HDFS command")
-    public static class Hdfs extends PassthroughCommand
+    public static class Hdfs
+            extends PassthroughCommand
     {
         @Override
         public String getModuleName()
@@ -635,7 +674,8 @@ public class LauncherMain
     }
 
     @Command(name = "h2", description = "Execute H2 command")
-    public static class H2 extends PassthroughCommand
+    public static class H2
+            extends PassthroughCommand
     {
         @Override
         public String getModuleName()
@@ -651,7 +691,8 @@ public class LauncherMain
     }
 
     @Command(name = "jython", description = "Starts Jython shell")
-    public static class Jython extends PassthroughCommand
+    public static class Jython
+            extends PassthroughCommand
     {
         @Override
         public String getModuleName()
@@ -667,7 +708,8 @@ public class LauncherMain
     }
 
     @Command(name = "nashorn", description = "Starts Nashorn shell")
-    public static class Nashorn extends PassthroughCommand
+    public static class Nashorn
+            extends PassthroughCommand
     {
         @Override
         public String getModuleName()

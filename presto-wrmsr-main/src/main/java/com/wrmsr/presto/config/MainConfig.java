@@ -18,6 +18,11 @@ public class MainConfig
         return new MainConfig(nodesFrom(OBJECT_MAPPER.get(), contents, MainConfigNode.class, UnknownConfig::new));
     }
 
+    public MainConfig()
+    {
+        super(MainConfigNode.class);
+    }
+
     public MainConfig(List<MainConfigNode> nodes)
     {
         super(nodes, MainConfigNode.class);

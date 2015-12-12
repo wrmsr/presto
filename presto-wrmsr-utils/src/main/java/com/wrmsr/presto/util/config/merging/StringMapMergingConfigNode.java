@@ -7,6 +7,11 @@ import java.util.Map;
 public abstract class StringMapMergingConfigNode<N extends StringMapMergingConfigNode<N>>
     extends MapMergingConfigNode<N, String, String>
 {
+    public StringMapMergingConfigNode()
+    {
+        super();
+    }
+
     public StringMapMergingConfigNode(Map<String, String> entries)
     {
         super(entries);

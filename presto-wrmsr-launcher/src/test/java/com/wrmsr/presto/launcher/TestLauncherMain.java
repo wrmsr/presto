@@ -15,6 +15,7 @@ package com.wrmsr.presto.launcher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.util.Serialization;
 import org.testng.annotations.Test;
 

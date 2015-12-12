@@ -27,6 +27,11 @@ public abstract class ListMergingConfigNode<N extends ListMergingConfigNode<N, T
 
     protected final List<T> items;
 
+    public ListMergingConfigNode()
+    {
+        this.items = ImmutableList.of();
+    }
+
     public ListMergingConfigNode(List<T> items)
     {
         this.items = ImmutableList.copyOf(items);
@@ -61,16 +66,6 @@ public abstract class ListMergingConfigNode<N extends ListMergingConfigNode<N, T
             throw Throwables.propagate(e);
         }
         return merged;
-    }
-
-    public static <N extends ListMergingConfigNode<N, T>, T> ListMergingConfigNode<N, T> newDefault(Class<N> cls)
-    {
-        try {
-            return cls.getConstructor(List.class).newInstance(ImmutableList.of());
-        }
-        catch (IllegalAccessException | NoSuchMethodException | InstantiationException | InvocationTargetException e) {
-            throw Throwables.propagate(e);
-        }
     }
 
     @Override

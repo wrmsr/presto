@@ -15,6 +15,8 @@ package com.wrmsr.presto.connectorSupport;
 
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.spi.ConnectorSupportFactory;
 
 public class ConnectorSupportModule
     implements Module
@@ -22,6 +24,8 @@ public class ConnectorSupportModule
     @Override
     public void configure(Binder binder)
     {
+        Multibinder.newSetBinder(binder, ConnectorSupportFactory.class);
+
         binder.bind(ConnectorSupportManager.class).asEagerSingleton();
     }
 }

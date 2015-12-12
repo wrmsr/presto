@@ -17,10 +17,11 @@ import com.wrmsr.presto.util.Repositories;
 
 public class LauncherBootstrap
 {
-    public static void main(String[] args) throws Throwable
+    public static void main(String[] args)
+            throws Throwable
     {
         Repositories.setupClassLoaderForModule(LauncherBootstrap.class.getClassLoader(), "presto-wrmsr-launcher");
         Class<?> cls = Class.forName("com.wrmsr.presto.launcher.LauncherMain");
-        cls.getDeclaredMethod("main", String[].class).invoke(null, new Object[]{args});
+        cls.getDeclaredMethod("main", String[].class).invoke(null, new Object[] {args});
     }
 }

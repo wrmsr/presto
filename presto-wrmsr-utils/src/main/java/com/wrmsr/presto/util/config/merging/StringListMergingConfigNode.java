@@ -7,6 +7,11 @@ import java.util.List;
 public abstract class StringListMergingConfigNode<N extends StringListMergingConfigNode<N>>
     extends ListMergingConfigNode<N, String>
 {
+    public StringListMergingConfigNode()
+    {
+        super();
+    }
+
     public StringListMergingConfigNode(List<String> items)
     {
         super(items);

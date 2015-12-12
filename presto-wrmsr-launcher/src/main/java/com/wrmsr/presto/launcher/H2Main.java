@@ -5,7 +5,6 @@ import io.airlift.airline.Arguments;
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
 import io.airlift.airline.Help;
-
 import org.h2.tools.Console;
 import org.h2.tools.Server;
 import org.h2.tools.Shell;
@@ -33,7 +32,8 @@ public class H2Main
         gitParser.parse(args).run();
     }
 
-    public static abstract class PassthroughCommand implements Runnable
+    public static abstract class PassthroughCommand
+            implements Runnable
     {
         @Arguments(description = "arguments")
         private List<String> args = newArrayList();
@@ -59,7 +59,8 @@ public class H2Main
     }
 
     @Command(name = "server", description = "Starts H2 server")
-    public static class ServerCommand extends PassthroughCommand
+    public static class ServerCommand
+            extends PassthroughCommand
     {
         @Override
         public void runNothrow()
@@ -70,7 +71,8 @@ public class H2Main
     }
 
     @Command(name = "shell", description = "Starts H2 shell")
-    public static class ShellCommand extends PassthroughCommand
+    public static class ShellCommand
+            extends PassthroughCommand
     {
         @Override
         public void runNothrow()
@@ -81,7 +83,8 @@ public class H2Main
     }
 
     @Command(name = "console", description = "Starts H2 console")
-    public static class ConsoleCommand extends PassthroughCommand
+    public static class ConsoleCommand
+            extends PassthroughCommand
     {
         @Override
         public void runNothrow()
