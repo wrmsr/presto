@@ -2,6 +2,7 @@ package com.wrmsr.presto.util.config.mergeable;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.util.Mergeable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
@@ -37,11 +38,11 @@ public abstract class MapMergeableConfigNode<N extends MapMergeableConfigNode<N,
 
     @SuppressWarnings({"unchecked"})
     @Override
-    public N merge(N other)
+    public Mergeable merge(Mergeable other)
     {
         Map mergedMap = ImmutableMap.builder()
                 .putAll(entries)
-                .putAll(other.getEntries())
+                .putAll(((N) other).getEntries())
                 .build();
         N merged;
         try {

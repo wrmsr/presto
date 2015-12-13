@@ -2,11 +2,12 @@ package com.wrmsr.presto.util.config.mergeable;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.util.Mergeable;
 
 import java.util.Map;
 
 public abstract class UnknownMergeableConfigNode<N extends UnknownMergeableConfigNode<N>>
-    implements MergeableConfigNode<N>
+        implements MergeableConfigNode<N>
 {
     private final String type;
     private final Object object;
@@ -39,7 +40,7 @@ public abstract class UnknownMergeableConfigNode<N extends UnknownMergeableConfi
     }
 
     @Override
-    public N merge(N other)
+    public Mergeable merge(Mergeable other)
     {
         throw new UnsupportedOperationException();
     }

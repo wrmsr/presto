@@ -21,7 +21,7 @@ import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableSet;
 
 public abstract class MergeableConfig<N extends MergeableConfigNode>
-        implements Mergeable<MergeableConfig<N>>
+        implements Mergeable
 {
     @FunctionalInterface
     public interface UnknownNodeHandler<N extends MergeableConfigNode>
@@ -126,7 +126,7 @@ public abstract class MergeableConfig<N extends MergeableConfigNode>
         else {
             T node = nodes.get(0);
             for (int i = 1; i < nodes.size(); ++i) {
-                node = node.merge(nodes.get(i));
+                node = (T) node.merge(nodes.get(i));
             }
             return node;
         }
@@ -134,11 +134,11 @@ public abstract class MergeableConfig<N extends MergeableConfigNode>
 
     @SuppressWarnings({"unchecked"})
     @Override
-    public MergeableConfig<N> merge(MergeableConfig<N> other)
+    public Mergeable merge(Mergeable other)
     {
         ImmutableList.Builder<N> builder = ImmutableList.<N>builder()
                 .addAll(nodes)
-                .addAll(other.getNodes());
+                .addAll(((MergeableConfig<N>) other).getNodes());
         try {
             return getClass().getDeclaredConstructor(List.class).newInstance(builder.build());
         }

@@ -2,6 +2,7 @@ package com.wrmsr.presto.util.config.mergeable;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.util.Mergeable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
@@ -52,11 +53,11 @@ public abstract class ListMergeableConfigNode<N extends ListMergeableConfigNode<
 
     @SuppressWarnings({"unchecked"})
     @Override
-    public N merge(N other)
+    public Mergeable merge(Mergeable other)
     {
         List mergedList = ImmutableList.builder()
                 .addAll(items)
-                .addAll(other.getItems())
+                .addAll(((N) other).getItems())
                 .build();
         N merged;
         try {

@@ -25,7 +25,7 @@ string
 file
 */
 public class ExecConfig
-        implements MainConfigNode
+        implements MainConfigNode<ExecConfig>
 {
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
@@ -38,7 +38,8 @@ public class ExecConfig
     {
     }
 
-    public static final class StringVerb extends Verb
+    public static final class StringVerb
+            extends Verb
     {
         protected final String statement;
 
@@ -60,7 +61,8 @@ public class ExecConfig
         }
     }
 
-    public static final class FileVerb extends Verb
+    public static final class FileVerb
+            extends Verb
     {
         protected final String path;
 
@@ -132,7 +134,8 @@ public class ExecConfig
     {
     }
 
-    public static final class SqlSubject extends Subject
+    public static final class SqlSubject
+            extends Subject
     {
         protected final VerbList verbs;
 
@@ -154,7 +157,8 @@ public class ExecConfig
         }
     }
 
-    public static final class ConnectorSubject extends Subject
+    public static final class ConnectorSubject
+            extends Subject
     {
         protected final Map<String, VerbList> verbs;
 
@@ -176,7 +180,8 @@ public class ExecConfig
         }
     }
 
-    public static final class ScriptSubject extends Subject
+    public static final class ScriptSubject
+            extends Subject
     {
         protected final Map<String, VerbList> verbs;
 

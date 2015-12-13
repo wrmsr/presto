@@ -12,7 +12,8 @@ import java.util.Map;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public final class ConnectorsConfig
-    extends MapMergeableConfigNode<ConnectorsConfig, String, ConnectorsConfig.Entry> implements MainConfigNode<ConnectorsConfig>
+        extends MapMergeableConfigNode<ConnectorsConfig, String, ConnectorsConfig.Entry>
+        implements MainConfigNode<ConnectorsConfig>
 {
     public static final class Entry
     {

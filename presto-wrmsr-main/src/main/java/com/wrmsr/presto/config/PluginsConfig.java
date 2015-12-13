@@ -6,7 +6,8 @@ import com.wrmsr.presto.util.config.mergeable.StringListMergeableConfigNode;
 import java.util.List;
 
 public final class PluginsConfig
-    extends StringListMergeableConfigNode<PluginsConfig> implements MainConfigNode<PluginsConfig>
+        extends StringListMergeableConfigNode<PluginsConfig>
+        implements MainConfigNode<PluginsConfig>
 {
     @JsonCreator
     public PluginsConfig(List<String> items)
