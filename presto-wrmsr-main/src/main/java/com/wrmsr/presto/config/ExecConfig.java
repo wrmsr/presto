@@ -273,8 +273,8 @@ public class ExecConfig
         return subjects;
     }
 
-    public static ExecConfig newDefault()
+    public ExecConfig()
     {
-        return new ExecConfig(new SubjectList(ImmutableList.of()));
+        this(new SubjectList(ImmutableList.of()));
     }
 }

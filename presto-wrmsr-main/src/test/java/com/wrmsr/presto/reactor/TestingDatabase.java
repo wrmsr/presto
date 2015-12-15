@@ -18,7 +18,6 @@ import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
-import com.facebook.presto.plugin.jdbc.JdbcPartition;
 import com.facebook.presto.plugin.jdbc.JdbcSplit;
 import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
 import com.facebook.presto.spi.ColumnHandle;
@@ -93,14 +92,14 @@ final class TestingDatabase
         return jdbcClient;
     }
 
-    public JdbcSplit getSplit(String schemaName, String tableName)
-            throws InterruptedException
-    {
-        JdbcTableHandle jdbcTableHandle = jdbcClient.getTableHandle(new SchemaTableName(schemaName, tableName));
-        ConnectorPartitionResult partitions = jdbcClient.getPartitions(jdbcTableHandle, TupleDomain.<ColumnHandle>all());
-        ConnectorSplitSource splits = jdbcClient.getPartitionSplits((JdbcPartition) getOnlyElement(partitions.getPartitions()));
-        return (JdbcSplit) getOnlyElement(getFutureValue(splits.getNextBatch(1000)));
-    }
+//    public JdbcSplit getSplit(String schemaName, String tableName)
+//            throws InterruptedException
+//    {
+//        JdbcTableHandle jdbcTableHandle = jdbcClient.getTableHandle(new SchemaTableName(schemaName, tableName));
+//        ConnectorPartitionResult partitions = jdbcClient.getPartitions(jdbcTableHandle, TupleDomain.<ColumnHandle>all());
+//        ConnectorSplitSource splits = jdbcClient.getPartitionSplits((JdbcPartition) getOnlyElement(partitions.getPartitions()));
+//        return (JdbcSplit) getOnlyElement(getFutureValue(splits.getNextBatch(1000)));
+//    }
 
     public Map<String, JdbcColumnHandle> getColumnHandles(String schemaName, String tableName)
     {

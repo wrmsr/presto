@@ -3,6 +3,7 @@ package com.wrmsr.presto.config;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.config.mergeable.MapMergeableConfigNode;
 
 import java.util.Map;
@@ -33,6 +34,11 @@ public class ScriptingConfig
     public ScriptingConfig(Map<String, Entry> entries)
     {
         super(entries);
+    }
+
+    public ScriptingConfig()
+    {
+        this(ImmutableMap.of());
     }
 
     @JsonValue

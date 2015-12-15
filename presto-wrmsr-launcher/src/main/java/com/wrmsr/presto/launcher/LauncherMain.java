@@ -184,8 +184,13 @@ public class LauncherMain
 
         public static File DEFAULT_CONFIG_FILE = new File("presto.yaml");
 
+        // FIXME
+        private final int debugPort = 0;
+        private final boolean debugSuspend = false;
+
         public LauncherConfigContainer loadConfigContainer()
         {
+            /*
             List<File> files;
             if (configFiles.isEmpty()) {
                 if (!DEFAULT_CONFIG_FILE.exists()) {
@@ -202,6 +207,8 @@ public class LauncherMain
             for (File file : files) {
                 container = container
             }
+            */
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -264,6 +271,9 @@ public class LauncherMain
             extends LauncherCommand
     {
         private DaemonProcess daemonProcess;
+
+        // FIXME
+        private final String pidFile = null;
 
         public synchronized boolean hasPidFile()
         {
