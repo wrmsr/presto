@@ -17,7 +17,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.config.Configs;
-import com.wrmsr.presto.util.config.mergeable.MapMergeableConfigNode;
+import com.wrmsr.presto.util.config.mergeable.MapMergeableConfig;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.Map;
@@ -25,8 +25,8 @@ import java.util.Map;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public final class ConnectorsConfig
-        extends MapMergeableConfigNode<ConnectorsConfig, String, ConnectorsConfig.Entry>
-        implements MainConfigNode<ConnectorsConfig>
+        extends MapMergeableConfig<ConnectorsConfig, String, ConnectorsConfig.Entry>
+        implements Config<ConnectorsConfig>
 {
     public static final class Entry
     {

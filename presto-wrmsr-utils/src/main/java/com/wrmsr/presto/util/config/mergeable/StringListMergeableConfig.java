@@ -13,21 +13,26 @@
  */
 package com.wrmsr.presto.util.config.mergeable;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import java.util.List;
 
-public abstract class IncludeMergeableConfigNode<N extends IncludeMergeableConfigNode<N>>
-    extends StringListMergeableConfigNode<N>
+public abstract class StringListMergeableConfig<N extends StringListMergeableConfig<N>>
+    extends ListMergeableConfig<N, String>
 {
-    /*
-    @JsonCreator
-    public static IncludeMergeableConfigNode valueOf(Object object)
+    public StringListMergeableConfig()
     {
-        return new IncludeMergeableConfigNode(unpack(object, String.class));
+        super();
     }
-    */
 
-    public IncludeMergeableConfigNode(List<String> items)
+    public StringListMergeableConfig(List<String> items)
     {
         super(items);
+    }
+
+    @JsonValue
+    public List<String> getItems()
+    {
+        return items;
     }
 }

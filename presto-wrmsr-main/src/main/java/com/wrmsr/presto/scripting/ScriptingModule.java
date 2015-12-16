@@ -18,16 +18,16 @@ import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryProvider;
 import com.google.inject.multibindings.MapBinder;
 import com.google.inject.multibindings.Multibinder;
-import com.wrmsr.presto.config.MainConfig;
+import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.spi.ScriptEngineProvider;
 
 public class ScriptingModule
         implements Module
 {
-    private final MainConfig config;
+    private final ConfigContainer config;
 
-    public ScriptingModule(MainConfig config)
+    public ScriptingModule(ConfigContainer config)
     {
         this.config = config;
     }

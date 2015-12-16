@@ -19,18 +19,18 @@ import com.wrmsr.presto.util.Mergeable;
 
 import java.util.Map;
 
-public abstract class UnknownMergeableConfigNode<N extends UnknownMergeableConfigNode<N>>
-        implements MergeableConfigNode<N>
+public abstract class UnknownMergeableConfig<N extends UnknownMergeableConfig<N>>
+        implements MergeableConfig<N>
 {
     private final String type;
     private final Object object;
 
-    public UnknownMergeableConfigNode()
+    public UnknownMergeableConfig()
     {
         throw new UnsupportedOperationException();
     }
 
-    public UnknownMergeableConfigNode(String type, Object object)
+    public UnknownMergeableConfig(String type, Object object)
     {
         this.type = type;
         this.object = object;

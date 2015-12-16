@@ -11,18 +11,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.config;
+package com.wrmsr.presto.util.config.mergeable;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.wrmsr.presto.util.config.mergeable.UnknownMergeableConfig;
+import java.util.List;
 
-public final class UnknownConfig
-        extends UnknownMergeableConfig<UnknownConfig>
-        implements Config<UnknownConfig>
+public abstract class IncludeMergeableConfig<N extends IncludeMergeableConfig<N>>
+    extends StringListMergeableConfig<N>
 {
+    /*
     @JsonCreator
-    public UnknownConfig(String type, Object object)
+    public static IncludeMergeableConfigNode valueOf(Object object)
     {
-        super(type, object);
+        return new IncludeMergeableConfigNode(unpack(object, String.class));
+    }
+    */
+
+    public IncludeMergeableConfig(List<String> items)
+    {
+        super(items);
     }
 }

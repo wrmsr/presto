@@ -17,7 +17,7 @@ import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.wrmsr.presto.codec.CodecModule;
 import com.wrmsr.presto.config.ConfigModule;
-import com.wrmsr.presto.config.MainConfig;
+import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.connector.ConnectorModule;
 import com.wrmsr.presto.connectorSupport.ConnectorSupportModule;
 import com.wrmsr.presto.function.FunctionModule;
@@ -29,9 +29,9 @@ import com.wrmsr.presto.type.TypeModule;
 public class MainPluginModule
         implements Module
 {
-    private final MainConfig config;
+    private final ConfigContainer config;
 
-    public MainPluginModule(MainConfig config)
+    public MainPluginModule(ConfigContainer config)
     {
         this.config = config;
     }

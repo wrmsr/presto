@@ -15,30 +15,30 @@ package com.wrmsr.presto.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
+import com.wrmsr.presto.util.config.mergeable.MergeableConfigContainer;
 
 import java.util.List;
 import java.util.Map;
 
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
-public class MainConfig
-        extends MergeableConfig<MainConfigNode>
+public class ConfigContainer
+        extends MergeableConfigContainer<Config>
 {
     @JsonCreator
-    public static MainConfig valueOf(List<Map<String, Object>> contents)
+    public static ConfigContainer valueOf(List<Map<String, Object>> contents)
     {
-        return new MainConfig(nodesFrom(OBJECT_MAPPER.get(), contents, MainConfigNode.class, UnknownConfig::new));
+        return new ConfigContainer(nodesFrom(OBJECT_MAPPER.get(), contents, Config.class, UnknownConfig::new));
     }
 
-    public MainConfig()
+    public ConfigContainer()
     {
-        super(MainConfigNode.class);
+        super(Config.class);
     }
 
-    public MainConfig(List<MainConfigNode> nodes)
+    public ConfigContainer(List<Config> nodes)
     {
-        super(nodes, MainConfigNode.class);
+        super(nodes, Config.class);
     }
 
     @JsonValue

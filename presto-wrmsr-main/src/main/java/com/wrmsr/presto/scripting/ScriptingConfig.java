@@ -17,16 +17,16 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.config.MainConfigNode;
-import com.wrmsr.presto.util.config.mergeable.MapMergeableConfigNode;
+import com.wrmsr.presto.config.Config;
+import com.wrmsr.presto.util.config.mergeable.MapMergeableConfig;
 
 import javax.validation.constraints.NotNull;
 
 import java.util.Map;
 
 public class ScriptingConfig
-        extends MapMergeableConfigNode<ScriptingConfig, String, ScriptingConfig.Entry>
-        implements MainConfigNode<ScriptingConfig>
+        extends MapMergeableConfig<ScriptingConfig, String, ScriptingConfig.Entry>
+        implements Config<ScriptingConfig>
 {
     public static final class Entry
     {

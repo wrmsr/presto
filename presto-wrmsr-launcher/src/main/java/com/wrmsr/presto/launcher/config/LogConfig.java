@@ -14,15 +14,23 @@
 package com.wrmsr.presto.launcher.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.wrmsr.presto.util.config.mergeable.UnknownMergeableConfig;
+import com.wrmsr.presto.util.config.Configs;
+import com.wrmsr.presto.util.config.mergeable.StringMapMergeableConfig;
 
-public final class UnknownConfig
-        extends UnknownMergeableConfig<UnknownConfig>
-        implements Config<UnknownConfig>
+import java.util.Map;
+
+public final class LogConfig
+        extends StringMapMergeableConfig<LogConfig>
+        implements Config<LogConfig>
 {
     @JsonCreator
-    public UnknownConfig(String type, Object object)
+    public static LogConfig valueOf(Object object)
     {
-        super(type, object);
+        return new LogConfig(Configs.flatten(object));
+    }
+
+    public LogConfig(Map<String, String> entries)
+    {
+        super(entries);
     }
 }

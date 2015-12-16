@@ -38,7 +38,7 @@ string
 file
 */
 public class ExecConfig
-        implements MainConfigNode<ExecConfig>
+        implements Config<ExecConfig>
 {
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,

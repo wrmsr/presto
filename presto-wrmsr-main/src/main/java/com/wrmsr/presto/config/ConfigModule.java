@@ -15,14 +15,13 @@ package com.wrmsr.presto.config;
 
 import com.google.inject.Binder;
 import com.google.inject.Module;
-import com.wrmsr.presto.scripting.ScriptingConfig;
 
 public class ConfigModule
         implements Module
 {
-    private final MainConfig config;
+    private final ConfigContainer config;
 
-    public ConfigModule(MainConfig config)
+    public ConfigModule(ConfigContainer config)
     {
         this.config = config;
     }

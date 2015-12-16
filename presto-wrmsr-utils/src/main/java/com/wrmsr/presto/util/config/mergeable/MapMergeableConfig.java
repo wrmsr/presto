@@ -14,53 +14,38 @@
 package com.wrmsr.presto.util.config.mergeable;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.Mergeable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 
-public abstract class ListMergeableConfigNode<N extends ListMergeableConfigNode<N, T>, T>
-    implements MergeableConfigNode<N>, Iterable<T>
+public abstract class MapMergeableConfig<N extends MapMergeableConfig<N, K, V>, K, V>
+    implements MergeableConfig<N>, Iterable<Map.Entry<K, V>>
 {
-    @SuppressWarnings({"unchecked"})
-    public static <T> List<T> unpack(Object object, Class<T> cls)
+    protected final Map<K, V> entries;
+
+    public MapMergeableConfig()
     {
-        if (object instanceof List) {
-            return (List<T>) object;
-        }
-        else if (cls.isInstance(object)) {
-            return ImmutableList.of((T) object);
-        }
-        else {
-            throw new IllegalArgumentException(Objects.toString(object));
-        }
+        this.entries = ImmutableMap.of();
     }
 
-    protected final List<T> items;
-
-    public ListMergeableConfigNode()
+    public MapMergeableConfig(Map<K, V> entries)
     {
-        this.items = ImmutableList.of();
+        this.entries = ImmutableMap.copyOf(entries);
     }
 
-    public ListMergeableConfigNode(List<T> items)
+    public Map<K, V> getEntries()
     {
-        this.items = ImmutableList.copyOf(items);
-    }
-
-    public List<T> getItems()
-    {
-        return items;
+        return entries;
     }
 
     @Override
     public String toString()
     {
         return getClass().getName() + "{" +
-                "items=" + items +
+                "entries=" + entries +
                 '}';
     }
 
@@ -68,13 +53,13 @@ public abstract class ListMergeableConfigNode<N extends ListMergeableConfigNode<
     @Override
     public Mergeable merge(Mergeable other)
     {
-        List mergedList = ImmutableList.builder()
-                .addAll(items)
-                .addAll(((N) other).getItems())
+        Map mergedMap = ImmutableMap.builder()
+                .putAll(entries)
+                .putAll(((N) other).getEntries())
                 .build();
         N merged;
         try {
-            merged = (N) getClass().getConstructor(List.class).newInstance(mergedList);
+            merged = (N) getClass().getConstructor(Map.class).newInstance(mergedMap);
         }
         catch (IllegalAccessException | NoSuchMethodException | InstantiationException | InvocationTargetException e) {
             throw Throwables.propagate(e);
@@ -83,8 +68,8 @@ public abstract class ListMergeableConfigNode<N extends ListMergeableConfigNode<
     }
 
     @Override
-    public Iterator<T> iterator()
+    public Iterator<Map.Entry<K, V>> iterator()
     {
-        return items.iterator();
+        return entries.entrySet().iterator();
     }
 }

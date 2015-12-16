@@ -21,14 +21,14 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.wrmsr.presto.util.config.mergeable.MergeableConfigNode;
+import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
 public class LauncherConfig
-    implements MergeableConfigNode<LauncherConfig>
+    implements MergeableConfig<LauncherConfig>
 {
     @JsonDeserialize(using = AutoNodeId.Deserializer.class)
     public static abstract class AutoNodeId

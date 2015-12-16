@@ -14,11 +14,11 @@
 package com.wrmsr.presto.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.wrmsr.presto.util.config.mergeable.UnknownMergeableConfigNode;
+import com.wrmsr.presto.util.config.mergeable.UnknownMergeableConfig;
 
 public final class UnknownConfig
-        extends UnknownMergeableConfigNode<UnknownConfig>
-        implements MainConfigNode<UnknownConfig>
+        extends UnknownMergeableConfig<UnknownConfig>
+        implements Config<UnknownConfig>
 {
     @JsonCreator
     public UnknownConfig(String type, Object object)

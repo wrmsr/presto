@@ -11,28 +11,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.util.config.mergeable;
+package com.wrmsr.presto.launcher.config;
 
-import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 
-import java.util.Map;
-
-public abstract class StringMapMergeableConfigNode<N extends StringMapMergeableConfigNode<N>>
-    extends MapMergeableConfigNode<N, String, String>
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.WRAPPER_OBJECT
+)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = LauncherConfig.class, name = "launcher"),
+})
+public interface Config<N extends Config<N>>
+    extends MergeableConfig<N>
 {
-    public StringMapMergeableConfigNode()
-    {
-        super();
-    }
-
-    public StringMapMergeableConfigNode(Map<String, String> entries)
-    {
-        super(entries);
-    }
-
-    @JsonValue
-    public Map<String, String> getEntries()
-    {
-        return entries;
-    }
 }

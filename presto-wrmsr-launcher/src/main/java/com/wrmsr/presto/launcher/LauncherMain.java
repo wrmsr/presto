@@ -18,11 +18,10 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.wrmsr.presto.launcher.config.LauncherConfigContainer;
+import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
-import com.wrmsr.presto.launcher.util.ParentLastURLClassLoader;
 import com.wrmsr.presto.util.Repositories;
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Cli;
@@ -64,7 +63,6 @@ import java.util.stream.IntStream;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 /*
 --heap
@@ -190,7 +188,7 @@ public class LauncherMain
 
         // TODO jvm log system
 
-        public LauncherConfigContainer loadConfigContainer()
+        public ConfigContainer loadConfigContainer()
         {
             /*
             List<File> files;
