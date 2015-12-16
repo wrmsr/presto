@@ -18,6 +18,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.config.JvmConfig;
 import com.wrmsr.presto.launcher.config.SystemConfig;
@@ -32,6 +33,7 @@ import io.airlift.airline.Help;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 import io.airlift.resolver.ArtifactResolver;
+import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
 import org.sonatype.aether.artifact.Artifact;
 import org.w3c.dom.Document;
@@ -177,11 +179,24 @@ public class LauncherMain
         }
     }
 
+    private static String[] splitProperty(String prop)
+    {
+        int pos = prop.indexOf("=");
+        checkArgument(pos > 0);
+        return new String[] {prop.substring(0, pos), prop.substring(pos + 1)};
+    }
+
     public static abstract class LauncherCommand
             implements Runnable
     {
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
         public List<String> configFiles = new ArrayList<>();
+
+        @Option(type = OptionType.GLOBAL, name = "-C", description = "Set config item")
+        public List<String> configItems = new ArrayList<>();
+
+        @Option(name = {"-D"}, description = "Sets system property")
+        public List<String> systemProperties = newArrayList();
 
         private ConfigContainer config;
 
@@ -192,6 +207,10 @@ public class LauncherMain
         public synchronized ConfigContainer getConfig()
         {
             if (config == null) {
+                for (String prop : configItems) {
+                    String[] parts = splitProperty(prop);
+                    LauncherConfigs.setConfigItem(parts[0], parts[1]);
+                }
                 config = LauncherConfigs.loadConfig(configFiles);
             }
             return config;
@@ -201,6 +220,11 @@ public class LauncherMain
         {
             for (Map.Entry<String, String> e : getConfig().getMergedNode(SystemConfig.class)) {
                 System.setProperty(e.getKey(), e.getValue());
+            }
+
+            for (String prop : systemProperties) {
+                String[] parts = splitProperty(prop);
+                System.setProperty(parts[0], parts[1]);
             }
         }
 
@@ -217,9 +241,56 @@ public class LauncherMain
 
             ImmutableList.Builder<String> builder = ImmutableList.builder();
 
-            if (jvmConfig.getDebugPort().isPresent()) {
+            if (jvmConfig.getDebugPort() != null) {
                 builder.add(JvmConfiguration.DEBUG.valueOf().toString());
-                builder.add(JvmConfiguration.REMOTE_DEBUG.valueOf(jvmConfig.getDebugPort().get(), jvmConfig.isDebugSuspend()).toString());
+                builder.add(JvmConfiguration.REMOTE_DEBUG.valueOf(jvmConfig.getDebugPort(), jvmConfig.isDebugSuspend()).toString());
+            }
+
+            if (jvmConfig.getHeap() != null) {
+                JvmConfig.HeapSize heap = jvmConfig.getHeap();
+                DataSize sz;
+                if (heap instanceof JvmConfig.FixedHeapSize) {
+                    sz = ((JvmConfig.FixedHeapSize) heap).getValue();
+                }
+                else if (heap instanceof JvmConfig.VariableHeapSize) {
+                    OperatingSystemMXBean os = (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+                    if (heap instanceof JvmConfig.PercentHeapSize) {
+                        long base;
+                        if (((JvmConfig.PercentHeapSize) heap).isFree()) {
+                            base = os.getFreePhysicalMemorySize();
+                        }
+                        else {
+                            base = os.getTotalPhysicalMemorySize();
+                        }
+                        long scaled = ((base * 100) / ((JvmConfig.PercentHeapSize) heap).getValue()) / 100;
+                        sz = new DataSize(scaled, DataSize.Unit.BYTE);
+                    }
+                    else if (heap instanceof JvmConfig.AutoHeapSize) {
+                        throw new IllegalArgumentException(heap.toString());
+                    }
+                    else {
+                        throw new IllegalArgumentException(heap.toString());
+                    }
+
+                    if (((JvmConfig.PercentHeapSize) heap).getMax() != null) {
+                        sz = new DataSize(Math.min(sz.getValue(DataSize.Unit.BYTE), ((JvmConfig.PercentHeapSize) heap).getMax().getValue(DataSize.Unit.BYTE)), DataSize.Unit.BYTE);
+                    }
+                    if (((JvmConfig.PercentHeapSize) heap).getMin() != null) {
+                        double min = ((JvmConfig.PercentHeapSize) heap).getMin().getValue(DataSize.Unit.BYTE);
+                        if (sz.getValue(DataSize.Unit.BYTE) < min) {
+                            if (((JvmConfig.PercentHeapSize) heap).isAttempt()) {
+                                sz = new DataSize(min, DataSize.Unit.BYTE);
+                            }
+                            else {
+                                throw new LauncherFailureException(String.format("Insufficient memory: got %s, need %s", sz, ((JvmConfig.PercentHeapSize) heap).getMin()));
+                            }
+                        }
+                    }
+                }
+                else {
+                    throw new IllegalArgumentException(heap.toString());
+                }
+                builder.add(JvmConfiguration.MAX_HEAP_SIZE.valueOf(sz).toString());
             }
 
             builder.addAll(jvmConfig.getOptions());
@@ -230,28 +301,37 @@ public class LauncherMain
         @Override
         public void run()
         {
+            List<String> jvmOptions = getJvmOptions();
+            if (!jvmOptions.isEmpty()) {
+                String jvmLocation = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : "");
+                RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+                File jar;
+                try {
+                    jar = new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+                }
+                catch (URISyntaxException e) {
+                    throw Throwables.propagate(e);
+                }
+                checkState(jar.exists());
+                ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
+                        .addAll(runtimeMxBean.getInputArguments())
+                        .addAll(jvmOptions);
+                if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+                    builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
+                }
+                builder
+                        .add("-jar")
+                        .add(jar.getAbsolutePath())
+                        .addAll(Arrays.asList(LauncherMain.args))
+                        .build();
+                List<String> newArgs = builder.build();
+                POSIX posix = POSIXUtils.getPOSIX();
+                posix.libc().execv(jvmLocation, newArgs.toArray(new String[newArgs.size()]));
+                throw new IllegalStateException("Unreachable");
+            }
+
             setSystemProperties();
 
-            if (debugPort > 0) {
-                // FIXME recycle repo tmpdir - after this can just brute force exec-exec-exec-exec to desired cfg
-                if (!JvmConfiguration.REMOTE_DEBUG.getValue().isPresent()) {
-                    RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-                    List<String> newArgs = newArrayList(runtimeMxBean.getInputArguments());
-                    newArgs.add(0, JvmConfiguration.DEBUG.valueOf().toString());
-                    newArgs.add(1, JvmConfiguration.REMOTE_DEBUG.valueOf(debugPort, debugSuspend).toString());
-                    String jvmLocation = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : "");
-                    try {
-                        newArgs.add("-jar");
-                        newArgs.add(new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath());
-                    }
-                    catch (URISyntaxException e) {
-                        throw Throwables.propagate(e);
-                    }
-                    newArgs.addAll(Arrays.asList(LauncherMain.args));
-                    POSIX posix = POSIXUtils.getPOSIX();
-                    posix.libc().execv(jvmLocation, newArgs.toArray(new String[newArgs.size()]));
-                }
-            }
             try {
                 innerRun();
             }
@@ -311,49 +391,9 @@ public class LauncherMain
     public static abstract class ServerCommand
             extends DaemonCommand
     {
-        @Option(name = {"-r", "--reexec"}, description = "Whether or not to reexec with appropriate JVM settings")
-        public boolean reexec;
-
-        @Option(name = {"-D"}, description = "Sets system property")
-        public List<String> systemProperties = newArrayList();
-
-        public String[] getExecArgs()
-        {
-            String java = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java";
-            checkState(new File(java).exists());
-            String jar;
-            try {
-                jar = new File(LauncherMain.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath();
-            }
-            catch (Exception e) {
-                throw Throwables.propagate(e);
-            }
-            checkState(new File(jar).exists());
-            List<String> argv = newArrayList();
-            // FIXME repo path + deleteOnExit
-            argv.add(java);
-            for (String s : systemProperties) {
-                argv.add("-D" + s);
-            }
-            if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
-                argv.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
-            }
-            argv.add("-jar");
-            argv.add(jar);
-            argv.add("launch");
-            return argv.toArray(new String[argv.size()]);
-        }
-
-        public void reexec()
-        {
-            POSIX posix = POSIXUtils.getPOSIX();
-            String[] args = getExecArgs();
-            posix.libc().execv(args[0], args);
-        }
-
         public void launch()
         {
-            Launch launch = reexec ? null : new Launch();
+            Launch launch = new Launch();
             if (Strings.isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
                 System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
             }
@@ -370,18 +410,13 @@ public class LauncherMain
                 System.setProperty("node.coordinator", "true");
             }
             if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
-                if (launch != null) {
-                    launch.getClassloaderUrls();
-                }
+                launch.getClassloaderUrls();
                 String wd = new File(new File(System.getProperty("user.dir")), "presto-main").getAbsolutePath();
                 File wdf = new File(wd);
                 checkState(wdf.exists() && wdf.isDirectory());
                 System.setProperty("user.dir", wd);
                 POSIX posix = POSIXUtils.getPOSIX();
                 checkState(posix.chdir(wd) == 0);
-            }
-            if (launch == null) {
-                reexec();
             }
             else {
                 for (String s : systemProperties) {

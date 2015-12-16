@@ -35,6 +35,11 @@ public class LauncherConfigs
 
     public static final String CONFIG_PROPERTIES_PREFIX = "com.wrmsr.presto.";
 
+    public static void setConfigItem(String key, String value)
+    {
+        System.setProperty(CONFIG_PROPERTIES_PREFIX + key, value);
+    }
+
     public static ConfigContainer stripConfigFromProperties()
     {
         Map<String, String> configMap = System.getProperties().entrySet().stream()

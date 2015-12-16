@@ -14,10 +14,13 @@
 package com.wrmsr.presto.launcher.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.wrmsr.presto.util.config.mergeable.StringMapMergeableConfig;
+import io.airlift.units.DataSize;
 
+import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 public final class JvmConfig
         extends StringMapMergeableConfig<JvmConfig>
@@ -37,30 +40,16 @@ public final class JvmConfig
         this.alreadyConfigured = alreadyConfigured;
     }
 
-    private List<String> options;
-
-    @JsonProperty
-    public List<String> getOptions()
-    {
-        return options;
-    }
-
-    @JsonProperty
-    public void setOptions(List<String> options)
-    {
-        this.options = options;
-    }
-
-    private Optional<Integer> debugPort = Optional.empty();
+    private Integer debugPort;
 
     @JsonProperty("debug-port")
-    public Optional<Integer> getDebugPort()
+    public Integer getDebugPort()
     {
         return debugPort;
     }
 
     @JsonProperty("debug-port")
-    public void setDebugPort(Optional<Integer> debugPort)
+    public void setDebugPort(Integer debugPort)
     {
         this.debugPort = debugPort;
     }
@@ -79,31 +68,155 @@ public final class JvmConfig
         this.debugSuspend = debugSuspend;
     }
 
-    private Optional<String> heap = Optional.empty();
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.WRAPPER_OBJECT
+    )
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = FixedHeapSize.class, name = "fixed"),
+            @JsonSubTypes.Type(value = PercentHeapSize.class, name = "percent"),
+            @JsonSubTypes.Type(value = AutoHeapSize.class, name = "auto"),
+    })
+    public static abstract class HeapSize
+    {
+    }
+
+    public static final class FixedHeapSize extends HeapSize
+    {
+        private DataSize value;
+
+        @JsonProperty("value")
+        public DataSize getValue()
+        {
+            return value;
+        }
+
+        @JsonProperty("value")
+        public void setValue(DataSize value)
+        {
+            this.value = value;
+        }
+    }
+
+    public static abstract class VariableHeapSize extends HeapSize
+    {
+        private DataSize min;
+
+        @JsonProperty("min")
+        public DataSize getMin()
+        {
+            return min;
+        }
+
+        @JsonProperty("min")
+        public void setMin(DataSize min)
+        {
+            this.min = min;
+        }
+
+        private DataSize max;
+
+        @JsonProperty("max")
+        public DataSize getMax()
+        {
+            return max;
+        }
+
+        @JsonProperty("max")
+        public void setMax(DataSize max)
+        {
+            this.max = max;
+        }
+
+        private boolean attempt;
+
+        @JsonProperty("attempt")
+        public boolean isAttempt()
+        {
+            return attempt;
+        }
+
+        @JsonProperty("attempt")
+        public void setAttempt(boolean attempt)
+        {
+            this.attempt = attempt;
+        }
+    }
+
+    public static final class PercentHeapSize extends VariableHeapSize
+    {
+        private int value;
+
+        @JsonProperty("value")
+        public int getValue()
+        {
+            return value;
+        }
+
+        @JsonProperty("value")
+        public void setValue(int value)
+        {
+            this.value = value;
+        }
+
+        private boolean free;
+
+        @JsonProperty("free")
+        public boolean isFree()
+        {
+            return free;
+        }
+
+        @JsonProperty("free")
+        public void setFree(boolean free)
+        {
+            this.free = free;
+        }
+    }
+
+    public static final class AutoHeapSize extends VariableHeapSize
+    {
+    }
+
+    private HeapSize heap;
 
     @JsonProperty("heap")
-    public Optional<String> getHeap()
+    public HeapSize getHeap()
     {
         return heap;
     }
 
     @JsonProperty("heap")
-    public void setHeap(Optional<String> heap)
+    public void setHeap(HeapSize heap)
     {
         this.heap = heap;
     }
 
-    private Optional<String> gc = Optional.empty();
+    private String gc;
 
     @JsonProperty("gc")
-    public Optional<String> getGc()
+    public String getGc()
     {
         return gc;
     }
 
     @JsonProperty("gc")
-    public void setGc(Optional<String> gc)
+    public void setGc(String gc)
     {
         this.gc = gc;
+    }
+
+    private List<String> options;
+
+    @JsonProperty
+    public List<String> getOptions()
+    {
+        return options;
+    }
+
+    @JsonProperty
+    public void setOptions(List<String> options)
+    {
+        this.options = options;
     }
 }

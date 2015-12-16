@@ -9,7 +9,7 @@ import com.facebook.presto.spi.type.Type;
 
 import java.util.List;
 
-public abstract class ConnectorSupport<C extends Connector>
+public abstract class ConnectorSupport<C extends Connector> // FIXME fine grain ifaces (wrmsr-hadoop does hive exec)
 {
     protected final ConnectorSession connectorSession;
     protected final C connector;

@@ -41,7 +41,7 @@ public class Repositories
 
     // FIXME add static ClassLoader, set in bootstrap via refl
 
-    public static final String REPOSITORY_PATH_PROPERTY_KEY = "wrmsr.repository.path";
+    public static final String REPOSITORY_PATH_PROPERTY_KEY = "com.wrmsr.repository.path";
 
     public static void addClasspathUrl(URLClassLoader classLoader, URL url) throws IOException
     {
