@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
+import com.wrmsr.presto.launcher.config.JvmConfig;
 import com.wrmsr.presto.launcher.config.SystemConfig;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
@@ -182,10 +183,6 @@ public class LauncherMain
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
         public List<String> configFiles = new ArrayList<>();
 
-        // FIXME
-        private final int debugPort = 0;
-        private final boolean debugSuspend = false;
-
         private ConfigContainer config;
 
         public LauncherCommand()
@@ -205,6 +202,29 @@ public class LauncherMain
             for (Map.Entry<String, String> e : getConfig().getMergedNode(SystemConfig.class)) {
                 System.setProperty(e.getKey(), e.getValue());
             }
+        }
+
+        private List<String> getJvmOptions()
+        {
+            return getJvmOptions(getConfig().getMergedNode(JvmConfig.class));
+        }
+
+        private List<String> getJvmOptions(JvmConfig jvmConfig)
+        {
+            if (jvmConfig.isAlreadyConfigured()) {
+                return ImmutableList.of();
+            }
+
+            ImmutableList.Builder<String> builder = ImmutableList.builder();
+
+            if (jvmConfig.getDebugPort().isPresent()) {
+                builder.add(JvmConfiguration.DEBUG.valueOf().toString());
+                builder.add(JvmConfiguration.REMOTE_DEBUG.valueOf(jvmConfig.getDebugPort().get(), jvmConfig.isDebugSuspend()).toString());
+            }
+
+            builder.addAll(jvmConfig.getOptions());
+
+            return builder.build();
         }
 
         @Override
