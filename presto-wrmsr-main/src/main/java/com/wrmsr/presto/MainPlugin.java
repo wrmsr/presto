@@ -38,7 +38,6 @@ import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.type.ParametricType;
 import com.facebook.presto.type.TypeRegistry;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -50,8 +49,8 @@ import com.google.inject.TypeLiteral;
 import com.google.inject.util.Modules;
 import com.wrmsr.presto.config.ConnectorsConfig;
 import com.wrmsr.presto.config.ExecConfig;
-import com.wrmsr.presto.config.MainConfig;
-import com.wrmsr.presto.config.MainConfigNode;
+import com.wrmsr.presto.config.ConfigContainer;
+import com.wrmsr.presto.config.Config;
 import com.wrmsr.presto.config.PluginsConfig;
 import com.wrmsr.presto.config.SystemConfig;
 import com.wrmsr.presto.function.FunctionRegistration;
@@ -72,7 +71,6 @@ import javax.inject.Inject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Principal;
 import java.util.List;
@@ -85,7 +83,6 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
-import static com.wrmsr.presto.util.Serialization.YAML_OBJECT_MAPPER;
 import static io.airlift.json.JsonCodecBinder.jsonCodecBinder;
 import static java.util.Objects.requireNonNull;
 
@@ -94,7 +91,7 @@ public class MainPlugin
 {
     private static final Logger log = Logger.get(MainPlugin.class);
 
-    private final MainConfig config;
+    private final ConfigContainer config;
     private final Object lock = new Object();
     private volatile Injector injector;
 
@@ -211,9 +208,9 @@ public class MainPlugin
         this.queryIdGenerator = queryIdGenerator;
     }
 
-    private static MainConfig loadConfig(Path path)
+    private static ConfigContainer loadConfig(Path path)
     {
-        return Serialization.readFile(path.toFile(), MainConfig.class);
+        return Serialization.readFile(path.toFile(), ConfigContainer.class);
     }
 
     private Module buildInjectedModule()
@@ -335,7 +332,7 @@ public class MainPlugin
         }
 
         else if (event instanceof ServerEvent.ConnectorsLoaded) {
-            for (MainConfigNode node : config.getNodes()) {
+            for (Config node : config.getNodes()) {
                 if (node instanceof ConnectorsConfig) {
                     for (Map.Entry<String, ConnectorsConfig.Entry> e : ((ConnectorsConfig) node).getEntries().entrySet()) {
                         Object rt;
@@ -359,7 +356,7 @@ public class MainPlugin
         }
 
         else if (event instanceof ServerEvent.DataSourcesLoaded) {
-            for (MainConfigNode node : config.getNodes()) {
+            for (Config node : config.getNodes()) {
                 if (node instanceof ExecConfig) {
                     for (ExecConfig.Subject subject : ((ExecConfig) node).getSubjects().getSubjects()) {
                         if (subject instanceof ExecConfig.SqlSubject) {
