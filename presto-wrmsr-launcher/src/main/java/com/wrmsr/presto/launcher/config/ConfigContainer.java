@@ -25,7 +25,6 @@ import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 public class ConfigContainer
         extends MergeableConfigContainer<Config>
 {
-
     @JsonCreator
     public static ConfigContainer valueOf(List<Map<String, Object>> contents)
     {

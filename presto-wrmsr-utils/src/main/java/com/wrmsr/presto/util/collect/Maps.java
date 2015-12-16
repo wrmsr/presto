@@ -153,4 +153,14 @@ public class Maps
     {
         return map.entrySet().stream().map(e -> ImmutablePair.of(e.getValue(), e.getKey())).collect(ImmutableCollectors.toImmutableMap());
     }
+
+    public static <KF, KT, V> Map<KT, V> transformKeys(Map<KF, V> map, Function<KF, KT> fn)
+    {
+        return map.entrySet().stream().map(e -> ImmutablePair.of(fn.apply(e.getKey()), e.getValue())).collect(toImmutableMap());
+    }
+
+    public static <K, VF, VT> Map<K, VT> transformValues(Map<K, VF> map, Function<VF, VT> fn)
+    {
+        return map.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), fn.apply(e.getValue()))).collect(toImmutableMap());
+    }
 }

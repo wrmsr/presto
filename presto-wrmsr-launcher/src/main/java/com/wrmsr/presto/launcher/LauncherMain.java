@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
+import com.wrmsr.presto.launcher.config.SystemConfig;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
@@ -56,6 +57,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -180,40 +182,36 @@ public class LauncherMain
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
         public List<String> configFiles = new ArrayList<>();
 
-        public static File DEFAULT_CONFIG_FILE = new File("presto.yaml");
-
         // FIXME
         private final int debugPort = 0;
         private final boolean debugSuspend = false;
 
-        // TODO jvm log system
+        private ConfigContainer config;
 
-        public ConfigContainer loadConfigContainer()
+        public LauncherCommand()
         {
-            /*
-            List<File> files;
-            if (configFiles.isEmpty()) {
-                if (!DEFAULT_CONFIG_FILE.exists()) {
-                    return new LauncherConfigContainer();
-                }
-                else {
-                    files = ImmutableList.of(DEFAULT_CONFIG_FILE);
-                }
+        }
+
+        public synchronized ConfigContainer getConfig()
+        {
+            if (config == null) {
+                config = LauncherConfigs.loadConfig(configFiles);
             }
-            else {
-                files = configFiles.stream().map(File::new).collect(toImmutableList());
+            return config;
+        }
+
+        private void setSystemProperties()
+        {
+            for (Map.Entry<String, String> e : getConfig().getMergedNode(SystemConfig.class)) {
+                System.setProperty(e.getKey(), e.getValue());
             }
-            LauncherConfigContainer container = new LauncherConfigContainer();
-            for (File file : files) {
-                container = container
-            }
-            */
-            throw new UnsupportedOperationException();
         }
 
         @Override
         public void run()
         {
+            setSystemProperties();
+
             if (debugPort > 0) {
                 // FIXME recycle repo tmpdir - after this can just brute force exec-exec-exec-exec to desired cfg
                 if (!JvmConfiguration.REMOTE_DEBUG.getValue().isPresent()) {

@@ -21,16 +21,12 @@ import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.WRAPPER_OBJECT
-        // defaultImpl = UnknownConfigNode.class
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = ConnectorsConfig.class, name = "connectors"),
         @JsonSubTypes.Type(value = ExecConfig.class, name = "exec"),
-        @JsonSubTypes.Type(value = LogConfig.class, name = "log"),
         @JsonSubTypes.Type(value = PluginsConfig.class, name = "plugins"),
-        @JsonSubTypes.Type(value = JvmConfig.class, name = "jvm"),
         @JsonSubTypes.Type(value = ScriptingConfig.class, name = "scripting"),
-        @JsonSubTypes.Type(value = SystemConfig.class, name = "system"),
 })
 public interface Config<N extends Config<N>>
         extends MergeableConfig<N>

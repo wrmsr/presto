@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher.config;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.config.Configs;
 import com.wrmsr.presto.util.config.mergeable.StringMapMergeableConfig;
 
@@ -32,5 +33,10 @@ public final class JvmConfig
     public JvmConfig(Map<String, String> entries)
     {
         super(entries);
+    }
+
+    public JvmConfig()
+    {
+        this(ImmutableMap.of());
     }
 }

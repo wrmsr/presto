@@ -52,7 +52,6 @@ import com.wrmsr.presto.config.ExecConfig;
 import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.config.Config;
 import com.wrmsr.presto.config.PluginsConfig;
-import com.wrmsr.presto.config.SystemConfig;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
@@ -65,6 +64,7 @@ import io.airlift.json.JsonCodec;
 import io.airlift.log.Logger;
 import io.airlift.units.Duration;
 import org.apache.commons.configuration.HierarchicalConfiguration;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import javax.inject.Inject;
 
@@ -83,6 +83,7 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 import static io.airlift.json.JsonCodecBinder.jsonCodecBinder;
 import static java.util.Objects.requireNonNull;
 
@@ -113,9 +114,24 @@ public class MainPlugin
 
     public MainPlugin()
     {
-        Path configPath = new File(System.getProperty("user.home") + "/presto/yelp-presto.yaml").toPath();
-        config = loadConfig(configPath);
-        setSystemProperties();
+        config = loadConfigFromProperties();
+    }
+
+    public static final String CONFIG_PROPERTIES_PREFIX = "com.wrmsr.presto.";
+
+    public static ConfigContainer loadConfigFromProperties()
+    {
+        return loadConfigFromProperties(System.getProperties());
+    }
+
+    public static ConfigContainer loadConfigFromProperties(Map<Object, Object> properties)
+    {
+        Map<String, String> configMap = properties.entrySet().stream()
+                .filter(e -> e.getKey() instanceof String && ((String) e.getKey()).startsWith(CONFIG_PROPERTIES_PREFIX) && e.getValue() instanceof String)
+                .map(e -> ImmutablePair.of(((String) e.getKey()).substring(CONFIG_PROPERTIES_PREFIX.length()), (String) e.getValue()))
+                .collect(toImmutableMap());
+        HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(configMap);
+        return Configs.OBJECT_CONFIG_CODEC.decode(hierarchicalConfig, ConfigContainer.class);
     }
 
     @Override
@@ -208,11 +224,6 @@ public class MainPlugin
         this.queryIdGenerator = queryIdGenerator;
     }
 
-    private static ConfigContainer loadConfig(Path path)
-    {
-        return Serialization.readFile(path.toFile(), ConfigContainer.class);
-    }
-
     private Module buildInjectedModule()
     {
         return new Module()
@@ -269,13 +280,6 @@ public class MainPlugin
             }
         }
         return checkNotNull(injector);
-    }
-
-    private void setSystemProperties()
-    {
-        for (Map.Entry<String, String> e : config.getMergedNode(SystemConfig.class)) {
-            System.setProperty(e.getKey(), e.getValue());
-        }
     }
 
     @Override
