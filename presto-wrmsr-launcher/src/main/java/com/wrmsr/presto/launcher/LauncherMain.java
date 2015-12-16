@@ -32,6 +32,7 @@ import io.airlift.airline.Command;
 import io.airlift.airline.Help;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import io.airlift.log.Logger;
 import io.airlift.resolver.ArtifactResolver;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
@@ -119,6 +120,8 @@ hdfs
 
 public class LauncherMain
 {
+    private static final Logger log = Logger.get(LauncherMain.class);
+
     private LauncherMain()
     {
     }
@@ -192,10 +195,10 @@ public class LauncherMain
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
         public List<String> configFiles = new ArrayList<>();
 
-        @Option(type = OptionType.GLOBAL, name = "-C", description = "Set config item")
+        @Option(type = OptionType.GLOBAL, name = {"-C"}, description = "Set config item")
         public List<String> configItems = new ArrayList<>();
 
-        @Option(name = {"-D"}, description = "Sets system property")
+        @Option(type = OptionType.GLOBAL, name = {"-D"}, description = "Sets system property")
         public List<String> systemProperties = newArrayList();
 
         private ConfigContainer config;
@@ -216,15 +219,18 @@ public class LauncherMain
             return config;
         }
 
-        private void setSystemProperties()
+        private void setArgSystemProperties()
         {
-            for (Map.Entry<String, String> e : getConfig().getMergedNode(SystemConfig.class)) {
-                System.setProperty(e.getKey(), e.getValue());
-            }
-
             for (String prop : systemProperties) {
                 String[] parts = splitProperty(prop);
                 System.setProperty(parts[0], parts[1]);
+            }
+        }
+
+        private void setConfigSystemProperties()
+        {
+            for (Map.Entry<String, String> e : getConfig().getMergedNode(SystemConfig.class)) {
+                System.setProperty(e.getKey(), e.getValue());
             }
         }
 
@@ -298,39 +304,54 @@ public class LauncherMain
             return builder.build();
         }
 
+        private void maybeRexec()
+        {
+            List<String> jvmOptions = getJvmOptions();
+            if (jvmOptions.isEmpty()) {
+                return;
+            }
+
+            RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+            File jar;
+            try {
+                jar = new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+            }
+            catch (URISyntaxException e) {
+                throw Throwables.propagate(e);
+            }
+            checkState(jar.exists());
+            if (!jar.isFile()) {
+                log.warn("Jvm options specified but not running with a jar file, ignoring");
+                return;
+            }
+
+            ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
+                    .addAll(runtimeMxBean.getInputArguments())
+                    .addAll(jvmOptions)
+                    .add(LauncherConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
+            if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+                builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
+            }
+            builder
+                    .add("-jar")
+                    .add(jar.getAbsolutePath())
+                    .addAll(Arrays.asList(LauncherMain.args));
+
+            List<String> newArgs = builder.build();
+            File jvm = new File(System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : ""));
+            checkState(jvm.exists() && jvm.isFile());
+            POSIX posix = POSIXUtils.getPOSIX();
+            posix.libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
+            throw new IllegalStateException("Unreachable");
+        }
+
         @Override
         public void run()
         {
-            List<String> jvmOptions = getJvmOptions();
-            if (!jvmOptions.isEmpty()) {
-                String jvmLocation = System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : "");
-                RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-                File jar;
-                try {
-                    jar = new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
-                }
-                catch (URISyntaxException e) {
-                    throw Throwables.propagate(e);
-                }
-                checkState(jar.exists());
-                ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
-                        .addAll(runtimeMxBean.getInputArguments())
-                        .addAll(jvmOptions);
-                if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
-                    builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
-                }
-                builder
-                        .add("-jar")
-                        .add(jar.getAbsolutePath())
-                        .addAll(Arrays.asList(LauncherMain.args))
-                        .build();
-                List<String> newArgs = builder.build();
-                POSIX posix = POSIXUtils.getPOSIX();
-                posix.libc().execv(jvmLocation, newArgs.toArray(new String[newArgs.size()]));
-                throw new IllegalStateException("Unreachable");
-            }
-
-            setSystemProperties();
+            setArgSystemProperties();
+            getConfig();
+            maybeRexec();
+            setConfigSystemProperties();
 
             try {
                 innerRun();
@@ -394,21 +415,6 @@ public class LauncherMain
         public void launch()
         {
             Launch launch = new Launch();
-            if (Strings.isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
-                System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
-            }
-            if (Strings.isNullOrEmpty(System.getProperty("node.environment"))) {
-                System.setProperty("node.environment", "development");
-            }
-            if (Strings.isNullOrEmpty(System.getProperty("node.id"))) {
-                System.setProperty("node.id", UUID.randomUUID().toString());
-            }
-            if (Strings.isNullOrEmpty(System.getProperty("presto.version"))) {
-                System.setProperty("presto.version", deducePrestoVersion());
-            }
-            if (Strings.isNullOrEmpty(System.getProperty("node.coordinator"))) {
-                System.setProperty("node.coordinator", "true");
-            }
             if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 launch.getClassloaderUrls();
                 String wd = new File(new File(System.getProperty("user.dir")), "presto-main").getAbsolutePath();
@@ -418,14 +424,12 @@ public class LauncherMain
                 POSIX posix = POSIXUtils.getPOSIX();
                 checkState(posix.chdir(wd) == 0);
             }
-            else {
-                for (String s : systemProperties) {
-                    int i = s.indexOf('=');
-                    System.setProperty(s.substring(0, i), s.substring(i + 1));
-                }
-                deleteRepositoryOnExit();
-                launch.run();
+            for (String s : systemProperties) {
+                int i = s.indexOf('=');
+                System.setProperty(s.substring(0, i), s.substring(i + 1));
             }
+            deleteRepositoryOnExit();
+            launch.run();
         }
     }
 
@@ -538,57 +542,6 @@ public class LauncherMain
         List<Artifact> list = Lists.newArrayList(artifacts);
         Collections.sort(list, Ordering.natural().nullsLast().onResultOf(Artifact::getFile));
         return list;
-    }
-
-    public static String deducePrestoVersion()
-    {
-        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder dBuilder;
-        try {
-            dBuilder = dbFactory.newDocumentBuilder();
-        }
-        catch (ParserConfigurationException e) {
-            throw new RuntimeException(e);
-        }
-        InputStream pomIn = LauncherMain.class.getClassLoader().getResourceAsStream("META-INF/maven/com.wrmsr.presto/presto-wrmsr-launcher/pom.xml");
-        if (pomIn == null) {
-            try {
-                pomIn = new FileInputStream(new File("presto-wrmsr-launcher/pom.xml"));
-            }
-            catch (FileNotFoundException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        Document doc;
-        try {
-            doc = dBuilder.parse(pomIn);
-        }
-        catch (SAXException | IOException e) {
-            throw new RuntimeException(e);
-        }
-        finally {
-            try {
-                pomIn.close();
-            }
-            catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        Node project = doc.getDocumentElement();
-        project.normalize();
-        NodeList projectChildren = project.getChildNodes();
-        Optional<Node> parent = IntStream.range(0, projectChildren.getLength()).boxed()
-                .map(projectChildren::item)
-                .filter(n -> "parent".equals(n.getNodeName()))
-                .findFirst();
-        NodeList parentChildren = parent.get().getChildNodes();
-        Optional<Node> version = IntStream.range(0, parentChildren.getLength()).boxed()
-                .map(parentChildren::item)
-                .filter(n -> "version".equals(n.getNodeName()))
-                .findFirst();
-        return version.get().getTextContent();
     }
 
     public static List<URL> resolveModuleClassloaderUrls(String name)

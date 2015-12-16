@@ -26,6 +26,7 @@ import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
         @JsonSubTypes.Type(value = ConnectorsConfig.class, name = "connectors"),
         @JsonSubTypes.Type(value = ExecConfig.class, name = "exec"),
         @JsonSubTypes.Type(value = PluginsConfig.class, name = "plugins"),
+        @JsonSubTypes.Type(value = PrestoConfig.class, name = "presto"),
         @JsonSubTypes.Type(value = ScriptingConfig.class, name = "scripting"),
 })
 public interface Config<N extends Config<N>>

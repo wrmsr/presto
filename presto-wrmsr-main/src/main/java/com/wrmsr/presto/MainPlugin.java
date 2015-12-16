@@ -38,6 +38,7 @@ import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.type.ParametricType;
 import com.facebook.presto.type.TypeRegistry;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -65,19 +66,30 @@ import io.airlift.log.Logger;
 import io.airlift.units.Duration;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.inject.Inject;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -438,10 +450,81 @@ public class MainPlugin
         }));
     }
 
+    public static String deducePrestoVersion()
+    {
+        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder dBuilder;
+        try {
+            dBuilder = dbFactory.newDocumentBuilder();
+        }
+        catch (ParserConfigurationException e) {
+            throw Throwables.propagate(e);
+        }
+        InputStream pomIn = MainPlugin.class.getClassLoader().getResourceAsStream("META-INF/maven/com.wrmsr.presto/presto-wrmsr-main/pom.xml");
+        if (pomIn == null) {
+            try {
+                pomIn = new FileInputStream(new File("presto-wrmsr-launcher/pom.xml"));
+            }
+            catch (FileNotFoundException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
+        Document doc;
+        try {
+            doc = dBuilder.parse(pomIn);
+        }
+        catch (SAXException | IOException e) {
+            throw Throwables.propagate(e);
+        }
+        finally {
+            try {
+                pomIn.close();
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
+        Node project = doc.getDocumentElement();
+        project.normalize();
+        NodeList projectChildren = project.getChildNodes();
+        Optional<Node> parent = IntStream.range(0, projectChildren.getLength()).boxed()
+                .map(projectChildren::item)
+                .filter(n -> "parent".equals(n.getNodeName()))
+                .findFirst();
+        NodeList parentChildren = parent.get().getChildNodes();
+        Optional<Node> version = IntStream.range(0, parentChildren.getLength()).boxed()
+                .map(parentChildren::item)
+                .filter(n -> "version".equals(n.getNodeName()))
+                .findFirst();
+        return version.get().getTextContent();
+    }
+
+    private void autoConfigure()
+    {
+        if (Strings.isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
+            System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
+        }
+        if (Strings.isNullOrEmpty(System.getProperty("node.environment"))) {
+            System.setProperty("node.environment", "development");
+        }
+        if (Strings.isNullOrEmpty(System.getProperty("node.id"))) {
+            System.setProperty("node.id", UUID.randomUUID().toString());
+        }
+        if (Strings.isNullOrEmpty(System.getProperty("presto.version"))) {
+            System.setProperty("presto.version", deducePrestoVersion());
+        }
+        if (Strings.isNullOrEmpty(System.getProperty("node.coordinator"))) {
+            System.setProperty("node.coordinator", "true");
+        }
+    }
+
     @Override
     public <T> List<T> getServices(Class<T> type)
     {
         if (type == ModuleProcessor.class) {
+            autoConfigure();
             return ImmutableList.of(type.cast(new ModuleProcessor()
             {
                 @Override

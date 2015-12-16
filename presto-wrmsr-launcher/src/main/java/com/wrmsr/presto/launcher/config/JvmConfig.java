@@ -16,25 +16,29 @@ package com.wrmsr.presto.launcher.config;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.util.config.mergeable.StringMapMergeableConfig;
 import io.airlift.units.DataSize;
 
-import java.math.BigDecimal;
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class JvmConfig
         extends StringMapMergeableConfig<JvmConfig>
         implements Config<JvmConfig>
 {
+    public static final String ALREADY_CONFIGURED_KEY = "already-configured";
+
     private boolean alreadyConfigured;
 
-    @JsonProperty("already-configured")
+    @JsonProperty(ALREADY_CONFIGURED_KEY)
     public boolean isAlreadyConfigured()
     {
         return alreadyConfigured;
     }
 
-    @JsonProperty("already-configured")
+    @JsonProperty(ALREADY_CONFIGURED_KEY)
     public void setAlreadyConfigured(boolean alreadyConfigured)
     {
         this.alreadyConfigured = alreadyConfigured;
@@ -81,7 +85,8 @@ public final class JvmConfig
     {
     }
 
-    public static final class FixedHeapSize extends HeapSize
+    public static final class FixedHeapSize
+            extends HeapSize
     {
         private DataSize value;
 
@@ -98,7 +103,8 @@ public final class JvmConfig
         }
     }
 
-    public static abstract class VariableHeapSize extends HeapSize
+    public static abstract class VariableHeapSize
+            extends HeapSize
     {
         private DataSize min;
 
@@ -143,7 +149,8 @@ public final class JvmConfig
         }
     }
 
-    public static final class PercentHeapSize extends VariableHeapSize
+    public static final class PercentHeapSize
+            extends VariableHeapSize
     {
         private int value;
 
@@ -174,7 +181,8 @@ public final class JvmConfig
         }
     }
 
-    public static final class AutoHeapSize extends VariableHeapSize
+    public static final class AutoHeapSize
+            extends VariableHeapSize
     {
     }
 
@@ -206,7 +214,7 @@ public final class JvmConfig
         this.gc = gc;
     }
 
-    private List<String> options;
+    private List<String> options = ImmutableList.of();
 
     @JsonProperty
     public List<String> getOptions()
@@ -217,6 +225,6 @@ public final class JvmConfig
     @JsonProperty
     public void setOptions(List<String> options)
     {
-        this.options = options;
+        this.options = checkNotNull(options);
     }
 }
