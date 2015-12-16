@@ -16,7 +16,7 @@ public class ScriptingModule
     public void configure(Binder binder)
     {
         Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
-        MapBinder<String, ScriptEngineProvider> scriptENgineProviderBinder = MapBinder.newMapBinder(binder, String.class, ScriptEngineProvider.class);
+        MapBinder<String, ScriptEngineProvider> scriptEngineProviderBinder = MapBinder.newMapBinder(binder, String.class, ScriptEngineProvider.class);
 
         binder.bind(ScriptingManager.class).asEagerSingleton();
 
