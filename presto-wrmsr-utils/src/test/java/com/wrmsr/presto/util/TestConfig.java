@@ -13,23 +13,21 @@
  */
 package com.wrmsr.presto.util;
 
-import com.wrmsr.presto.util.*;
+import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.config.Configs;
-import org.apache.commons.configuration.*;
+import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import static com.google.common.collect.Maps.newHashMap;
 
 public class TestConfig
 {
     @Test
-    public void testLoading() throws Throwable
+    public void testLoading()
+            throws Throwable
     {
         /*
         Configs.ListPreservingDefaultExpressionEngine engine = new Configs.ListPreservingDefaultExpressionEngine();
@@ -120,7 +118,8 @@ public class TestConfig
     }
 
     @Test
-    public void testThings() throws Throwable
+    public void testThings()
+            throws Throwable
     {
         /*
         Map<String, String> strs;
@@ -157,7 +156,8 @@ public class TestConfig
     }
 
     @Test
-    public void testStuff() throws Throwable
+    public void testStuff()
+            throws Throwable
     {
         String cfgStr = Files.readFile(System.getProperty("user.home") + "/presto/yelp-presto.yaml");
         Serialization.splitYaml(cfgStr).get(0);
@@ -220,4 +220,22 @@ public class TestConfig
 //        // Note: Depending on what `out` is, you may need to call `out.close()`.
 //        // This is usually the case for file output, but not for servlet output.
 //    }
+
+    @Test
+    public void testFuckYou()
+            throws Throwable
+    {
+        Map<String, String> map = new TreeMap<>();
+
+//        map.put("(0).jvm.thing", "true");
+//        map.put("(1).system.h2.implicitRelativePath", "true");
+//        map.put("(1).system.thing", "true");
+//        map.put("(2).log.com.facebook.presto.server.PluginManager", "DEBUG");
+//        map.put("(2).log.com.ning.http.client", "WARN");
+//        map.put("(2).log.com.sun.jersey.guice.spi.container.GuiceComponentProviderFactory", "WARN");
+
+        HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(map);
+        Object obj = Configs.OBJECT_CONFIG_CODEC.decode(hierarchicalConfig);
+        System.out.println(obj);
+    }
 }

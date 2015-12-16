@@ -78,7 +78,7 @@ public class Configs
 
     protected static HierarchicalConfiguration toHierarchical(Map<String, String> properties)
     {
-        return toHierarchical(new MapConfiguration(properties));
+        return toHierarchical(new MapConfiguration(new TreeMap<>(properties)));
     }
 
     public static final String IS_LIST_ATTR = "__is_list__";
