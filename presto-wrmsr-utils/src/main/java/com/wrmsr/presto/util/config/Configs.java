@@ -217,12 +217,12 @@ public class Configs
     }
 
     @SuppressWarnings({"unchecked"})
-    public static Map<String, Object> unpackHierarchical(HierarchicalConfiguration config)
+    public static Object unpackHierarchical(HierarchicalConfiguration config)
     {
         if (!config.getRoot().hasChildren()) {
             return ImmutableMap.of();
         }
-        return (Map<String, Object>) unpackNode(config.getRootNode());
+        return unpackNode(config.getRootNode());
     }
 
     public static Object unpackNode(ConfigurationNode node)

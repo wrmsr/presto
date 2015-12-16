@@ -62,7 +62,7 @@ public class TestScriptFunction
                 new TpchConnectorFactory(localQueryRunner.getNodeManager(), 1),
                 ImmutableMap.<String, String>of());
 
-        ScriptingManager scriptingManager = new ScriptingManager(null);
+        ScriptingManager scriptingManager = new ScriptingManager(null, null);
         List<? extends SqlFunction> functions = IntStream.range(1, 3).boxed().map(i -> new ScriptFunction(scriptingManager, VarcharType.VARCHAR, i)).collect(toImmutableList());
         localQueryRunner.getMetadata().getFunctionRegistry().addFunctions(functions);
         return localQueryRunner;

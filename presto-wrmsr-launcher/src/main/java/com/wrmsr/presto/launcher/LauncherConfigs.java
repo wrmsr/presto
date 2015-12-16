@@ -23,6 +23,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
@@ -35,19 +36,20 @@ public class LauncherConfigs
 
     public static final String CONFIG_PROPERTIES_PREFIX = "com.wrmsr.presto.";
 
-    public static ConfigContainer loadConfigFromProperties()
+    public static ConfigContainer stripConfigFromProperties()
     {
-        return loadConfigFromProperties(System.getProperties());
-    }
-
-    public static ConfigContainer loadConfigFromProperties(Map<Object, Object> properties)
-    {
-        Map<String, String> configMap = properties.entrySet().stream()
+        Map<String, String> configMap = System.getProperties().entrySet().stream()
                 .filter(e -> e.getKey() instanceof String && ((String) e.getKey()).startsWith(CONFIG_PROPERTIES_PREFIX) && e.getValue() instanceof String)
-                .map(e -> ImmutablePair.of(((String) e.getKey()).substring(CONFIG_PROPERTIES_PREFIX.length()), (String) e.getValue()))
-                .map(e -> ImmutablePair.of(e.getKey().startsWith("(") ? e.getKey() : "(0)." + e.getKey(), e.getValue()))
+                .map(e -> ImmutablePair.of((String) e.getKey(), (String) e.getValue()))
                 .collect(toImmutableMap());
-        HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(configMap);
+        if (configMap.isEmpty()) {
+            return new ConfigContainer();
+        }
+        configMap.keySet().forEach(System::clearProperty);
+        HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(transformKeys(configMap, k -> {
+            String r = k.substring(CONFIG_PROPERTIES_PREFIX.length());
+            return r.startsWith("(") ? r : "(0)." + r;
+        }));
         return Configs.OBJECT_CONFIG_CODEC.decode(hierarchicalConfig, ConfigContainer.class);
     }
 
@@ -71,13 +73,14 @@ public class LauncherConfigs
             config = (ConfigContainer) config.merge(fileConfig);
         }
 
-//        ConfigContainer propertiesConfig = loadConfigFromProperties();
-//        config = (ConfigContainer) config.merge(propertiesConfig);
+        ConfigContainer propertiesConfig = stripConfigFromProperties();
+        config = (ConfigContainer) config.merge(propertiesConfig);
 
         Object objectConfig = Serialization.roundTrip(OBJECT_MAPPER.get(), config, Object.class);
         HierarchicalConfiguration hierarchicalConfig = Configs.OBJECT_CONFIG_CODEC.encode(objectConfig);
-        Map<String, String> flatConfig = Configs.flatten(Configs.unpackNode(hierarchicalConfig.getRootNode()));
-        Map<String, String> configProperties = transformKeys(flatConfig, k -> CONFIG_PROPERTIES_PREFIX + k);
+        Map<String, String> flatConfig = Configs.CONFIG_PROPERTIES_CODEC.encode(hierarchicalConfig);
+        Map<String, String> configMap = transformKeys(flatConfig, k -> CONFIG_PROPERTIES_PREFIX + k);
+        configMap.entrySet().stream().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
 
         return config;
     }

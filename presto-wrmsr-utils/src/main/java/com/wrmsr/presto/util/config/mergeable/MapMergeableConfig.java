@@ -21,6 +21,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
 import java.util.Map;
 
+import static com.google.common.collect.Maps.newHashMap;
+
 public abstract class MapMergeableConfig<N extends MapMergeableConfig<N, K, V>, K, V>
     implements MergeableConfig<N>, Iterable<Map.Entry<K, V>>
 {
@@ -53,10 +55,21 @@ public abstract class MapMergeableConfig<N extends MapMergeableConfig<N, K, V>, 
     @Override
     public Mergeable merge(Mergeable other)
     {
-        Map mergedMap = ImmutableMap.builder()
-                .putAll(entries)
-                .putAll(((N) other).getEntries())
-                .build();
+        Map mergedMap;
+        try {
+            mergedMap = ImmutableMap.builder()
+                    .putAll(entries)
+                    .putAll(((N) other).getEntries())
+                    .build();
+        }
+        catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+
+        mergedMap = newHashMap();
+        mergedMap.putAll(entries);
+        mergedMap.putAll(((N) other).getEntries());
+
         N merged;
         try {
             merged = (N) getClass().getConstructor(Map.class).newInstance(mergedMap);

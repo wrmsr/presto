@@ -28,16 +28,12 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.wrmsr.presto.util.Shell.shellEscape;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class SshRemoteRunner
         extends RemoteRunner
 {
-    public static String shellEscape(String s)
-    {
-        return "'" + s.replace("'", "'\"'\"'") + "'";
-    }
-
     private List<String> buildTargetArgs(Target target)
     {
         ImmutableList.Builder<String> builder = ImmutableList.builder();
