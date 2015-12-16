@@ -11,8 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.cluster.config;
+package com.wrmsr.presto.util;
 
-public class ClustersConfig
+public class Shell
 {
+    public static String shellEscape(String s)
+    {
+        return "'" + s.replace("'", "'\"'\"'") + "'";
+    }
 }

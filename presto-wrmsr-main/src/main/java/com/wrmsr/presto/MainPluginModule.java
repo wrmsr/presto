@@ -45,7 +45,7 @@ public class MainPluginModule
         binder.install(new ConnectorModule());
         binder.install(new ConnectorSupportModule());
         binder.install(new FunctionModule());
-        binder.install(new ScriptingModule());
+        binder.install(new ScriptingModule(config));
         binder.install(new SerializationModule());
         binder.install(new StructModule());
         binder.install(new TypeModule());

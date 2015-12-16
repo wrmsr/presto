@@ -16,18 +16,35 @@ package com.wrmsr.presto.scripting;
 import com.wrmsr.presto.spi.ScriptEngineProvider;
 import org.apache.commons.lang.NotImplementedException;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import java.util.Map;
 
 public class ScriptingManager
 {
+    private final ScriptingConfig config;
+
     private volatile Map<String, ScriptEngineProvider> scriptEngineProviders;
 
     @Inject
-    public ScriptingManager(Map<String, ScriptEngineProvider> scriptEngineProviders)
+    public ScriptingManager(
+            ScriptingConfig config,
+            Map<String, ScriptEngineProvider> scriptEngineProviders)
     {
+        this.config = config;
         this.scriptEngineProviders = scriptEngineProviders;
+    }
+
+    @PostConstruct
+    private void addConfigScripting()
+    {
+
+    }
+
+    public void addScripting(ScriptingConfig.Entry entry)
+    {
+
     }
 
     public Scripting getScripting(String name)

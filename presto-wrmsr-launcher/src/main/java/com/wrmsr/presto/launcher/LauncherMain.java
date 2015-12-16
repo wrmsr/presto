@@ -188,6 +188,8 @@ public class LauncherMain
         private final int debugPort = 0;
         private final boolean debugSuspend = false;
 
+        // TODO jvm log system
+
         public LauncherConfigContainer loadConfigContainer()
         {
             /*
