@@ -55,18 +55,7 @@ public abstract class MapMergeableConfig<N extends MapMergeableConfig<N, K, V>, 
     @Override
     public Mergeable merge(Mergeable other)
     {
-        Map mergedMap;
-        try {
-            mergedMap = ImmutableMap.builder()
-                    .putAll(entries)
-                    .putAll(((N) other).getEntries())
-                    .build();
-        }
-        catch (Exception e) {
-            throw Throwables.propagate(e);
-        }
-
-        mergedMap = newHashMap();
+        Map mergedMap = newHashMap();
         mergedMap.putAll(entries);
         mergedMap.putAll(((N) other).getEntries());
 
