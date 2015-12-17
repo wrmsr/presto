@@ -48,7 +48,7 @@ public class PrestoConfigs
                 .map(e -> ImmutablePair.of((String) e.getKey(), (String) e.getValue()))
                 .collect(toImmutableMap());
         if (configMap.isEmpty()) {
-            return Mergeable.unit(cls);
+            return (T) Mergeable.unit(cls);
         }
         configMap.keySet().forEach(System::clearProperty);
         HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(transformKeys(configMap, k -> {
@@ -103,7 +103,7 @@ public class PrestoConfigs
                 .map(e -> ImmutablePair.of(((String) e.getKey()).substring(CONFIG_PROPERTIES_PREFIX.length()), (String) e.getValue()))
                 .collect(toImmutableMap());
         if (configMap.isEmpty()) {
-            return Mergeable.unit(cls);
+            return (T) Mergeable.unit(cls);
         }
         HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(configMap);
         return Configs.OBJECT_CONFIG_CODEC.decode(hierarchicalConfig, cls);
