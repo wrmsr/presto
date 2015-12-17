@@ -23,7 +23,7 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class JvmConfig
-        implements MergeableConfig<JvmConfig>
+        implements Config<JvmConfig>
 {
     public JvmConfig()
     {

@@ -19,7 +19,7 @@ import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 import java.util.Optional;
 
 public class LauncherConfig
-        implements MergeableConfig<LauncherConfig>
+        implements Config<LauncherConfig>
 {
     public LauncherConfig()
     {
