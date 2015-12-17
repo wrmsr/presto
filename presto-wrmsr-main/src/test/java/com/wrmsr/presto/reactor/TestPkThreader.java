@@ -108,11 +108,13 @@ import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.wrmsr.presto.spi.ConnectorSupport;
-import com.wrmsr.presto.struct.StructDefinition;
-import com.wrmsr.presto.struct.StructManager;
 import com.wrmsr.presto.reactor.tuples.Layout;
 import com.wrmsr.presto.reactor.tuples.PkLayout;
+import com.wrmsr.presto.spi.connectorSupport.ConnectorSupport;
+import com.wrmsr.presto.spi.connectorSupport.HandleDetailsConnectorSupport;
+import com.wrmsr.presto.spi.connectorSupport.KeyConnectorSupport;
+import com.wrmsr.presto.struct.StructDefinition;
+import com.wrmsr.presto.struct.StructManager;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
@@ -231,7 +233,8 @@ public class TestPkThreader
         }
         */
 
-        public static class Population extends Action
+        public static class Population
+                extends Action
         {
             private final TableHandle output;
 
@@ -509,16 +512,16 @@ public class TestPkThreader
         public PlanNode visitTableScan(TableScanNode node, Context context)
         {
             // FIXME (optional?) filter extraction - we (may?) only get deltas
-            ConnectorSupport<?> cs = connectorSupport.get(node.getTable().getConnectorId());
+            ConnectorSupport cs = connectorSupport.get(node.getTable().getConnectorId());
             Connector c = cs.getConnector();
             ConnectorSession csess = session.toConnectorSession();
-            SchemaTableName stn = cs.getSchemaTableName(node.getTable().getConnectorHandle());
+            SchemaTableName stn = ((HandleDetailsConnectorSupport) cs).getSchemaTableName(node.getTable().getConnectorHandle());
             ConnectorTableHandle th = c.getMetadata().getTableHandle(csess, stn);
             Map<String, ColumnHandle> chs = c.getMetadata().getColumnHandles(csess, th);
             // PkTableTupleLayout l = cs.getTableTupleLayout(stn);
 
-            List<String> pkCols = cs.getPrimaryKey(stn);
-            Map<String, Symbol> colSyms = node.getAssignments().entrySet().stream().map(e -> ImmutablePair.of(cs.getColumnName(e.getValue()), e.getKey())).collect(toImmutableMap());
+            List<String> pkCols = (((KeyConnectorSupport) cs).getKeys(stn)).stream().filter(k -> k.getType() == KeyConnectorSupport.Key.Type.PRIMARY).map(k -> k.getColumn()).collect(toImmutableList());
+            Map<String, Symbol> colSyms = node.getAssignments().entrySet().stream().map(e -> ImmutablePair.of(((HandleDetailsConnectorSupport) cs).getColumnName(e.getValue()), e.getKey())).collect(toImmutableMap());
 
             Map<Symbol, ColumnHandle> newAssignments = newHashMap(node.getAssignments());
             List<Symbol> newOutputSymbols = newArrayList(node.getOutputSymbols());
@@ -681,7 +684,7 @@ public class TestPkThreader
 
         TestHelper.PlannedQuery pqa = helper.plan(
 
-        "select nationkey, array_agg(name) from tpch.tiny.customer group by nationkey"
+                "select nationkey, array_agg(name) from tpch.tiny.customer group by nationkey"
 
         );
 

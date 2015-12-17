@@ -65,6 +65,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.facebook.presto.server.PluginDiscovery.discoverPlugins;
 import static com.facebook.presto.server.PluginDiscovery.writePluginServices;
+import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 @ThreadSafe
@@ -289,6 +290,22 @@ public class PluginManager
             throws Exception
     {
         List<Artifact> artifacts = resolver.resolvePom(pomFile);
+        artifacts = artifacts.stream().map(a -> {
+            File f = new File("../" + a.getArtifactId());
+            if (new File(f, "pom.xml").exists()) {
+                return new DefaultArtifact(
+                        a.getGroupId(),
+                        a.getArtifactId(),
+                        a.getClassifier(),
+                        a.getExtension(),
+                        a.getVersion(),
+                        a.getProperties(),
+                        new File(f, "target/classes"));
+            }
+            else {
+                return a;
+            }
+        }).collect(toImmutableList());
         URLClassLoader classLoader = createClassLoader(artifacts, pomFile.getPath());
 
         Artifact artifact = artifacts.get(0);
