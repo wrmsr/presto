@@ -13,11 +13,13 @@
  */
 package com.wrmsr.presto.launcher;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import com.leacox.process.FinalizedProcessBuilder;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.config.JvmConfig;
@@ -40,6 +42,7 @@ import io.airlift.resolver.ArtifactResolver;
 import io.airlift.resolver.DefaultArtifact;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
+import org.apache.commons.lang.math.IntRange;
 import org.sonatype.aether.artifact.Artifact;
 
 import java.io.File;
@@ -56,10 +59,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.wrmsr.presto.util.Shell.shellEscape;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 /*
@@ -329,6 +334,26 @@ public class LauncherMain
             return builder.build();
         }
 
+        public static File getJarFile(Class cls)
+        {
+            File jar;
+            try {
+                jar = new File(cls.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+            }
+            catch (URISyntaxException e) {
+                throw Throwables.propagate(e);
+            }
+            checkState(jar.exists());
+            return jar;
+        }
+
+        public static File getJvm()
+        {
+            File jvm = new File(System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : ""));
+            checkState(jvm.exists() && jvm.isFile());
+            return jvm;
+        }
+
         private void maybeRexec()
         {
             List<String> jvmOptions = getJvmOptions();
@@ -336,21 +361,13 @@ public class LauncherMain
                 return;
             }
 
-            RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-            File jar;
-            try {
-                jar = new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
-            }
-            catch (URISyntaxException e) {
-                throw Throwables.propagate(e);
-            }
-            checkState(jar.exists());
-
+            File jar = getJarFile(getClass());
             if (!jar.isFile()) {
                 log.warn("Jvm options specified but not running with a jar file, ignoring");
                 return;
             }
 
+            RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
             ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
                     .addAll(jvmOptions)
                     .addAll(runtimeMxBean.getInputArguments())
@@ -364,9 +381,8 @@ public class LauncherMain
                     .addAll(Arrays.asList(LauncherMain.args));
 
             List<String> newArgs = builder.build();
-            File jvm = new File(System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : ""));
-            checkState(jvm.exists() && jvm.isFile());
             POSIX posix = POSIXUtils.getPOSIX();
+            File jvm = getJvm();
             posix.libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
             throw new IllegalStateException("Unreachable");
         }
@@ -507,13 +523,50 @@ public class LauncherMain
                 getDaemonProcess().stop();
             }
             List<String> args = ImmutableList.copyOf(LauncherMain.args);
-            List<String> dashArgs = args.stream().filter(s -> s.startsWith("-")).collect(toImmutableList());
-            List<String> nonDashArgs = args.stream().filter(s -> !s.startsWith("-")).collect(toImmutableList());
-            checkArgument(nonDashArgs.size() == 1);
-            ImmutableList<String> shArgs = ImmutableList.<String>builder()
+            String lastArg = args.get(args.size() - 1);
+            checkArgument(lastArg.equals("start") || lastArg.equals("restart"));
+
+            File jvm = getJvm();
+            ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
+                    .add(jvm.getAbsolutePath());
+            RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+            builder.addAll(runtimeMxBean.getInputArguments());
+            if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+                builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
+            }
+
+            File jar = getJarFile(getClass());
+            jar = new File("/Users/wtimoney/presto/presto");
+            // checkState(jar.isFile());
+
+            builder
+                    .add("-jar")
+                    .add(jar.getAbsolutePath())
+                    .addAll(IntStream.range(0, args.size() - 1).boxed().map(args::get).collect(toImmutableList()))
+                    .add("daemon");
+
+            ImmutableList.Builder<String> sh = ImmutableList.<String>builder()
                     .add("nohup", "setsid")
-                    .build();
-            // launch(); daemonize
+                    .addAll(builder.build().stream().map(s -> shellEscape(s)).collect(toImmutableList()));
+            sh.add("</dev/null");
+            LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
+            for (String prefix : ImmutableList.of("", "2")) {
+                if (!Strings.isNullOrEmpty(config.getLogFile())) {
+                    sh.add(prefix + ">" + shellEscape(config.getLogFile()));
+                }
+                else {
+                    sh.add(prefix + ">/dev/null");
+                }
+            }
+            sh.add("&");
+
+            String cmd = Joiner.on(" ").join(sh.build());
+            FinalizedProcessBuilder pb = new FinalizedProcessBuilder("sh", "-c", shellEscape(cmd));
+
+            List<String> newArgs = builder.build();
+            POSIX posix = POSIXUtils.getPOSIX();
+            posix.libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
+            throw new IllegalStateException("Unreachable");
         }
     }
 
