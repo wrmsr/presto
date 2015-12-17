@@ -13,12 +13,12 @@
  */
 package com.wrmsr.presto.connectorSupport;
 
-import com.facebook.presto.Session;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
 import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
@@ -26,7 +26,9 @@ import com.facebook.presto.spi.type.Type;
 import com.google.common.base.Throwables;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnector;
-import com.wrmsr.presto.spi.ConnectorSupport;
+import com.wrmsr.presto.spi.connectorSupport.EvalConnectorSupport;
+import com.wrmsr.presto.spi.connectorSupport.HandleDetailsConnectorSupport;
+import com.wrmsr.presto.spi.connectorSupport.KeyConnectorSupport;
 import com.wrmsr.presto.util.jdbc.ScriptRunner;
 
 import java.io.StringReader;
@@ -39,11 +41,15 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class ExtendedJdbcConnectorSupport
-        extends ConnectorSupport<ExtendedJdbcConnector>
+        implements HandleDetailsConnectorSupport, KeyConnectorSupport, EvalConnectorSupport
 {
-    public ExtendedJdbcConnectorSupport(ConnectorSession connectorSession, ExtendedJdbcConnector connector)
+    private final ConnectorSession session;
+    private final ExtendedJdbcConnector connector;
+
+    public ExtendedJdbcConnectorSupport(ConnectorSession session, Connector connector)
     {
-        super(connectorSession, connector);
+        this.session = session;
+        this.connector = (ExtendedJdbcConnector) connector;
     }
 
     public ExtendedJdbcClient getClient()
@@ -59,7 +65,39 @@ public class ExtendedJdbcConnectorSupport
     }
 
     @Override
-    public List<String> getPrimaryKey(SchemaTableName schemaTableName)
+    public String getColumnName(ColumnHandle columnHandle)
+    {
+        return ((JdbcColumnHandle) columnHandle).getColumnName();
+    }
+
+    @Override
+    public Type getColumnType(ColumnHandle columnHandle)
+    {
+        return ((JdbcColumnHandle) columnHandle).getColumnType();
+    }
+
+    @Override
+    public List eval(String cmd)
+    {
+        return null;
+    }
+
+    @Override
+    public void exec(String buf)
+    {
+        JdbcMetadata metadata = (JdbcMetadata) connector.getMetadata();
+        BaseJdbcClient client = (BaseJdbcClient) metadata.getJdbcClient();
+        try (Connection connection = client.getConnection()) {
+            ScriptRunner scriptRunner = new ScriptRunner(connection);
+            scriptRunner.runScript(new StringReader(buf));
+        }
+        catch (SQLException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    @Override
+    public List<Key> getKeys(SchemaTableName schemaTableName)
     {
         try {
             try (Connection connection = getClient().getConnection()) {
@@ -81,28 +119,8 @@ public class ExtendedJdbcConnectorSupport
     }
 
     @Override
-    public String getColumnName(ColumnHandle columnHandle)
+    public Connector getConnector()
     {
-        return ((JdbcColumnHandle) columnHandle).getColumnName();
-    }
-
-    @Override
-    public Type getColumnType(ColumnHandle columnHandle)
-    {
-        return ((JdbcColumnHandle) columnHandle).getColumnType();
-    }
-
-    @Override
-    public void exec(String buf)
-    {
-        JdbcMetadata metadata = (JdbcMetadata) connector.getMetadata();
-        BaseJdbcClient client = (BaseJdbcClient) metadata.getJdbcClient();
-        try (Connection connection = client.getConnection()) {
-            ScriptRunner scriptRunner = new ScriptRunner(connection);
-            scriptRunner.runScript(new StringReader(buf));
-        }
-        catch (SQLException e) {
-            throw Throwables.propagate(e);
-        }
+        return connector;
     }
 }

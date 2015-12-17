@@ -24,17 +24,22 @@ import com.facebook.presto.tpch.TpchTableHandle;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.wrmsr.presto.spi.ConnectorSupport;
+import com.wrmsr.presto.spi.connectorSupport.HandleDetailsConnectorSupport;
+import com.wrmsr.presto.spi.connectorSupport.KeyConnectorSupport;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class TpchConnectorSupport
-        extends ConnectorSupport<Connector>
+        implements HandleDetailsConnectorSupport, KeyConnectorSupport
 {
+    private final ConnectorSession session;
+    private final Connector connector;
+
     private final String defaultSchema;
 
     private static final Set<String> schemas = ImmutableSet.<String>builder()
@@ -53,8 +58,9 @@ public class TpchConnectorSupport
 
     public TpchConnectorSupport(ConnectorSession session, Connector connector, String defaultSchema)
     {
-        super(session, connector);
         checkArgument(schemas.contains(defaultSchema));
+        this.session = session;
+        this.connector = connector;
         this.defaultSchema = defaultSchema;
     }
 
@@ -63,14 +69,6 @@ public class TpchConnectorSupport
     {
         checkArgument(handle instanceof TpchTableHandle);
         return new SchemaTableName(defaultSchema, ((TpchTableHandle) handle).getTableName());
-    }
-
-    @Override
-    public List<String> getPrimaryKey(SchemaTableName schemaTableName)
-    {
-        checkArgument(schemas.contains(schemaTableName.getSchemaName()));
-        checkArgument(tablePrimaryKeys.containsKey(schemaTableName.getTableName()));
-        return tablePrimaryKeys.get(schemaTableName.getTableName());
     }
 
     @Override
@@ -83,5 +81,19 @@ public class TpchConnectorSupport
     public Type getColumnType(ColumnHandle columnHandle)
     {
         return ((TpchColumnHandle) columnHandle).getType();
+    }
+
+    @Override
+    public Connector getConnector()
+    {
+        return connector;
+    }
+
+    @Override
+    public List<Key> getKeys(SchemaTableName schemaTableName)
+    {
+        checkArgument(schemas.contains(schemaTableName.getSchemaName()));
+        checkArgument(tablePrimaryKeys.containsKey(schemaTableName.getTableName()));
+        return tablePrimaryKeys.get(schemaTableName.getTableName()).stream().map(s -> new Key(s, Key.Type.PRIMARY)).collect(toImmutableList());
     }
 }

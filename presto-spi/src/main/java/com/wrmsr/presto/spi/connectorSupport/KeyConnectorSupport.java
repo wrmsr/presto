@@ -21,7 +21,7 @@ public interface KeyConnectorSupport extends ConnectorSupport
 {
     class Key
     {
-        enum Type
+        public enum Type
         {
             PRIMARY,
             SECONDARY;
