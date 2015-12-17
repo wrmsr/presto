@@ -21,6 +21,10 @@ import java.util.Optional;
 public class LauncherConfig
         implements MergeableConfig<LauncherConfig>
 {
+    public LauncherConfig()
+    {
+    }
+
     private Optional<String> pidFile = Optional.empty();
 
     @JsonProperty("pid-file")

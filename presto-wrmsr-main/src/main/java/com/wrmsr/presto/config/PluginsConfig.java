@@ -27,4 +27,8 @@ public final class PluginsConfig
     {
         super(items);
     }
+
+    public PluginsConfig()
+    {
+    }
 }

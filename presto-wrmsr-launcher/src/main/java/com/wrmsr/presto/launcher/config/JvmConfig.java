@@ -14,10 +14,8 @@
 package com.wrmsr.presto.launcher.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.collect.ImmutableList;
-import com.wrmsr.presto.util.config.mergeable.StringMapMergeableConfig;
+import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 import io.airlift.units.DataSize;
 
 import java.util.List;
@@ -25,8 +23,7 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class JvmConfig
-        extends StringMapMergeableConfig<JvmConfig>
-        implements Config<JvmConfig>
+        implements MergeableConfig<JvmConfig>
 {
     public JvmConfig()
     {

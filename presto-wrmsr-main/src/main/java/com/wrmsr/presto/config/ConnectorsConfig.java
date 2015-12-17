@@ -56,9 +56,14 @@ public final class ConnectorsConfig
         super(entries);
     }
 
+    public ConnectorsConfig()
+    {
+    }
+
     @JsonValue
     public Map<String, Map<String, String>> flatten()
     {
         return getEntries().entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), e.getValue().getEntries())).collect(toImmutableMap());
     }
 }
+
