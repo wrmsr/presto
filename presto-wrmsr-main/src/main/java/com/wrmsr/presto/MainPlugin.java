@@ -463,7 +463,7 @@ public class MainPlugin
         InputStream pomIn = MainPlugin.class.getClassLoader().getResourceAsStream("META-INF/maven/com.wrmsr.presto/presto-wrmsr-main/pom.xml");
         if (pomIn == null) {
             try {
-                pomIn = new FileInputStream(new File("presto-wrmsr-launcher/pom.xml"));
+                pomIn = new FileInputStream(new File("presto-wrmsr-main/pom.xml"));
             }
             catch (FileNotFoundException e) {
                 throw Throwables.propagate(e);
