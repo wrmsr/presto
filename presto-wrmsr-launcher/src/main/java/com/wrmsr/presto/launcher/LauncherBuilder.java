@@ -243,7 +243,7 @@ public class LauncherBuilder
         Logging.initialize();
 
         Runtime rt = Runtime.getRuntime();
-        Process proc = rt.exec(new String[] {"git", "rev-parse", "--verify", "HEAD"});
+        Process proc = rt.exec(new String[] {"git", "rev-parse", "--verify", "HEAD"}); // FIXME append -SNAPSHOT if dirty
         BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
         BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
         String rev = stdInput.readLine();
