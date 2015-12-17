@@ -21,6 +21,7 @@ import com.google.common.collect.Ordering;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.config.JvmConfig;
+import com.wrmsr.presto.launcher.config.LogConfig;
 import com.wrmsr.presto.launcher.config.SystemConfig;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
@@ -53,6 +54,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -340,11 +344,23 @@ public class LauncherMain
             throw new IllegalStateException("Unreachable");
         }
 
+        private void configureLoggers()
+        {
+            for (Map.Entry<String, String> e : getConfig().getMergedNode(LogConfig.class).getEntries().entrySet()) {
+                java.util.logging.Logger log = java.util.logging.Logger.getLogger(e.getKey());
+                if (log != null) {
+                    Level level = Level.parse(e.getValue().toUpperCase());
+                    log.setLevel(level);
+                }
+            }
+        }
+
         @Override
         public void run()
         {
             setArgSystemProperties();
             getConfig();
+            configureLoggers();
             maybeRexec();
             setConfigSystemProperties();
 
@@ -551,20 +567,20 @@ public class LauncherMain
                         ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
                 List<Artifact> artifacts = resolver.resolvePom(new File(name + "/pom.xml"));
                 artifacts = artifacts.stream().map(a -> {
-                    File f = new File("../" + a.getArtifactId());
-                    if (new File(f, "pom.xml").exists()) {
-                        return new DefaultArtifact(
-                                a.getGroupId(),
-                                a.getArtifactId(),
-                                a.getClassifier(),
-                                a.getExtension(),
-                                a.getVersion(),
-                                a.getProperties(),
-                                new File(f, "target/classes"));
+                    for (String prefix : ImmutableList.of("", "../")) {
+                        File f = new File(prefix + a.getArtifactId());
+                        if (new File(f, "pom.xml").exists()) {
+                            return new DefaultArtifact(
+                                    a.getGroupId(),
+                                    a.getArtifactId(),
+                                    a.getClassifier(),
+                                    a.getExtension(),
+                                    a.getVersion(),
+                                    a.getProperties(),
+                                    new File(f, "target/classes"));
+                        }
                     }
-                    else {
-                        return a;
-                    }
+                    return a;
                 }).collect(toImmutableList());
 
                 List<URL> urls = newArrayList();

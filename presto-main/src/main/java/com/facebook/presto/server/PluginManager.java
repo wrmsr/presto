@@ -20,8 +20,6 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.security.AccessControlManager;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.Plugin;
-import com.wrmsr.presto.server.PreloadedPluginSet;
-import com.wrmsr.presto.server.ServerEvent;
 import com.facebook.presto.spi.block.BlockEncodingFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
 import com.facebook.presto.spi.security.SystemAccessControlFactory;
@@ -34,6 +32,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.inject.Injector;
+import com.wrmsr.presto.server.PreloadedPluginSet;
+import com.wrmsr.presto.server.ServerEvent;
 import com.wrmsr.presto.util.Repositories;
 import io.airlift.configuration.ConfigurationFactory;
 import io.airlift.http.server.HttpServerInfo;
@@ -291,20 +291,20 @@ public class PluginManager
     {
         List<Artifact> artifacts = resolver.resolvePom(pomFile);
         artifacts = artifacts.stream().map(a -> {
-            File f = new File("../" + a.getArtifactId());
-            if (new File(f, "pom.xml").exists()) {
-                return new DefaultArtifact(
-                        a.getGroupId(),
-                        a.getArtifactId(),
-                        a.getClassifier(),
-                        a.getExtension(),
-                        a.getVersion(),
-                        a.getProperties(),
-                        new File(f, "target/classes"));
+            for (String prefix : ImmutableList.of("", "../")) {
+                File f = new File(prefix + a.getArtifactId());
+                if (new File(f, "pom.xml").exists()) {
+                    return new DefaultArtifact(
+                            a.getGroupId(),
+                            a.getArtifactId(),
+                            a.getClassifier(),
+                            a.getExtension(),
+                            a.getVersion(),
+                            a.getProperties(),
+                            new File(f, "target/classes"));
+                }
             }
-            else {
-                return a;
-            }
+            return a;
         }).collect(toImmutableList());
         URLClassLoader classLoader = createClassLoader(artifacts, pomFile.getPath());
 
