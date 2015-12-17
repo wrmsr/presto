@@ -11,12 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher;
+package com.wrmsr.presto.util.config;
 
 import com.google.common.collect.ImmutableList;
-import com.wrmsr.presto.launcher.config.ConfigContainer;
+import com.wrmsr.presto.util.Mergeable;
 import com.wrmsr.presto.util.Serialization;
-import com.wrmsr.presto.util.config.Configs;
+import com.wrmsr.presto.util.config.mergeable.MergeableConfigContainer;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
@@ -29,7 +29,7 @@ import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 import static com.wrmsr.presto.util.collect.Maps.transformKeys;
 
-public class LauncherConfigs
+public class PrestoConfigs
 {
     public static File DEFAULT_CONFIG_FILE = new File("presto.yaml");
 
@@ -40,24 +40,25 @@ public class LauncherConfigs
         System.setProperty(CONFIG_PROPERTIES_PREFIX + key, value);
     }
 
-    public static ConfigContainer stripConfigFromProperties()
+    public static <T extends MergeableConfigContainer<?>> T stripConfigFromProperties(Class<T> cls)
     {
         Map<String, String> configMap = System.getProperties().entrySet().stream()
                 .filter(e -> e.getKey() instanceof String && ((String) e.getKey()).startsWith(CONFIG_PROPERTIES_PREFIX) && e.getValue() instanceof String)
                 .map(e -> ImmutablePair.of((String) e.getKey(), (String) e.getValue()))
                 .collect(toImmutableMap());
         if (configMap.isEmpty()) {
-            return new ConfigContainer();
+            return Mergeable.unit(cls);
         }
         configMap.keySet().forEach(System::clearProperty);
         HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(transformKeys(configMap, k -> {
             String r = k.substring(CONFIG_PROPERTIES_PREFIX.length());
             return r.startsWith("(") ? r : "(0)." + r;
         }));
-        return Configs.OBJECT_CONFIG_CODEC.decode(hierarchicalConfig, ConfigContainer.class);
+        return Configs.OBJECT_CONFIG_CODEC.decode(hierarchicalConfig, cls);
     }
 
-    public static ConfigContainer loadConfig(List<String> filePaths)
+    @SuppressWarnings({"unchecked"})
+    public static <T extends MergeableConfigContainer<?>> T loadConfig(Class<T> cls, List<String> filePaths)
     {
         List<File> files;
         if (filePaths.isEmpty()) {
@@ -71,14 +72,14 @@ public class LauncherConfigs
         else {
             files = filePaths.stream().map(File::new).collect(toImmutableList());
         }
-        ConfigContainer config = new ConfigContainer();
+        T config = Mergeable.unit(cls);
         for (File file : files) {
-            ConfigContainer fileConfig = Serialization.readFile(file, ConfigContainer.class);
-            config = (ConfigContainer) config.merge(fileConfig);
+            T fileConfig = Serialization.readFile(file, cls);
+            config = (T) config.merge(fileConfig);
         }
 
-        ConfigContainer propertiesConfig = stripConfigFromProperties();
-        config = (ConfigContainer) config.merge(propertiesConfig);
+        T propertiesConfig = stripConfigFromProperties(cls);
+        config = (T) config.merge(propertiesConfig);
 
         Object objectConfig = Serialization.roundTrip(OBJECT_MAPPER.get(), config, Object.class);
         HierarchicalConfiguration hierarchicalConfig = Configs.OBJECT_CONFIG_CODEC.encode(objectConfig);
@@ -87,5 +88,20 @@ public class LauncherConfigs
         configMap.entrySet().stream().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
 
         return config;
+    }
+
+    public static <T extends MergeableConfigContainer<?>> T loadConfigFromProperties(Class<T> cls)
+    {
+        return loadConfigFromProperties(cls, System.getProperties());
+    }
+
+    public static <T extends MergeableConfigContainer<?>> T loadConfigFromProperties(Class<T> cls, Map<Object, Object> properties)
+    {
+        Map<String, String> configMap = properties.entrySet().stream()
+                .filter(e -> e.getKey() instanceof String && ((String) e.getKey()).startsWith(CONFIG_PROPERTIES_PREFIX) && e.getValue() instanceof String)
+                .map(e -> ImmutablePair.of(((String) e.getKey()).substring(CONFIG_PROPERTIES_PREFIX.length()), (String) e.getValue()))
+                .collect(toImmutableMap());
+        HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(configMap);
+        return Configs.OBJECT_CONFIG_CODEC.decode(hierarchicalConfig, cls);
     }
 }

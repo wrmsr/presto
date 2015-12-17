@@ -26,6 +26,7 @@ import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
 import com.wrmsr.presto.util.Repositories;
+import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
@@ -206,9 +207,9 @@ public class LauncherMain
             if (config == null) {
                 for (String prop : configItems) {
                     String[] parts = splitProperty(prop);
-                    LauncherConfigs.setConfigItem(parts[0], parts[1]);
+                    PrestoConfigs.setConfigItem(parts[0], parts[1]);
                 }
-                config = LauncherConfigs.loadConfig(configFiles);
+                config = PrestoConfigs.loadConfig(ConfigContainer.class, configFiles);
             }
             return config;
         }
@@ -320,7 +321,7 @@ public class LauncherMain
             ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
                     .addAll(runtimeMxBean.getInputArguments())
                     .addAll(jvmOptions)
-                    .add("-D" + LauncherConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
+                    .add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
             if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
             }

@@ -150,6 +150,12 @@
         </artifact>
     </artifactSet>
 
+    <artifactSet to="plugin/wrmsr-hadoop">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-hadoop:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
     <!--
     <artifactSet to="plugin/wrmsr-jruby">
         <artifact id="com.wrmsr.presto:presto-wrmsr-jruby:zip:${project.version}">

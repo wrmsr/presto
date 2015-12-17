@@ -48,10 +48,10 @@ import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
 import com.google.inject.util.Modules;
+import com.wrmsr.presto.config.Config;
+import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.config.ConnectorsConfig;
 import com.wrmsr.presto.config.ExecConfig;
-import com.wrmsr.presto.config.ConfigContainer;
-import com.wrmsr.presto.config.Config;
 import com.wrmsr.presto.config.PluginsConfig;
 import com.wrmsr.presto.config.PrestoConfig;
 import com.wrmsr.presto.function.FunctionRegistration;
@@ -59,14 +59,13 @@ import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
 import com.wrmsr.presto.type.PropertiesFunction;
 import com.wrmsr.presto.util.GuiceUtils;
-import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.Configs;
+import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.bootstrap.Bootstrap;
 import io.airlift.json.JsonCodec;
 import io.airlift.log.Logger;
 import io.airlift.units.Duration;
 import org.apache.commons.configuration.HierarchicalConfiguration;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -83,7 +82,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +96,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 import static io.airlift.json.JsonCodecBinder.jsonCodecBinder;
 import static java.util.Objects.requireNonNull;
 
@@ -129,24 +126,7 @@ public class MainPlugin
 
     public MainPlugin()
     {
-        config = loadConfigFromProperties();
-    }
-
-    public static final String CONFIG_PROPERTIES_PREFIX = "com.wrmsr.presto.";
-
-    public static ConfigContainer loadConfigFromProperties()
-    {
-        return loadConfigFromProperties(System.getProperties());
-    }
-
-    public static ConfigContainer loadConfigFromProperties(Map<Object, Object> properties)
-    {
-        Map<String, String> configMap = properties.entrySet().stream()
-                .filter(e -> e.getKey() instanceof String && ((String) e.getKey()).startsWith(CONFIG_PROPERTIES_PREFIX) && e.getValue() instanceof String)
-                .map(e -> ImmutablePair.of(((String) e.getKey()).substring(CONFIG_PROPERTIES_PREFIX.length()), (String) e.getValue()))
-                .collect(toImmutableMap());
-        HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(configMap);
-        return Configs.OBJECT_CONFIG_CODEC.decode(hierarchicalConfig, ConfigContainer.class);
+        config = PrestoConfigs.loadConfigFromProperties(ConfigContainer.class);
     }
 
     @Override
