@@ -54,9 +54,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Handler;
 import java.util.logging.Level;
-import java.util.logging.LogManager;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -294,6 +292,7 @@ public class LauncherMain
                         }
                     }
                 }
+                checkArgument(sz > 0);
                 builder.add(JvmConfiguration.MAX_HEAP_SIZE.valueOf(new DataSize(sz, DataSize.Unit.BYTE)).toString());
             }
 
