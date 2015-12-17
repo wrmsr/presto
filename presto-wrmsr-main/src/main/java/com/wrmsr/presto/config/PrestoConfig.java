@@ -50,17 +50,17 @@ public class PrestoConfig
             {
                 Object object = jp.readValueAs(Object.class);
                 if (object instanceof String && ((String) object).equals("temp")) {
-                    return new TempNodeId();
+                    return new TempAutoNodeId();
                 }
                 else if (object instanceof Map) {
                     Map map = (Map) object;
                     String name = (String) Iterables.getOnlyElement(map.keySet());
                     Object value = Iterables.getOnlyElement(map.values());
                     if (name.equals("temp")) {
-                        return new TempNodeId();
+                        return new TempAutoNodeId();
                     }
                     else if (name.equals("file")) {
-                        return new FileNodeId((String) value);
+                        return new FileAutoNodeId((String) value);
                     }
                     else {
                         throw new IllegalArgumentException();
@@ -73,7 +73,7 @@ public class PrestoConfig
         }
     }
 
-    public static final class TempNodeId
+    public static final class TempAutoNodeId
             extends AutoNodeId
     {
         @JsonValue
@@ -83,12 +83,12 @@ public class PrestoConfig
         }
     }
 
-    public static final class FileNodeId
+    public static final class FileAutoNodeId
             extends AutoNodeId
     {
         private final String file;
 
-        public FileNodeId(String file)
+        public FileAutoNodeId(String file)
         {
             this.file = file;
         }

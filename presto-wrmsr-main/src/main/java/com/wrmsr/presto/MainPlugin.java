@@ -53,6 +53,7 @@ import com.wrmsr.presto.config.ExecConfig;
 import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.config.Config;
 import com.wrmsr.presto.config.PluginsConfig;
+import com.wrmsr.presto.config.PrestoConfig;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEvent;
@@ -81,6 +82,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Principal;
 import java.util.List;
@@ -93,6 +95,7 @@ import java.util.stream.IntStream;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
@@ -519,7 +522,38 @@ public class MainPlugin
         }
 
         if (Strings.isNullOrEmpty(System.getProperty("node.id"))) {
-            System.setProperty("node.id", UUID.randomUUID().toString());
+            PrestoConfig.AutoNodeId autoNodeId = config.getMergedNode(PrestoConfig.class).getAutoNodeId();
+            if (autoNodeId != null) {
+                String nodeId;
+                if (autoNodeId instanceof PrestoConfig.TempAutoNodeId) {
+                    nodeId = UUID.randomUUID().toString();
+                }
+                else if (autoNodeId instanceof PrestoConfig.FileAutoNodeId) {
+                    File file = new File(((PrestoConfig.FileAutoNodeId) autoNodeId).getFile());
+                    if (file.exists()) {
+                        try {
+                            nodeId = new String(Files.readAllBytes(file.toPath())).trim();
+                        }
+                        catch (IOException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
+                    else {
+                        nodeId = UUID.randomUUID().toString();
+                        try {
+                            Files.write(file.toPath(), (nodeId + "\n").getBytes());
+                        }
+                        catch (IOException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
+                }
+                else {
+                    throw new IllegalArgumentException(autoNodeId.toString());
+                }
+                checkState(nodeId.matches("[A-Za-z0-9\\-_]+"));
+                System.setProperty("node.id", nodeId);
+            }
         }
     }
 
