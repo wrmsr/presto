@@ -503,9 +503,6 @@ public class MainPlugin
 
     private void autoConfigure()
     {
-        if (Strings.isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
-            System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
-        }
         if (Strings.isNullOrEmpty(System.getProperty("node.environment"))) {
             System.setProperty("node.environment", "development");
         }

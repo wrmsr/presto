@@ -161,9 +161,17 @@ public class LauncherMain
             return classloaderUrls;
         }
 
+        private void autoConfigure()
+        {
+            if (Strings.isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
+                System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
+            }
+        }
+
         @Override
         public void run()
         {
+            autoConfigure();
             runStaticMethod(getClassloaderUrls(), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[] {String[].class}, new Object[] {new String[] {}});
         }
     }
@@ -304,10 +312,10 @@ public class LauncherMain
             }
             checkState(jar.exists());
 
-//            if (!jar.isFile()) {
-//                log.warn("Jvm options specified but not running with a jar file, ignoring");
-//                return;
-//            }
+            if (!jar.isFile()) {
+                log.warn("Jvm options specified but not running with a jar file, ignoring");
+                return;
+            }
 
             ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
                     .addAll(runtimeMxBean.getInputArguments())
