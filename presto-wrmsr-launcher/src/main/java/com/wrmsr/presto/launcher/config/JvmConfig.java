@@ -72,40 +72,22 @@ public final class JvmConfig
         this.debugSuspend = debugSuspend;
     }
 
-    @JsonTypeInfo(
-            use = JsonTypeInfo.Id.NAME,
-            include = JsonTypeInfo.As.WRAPPER_OBJECT
-    )
-    @JsonSubTypes({
-            @JsonSubTypes.Type(value = FixedHeapSize.class, name = "fixed"),
-            @JsonSubTypes.Type(value = PercentHeapSize.class, name = "percent"),
-            @JsonSubTypes.Type(value = AutoHeapSize.class, name = "auto"),
-    })
-    public static abstract class HeapSize
+    public static final class HeapConfig
     {
-    }
+        private String size;
 
-    public static final class FixedHeapSize
-            extends HeapSize
-    {
-        private DataSize value;
-
-        @JsonProperty("value")
-        public DataSize getValue()
+        @JsonProperty("size")
+        public String getSize()
         {
-            return value;
+            return size;
         }
 
-        @JsonProperty("value")
-        public void setValue(DataSize value)
+        @JsonProperty("size")
+        public void setSize(String size)
         {
-            this.value = value;
+            this.size = size;
         }
-    }
 
-    public static abstract class VariableHeapSize
-            extends HeapSize
-    {
         private DataSize min;
 
         @JsonProperty("min")
@@ -134,6 +116,20 @@ public final class JvmConfig
             this.max = max;
         }
 
+        private boolean free;
+
+        @JsonProperty("free")
+        public boolean isFree()
+        {
+            return free;
+        }
+
+        @JsonProperty("free")
+        public void setFree(boolean free)
+        {
+            this.free = free;
+        }
+
         private boolean attempt;
 
         @JsonProperty("attempt")
@@ -149,53 +145,16 @@ public final class JvmConfig
         }
     }
 
-    public static final class PercentHeapSize
-            extends VariableHeapSize
-    {
-        private int value;
-
-        @JsonProperty("value")
-        public int getValue()
-        {
-            return value;
-        }
-
-        @JsonProperty("value")
-        public void setValue(int value)
-        {
-            this.value = value;
-        }
-
-        private boolean free;
-
-        @JsonProperty("free")
-        public boolean isFree()
-        {
-            return free;
-        }
-
-        @JsonProperty("free")
-        public void setFree(boolean free)
-        {
-            this.free = free;
-        }
-    }
-
-    public static final class AutoHeapSize
-            extends VariableHeapSize
-    {
-    }
-
-    private HeapSize heap;
+    private HeapConfig heap;
 
     @JsonProperty("heap")
-    public HeapSize getHeap()
+    public HeapConfig getHeap()
     {
         return heap;
     }
 
     @JsonProperty("heap")
-    public void setHeap(HeapSize heap)
+    public void setHeap(HeapConfig heap)
     {
         this.heap = heap;
     }

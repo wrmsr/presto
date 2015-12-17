@@ -37,20 +37,9 @@ import io.airlift.resolver.ArtifactResolver;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
 import org.sonatype.aether.artifact.Artifact;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Method;
@@ -62,9 +51,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -253,50 +239,47 @@ public class LauncherMain
             }
 
             if (jvmConfig.getHeap() != null) {
-                JvmConfig.HeapSize heap = jvmConfig.getHeap();
-                DataSize sz;
-                if (heap instanceof JvmConfig.FixedHeapSize) {
-                    sz = ((JvmConfig.FixedHeapSize) heap).getValue();
-                }
-                else if (heap instanceof JvmConfig.VariableHeapSize) {
-                    OperatingSystemMXBean os = (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-                    if (heap instanceof JvmConfig.PercentHeapSize) {
-                        long base;
-                        if (((JvmConfig.PercentHeapSize) heap).isFree()) {
-                            base = os.getFreePhysicalMemorySize();
-                        }
-                        else {
-                            base = os.getTotalPhysicalMemorySize();
-                        }
-                        long scaled = ((base * 100) / ((JvmConfig.PercentHeapSize) heap).getValue()) / 100;
-                        sz = new DataSize(scaled, DataSize.Unit.BYTE);
-                    }
-                    else if (heap instanceof JvmConfig.AutoHeapSize) {
-                        throw new IllegalArgumentException(heap.toString());
-                    }
-                    else {
-                        throw new IllegalArgumentException(heap.toString());
-                    }
-
-                    if (((JvmConfig.PercentHeapSize) heap).getMax() != null) {
-                        sz = new DataSize(Math.min(sz.getValue(DataSize.Unit.BYTE), ((JvmConfig.PercentHeapSize) heap).getMax().getValue(DataSize.Unit.BYTE)), DataSize.Unit.BYTE);
-                    }
-                    if (((JvmConfig.PercentHeapSize) heap).getMin() != null) {
-                        double min = ((JvmConfig.PercentHeapSize) heap).getMin().getValue(DataSize.Unit.BYTE);
-                        if (sz.getValue(DataSize.Unit.BYTE) < min) {
-                            if (((JvmConfig.PercentHeapSize) heap).isAttempt()) {
-                                sz = new DataSize(min, DataSize.Unit.BYTE);
-                            }
-                            else {
-                                throw new LauncherFailureException(String.format("Insufficient memory: got %s, need %s", sz, ((JvmConfig.PercentHeapSize) heap).getMin()));
-                            }
-                        }
-                    }
+                JvmConfig.HeapConfig heap = jvmConfig.getHeap();
+                checkArgument(!Strings.isNullOrEmpty(heap.getSize()));
+                OperatingSystemMXBean os = (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+                long base;
+                if (heap.isFree()) {
+                    base = os.getFreePhysicalMemorySize();
                 }
                 else {
-                    throw new IllegalArgumentException(heap.toString());
+                    base = os.getTotalPhysicalMemorySize();
                 }
-                builder.add(JvmConfiguration.MAX_HEAP_SIZE.valueOf(sz).toString());
+
+                long sz;
+                if (heap.getSize().endsWith("%")) {
+                    sz = ((base * 100) / Integer.parseInt(heap.getSize())) / 100;
+                }
+                else {
+                    boolean negative = heap.getSize().startsWith("-");
+                    sz = (long) DataSize.valueOf(heap.getSize().substring(negative ? 1 : 0)).getValue(DataSize.Unit.BYTE);
+                    if (negative) {
+                        sz = base - sz;
+                    }
+                }
+
+                if (heap.getMax() != null) {
+                    long max = (long) heap.getMax().getValue(DataSize.Unit.BYTE);
+                    if (sz > max) {
+                        sz = max;
+                    }
+                }
+                if (heap.getMin() != null) {
+                    long min = (long) heap.getMin().getValue(DataSize.Unit.BYTE);
+                    if (sz < min) {
+                        if (heap.isAttempt()) {
+                            sz = min;
+                        }
+                        else {
+                            throw new LauncherFailureException(String.format("Insufficient memory: got %d, need %d", sz, min));
+                        }
+                    }
+                }
+                builder.add(JvmConfiguration.MAX_HEAP_SIZE.valueOf(new DataSize(sz, DataSize.Unit.BYTE)).toString());
             }
 
             builder.addAll(jvmConfig.getOptions());
@@ -320,15 +303,16 @@ public class LauncherMain
                 throw Throwables.propagate(e);
             }
             checkState(jar.exists());
-            if (!jar.isFile()) {
-                log.warn("Jvm options specified but not running with a jar file, ignoring");
-                return;
-            }
+
+//            if (!jar.isFile()) {
+//                log.warn("Jvm options specified but not running with a jar file, ignoring");
+//                return;
+//            }
 
             ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
                     .addAll(runtimeMxBean.getInputArguments())
                     .addAll(jvmOptions)
-                    .add(LauncherConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
+                    .add("-D" + LauncherConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
             if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
             }
