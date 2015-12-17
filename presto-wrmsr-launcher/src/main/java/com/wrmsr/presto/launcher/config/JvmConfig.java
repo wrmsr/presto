@@ -28,6 +28,10 @@ public final class JvmConfig
         extends StringMapMergeableConfig<JvmConfig>
         implements Config<JvmConfig>
 {
+    public JvmConfig()
+    {
+    }
+
     public static final String ALREADY_CONFIGURED_KEY = "already-configured";
 
     private boolean alreadyConfigured;
