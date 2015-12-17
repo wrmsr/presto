@@ -21,7 +21,7 @@ import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
 import com.wrmsr.presto.reactor.tuples.PkLayout;
 import com.wrmsr.presto.spi.ConnectorSupport;
-import com.wrmsr.presto.spi.ConnectorSupportFactory;
+import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
 
 import javax.inject.Inject;
 

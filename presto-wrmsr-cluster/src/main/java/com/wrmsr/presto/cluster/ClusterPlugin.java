@@ -15,9 +15,7 @@ package com.wrmsr.presto.cluster;
 
 import com.facebook.presto.spi.Plugin;
 import com.google.common.collect.ImmutableList;
-import com.wrmsr.presto.spi.ScriptEngineProvider;
 
-import javax.script.ScriptEngine;
 import java.util.List;
 import java.util.Map;
 

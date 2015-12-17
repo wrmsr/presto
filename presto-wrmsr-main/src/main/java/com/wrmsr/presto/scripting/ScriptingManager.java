@@ -13,7 +13,7 @@
  */
 package com.wrmsr.presto.scripting;
 
-import com.wrmsr.presto.spi.ScriptEngineProvider;
+import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 import org.apache.commons.lang.NotImplementedException;
 
 import javax.annotation.PostConstruct;

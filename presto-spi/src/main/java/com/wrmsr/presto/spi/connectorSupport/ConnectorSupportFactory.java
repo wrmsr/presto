@@ -1,4 +1,4 @@
-package com.wrmsr.presto.spi;
+package com.wrmsr.presto.spi.connectorSupport;
 
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorSession;
@@ -7,5 +7,5 @@ import java.util.Optional;
 
 public interface ConnectorSupportFactory
 {
-    Optional<ConnectorSupport> getConnectorSupport(ConnectorSession cs, Connector c);
+    <T extends ConnectorSupport> Optional<T> getConnectorSupport(Class<T> cls, ConnectorSession cs, Connector c);
 }

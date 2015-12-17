@@ -11,21 +11,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.connectorSupport;
+package com.wrmsr.presto.spi.scripting;
 
-import com.google.inject.Binder;
-import com.google.inject.Module;
-import com.google.inject.multibindings.Multibinder;
-import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
+import javax.script.ScriptEngine;
 
-public class ConnectorSupportModule
-    implements Module
+public interface ScriptEngineProvider
 {
-    @Override
-    public void configure(Binder binder)
-    {
-        Multibinder.newSetBinder(binder, ConnectorSupportFactory.class);
+    String getName();
 
-        binder.bind(ConnectorSupportManager.class).asEagerSingleton();
-    }
+    ScriptEngine getScriptEngine();
 }

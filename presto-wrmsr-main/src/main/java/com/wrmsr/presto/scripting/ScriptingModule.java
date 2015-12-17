@@ -20,7 +20,7 @@ import com.google.inject.multibindings.MapBinder;
 import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.function.FunctionRegistration;
-import com.wrmsr.presto.spi.ScriptEngineProvider;
+import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 
 public class ScriptingModule
         implements Module

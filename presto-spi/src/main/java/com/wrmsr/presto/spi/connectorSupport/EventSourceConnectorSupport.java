@@ -11,21 +11,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.connectorSupport;
+package com.wrmsr.presto.spi.connectorSupport;
 
-import com.google.inject.Binder;
-import com.google.inject.Module;
-import com.google.inject.multibindings.Multibinder;
-import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
-
-public class ConnectorSupportModule
-    implements Module
+public interface EventSourceConnectorSupport
+    extends ConnectorSupport
 {
-    @Override
-    public void configure(Binder binder)
-    {
-        Multibinder.newSetBinder(binder, ConnectorSupportFactory.class);
-
-        binder.bind(ConnectorSupportManager.class).asEagerSingleton();
-    }
+    // TODO
 }

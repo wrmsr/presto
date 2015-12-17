@@ -11,13 +11,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.spi;
+package com.wrmsr.presto.spi.connectorSupport;
 
-import javax.script.ScriptEngine;
+import com.facebook.presto.spi.Connector;
 
-public interface ScriptEngineProvider
+public interface ConnectorSupport
 {
-    String getName();
-
-    ScriptEngine getScriptEngine();
+    Connector getConnector();
 }

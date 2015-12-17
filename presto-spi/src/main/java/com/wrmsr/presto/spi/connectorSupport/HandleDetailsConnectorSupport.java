@@ -11,21 +11,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.connectorSupport;
+package com.wrmsr.presto.spi.connectorSupport;
 
-import com.google.inject.Binder;
-import com.google.inject.Module;
-import com.google.inject.multibindings.Multibinder;
-import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
+import com.facebook.presto.spi.ColumnHandle;
+import com.facebook.presto.spi.ConnectorTableHandle;
+import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.type.Type;
 
-public class ConnectorSupportModule
-    implements Module
+public interface HandleDetailsConnectorSupport
+        extends ConnectorSupport
 {
-    @Override
-    public void configure(Binder binder)
-    {
-        Multibinder.newSetBinder(binder, ConnectorSupportFactory.class);
+    SchemaTableName getSchemaTableName(ConnectorTableHandle handle);
 
-        binder.bind(ConnectorSupportManager.class).asEagerSingleton();
-    }
+    String getColumnName(ColumnHandle columnHandle);
+
+    Type getColumnType(ColumnHandle columnHandle);
 }
