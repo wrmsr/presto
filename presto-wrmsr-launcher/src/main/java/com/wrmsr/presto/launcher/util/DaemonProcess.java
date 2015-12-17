@@ -123,6 +123,7 @@ public class DaemonProcess
 
     public synchronized int readPid()
     {
+        refresh();
         checkState(!locked, "pid file is locked by us");
         posix.lseek(pidFile, 0, 0);
         byte[] buf = new byte[1024];
