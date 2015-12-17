@@ -40,6 +40,7 @@ public class PrestoConfigs
         System.setProperty(CONFIG_PROPERTIES_PREFIX + key, value);
     }
 
+    @SuppressWarnings({"unchecked"})
     public static <T extends MergeableConfigContainer<?>> T stripConfigFromProperties(Class<T> cls)
     {
         Map<String, String> configMap = System.getProperties().entrySet().stream()
@@ -47,7 +48,7 @@ public class PrestoConfigs
                 .map(e -> ImmutablePair.of((String) e.getKey(), (String) e.getValue()))
                 .collect(toImmutableMap());
         if (configMap.isEmpty()) {
-            return Mergeable.unit(cls);
+            return (T) Mergeable.unit(cls);
         }
         configMap.keySet().forEach(System::clearProperty);
         HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(transformKeys(configMap, k -> {
@@ -72,7 +73,7 @@ public class PrestoConfigs
         else {
             files = filePaths.stream().map(File::new).collect(toImmutableList());
         }
-        T config = Mergeable.unit(cls);
+        T config = (T) Mergeable.unit(cls);
         for (File file : files) {
             T fileConfig = Serialization.readFile(file, cls);
             config = (T) config.merge(fileConfig);
