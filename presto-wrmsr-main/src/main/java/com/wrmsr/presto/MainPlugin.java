@@ -450,7 +450,7 @@ public class MainPlugin
         }));
     }
 
-    public static String deducePrestoVersion()
+    public static String getPomVersion(InputStream pomIn)
     {
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dBuilder;
@@ -460,15 +460,6 @@ public class MainPlugin
         catch (ParserConfigurationException e) {
             throw Throwables.propagate(e);
         }
-        InputStream pomIn = MainPlugin.class.getClassLoader().getResourceAsStream("META-INF/maven/com.wrmsr.presto/presto-wrmsr-main/pom.xml");
-        if (pomIn == null) {
-            try {
-                pomIn = new FileInputStream(new File("presto-wrmsr-main/pom.xml"));
-            }
-            catch (FileNotFoundException e) {
-                throw Throwables.propagate(e);
-            }
-        }
 
         Document doc;
         try {
@@ -476,14 +467,6 @@ public class MainPlugin
         }
         catch (SAXException | IOException e) {
             throw Throwables.propagate(e);
-        }
-        finally {
-            try {
-                pomIn.close();
-            }
-            catch (IOException e) {
-                throw Throwables.propagate(e);
-            }
         }
 
         Node project = doc.getDocumentElement();
@@ -501,19 +484,42 @@ public class MainPlugin
         return version.get().getTextContent();
     }
 
+    public static String deducePrestoVersion()
+    {
+        InputStream pomIn = MainPlugin.class.getClassLoader().getResourceAsStream("META-INF/maven/com.wrmsr.presto/presto-wrmsr-main/pom.xml");
+        if (pomIn == null) {
+            try {
+                pomIn = new FileInputStream(new File("pom.xml"));
+            }
+            catch (FileNotFoundException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
+        try {
+            return getPomVersion(pomIn);
+        }
+        finally {
+            try {
+                pomIn.close();
+            }
+            catch (IOException e) {
+                log.error(e);
+            }
+        }
+    }
+
     private void autoConfigure()
     {
         if (Strings.isNullOrEmpty(System.getProperty("node.environment"))) {
-            System.setProperty("node.environment", "development");
-        }
-        if (Strings.isNullOrEmpty(System.getProperty("node.id"))) {
-            System.setProperty("node.id", UUID.randomUUID().toString());
+            System.setProperty("node.environment", "default");
         }
         if (Strings.isNullOrEmpty(System.getProperty("presto.version"))) {
             System.setProperty("presto.version", deducePrestoVersion());
         }
-        if (Strings.isNullOrEmpty(System.getProperty("node.coordinator"))) {
-            System.setProperty("node.coordinator", "true");
+
+        if (Strings.isNullOrEmpty(System.getProperty("node.id"))) {
+            System.setProperty("node.id", UUID.randomUUID().toString());
         }
     }
 
