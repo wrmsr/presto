@@ -35,6 +35,7 @@ import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 import io.airlift.log.Logger;
 import io.airlift.resolver.ArtifactResolver;
+import io.airlift.resolver.DefaultArtifact;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
 import org.sonatype.aether.artifact.Artifact;
@@ -56,6 +57,7 @@ import java.util.Map;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 /*
 --heap
@@ -548,6 +550,22 @@ public class LauncherMain
                         ArtifactResolver.USER_LOCAL_REPO,
                         ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
                 List<Artifact> artifacts = resolver.resolvePom(new File(name + "/pom.xml"));
+                artifacts = artifacts.stream().map(a -> {
+                    File f = new File("../" + a.getArtifactId());
+                    if (new File(f, "pom.xml").exists()) {
+                        return new DefaultArtifact(
+                                a.getGroupId(),
+                                a.getArtifactId(),
+                                a.getClassifier(),
+                                a.getExtension(),
+                                a.getVersion(),
+                                a.getProperties(),
+                                new File(f, "target/classes"));
+                    }
+                    else {
+                        return a;
+                    }
+                }).collect(toImmutableList());
 
                 List<URL> urls = newArrayList();
                 for (Artifact artifact : sortedArtifacts(artifacts)) {
