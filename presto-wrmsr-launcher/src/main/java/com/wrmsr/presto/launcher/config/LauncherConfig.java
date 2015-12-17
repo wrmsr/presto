@@ -14,7 +14,6 @@
 package com.wrmsr.presto.launcher.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 
 import java.util.Optional;
 
@@ -25,30 +24,30 @@ public class LauncherConfig
     {
     }
 
-    private Optional<String> pidFile = Optional.empty();
+    private String pidFile;
 
     @JsonProperty("pid-file")
-    public Optional<String> getPidFile()
+    public String getPidFile()
     {
         return pidFile;
     }
 
     @JsonProperty("pid-file")
-    public void setPidFile(Optional<String> pidFile)
+    public void setPidFile(String pidFile)
     {
         this.pidFile = pidFile;
     }
 
-    private Optional<Integer> debutPort = Optional.empty();
+    private Integer debutPort;
 
     @JsonProperty("debug-port")
-    public Optional<Integer> getDebutPort()
+    public Integer getDebutPort()
     {
         return debutPort;
     }
 
     @JsonProperty("debug-port")
-    public void setDebutPort(Optional<Integer> debutPort)
+    public void setDebutPort(Integer debutPort)
     {
         this.debutPort = debutPort;
     }

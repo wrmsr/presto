@@ -52,47 +52,19 @@ public class SimpleCluster
                 }
             }
 
-            public static abstract class Size
-            {
-
-            }
-
-            public static class DedicatedSize
-                    extends Size
-            {
-            }
-
-            public static class SharedSize
-                    extends Size
-            {
-            }
-
-            public static class ManualSize
-                    extends Size
-            {
-                private final DataSize heap;
-
-                public ManualSize(DataSize heap)
-                {
-                    this.heap = heap;
-                }
-            }
-
             protected final RemoteRunner.Target target;
             protected final Path root;
             protected final int port;
             protected final boolean isMaster;
             protected final Path data;
-            protected final Size size;
 
-            public Node(RemoteRunner.Target target, Path root, int port, boolean isMaster, Path data, Size size)
+            public Node(RemoteRunner.Target target, Path root, int port, boolean isMaster, Path data)
             {
                 this.target = target;
                 this.root = root;
                 this.port = port;
                 this.isMaster = isMaster;
                 this.data = data;
-                this.size = size;
             }
 
             public RemoteRunner.Target getTarget()

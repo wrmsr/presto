@@ -21,6 +21,7 @@ import com.google.common.collect.Ordering;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.config.JvmConfig;
+import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.launcher.config.LogConfig;
 import com.wrmsr.presto.launcher.config.SystemConfig;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
@@ -401,19 +402,21 @@ public class LauncherMain
     {
         private DaemonProcess daemonProcess;
 
-        // FIXME
-        private final String pidFile = null;
+        public String pidFile()
+        {
+            return getConfig().getMergedNode(LauncherConfig.class).getPidFile();
+        }
 
         public synchronized boolean hasPidFile()
         {
-            return !Strings.isNullOrEmpty(pidFile);
+            return !Strings.isNullOrEmpty(pidFile());
         }
 
         public synchronized DaemonProcess getDaemonProcess()
         {
             if (daemonProcess == null) {
-                checkArgument(!Strings.isNullOrEmpty(pidFile), "must set pidfile");
-                daemonProcess = new DaemonProcess(new File(pidFile));
+                checkArgument(!Strings.isNullOrEmpty(pidFile()), "must set pidfile");
+                daemonProcess = new DaemonProcess(new File(pidFile()));
             }
             return daemonProcess;
         }
