@@ -14,6 +14,153 @@ event sources
 random access stores
 first layer caching
 vitess shit
+    <artifactSet to="plugin/jmx">
+        <artifact id="${project.groupId}:presto-jmx:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/cassandra">
+        <artifact id="${project.groupId}:presto-cassandra:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/example-http">
+        <artifact id="${project.groupId}:presto-example-http:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <!--
+    <artifactSet to="plugin/hive-cdh4">
+        <artifact id="${project.groupId}:presto-hive-cdh4:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/hive-cdh5">
+        <artifact id="${project.groupId}:presto-hive-cdh5:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/hive-hadoop1">
+        <artifact id="${project.groupId}:presto-hive-hadoop1:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+    -->
+
+    <artifactSet to="plugin/hive-hadoop2">
+        <artifact id="${project.groupId}:presto-hive-hadoop2:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/blackhole">
+        <artifact id="${project.groupId}:presto-blackhole:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/kafka">
+        <artifact id="${project.groupId}:presto-kafka:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/ml">
+        <artifact id="${project.groupId}:presto-ml:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/mysql">
+        <artifact id="${project.groupId}:presto-mysql:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/postgresql">
+        <artifact id="${project.groupId}:presto-postgresql:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/raptor">
+        <artifact id="${project.groupId}:presto-raptor:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/redis">
+        <artifact id="${project.groupId}:presto-redis:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/tpch">
+        <artifact id="${project.groupId}:presto-tpch:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/localfile">
+        <artifact id="${project.groupId}:presto-local-file:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/teradata-functions">
+        <artifact id="${project.groupId}:presto-teradata-functions:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <!--
+    <artifactSet to="plugin/elasticsearch">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-elasticsearch:jar:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+    -->
+
+    <!--
+    <artifactSet to="plugin/wrmsr-main">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-main:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/wrmsr-jython">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-jython:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
+    <artifactSet to="plugin/wrmsr-hadoop">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-hadoop:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+    -->
+
+    <!--
+    <artifactSet to="plugin/wrmsr-jruby">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-jruby:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+    -->
+
+    <!--
+    <artifactSet to="plugin/wrmsr-lucene">
+        <artifact id="com.wrmsr.presto:presto-wrmsr-lucene:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+    -->
 nashorn stored procs
 salesforce connector?
 hbase plz
@@ -1711,3 +1858,27 @@ http://techblog.netflix.com/2015/02/rad-outlier-detection-on-big-data.html?m=1 a
 
 local fig
 uuid, master
+
+
+
+
+
+
+presto-jmx
+presto-cassandra
+presto-example-http
+presto-hive-hadoop2
+presto-blackhole
+presto-kafka
+presto-ml
+presto-mysql
+presto-postgresql
+presto-raptor
+presto-redis
+presto-tpch
+presto-local-file
+presto-teradata-functions
+presto-wrmsr-main
+presto-wrmsr-jython
+presto-wrmsr-hadoop
+

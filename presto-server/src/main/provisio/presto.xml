@@ -138,6 +138,7 @@
     </artifactSet>
     -->
 
+    <!--
     <artifactSet to="plugin/wrmsr-main">
         <artifact id="com.wrmsr.presto:presto-wrmsr-main:zip:${project.version}">
             <unpack />
@@ -155,6 +156,7 @@
             <unpack />
         </artifact>
     </artifactSet>
+    -->
 
     <!--
     <artifactSet to="plugin/wrmsr-jruby">

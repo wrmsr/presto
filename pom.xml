@@ -94,7 +94,7 @@
         <module>presto-jdbc</module>
         <module>presto-cli</module>
         <module>presto-benchmark-driver</module>
-        <module>presto-server</module>
+        <!-- <module>presto-server</module> -->
         <!-- <module>presto-server-rpm</module> -->
         <!-- <module>presto-docs</module> -->
         <module>presto-verifier</module>
