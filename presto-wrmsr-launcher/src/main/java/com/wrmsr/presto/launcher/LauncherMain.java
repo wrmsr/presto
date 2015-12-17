@@ -120,12 +120,38 @@ public class LauncherMain
 
     protected static String[] args; // meh.
 
+    public static List<String> rewriteArgs(List<String> args)
+    {
+        List<String> ret = newArrayList();
+        int i = 0;
+        for (; i < args.size(); ++i ) {
+            String s = args.get(i);
+            if (!s.startsWith("-")) {
+                break;
+            }
+            if (s.length() > 2 && Character.isUpperCase(s.charAt(1)) && s.contains("=")) {
+                ret.add(s.substring(0, 2));
+                ret.add(s.substring(2));
+            }
+            else {
+                ret.add(s);
+            }
+        }
+        for (; i < args.size(); ++i ) {
+            ret.add(args.get(i));
+        }
+        return ret;
+    }
+
     public static void main(String[] args)
             throws Throwable
     {
         // NameStore.getInstance().put("www.google.com", "www.microsoft.com");
         // InetAddress i = InetAddress.getAllByName("www.google.com")[0];
         // System.out.println(i);
+
+        List<String> newArgs = rewriteArgs(Arrays.asList(args));
+        args = newArgs.toArray(new String[newArgs.size()]);
 
         LauncherMain.args = args;
 
@@ -134,6 +160,7 @@ public class LauncherMain
                 .withCommands(
                         Help.class,
                         Run.class,
+                        Daemon.class,
                         Launch.class,
                         Start.class,
                         Stop.class,
@@ -325,8 +352,8 @@ public class LauncherMain
             }
 
             ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
-                    .addAll(runtimeMxBean.getInputArguments())
                     .addAll(jvmOptions)
+                    .addAll(runtimeMxBean.getInputArguments())
                     .add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
             if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
@@ -454,9 +481,19 @@ public class LauncherMain
         public void innerRun()
                 throws Throwable
         {
-            if (hasPidFile()) {
-                getDaemonProcess().writePid();
-            }
+            launch();
+        }
+    }
+
+    @Command(name = "daemon", description = "Runs presto server daemon")
+    public static class Daemon
+            extends ServerCommand
+    {
+        @Override
+        public void innerRun()
+                throws Throwable
+        {
+            getDaemonProcess().writePid();
             launch();
         }
     }
@@ -466,10 +503,17 @@ public class LauncherMain
     {
         public void run(boolean restart)
         {
-            if (hasPidFile()) {
-                getDaemonProcess().writePid();
+            if (restart) {
+                getDaemonProcess().stop();
             }
-            // launch(); dameonize
+            List<String> args = ImmutableList.copyOf(LauncherMain.args);
+            List<String> dashArgs = args.stream().filter(s -> s.startsWith("-")).collect(toImmutableList());
+            List<String> nonDashArgs = args.stream().filter(s -> !s.startsWith("-")).collect(toImmutableList());
+            checkArgument(nonDashArgs.size() == 1);
+            ImmutableList<String> shArgs = ImmutableList.<String>builder()
+                    .add("nohup", "setsid")
+                    .build();
+            // launch(); daemonize
         }
     }
 

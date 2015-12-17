@@ -38,31 +38,17 @@ public class LauncherConfig
         this.pidFile = pidFile;
     }
 
-    private Integer debutPort;
+    private String logFile;
 
-    @JsonProperty("debug-port")
-    public Integer getDebutPort()
+    @JsonProperty("log-file")
+    public String getLogFile()
     {
-        return debutPort;
+        return logFile;
     }
 
-    @JsonProperty("debug-port")
-    public void setDebutPort(Integer debutPort)
+    @JsonProperty("log-file")
+    public void setLogFile(String logFile)
     {
-        this.debutPort = debutPort;
-    }
-
-    private boolean debugSuspend;
-
-    @JsonProperty("debug-suspend")
-    public boolean isDebugSuspend()
-    {
-        return debugSuspend;
-    }
-
-    @JsonProperty("debug-suspend")
-    public void setDebugSuspend(boolean debugSuspend)
-    {
-        this.debugSuspend = debugSuspend;
+        this.logFile = logFile;
     }
 }
