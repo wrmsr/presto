@@ -83,6 +83,7 @@ public class DaemonProcess
 
     public synchronized int clearPid()
     {
+        refresh();
         checkState(locked, "pid file not locked by us");
         // FIXME err check
         posix.lseek(pidFile, 0, 0);
