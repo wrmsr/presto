@@ -101,9 +101,7 @@
         <!-- <module>presto-testing-server-launcher</module> -->
         <!-- <module>presto-streaming</module> -->
         <!-- <module>presto-wrmsr-airpal</module> -->
-        <module>presto-wrmsr-aws</module>
         <!-- <module>presto-wrmsr-elasticsearch</module> -->
-        <module>presto-wrmsr-cluster</module>
         <module>presto-wrmsr-main</module>
         <module>presto-wrmsr-hadoop</module>
         <module>presto-wrmsr-jython</module>

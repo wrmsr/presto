@@ -51,4 +51,32 @@ public class LauncherConfig
     {
         this.logFile = logFile;
     }
+
+    private String clusterNameFile;
+
+    @JsonProperty("cluster-name-file")
+    public String getClusterNameFile()
+    {
+        return clusterNameFile;
+    }
+
+    @JsonProperty("cluster-name-file")
+    public void setClusterNameFile(String clusterNameFile)
+    {
+        this.clusterNameFile = clusterNameFile;
+    }
+
+    private String clusterNodeNameFile;
+
+    @JsonProperty("cluster-node-name-file")
+    public String getClusterNodeNameFile()
+    {
+        return clusterNodeNameFile;
+    }
+
+    @JsonProperty("cluster-node-name-file")
+    public void setClusterNodeNameFile(String clusterNodeNameFile)
+    {
+        this.clusterNodeNameFile = clusterNodeNameFile;
+    }
 }

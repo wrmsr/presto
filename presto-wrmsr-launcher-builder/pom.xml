@@ -28,12 +28,6 @@
 
         <dependency>
             <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-aws</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.wrmsr.presto</groupId>
             <artifactId>presto-wrmsr-hadoop</artifactId>
             <version>${project.version}</version>
         </dependency>
