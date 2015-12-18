@@ -372,7 +372,7 @@ public class LauncherMain
                     .addAll(jvmOptions)
                     .addAll(runtimeMxBean.getInputArguments())
                     .add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
-            if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+            if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
             }
             builder
@@ -531,13 +531,12 @@ public class LauncherMain
                     .add(jvm.getAbsolutePath());
             RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
             builder.addAll(runtimeMxBean.getInputArguments());
-            if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+            if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
             }
 
             File jar = getJarFile(getClass());
-            jar = new File("/Users/wtimoney/presto/presto");
-            // checkState(jar.isFile());
+            checkState(jar.isFile());
 
             builder
                     .add("-jar")
@@ -546,7 +545,7 @@ public class LauncherMain
                     .add("daemon");
 
             ImmutableList.Builder<String> sh = ImmutableList.<String>builder()
-                    .add("nohup", "setsid")
+                    .add("setsid")
                     .addAll(builder.build().stream().map(s -> shellEscape(s)).collect(toImmutableList()));
             sh.add("</dev/null");
             LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
@@ -561,11 +560,10 @@ public class LauncherMain
             sh.add("&");
 
             String cmd = Joiner.on(" ").join(sh.build());
-            FinalizedProcessBuilder pb = new FinalizedProcessBuilder("sh", "-c", shellEscape(cmd));
 
             List<String> newArgs = builder.build();
             POSIX posix = POSIXUtils.getPOSIX();
-            posix.libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
+            posix.libc().execv(jvm.getAbsolutePath(), "sh", "-c", cmd);
             throw new IllegalStateException("Unreachable");
         }
     }
