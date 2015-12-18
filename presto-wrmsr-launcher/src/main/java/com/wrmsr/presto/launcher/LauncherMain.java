@@ -467,7 +467,6 @@ public class LauncherMain
     {
         public void launch()
         {
-            maybeRexec();
             Launch launch = new Launch();
             if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 launch.getClassloaderUrls();
@@ -495,6 +494,7 @@ public class LauncherMain
         public void innerRun()
                 throws Throwable
         {
+            maybeRexec();
             launch();
         }
     }
@@ -507,6 +507,7 @@ public class LauncherMain
         public void innerRun()
                 throws Throwable
         {
+            maybeRexec();
             getDaemonProcess().writePid();
             launch();
         }
