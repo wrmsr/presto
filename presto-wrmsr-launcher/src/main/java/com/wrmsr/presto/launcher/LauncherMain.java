@@ -536,7 +536,7 @@ public class LauncherMain
             }
 
             File jar = getJarFile(getClass());
-            jar = new File("/Users/wtimoney/presto/presto");
+            // jar = new File("/Users/wtimoney/presto/presto");
             checkState(jar.isFile());
 
             builder
