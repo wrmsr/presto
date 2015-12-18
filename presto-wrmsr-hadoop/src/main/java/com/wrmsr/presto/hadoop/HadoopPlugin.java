@@ -15,15 +15,43 @@ package com.wrmsr.presto.hadoop;
 
 import com.facebook.presto.spi.Plugin;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.hadoop.config.ConfigContainer;
+import com.wrmsr.presto.hadoop.hive.HiveConfig;
+import com.wrmsr.presto.hadoop.hive.HiveMetastore;
+import com.wrmsr.presto.spi.ServerEvent;
+import com.wrmsr.presto.util.config.PrestoConfigs;
 
 import java.util.List;
 
 public class HadoopPlugin
-    implements Plugin
+        implements Plugin, ServerEvent.Listener
 {
+    private final ConfigContainer config;
+
+    public HadoopPlugin()
+    {
+        config = PrestoConfigs.loadConfigFromProperties(ConfigContainer.class);
+    }
+
     @Override
     public <T> List<T> getServices(Class<T> type)
     {
-        return ImmutableList.of();
+        if (type == ServerEvent.Listener.class) {
+            return ImmutableList.of(type.cast(this));
+        }
+        else {
+            return ImmutableList.of();
+        }
+    }
+
+    @Override
+    public void onServerEvent(ServerEvent event)
+    {
+        if (event instanceof ServerEvent.PluginsLoaded) {
+            HiveConfig hiveConfig = config.getMergedNode(HiveConfig.class);
+            for (String name : hiveConfig.getStartMetastores()) {
+                new HiveMetastore().start();
+            }
+        }
     }
 }

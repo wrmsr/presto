@@ -13,12 +13,46 @@
  */
 package com.wrmsr.presto.hadoop.hive;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.hadoop.config.Config;
+
+import java.util.List;
+import java.util.Map;
 
 public class HiveConfig
     implements Config<HiveConfig>
 {
     public static class Metastore
     {
+    }
+
+    private Map<String, Metastore> metastores = ImmutableMap.of();
+
+    @JsonProperty("metastores")
+    public Map<String, Metastore> getMetastores()
+    {
+        return metastores;
+    }
+
+    @JsonProperty("metastores")
+    public void setMetastores(Map<String, Metastore> metastores)
+    {
+        this.metastores = metastores;
+    }
+
+    private List<String> startMetastores = ImmutableList.of();
+
+    @JsonProperty("start-metastores")
+    public List<String> getStartMetastores()
+    {
+        return startMetastores;
+    }
+
+    @JsonProperty("start-metastores")
+    public void setStartMetastores(List<String> startMetastores)
+    {
+        this.startMetastores = startMetastores;
     }
 }

@@ -32,7 +32,7 @@ import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
 import com.wrmsr.presto.server.PreloadedPlugins;
-import com.wrmsr.presto.server.ServerEvent;
+import com.wrmsr.presto.spi.ServerEvent;
 import com.google.inject.Scopes;
 import io.airlift.bootstrap.Bootstrap;
 import io.airlift.discovery.client.Announcer;

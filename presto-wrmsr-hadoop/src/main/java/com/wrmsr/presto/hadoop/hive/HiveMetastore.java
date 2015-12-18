@@ -11,26 +11,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.server;
+package com.wrmsr.presto.hadoop.hive;
 
-public abstract class ServerEvent
+import com.google.common.base.Throwables;
+
+public class HiveMetastore
 {
-    public interface Listener
+    public void start()
     {
-        default void onServerEvent(ServerEvent event)
+        new Thread()
         {
-        }
-    }
-
-    public static final class PluginsLoaded extends ServerEvent
-    {
-    }
-
-    public static final class ConnectorsLoaded extends ServerEvent
-    {
-    }
-
-    public static final class DataSourcesLoaded extends ServerEvent
-    {
+            @Override
+            public void run()
+            {
+                try {
+                    org.apache.hadoop.hive.metastore.HiveMetaStore.main(new String[] {});
+                }
+                catch (Throwable e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        }.start();
     }
 }

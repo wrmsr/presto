@@ -448,6 +448,7 @@ public class LauncherMain
             setArgSystemProperties();
             getConfig();
             configureLoggers();
+            setConfigEnv();
             setConfigSystemProperties();
 
             try {

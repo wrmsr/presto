@@ -56,7 +56,7 @@ import com.wrmsr.presto.config.PluginsConfig;
 import com.wrmsr.presto.config.PrestoConfig;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.server.ModuleProcessor;
-import com.wrmsr.presto.server.ServerEvent;
+import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.type.PropertiesFunction;
 import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.config.Configs;

@@ -33,7 +33,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.inject.Injector;
 import com.wrmsr.presto.server.PreloadedPluginSet;
-import com.wrmsr.presto.server.ServerEvent;
+import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.util.Repositories;
 import io.airlift.configuration.ConfigurationFactory;
 import io.airlift.http.server.HttpServerInfo;
