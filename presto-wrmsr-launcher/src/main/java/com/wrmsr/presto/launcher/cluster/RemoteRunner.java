@@ -66,6 +66,20 @@ public abstract class RemoteRunner
         private Auth auth;
         private String root;
 
+        @JsonCreator
+        public Target()
+        {
+        }
+
+        public Target(String host, int port, String user, Auth auth, String root)
+        {
+            this.host = host;
+            this.port = port;
+            this.user = user;
+            this.auth = auth;
+            this.root = root;
+        }
+
         @JsonProperty("host")
         public String getHost()
         {

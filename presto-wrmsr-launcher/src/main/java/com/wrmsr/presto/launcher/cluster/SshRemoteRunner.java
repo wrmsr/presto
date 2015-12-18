@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher.cluster;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.leacox.process.FinalizedProcess;
@@ -120,9 +121,9 @@ public class SshRemoteRunner
         builder.add("-p", Integer.toString(target.getPort()));
         builder.add(String.format("%s@%s", target.getUser(), target.getHost()));
         builder.addAll(buildTargetArgs(target));
-        if (target.getRoot().isPresent()) {
+        if (!Strings.isNullOrEmpty(target.getRoot())) {
             String escapedCommand = Joiner.on(' ').join(Stream.concat(Stream.of(command), Stream.of(args)).map(s -> shellEscape(s)).collect(toImmutableList()));
-            builder.add(Joiner.on(' ').join("cd", shellEscape(target.getRoot().get()), "&&", escapedCommand));
+            builder.add(Joiner.on(' ').join("cd", shellEscape(target.getRoot()), "&&", escapedCommand));
         }
         else {
             builder.add(command);
@@ -176,7 +177,7 @@ public class SshRemoteRunner
                                 22,
                                 "wtimoney",
                                 new IdentityFileAuth(new File(System.getProperty("user.home") + "/.ssh/id_rsa")),
-                                Optional.of("presto")),
+                                "presto"),
                         "touch", "hi");
     }
 }

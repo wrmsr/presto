@@ -11,25 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.cluster;
+package com.wrmsr.presto.launcher.mesos;
 
-import com.facebook.presto.spi.Plugin;
-import com.google.common.collect.ImmutableList;
-
-import java.util.List;
-import java.util.Map;
-
-public class ClusterPlugin
-        implements Plugin
+public class MesosMain
 {
-    @Override
-    public void setOptionalConfig(Map<String, String> optionalConfig)
-    {
-    }
-
-    @Override
-    public <T> List<T> getServices(Class<T> type)
-    {
-        return ImmutableList.of();
-    }
 }

@@ -52,7 +52,7 @@ public class SimpleCluster
         return String.format("http://%s:%d", node.getTarget().getHost(), node.getPort());
     }
 
-    protected Map<String, String> buildNodeProperties(SimpleClusterConfig.Node.Name name, SimpleClusterConfig.Node node)
+    protected Map<String, String> buildNodeProperties(String name, SimpleClusterConfig.Node node)
     {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder()
                 .put("http-server.http.port", Integer.toString(node.getPort()))
