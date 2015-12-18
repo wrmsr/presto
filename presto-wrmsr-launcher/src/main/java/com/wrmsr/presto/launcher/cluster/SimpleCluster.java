@@ -17,6 +17,8 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class SimpleCluster
     implements Cluster
 {
@@ -25,11 +27,11 @@ public class SimpleCluster
     protected final RemoteRunner remoteRunner;
     protected final SimpleClusterConfig.Node masterNode;
 
-    public SimpleCluster(SimpleClusterConfig config, RemoteRunner remoteRunner, SimpleClusterConfig.Node masterNode)
+    public SimpleCluster(SimpleClusterConfig config, RemoteRunner remoteRunner)
     {
         this.config = config;
         this.remoteRunner = remoteRunner;
-        this.masterNode = masterNode;
+        masterNode = config.getNodes().get(checkNotNull(config.getMaster()));
     }
 
     @Override
@@ -58,7 +60,7 @@ public class SimpleCluster
                 .put("http-server.http.port", Integer.toString(node.getPort()))
                 .put("discovery.uri", buildNodeUri(masterNode))
                 .put("node.data-dir", node.getData().toString());
-        if (node.isMaster()) {
+        if (name.equals(config.getMaster())) {
             return ImmutableMap.<String, String>builder()
                     .put("coordinator", "true")
                     .put("discovery-server.enabled", "true")

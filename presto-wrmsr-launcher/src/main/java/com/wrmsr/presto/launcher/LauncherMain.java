@@ -20,7 +20,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.sun.management.OperatingSystemMXBean;
+import com.wrmsr.presto.launcher.cluster.ClusterConfig;
+import com.wrmsr.presto.launcher.cluster.ClustersConfig;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
+import com.wrmsr.presto.launcher.config.EnvConfig;
 import com.wrmsr.presto.launcher.config.JvmConfig;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.launcher.config.LogConfig;
@@ -29,6 +32,7 @@ import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
 import com.wrmsr.presto.util.Repositories;
+import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Cli;
@@ -51,6 +55,7 @@ import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -62,6 +67,7 @@ import java.util.stream.IntStream;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Shell.shellEscape;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
@@ -233,20 +239,54 @@ public class LauncherMain
 
         private ConfigContainer config;
 
+        private POSIX posix;
+
+        public synchronized POSIX getPosix()
+        {
+            if (posix == null) {
+                posix = POSIXUtils.getPOSIX();
+            }
+            return posix;
+        }
+
         public LauncherCommand()
         {
         }
 
         public synchronized ConfigContainer getConfig()
         {
-            if (config == null) {
+            if (this.config == null) {
                 for (String prop : configItems) {
                     String[] parts = splitProperty(prop);
                     PrestoConfigs.setConfigItem(parts[0], parts[1]);
                 }
-                config = PrestoConfigs.loadConfig(ConfigContainer.class, configFiles);
+                ConfigContainer config = PrestoConfigs.loadConfig(ConfigContainer.class, configFiles);
+
+                LauncherConfig launcherConfig = config.getMergedNode(LauncherConfig.class);
+                ClustersConfig clustersConfig = config.getMergedNode(ClustersConfig.class);
+                if (!Strings.isNullOrEmpty(launcherConfig.getClusterNameFile())) {
+                    File clusterNameFile = new File(launcherConfig.getClusterNameFile());
+                    if (clusterNameFile.exists()) {
+                        String clusterName;
+                        try {
+                            clusterName = new String(Files.readAllBytes(clusterNameFile.toPath())).trim();
+                        }
+                        catch (IOException e) {
+                            throw Throwables.propagate(e);
+                        }
+                        ClusterConfig clusterConfig = clustersConfig.getEntries().get(clusterName);
+
+                        if (clusterConfig.getConfig() != null) {
+                            ConfigContainer updates = Serialization.roundTrip(OBJECT_MAPPER.get(), clusterConfig.getConfig(), ConfigContainer.class);
+                            config = (ConfigContainer) config.merge(updates);
+                        }
+                    }
+                }
+
+                PrestoConfigs.writeConfigProperties(config);
+                this.config = config;
             }
-            return config;
+            return this.config;
         }
 
         private void setArgSystemProperties()
@@ -261,6 +301,13 @@ public class LauncherMain
         {
             for (Map.Entry<String, String> e : getConfig().getMergedNode(SystemConfig.class)) {
                 System.setProperty(e.getKey(), e.getValue());
+            }
+        }
+
+        private void setConfigEnv()
+        {
+            for (Map.Entry<String, String> e : getConfig().getMergedNode(EnvConfig.class)) {
+                getPosix().libc().setenv(e.getKey(), e.getValue(), 1);
             }
         }
 
@@ -379,9 +426,8 @@ public class LauncherMain
                     .addAll(Arrays.asList(LauncherMain.args));
 
             List<String> newArgs = builder.build();
-            POSIX posix = POSIXUtils.getPOSIX();
             File jvm = getJvm();
-            posix.libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
+            getPosix().libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
             throw new IllegalStateException("Unreachable");
         }
 

@@ -33,7 +33,7 @@ public class PrestoConfigs
 {
     public static File DEFAULT_CONFIG_FILE = new File("presto.yaml");
 
-    public static final String CONFIG_PROPERTIES_PREFIX = "com.wrmsr.presto.";
+    public static final String CONFIG_PROPERTIES_PREFIX = "com.wrmsr.presto.config.";
 
     public static void setConfigItem(String key, String value)
     {
@@ -82,13 +82,16 @@ public class PrestoConfigs
         T propertiesConfig = stripConfigFromProperties(cls);
         config = (T) config.merge(propertiesConfig);
 
+        return config;
+    }
+
+    public static void writeConfigProperties(Object config)
+    {
         Object objectConfig = Serialization.roundTrip(OBJECT_MAPPER.get(), config, Object.class);
         HierarchicalConfiguration hierarchicalConfig = Configs.OBJECT_CONFIG_CODEC.encode(objectConfig);
         Map<String, String> flatConfig = Configs.CONFIG_PROPERTIES_CODEC.encode(hierarchicalConfig);
         Map<String, String> configMap = transformKeys(flatConfig, k -> CONFIG_PROPERTIES_PREFIX + k);
         configMap.entrySet().stream().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
-
-        return config;
     }
 
     public static <T extends MergeableConfigContainer<?>> T loadConfigFromProperties(Class<T> cls)

@@ -16,19 +16,19 @@ package com.wrmsr.presto.launcher.cluster;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class SimpleClusterConfig
+    extends ClusterConfig<SimpleClusterConfig.Node>
 {
-    public static class Node
+    public static class Node extends ClusterConfig.Node
     {
         private RemoteRunner.Target target;
         private Path root;
         private int port;
-        private boolean master;
         private Path data;
-        private Map config;
+        private List config;
 
         @JsonProperty("target")
         public RemoteRunner.Target getTarget()
@@ -66,18 +66,6 @@ public class SimpleClusterConfig
             this.port = port;
         }
 
-        @JsonProperty("master")
-        public boolean isMaster()
-        {
-            return master;
-        }
-
-        @JsonProperty("master")
-        public void setMaster(boolean master)
-        {
-            this.master = master;
-        }
-
         @JsonProperty("data")
         public Path getData()
         {
@@ -91,13 +79,13 @@ public class SimpleClusterConfig
         }
 
         @JsonProperty("config")
-        public Map getConfig()
+        public List getConfig()
         {
             return config;
         }
 
         @JsonProperty("config")
-        public void setConfig(Map config)
+        public void setConfig(List config)
         {
             this.config = config;
         }
@@ -129,5 +117,19 @@ public class SimpleClusterConfig
     public void setNodes(Map<String, Node> nodes)
     {
         this.nodes = nodes;
+    }
+
+    private String master;
+
+    @JsonProperty("master")
+    public String getMaster()
+    {
+        return master;
+    }
+
+    @JsonProperty("master")
+    public void setMaster(String master)
+    {
+        this.master = master;
     }
 }

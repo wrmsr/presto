@@ -11,26 +11,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.config;
+package com.wrmsr.presto.launcher.cluster;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.wrmsr.presto.launcher.cluster.ClustersConfig;
-import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
+
+import java.util.List;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.WRAPPER_OBJECT
 )
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = ClustersConfig.class, name = "clusters"),
-        @JsonSubTypes.Type(value = EnvConfig.class, name = "env"),
-        @JsonSubTypes.Type(value = JvmConfig.class, name = "jvm"),
-        @JsonSubTypes.Type(value = LauncherConfig.class, name = "launcher"),
-        @JsonSubTypes.Type(value = LogConfig.class, name = "log"),
-        @JsonSubTypes.Type(value = SystemConfig.class, name = "system"),
+        @JsonSubTypes.Type(value = SimpleClusterConfig.class, name = "simple"),
 })
-public interface Config<N extends Config<N>>
-    extends MergeableConfig<N>
+public abstract class ClusterConfig<N extends ClusterConfig.Node>
 {
+    public static abstract class Node
+    {
+    }
+
+    private List config;
+
+    @JsonProperty("config")
+    public List getConfig()
+    {
+        return config;
+    }
+
+    @JsonProperty("config")
+    public void setConfig(List config)
+    {
+        this.config = config;
+    }
 }
