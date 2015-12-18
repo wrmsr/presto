@@ -354,7 +354,7 @@ public class LauncherMain
             return jvm;
         }
 
-        private void maybeRexec()
+        protected void maybeRexec()
         {
             List<String> jvmOptions = getJvmOptions();
             if (jvmOptions.isEmpty()) {
@@ -399,12 +399,11 @@ public class LauncherMain
         }
 
         @Override
-        public void run()
+        public final void run()
         {
             setArgSystemProperties();
             getConfig();
             configureLoggers();
-            maybeRexec();
             setConfigSystemProperties();
 
             try {
@@ -470,6 +469,7 @@ public class LauncherMain
     {
         public void launch()
         {
+            maybeRexec();
             Launch launch = new Launch();
             if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 launch.getClassloaderUrls();
@@ -530,12 +530,13 @@ public class LauncherMain
             ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
                     .add(jvm.getAbsolutePath());
             RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-            builder.addAll(runtimeMxBean.getInputArguments());
+            // builder.addAll(runtimeMxBean.getInputArguments());
             if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
                 builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
             }
 
             File jar = getJarFile(getClass());
+            jar = new File("/Users/wtimoney/presto/presto");
             checkState(jar.isFile());
 
             builder
@@ -544,26 +545,28 @@ public class LauncherMain
                     .addAll(IntStream.range(0, args.size() - 1).boxed().map(args::get).collect(toImmutableList()))
                     .add("daemon");
 
-            ImmutableList.Builder<String> sh = ImmutableList.<String>builder()
-                    .add("setsid")
+            ImmutableList.Builder<String> shBuilder = ImmutableList.<String>builder()
+                    // .add("setsid")
                     .addAll(builder.build().stream().map(s -> shellEscape(s)).collect(toImmutableList()));
-            sh.add("</dev/null");
+            shBuilder.add("</dev/null");
             LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
             for (String prefix : ImmutableList.of("", "2")) {
                 if (!Strings.isNullOrEmpty(config.getLogFile())) {
-                    sh.add(prefix + ">" + shellEscape(config.getLogFile()));
+                    shBuilder.add(prefix + ">" + shellEscape(config.getLogFile()));
                 }
                 else {
-                    sh.add(prefix + ">/dev/null");
+                    shBuilder.add(prefix + ">/dev/null");
                 }
             }
-            sh.add("&");
+            shBuilder.add("&");
 
-            String cmd = Joiner.on(" ").join(sh.build());
+            String cmd = Joiner.on(" ").join(shBuilder.build());
 
             List<String> newArgs = builder.build();
             POSIX posix = POSIXUtils.getPOSIX();
-            posix.libc().execv(jvm.getAbsolutePath(), "sh", "-c", cmd);
+            File sh = new File("/bin/sh");
+            checkState(sh.exists() && sh.isFile());
+            posix.libc().execv(sh.getAbsolutePath(), sh.getAbsolutePath(), "-c", cmd);
             throw new IllegalStateException("Unreachable");
         }
     }
