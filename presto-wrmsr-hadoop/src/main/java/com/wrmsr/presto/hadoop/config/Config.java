@@ -15,6 +15,8 @@ package com.wrmsr.presto.hadoop.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.wrmsr.presto.hadoop.hdfs.HdfsConfig;
+import com.wrmsr.presto.hadoop.hive.HiveConfig;
 import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 
 @JsonTypeInfo(
@@ -22,9 +24,11 @@ import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
         include = JsonTypeInfo.As.WRAPPER_OBJECT
 )
 @JsonSubTypes({
-        //@JsonSubTypes.Type(value = HadoopConfig.class, name = "hadoop"),
+        @JsonSubTypes.Type(value = HiveConfig.class, name = "hive"),
+        @JsonSubTypes.Type(value = HdfsConfig.class, name = "hdfs"),
 })
 public interface Config<N extends Config<N>>
     extends MergeableConfig<N>
 {
 }
+

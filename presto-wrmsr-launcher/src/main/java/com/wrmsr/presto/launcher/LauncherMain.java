@@ -19,7 +19,6 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.leacox.process.FinalizedProcessBuilder;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.config.JvmConfig;
@@ -42,7 +41,6 @@ import io.airlift.resolver.ArtifactResolver;
 import io.airlift.resolver.DefaultArtifact;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
-import org.apache.commons.lang.math.IntRange;
 import org.sonatype.aether.artifact.Artifact;
 
 import java.io.File;
@@ -129,7 +127,7 @@ public class LauncherMain
     {
         List<String> ret = newArrayList();
         int i = 0;
-        for (; i < args.size(); ++i ) {
+        for (; i < args.size(); ++i) {
             String s = args.get(i);
             if (!s.startsWith("-")) {
                 break;
@@ -142,7 +140,7 @@ public class LauncherMain
                 ret.add(s);
             }
         }
-        for (; i < args.size(); ++i ) {
+        for (; i < args.size(); ++i) {
             ret.add(args.get(i));
         }
         return ret;
@@ -562,7 +560,6 @@ public class LauncherMain
 
             String cmd = Joiner.on(" ").join(shBuilder.build());
 
-            List<String> newArgs = builder.build();
             POSIX posix = POSIXUtils.getPOSIX();
             File sh = new File("/bin/sh");
             checkState(sh.exists() && sh.isFile());
