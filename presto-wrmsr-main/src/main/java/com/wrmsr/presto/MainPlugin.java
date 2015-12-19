@@ -33,6 +33,7 @@ import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
@@ -231,6 +232,7 @@ public class MainPlugin
                 binder.bind(MainOptionalConfig.class).toInstance(checkNotNull(optionalConfig));
                 binder.bind(ConnectorManager.class).toInstance(checkNotNull(connectorManager));
                 binder.bind(TypeRegistry.class).toInstance(checkNotNull(typeRegistry));
+                binder.bind(TypeManager.class).toInstance(checkNotNull(typeRegistry));
                 binder.bind(NodeManager.class).toInstance(checkNotNull(nodeManager));
                 binder.bind(PluginManager.class).toInstance(checkNotNull(pluginManager));
                 binder.bind(new TypeLiteral<JsonCodec<ViewDefinition>>() {}).toInstance(checkNotNull(viewCodec));

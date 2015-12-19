@@ -18,6 +18,7 @@ import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 import org.apache.commons.lang.NotImplementedException;
 
 import javax.inject.Inject;
+import javax.script.ScriptEngine;
 
 import java.util.Map;
 
@@ -46,7 +47,8 @@ public class ScriptingManager
 
     public void addScripting(String name, ScriptingConfig.Entry entry)
     {
-        scriptings.put(name, new Scripting());
+        ScriptEngine e = scriptEngineProviders.get(entry.getEngine()).getScriptEngine();
+        scriptings.put(name, new Scripting(name, e));
     }
 
     public void addScriptEngineProvider(ScriptEngineProvider p)

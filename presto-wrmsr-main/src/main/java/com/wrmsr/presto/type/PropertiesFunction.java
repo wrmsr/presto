@@ -31,7 +31,8 @@ import java.lang.invoke.MethodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class PropertiesFunction
-        extends StringVarargsFunction, FunctionRegistration.Self
+        extends StringVarargsFunction
+        implements FunctionRegistration.Self
 {
     private final TypeManager typeManager;
 

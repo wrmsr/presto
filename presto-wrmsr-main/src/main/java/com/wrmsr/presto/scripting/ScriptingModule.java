@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.scripting;
 
+import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryProvider;
@@ -39,6 +40,10 @@ public class ScriptingModule
 
         Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
         MapBinder<String, ScriptEngineProvider> scriptEngineProviderBinder = MapBinder.newMapBinder(binder, String.class, ScriptEngineProvider.class);
+
+        for (String name : ImmutableList.of("nashorn")) {
+            scriptEngineProviderBinder.addBinding(name).toInstance(new BuiltinScriptEngineProvider(name));
+        }
 
         binder.bind(ScriptingManager.class).asEagerSingleton();
 
