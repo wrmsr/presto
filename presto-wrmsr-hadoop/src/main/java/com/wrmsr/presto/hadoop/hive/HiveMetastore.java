@@ -14,6 +14,12 @@
 package com.wrmsr.presto.hadoop.hive;
 
 import com.google.common.base.Throwables;
+import com.wrmsr.presto.util.Repositories;
+
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.List;
 
 public class HiveMetastore
 {
@@ -24,8 +30,16 @@ public class HiveMetastore
             @Override
             public void run()
             {
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                while (cl.getParent() != null) {
+                    cl = cl.getParent();
+                }
+                List<URL> urls = Repositories.resolveModuleClassloaderUrls("presto-wrmsr-hadoop");
+                cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), cl);
+                Thread.currentThread().setContextClassLoader(cl);
                 try {
-                    org.apache.hadoop.hive.metastore.HiveMetaStore.main(new String[] {});
+                    // org.apache.hadoop.hive.metastore.HiveMetaStore.main(new String[] {});
+                    new HiveMain.Metastore().run();
                 }
                 catch (Throwable e) {
                     throw Throwables.propagate(e);

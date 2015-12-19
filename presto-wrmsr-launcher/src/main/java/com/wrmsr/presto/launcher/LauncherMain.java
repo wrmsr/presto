@@ -198,7 +198,7 @@ public class LauncherMain
         public synchronized List<URL> getClassloaderUrls()
         {
             if (classloaderUrls == null) {
-                classloaderUrls = ImmutableList.copyOf(resolveModuleClassloaderUrls("presto-main"));
+                classloaderUrls = ImmutableList.copyOf(Repositories.resolveModuleClassloaderUrls("presto-main"));
             }
             return classloaderUrls;
         }
@@ -693,57 +693,6 @@ public class LauncherMain
         }
     }
 
-    private static List<Artifact> sortedArtifacts(List<Artifact> artifacts)
-    {
-        List<Artifact> list = Lists.newArrayList(artifacts);
-        Collections.sort(list, Ordering.natural().nullsLast().onResultOf(Artifact::getFile));
-        return list;
-    }
-
-    public static List<URL> resolveModuleClassloaderUrls(String name)
-    {
-        try {
-            if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
-                return Repositories.resolveUrlsForModule(name);
-            }
-            else {
-                ArtifactResolver resolver = new ArtifactResolver(
-                        ArtifactResolver.USER_LOCAL_REPO,
-                        ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
-                List<Artifact> artifacts = resolver.resolvePom(new File(name + "/pom.xml"));
-                artifacts = artifacts.stream().map(a -> {
-                    for (String prefix : ImmutableList.of("", "../")) {
-                        File f = new File(prefix + a.getArtifactId());
-                        if (new File(f, "pom.xml").exists()) {
-                            return new DefaultArtifact(
-                                    a.getGroupId(),
-                                    a.getArtifactId(),
-                                    a.getClassifier(),
-                                    a.getExtension(),
-                                    a.getVersion(),
-                                    a.getProperties(),
-                                    new File(f, "target/classes"));
-                        }
-                    }
-                    return a;
-                }).collect(toImmutableList());
-
-                List<URL> urls = newArrayList();
-                for (Artifact artifact : sortedArtifacts(artifacts)) {
-                    if (artifact.getFile() == null) {
-                        throw new RuntimeException("Could not resolve artifact: " + artifact);
-                    }
-                    File file = artifact.getFile().getCanonicalFile();
-                    urls.add(file.toURI().toURL());
-                }
-                return urls;
-            }
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
     public static void runStaticMethod(String className, String methodName, Class<?>[] parameterTypes, Object[] args)
     {
         try {
@@ -805,7 +754,7 @@ public class LauncherMain
                 runStaticMethod(getClassName(), "main", parameterTypes, args);
             }
             else {
-                runStaticMethod(resolveModuleClassloaderUrls(moduleName), getClassName(), "main", parameterTypes, args);
+                runStaticMethod(Repositories.resolveModuleClassloaderUrls(moduleName), getClassName(), "main", parameterTypes, args);
             }
         }
     }

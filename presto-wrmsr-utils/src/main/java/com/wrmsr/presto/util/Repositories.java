@@ -13,6 +13,15 @@
  */
 package com.wrmsr.presto.util;
 
+import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
+import io.airlift.resolver.ArtifactResolver;
+import io.airlift.resolver.DefaultArtifact;
+import org.sonatype.aether.artifact.Artifact;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -30,8 +39,10 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class Repositories
 {
@@ -153,7 +164,7 @@ public class Repositories
         return urls;
     }
 
-    public static void setupClassLoaderForModule(ClassLoader sourceClassLoader,ClassLoader targetClassLoader, String moduleName) throws IOException
+    public static void setupClassLoaderForModule(ClassLoader sourceClassLoader, ClassLoader targetClassLoader, String moduleName) throws IOException
     {
         for (URL url : resolveUrlsForModule(sourceClassLoader, moduleName)) {
             addClasspathUrl(targetClassLoader, url);
@@ -186,7 +197,8 @@ public class Repositories
             }
 
             @Override
-            public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException
+            public FileVisitResult visitFileFailed(Path file, IOException exc)
+                    throws IOException
             {
                 // try to delete the file anyway, even if its attributes
                 // could not be read, since delete-only access is
@@ -196,19 +208,81 @@ public class Repositories
             }
 
             @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc)
+                    throws IOException
             {
-                if (exc == null)
-                {
+                if (exc == null) {
                     Files.delete(dir);
                     return FileVisitResult.CONTINUE;
                 }
-                else
-                {
+                else {
                     // directory iteration failed; propagate exception
                     throw exc;
                 }
             }
         });
+    }
+
+    public static List<Artifact> sortedArtifacts(List<Artifact> artifacts)
+    {
+        List<Artifact> list = Lists.newArrayList(artifacts);
+        Collections.sort(list, Ordering.natural().nullsLast().onResultOf(Artifact::getFile));
+        return list;
+    }
+
+    public static List<URL> resolveModuleClassloaderUrls(String name)
+    {
+        try {
+            if (!Strings.isNullOrEmpty(getRepositoryPath())) {
+                return resolveUrlsForModule(name);
+            }
+            else {
+                ArtifactResolver resolver = new ArtifactResolver(
+                        ArtifactResolver.USER_LOCAL_REPO,
+                        ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
+                File pom = null;
+                for (String prefix : ImmutableList.of("", "../")) {
+                    File f = new File(prefix + name + "/pom.xml");
+                    if (f.exists()) {
+                        pom = f;
+                        break;
+                    }
+                }
+                if (pom == null) {
+                    throw new IOException("pom not found");
+                }
+
+                List<Artifact> artifacts = resolver.resolvePom(pom);
+                artifacts = artifacts.stream().map(a -> {
+                    for (String prefix : ImmutableList.of("", "../")) {
+                        File f = new File(prefix + a.getArtifactId());
+                        if (new File(f, "pom.xml").exists()) {
+                            return new DefaultArtifact(
+                                    a.getGroupId(),
+                                    a.getArtifactId(),
+                                    a.getClassifier(),
+                                    a.getExtension(),
+                                    a.getVersion(),
+                                    a.getProperties(),
+                                    new File(f, "target/classes"));
+                        }
+                    }
+                    return a;
+                }).collect(Collectors.toList());
+
+                List<URL> urls = new ArrayList<>();
+                for (Artifact artifact : sortedArtifacts(artifacts)) {
+                    if (artifact.getFile() == null) {
+                        throw new RuntimeException("Could not resolve artifact: " + artifact);
+                    }
+                    File file = artifact.getFile().getCanonicalFile();
+                    urls.add(file.toURI().toURL());
+                }
+                return urls;
+            }
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
     }
 }
