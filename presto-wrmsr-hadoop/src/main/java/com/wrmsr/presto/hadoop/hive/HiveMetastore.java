@@ -14,6 +14,7 @@
 package com.wrmsr.presto.hadoop.hive;
 
 import com.google.common.base.Throwables;
+import com.wrmsr.presto.util.Artifacts;
 import com.wrmsr.presto.util.Repositories;
 
 import java.io.IOException;
@@ -34,7 +35,7 @@ public class HiveMetastore
                 while (cl.getParent() != null) {
                     cl = cl.getParent();
                 }
-                List<URL> urls = Repositories.resolveModuleClassloaderUrls("presto-wrmsr-hadoop");
+                List<URL> urls = Artifacts.resolveModuleClassloaderUrls("presto-wrmsr-hadoop");
                 cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), cl);
                 try {
                     Thread.currentThread().setContextClassLoader(cl);

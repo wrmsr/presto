@@ -31,6 +31,7 @@ import com.wrmsr.presto.launcher.config.SystemConfig;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
+import com.wrmsr.presto.util.Artifacts;
 import com.wrmsr.presto.util.Repositories;
 import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.PrestoConfigs;
@@ -198,7 +199,7 @@ public class LauncherMain
         public synchronized List<URL> getClassloaderUrls()
         {
             if (classloaderUrls == null) {
-                classloaderUrls = ImmutableList.copyOf(Repositories.resolveModuleClassloaderUrls("presto-main"));
+                classloaderUrls = ImmutableList.copyOf(Artifacts.resolveModuleClassloaderUrls("presto-main"));
             }
             return classloaderUrls;
         }
@@ -769,7 +770,7 @@ public class LauncherMain
                 runStaticMethod(getClassName(), "main", parameterTypes, args);
             }
             else {
-                runStaticMethod(Repositories.resolveModuleClassloaderUrls(moduleName), getClassName(), "main", parameterTypes, args);
+                runStaticMethod(Artifacts.resolveModuleClassloaderUrls(moduleName), getClassName(), "main", parameterTypes, args);
             }
         }
     }

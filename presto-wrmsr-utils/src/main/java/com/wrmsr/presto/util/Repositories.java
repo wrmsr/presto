@@ -13,15 +13,6 @@
  */
 package com.wrmsr.presto.util;
 
-import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
-import io.airlift.resolver.ArtifactResolver;
-import io.airlift.resolver.DefaultArtifact;
-import org.sonatype.aether.artifact.Artifact;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -39,10 +30,8 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
 public class Repositories
 {
@@ -54,7 +43,8 @@ public class Repositories
 
     public static final String REPOSITORY_PATH_PROPERTY_KEY = "com.wrmsr.repository.path";
 
-    public static void addClasspathUrl(URLClassLoader classLoader, URL url) throws IOException
+    public static void addClasspathUrl(URLClassLoader classLoader, URL url)
+            throws IOException
     {
         try {
             Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
@@ -67,12 +57,14 @@ public class Repositories
         }
     }
 
-    public static void addClasspathUrl(ClassLoader classLoader, URL url) throws IOException
+    public static void addClasspathUrl(ClassLoader classLoader, URL url)
+            throws IOException
     {
         addClasspathUrl((URLClassLoader) classLoader, url);
     }
 
-    public static File getOrMakePropertyPath(String key) throws IOException
+    public static File getOrMakePropertyPath(String key)
+            throws IOException
     {
         String repositoryPathString = System.getProperty(key);
         File repositoryPath;
@@ -93,7 +85,8 @@ public class Repositories
         return repositoryPath;
     }
 
-    public static File getOrMakeRepositoryPath() throws IOException
+    public static File getOrMakeRepositoryPath()
+            throws IOException
     {
         return getOrMakePropertyPath(REPOSITORY_PATH_PROPERTY_KEY);
     }
@@ -106,7 +99,8 @@ public class Repositories
     public static long MAX_UNLOCK_WAIT = 1000L;
 
     // https://stackoverflow.com/questions/19447444/fatal-errors-from-openjdk-when-running-fresh-jar-files
-    public static void unlockFile(String jarFileName) throws IOException
+    public static void unlockFile(String jarFileName)
+            throws IOException
     {
         long start = System.currentTimeMillis();
         FileInputStream fis = null;
@@ -137,7 +131,8 @@ public class Repositories
         }
     }
 
-    public static List<URL> resolveUrlsForModule(ClassLoader sourceClassLoader, String moduleName) throws IOException
+    public static List<URL> resolveUrlsForModule(ClassLoader sourceClassLoader, String moduleName)
+            throws IOException
     {
         List<URL> urls = new ArrayList<>();
         File repositoryPath = getOrMakeRepositoryPath();
@@ -148,7 +143,7 @@ public class Repositories
                 File depFile = new File(repositoryPath, dep);
                 depFile.getParentFile().mkdirs();
                 try (InputStream bi = new BufferedInputStream(sourceClassLoader.getResourceAsStream(dep));
-                     OutputStream bo = new BufferedOutputStream(new FileOutputStream(depFile))) {
+                        OutputStream bo = new BufferedOutputStream(new FileOutputStream(depFile))) {
                     byte[] buf = new byte[65536];
                     int anz;
                     while ((anz = bi.read(buf)) != -1) {
@@ -164,19 +159,22 @@ public class Repositories
         return urls;
     }
 
-    public static void setupClassLoaderForModule(ClassLoader sourceClassLoader, ClassLoader targetClassLoader, String moduleName) throws IOException
+    public static void setupClassLoaderForModule(ClassLoader sourceClassLoader, ClassLoader targetClassLoader, String moduleName)
+            throws IOException
     {
         for (URL url : resolveUrlsForModule(sourceClassLoader, moduleName)) {
             addClasspathUrl(targetClassLoader, url);
         }
     }
 
-    public static void setupClassLoaderForModule(ClassLoader classLoader, String moduleName) throws IOException
+    public static void setupClassLoaderForModule(ClassLoader classLoader, String moduleName)
+            throws IOException
     {
         setupClassLoaderForModule(classLoader, classLoader, moduleName);
     }
 
-    public static List<URL> resolveUrlsForModule(String moduleName) throws IOException
+    public static List<URL> resolveUrlsForModule(String moduleName)
+            throws IOException
     {
         Thread[] threads = new Thread[1];
         Thread.enumerate(threads);
@@ -184,7 +182,8 @@ public class Repositories
         return resolveUrlsForModule(classLoader, moduleName);
     }
 
-    public static void removeRecursive(Path path) throws IOException
+    public static void removeRecursive(Path path)
+            throws IOException
     {
         Files.walkFileTree(path, new SimpleFileVisitor<Path>()
         {
@@ -221,68 +220,5 @@ public class Repositories
                 }
             }
         });
-    }
-
-    public static List<Artifact> sortedArtifacts(List<Artifact> artifacts)
-    {
-        List<Artifact> list = Lists.newArrayList(artifacts);
-        Collections.sort(list, Ordering.natural().nullsLast().onResultOf(Artifact::getFile));
-        return list;
-    }
-
-    public static List<URL> resolveModuleClassloaderUrls(String name)
-    {
-        try {
-            if (!Strings.isNullOrEmpty(getRepositoryPath())) {
-                return resolveUrlsForModule(name);
-            }
-            else {
-                ArtifactResolver resolver = new ArtifactResolver(
-                        ArtifactResolver.USER_LOCAL_REPO,
-                        ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
-                File pom = null;
-                for (String prefix : ImmutableList.of("", "../")) {
-                    File f = new File(prefix + name + "/pom.xml");
-                    if (f.exists()) {
-                        pom = f;
-                        break;
-                    }
-                }
-                if (pom == null) {
-                    throw new IOException("pom not found");
-                }
-
-                List<Artifact> artifacts = resolver.resolvePom(pom);
-                artifacts = artifacts.stream().map(a -> {
-                    for (String prefix : ImmutableList.of("", "../")) {
-                        File f = new File(prefix + a.getArtifactId());
-                        if (new File(f, "pom.xml").exists()) {
-                            return new DefaultArtifact(
-                                    a.getGroupId(),
-                                    a.getArtifactId(),
-                                    a.getClassifier(),
-                                    a.getExtension(),
-                                    a.getVersion(),
-                                    a.getProperties(),
-                                    new File(f, "target/classes"));
-                        }
-                    }
-                    return a;
-                }).collect(Collectors.toList());
-
-                List<URL> urls = new ArrayList<>();
-                for (Artifact artifact : sortedArtifacts(artifacts)) {
-                    if (artifact.getFile() == null) {
-                        throw new RuntimeException("Could not resolve artifact: " + artifact);
-                    }
-                    File file = artifact.getFile().getCanonicalFile();
-                    urls.add(file.toURI().toURL());
-                }
-                return urls;
-            }
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
     }
 }
