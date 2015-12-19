@@ -374,6 +374,21 @@ public class LauncherMain
                 builder.add(JvmConfiguration.MAX_HEAP_SIZE.valueOf(new DataSize(sz, DataSize.Unit.BYTE)).toString());
             }
 
+            if (jvmConfig.getGc() != null) {
+                JvmConfig.GcConfig gc = jvmConfig.getGc();
+                if (gc instanceof JvmConfig.G1GcConfig) {
+                    builder.add("-XX:+UseG1GC");
+
+                }
+                else if (gc instanceof JvmConfig.CmsGcConfig) {
+                    builder.add("-XX:+UseConcMarkSweepGC");
+                }
+                else {
+                    throw new IllegalArgumentException(gc.toString());
+                }
+            }
+
+
             builder.addAll(jvmConfig.getOptions());
 
             return builder.build();

@@ -48,7 +48,7 @@ public class HadoopPlugin
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.ConnectorsLoaded) {
-            new HiveMetastore().start();
+            // new HiveMetastore().start();
             HiveConfig hiveConfig = config.getMergedNode(HiveConfig.class);
             for (String name : hiveConfig.getStartMetastores()) {
                 new HiveMetastore().start();

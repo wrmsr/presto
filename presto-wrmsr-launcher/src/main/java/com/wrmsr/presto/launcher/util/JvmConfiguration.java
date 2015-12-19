@@ -67,7 +67,7 @@ fi
                       append to end of bootstrap class path
     -Xbootclasspath/p:<directories and zip/jar files separated by ;>
                       prepend in front of bootstrap class path
-    -Xnoclassgc       disable class garbage collection
+    -XgetHeapnoclassgc       disable class garbage collection
     -Xincgc           enable incremental garbage collection
     -Xloggc:<file>    log GC status to a file with time stamps
     -Xbatch           disable background compilation

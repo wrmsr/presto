@@ -13,13 +13,37 @@
  */
 package com.wrmsr.presto.launcher.config;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.BeanDescription;
+import com.fasterxml.jackson.databind.DeserializationConfig;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
+import com.fasterxml.jackson.databind.deser.ResolvableDeserializer;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.wrmsr.presto.launcher.cluster.SimpleClusterConfig;
+import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 import io.airlift.units.DataSize;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
+import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
+
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class JvmConfig
@@ -159,17 +183,135 @@ public final class JvmConfig
     {
         this.heap = heap;
     }
+//
+//    public static class GcConfigDeserializer
+//            extends StdDeserializer<GcConfig>
+//            implements ResolvableDeserializer
+//    {
+//        private static final long serialVersionUID = 7923585097068641765L;
+//
+//        private final JsonDeserializer<?> defaultDeserializer;
+//
+//        public GcConfigDeserializer(JsonDeserializer<?> defaultDeserializer)
+//        {
+//            super(GcConfig.class);
+//            this.defaultDeserializer = defaultDeserializer;
+//        }
+//
+//        @Override
+//        public GcConfig deserialize(JsonParser jp, DeserializationContext ctxt)
+//                throws IOException
+//        {
+//            GcConfig deserializedGcConfig = (GcConfig) defaultDeserializer.deserialize(jp, ctxt);
+//
+//            // Special logic
+//
+//            return deserializedGcConfig;
+//        }
+//
+//        // for some reason you have to implement ResolvableDeserializer when modifying BeanDeserializer
+//        // otherwise deserializing throws JsonMappingException??
+//        @Override
+//        public void resolve(DeserializationContext ctxt)
+//                throws JsonMappingException
+//        {
+//            ((ResolvableDeserializer) defaultDeserializer).resolve(ctxt);
+//        }
+//    }
+//
+//    public static void main(String[] args)
+//            throws Throwable
+//    {
+//        SimpleModule module = new SimpleModule();
+//        module.setDeserializerModifier(new BeanDeserializerModifier()
+//        {
+//            @Override
+//            public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config, BeanDescription beanDesc, JsonDeserializer<?> deserializer)
+//            {
+//                if (beanDesc.getBeanClass() == GcConfig.class) {
+//                    return new GcConfigDeserializer(deserializer);
+//                }
+//                return deserializer;
+//            }
+//        });
+//
+//        ObjectMapper mapper = new ObjectMapper();
+//        mapper.registerModule(module);
+//        GcConfig user = mapper.readValue("\"g1\"", GcConfig.class);
+//    }
 
-    private String gc;
+
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.WRAPPER_OBJECT
+    )
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = CmsGcConfig.class, name = "cms"),
+            @JsonSubTypes.Type(value = G1GcConfig.class, name = "g1"),
+    })
+    public static abstract class GcConfig
+    {
+//
+//        @JsonCreator
+//        public static GcConfig valueOf(Object object)
+//        {
+//            if (object instanceof String) {
+//                object = ImmutableMap.of((String) object, ImmutableMap.of());
+//            }
+//            Map map = (Map) object;
+//            checkArgument(map.size() == 1);
+//            ObjectMapper mapper = OBJECT_MAPPER.get();
+//            Map<String, Class<?>> nodeTypeMap = Serialization.getJsonSubtypeMap(mapper, GcConfig.class);
+//            Class<?> cls = nodeTypeMap.get(Iterables.getOnlyElement(map.keySet()));
+//            return Serialization.roundTrip(mapper, map, cls);
+//        }
+
+        private boolean debug;
+
+        @JsonProperty("debug")
+        public boolean isDebug()
+        {
+            return debug;
+        }
+
+        @JsonProperty("debug")
+        public void setDebug(boolean debug)
+        {
+            this.debug = debug;
+        }
+    }
+
+    public static final class CmsGcConfig extends GcConfig
+    {
+    }
+
+    public static final class G1GcConfig extends GcConfig
+    {
+        private long maxPauseMillis;
+
+        @JsonProperty("max-pause-millis")
+        public long getMaxPauseMillis()
+        {
+            return maxPauseMillis;
+        }
+
+        @JsonProperty("max-pause-millis")
+        public void setMaxPauseMillis(long maxPauseMillis)
+        {
+            this.maxPauseMillis = maxPauseMillis;
+        }
+    }
+
+    private GcConfig gc;
 
     @JsonProperty("gc")
-    public String getGc()
+    public GcConfig getGc()
     {
         return gc;
     }
 
     @JsonProperty("gc")
-    public void setGc(String gc)
+    public void setGc(GcConfig gc)
     {
         this.gc = gc;
     }
