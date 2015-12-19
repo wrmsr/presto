@@ -285,10 +285,8 @@ public class LauncherBuilder
                 "presto-local-file",
                 "presto-tpch",
                 "presto-redis",
-                "presto-wrmsr-aws",
                 "presto-wrmsr-main",
                 "presto-wrmsr-hadoop",
-                // "presto-wrmsr-mesos",
                 "presto-wrmsr-jython"
                 // "presto-wrmsr-jruby",
                 // "presto-wrmsr-lucene",
