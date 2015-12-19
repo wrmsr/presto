@@ -474,6 +474,8 @@ public class LauncherBuilder
             }
         }
         new File(exePath).setExecutable(true, false);
+
+        new File(outPath).delete();
     }
 }
 
