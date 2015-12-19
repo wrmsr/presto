@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.function.FunctionRegistration;
 
 public class TypeModule
     implements Module
@@ -30,5 +31,11 @@ public class TypeModule
         Multibinder<ParametricType> parametricTypeBinder = Multibinder.newSetBinder(binder, ParametricType.class);
 
         typeBinder.addBinding().toInstance(PropertiesType.PROPERTIES);
+
+        Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
+
+        binder.bind(PropertiesFunction.class).asEagerSingleton();
+        functionRegistrationBinder.addBinding().to(PropertiesFunction.class);
+
     }
 }

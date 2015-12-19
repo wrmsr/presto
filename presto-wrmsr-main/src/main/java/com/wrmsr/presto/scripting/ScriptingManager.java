@@ -13,10 +13,10 @@
  */
 package com.wrmsr.presto.scripting;
 
+import com.google.common.collect.MapMaker;
 import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 import org.apache.commons.lang.NotImplementedException;
 
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import java.util.Map;
@@ -25,7 +25,8 @@ public class ScriptingManager
 {
     private final ScriptingConfig config;
 
-    private volatile Map<String, ScriptEngineProvider> scriptEngineProviders;
+    private volatile Map<String, ScriptEngineProvider> scriptEngineProviders = new MapMaker().makeMap();
+    private volatile Map<String, Scripting> scriptings = new MapMaker().makeMap();
 
     @Inject
     public ScriptingManager(
@@ -33,18 +34,24 @@ public class ScriptingManager
             Map<String, ScriptEngineProvider> scriptEngineProviders)
     {
         this.config = config;
-        this.scriptEngineProviders = scriptEngineProviders;
+        this.scriptEngineProviders.putAll(scriptEngineProviders);
     }
 
-    @PostConstruct
-    private void addConfigScripting()
+    public void addConfigScriptings()
     {
-
+        for (Map.Entry<String, ScriptingConfig.Entry> e : config.getEntries().entrySet()) {
+            addScripting(e.getKey(), e.getValue());
+        }
     }
 
-    public void addScripting(ScriptingConfig.Entry entry)
+    public void addScripting(String name, ScriptingConfig.Entry entry)
     {
+        scriptings.put(name, new Scripting());
+    }
 
+    public void addScriptEngineProvider(ScriptEngineProvider p)
+    {
+        scriptEngineProviders.put(p.getName(), p);
     }
 
     public Scripting getScripting(String name)

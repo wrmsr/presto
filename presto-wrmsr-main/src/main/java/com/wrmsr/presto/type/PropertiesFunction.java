@@ -20,18 +20,22 @@ import com.facebook.presto.spi.block.InterleavedBlockBuilder;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.VarcharType;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.function.StringVarargsFunction;
 import io.airlift.slice.Slice;
+
+import javax.inject.Inject;
 
 import java.lang.invoke.MethodHandle;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class PropertiesFunction
-        extends StringVarargsFunction
+        extends StringVarargsFunction, FunctionRegistration.Self
 {
     private final TypeManager typeManager;
 
+    @Inject
     public PropertiesFunction(TypeManager typeManager)
     {
         super(

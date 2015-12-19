@@ -55,8 +55,10 @@ import com.wrmsr.presto.config.ExecConfig;
 import com.wrmsr.presto.config.PluginsConfig;
 import com.wrmsr.presto.config.PrestoConfig;
 import com.wrmsr.presto.function.FunctionRegistration;
+import com.wrmsr.presto.scripting.ScriptingManager;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.spi.ServerEvent;
+import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 import com.wrmsr.presto.type.PropertiesFunction;
 import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.config.Configs;
@@ -315,19 +317,13 @@ public class MainPlugin
                 connectorManager.addConnectorFactory(cf);
             }
 
-            metadata.addFunctions(
-                    new FunctionListBuilder(typeRegistry)
-                            .function(new PropertiesFunction(typeRegistry))
-                            .getFunctions());
-
-            /*
+            ScriptingManager scriptingManager = getInjector().getInstance(ScriptingManager.class);
             for (Plugin plugin : pluginManager.getLoadedPlugins()) {
                 for (ScriptEngineProvider scriptEngineProvider : plugin.getServices(ScriptEngineProvider.class)) {
-                    log.info("Registering server event listener %s", serverEventListener.getClass().getName());
-                    serverEventListeners.add(serverEventListener);
+                    scriptingManager.addScriptEngineProvider(scriptEngineProvider);
                 }
             }
-            */
+            scriptingManager.addConfigScriptings();
         }
 
         else if (event instanceof ServerEvent.ConnectorsLoaded) {
