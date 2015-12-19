@@ -166,6 +166,12 @@ public class HiveMain
     public static class Metastore extends PassthroughCommand
     {
         @Override
+        public void run()
+        {
+            super.run();
+        }
+
+        @Override
         public void runNothrow()
                 throws Throwable
         {

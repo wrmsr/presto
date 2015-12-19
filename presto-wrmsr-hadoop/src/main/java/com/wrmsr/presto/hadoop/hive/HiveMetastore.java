@@ -36,10 +36,13 @@ public class HiveMetastore
                 }
                 List<URL> urls = Repositories.resolveModuleClassloaderUrls("presto-wrmsr-hadoop");
                 cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), cl);
-                Thread.currentThread().setContextClassLoader(cl);
                 try {
+                    Thread.currentThread().setContextClassLoader(cl);
+                    Class cls = cl.loadClass("com.wrmsr.presto.hadoop.hive.HiveMain$Metastore");
+                    Object instance = cls.newInstance();
+                    cls.getDeclaredMethod("run").invoke(instance);
                     // org.apache.hadoop.hive.metastore.HiveMetaStore.main(new String[] {});
-                    new HiveMain.Metastore().run();
+                    // new HiveMain.Metastore().run();
                 }
                 catch (Throwable e) {
                     throw Throwables.propagate(e);
