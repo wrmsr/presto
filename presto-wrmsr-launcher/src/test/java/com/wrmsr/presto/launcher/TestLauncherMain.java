@@ -19,6 +19,8 @@ import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.util.Serialization;
 import org.testng.annotations.Test;
 
+import java.io.File;
+
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
 public class TestLauncherMain
@@ -37,5 +39,13 @@ public class TestLauncherMain
         System.out.println(mapper.writeValueAsString(config));
         config = Serialization.roundTrip(mapper, ImmutableMap.of("auto-node-id", ImmutableMap.of("file", "foo")), LauncherConfig.class);
         System.out.println(mapper.writeValueAsString(config));
+    }
+
+    @Test
+    public void testMkdirs()
+        throws Throwable
+    {
+        File file = new File("some/deep/dir");
+        file.mkdirs();
     }
 }

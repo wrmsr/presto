@@ -312,6 +312,16 @@ public class LauncherMain
             }
         }
 
+        private void ensureConfigDirs()
+        {
+            for (String dir : config.getMergedNode(LauncherConfig.class).getEnsureDirs()) {
+                File f = new File(dir);
+                if (!f.mkdirs()) {
+                    throw new IllegalStateException("Failed to make dir: " + f.getAbsolutePath());
+                }
+            }
+        }
+
         private List<String> getJvmOptions()
         {
             return getJvmOptions(getConfig().getMergedNode(JvmConfig.class));
@@ -465,6 +475,7 @@ public class LauncherMain
             getConfig();
             configureLoggers();
             setConfigEnv();
+            ensureConfigDirs();
             setConfigSystemProperties();
 
             try {
