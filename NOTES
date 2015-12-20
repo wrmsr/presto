@@ -1,3 +1,20 @@
+com.facebook.presto.operator.PagesIndex
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
 
 
@@ -1921,3 +1938,5 @@ http://www.functionaljava.org/
 https://github.com/aol/cyclops
 http://pcollections.org/
 
+
+http://www.datasciencecentral.com/profiles/blogs/10-popular-java-machine-learning-tools-libraries

@@ -36,7 +36,8 @@ public class FunctionModule
         functionRegistrationBinder.addBinding().toInstance(FunctionRegistration.of(flb -> {
             flb
                     .scalar(CompressionFunctions.class)
-                    .scalar(GrokFunctions.class);
+                    .scalar(GrokFunctions.class)
+                    .scalar(FileFunctions.class);
         }));
     }
 }

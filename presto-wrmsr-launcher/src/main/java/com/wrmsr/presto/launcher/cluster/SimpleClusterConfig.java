@@ -27,7 +27,6 @@ public class SimpleClusterConfig
         private RemoteRunner.Target target;
         private Path root;
         private int port;
-        private Path data;
         private List config;
 
         @JsonProperty("target")
@@ -64,18 +63,6 @@ public class SimpleClusterConfig
         public void setPort(int port)
         {
             this.port = port;
-        }
-
-        @JsonProperty("data")
-        public Path getData()
-        {
-            return data;
-        }
-
-        @JsonProperty("data")
-        public void setData(Path data)
-        {
-            this.data = data;
         }
 
         @JsonProperty("config")

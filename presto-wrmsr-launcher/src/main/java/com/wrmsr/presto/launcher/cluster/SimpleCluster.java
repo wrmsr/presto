@@ -58,8 +58,7 @@ public class SimpleCluster
     {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder()
                 .put("http-server.http.port", Integer.toString(node.getPort()))
-                .put("discovery.uri", buildNodeUri(masterNode))
-                .put("node.data-dir", node.getData().toString());
+                .put("discovery.uri", buildNodeUri(masterNode));
         if (name.equals(config.getMaster())) {
             return ImmutableMap.<String, String>builder()
                     .put("coordinator", "true")
