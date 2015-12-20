@@ -46,7 +46,7 @@ public class FileFunctions
     @ScalarFunction("write_file")
     @Description("write file")
     @SqlType(StandardTypes.BIGINT)
-    public static int isNull(@SqlType(StandardTypes.VARCHAR) Slice path, @SqlType(StandardTypes.VARBINARY) Slice slice)
+    public static long isNull(@SqlType(StandardTypes.VARCHAR) Slice path, @SqlType(StandardTypes.VARBINARY) Slice slice)
     {
         File file = new File(path.toStringUtf8());
         try {
