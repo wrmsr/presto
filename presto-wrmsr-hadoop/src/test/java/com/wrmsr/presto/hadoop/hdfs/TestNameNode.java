@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.hadoop.hive;
+package com.wrmsr.presto.hadoop.hdfs;
 
 import io.airlift.log.Logging;
 import org.apache.hadoop.fs.FileSystem;
