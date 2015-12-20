@@ -26,6 +26,19 @@ public class HiveConfig
 {
     public static class Metastore
     {
+        private Map<String, String> config = ImmutableMap.of();
+
+        @JsonProperty("config")
+        public Map<String, String> getConfig()
+        {
+            return config;
+        }
+
+        @JsonProperty("config")
+        public void setConfig(Map<String, String> config)
+        {
+            this.config = config;
+        }
     }
 
     private Map<String, Metastore> metastores = ImmutableMap.of();

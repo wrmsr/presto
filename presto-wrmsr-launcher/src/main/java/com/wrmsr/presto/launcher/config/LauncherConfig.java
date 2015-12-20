@@ -14,7 +14,9 @@
 package com.wrmsr.presto.launcher.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 
+import java.util.List;
 import java.util.Optional;
 
 public class LauncherConfig
@@ -22,6 +24,20 @@ public class LauncherConfig
 {
     public LauncherConfig()
     {
+    }
+
+    private List<String> createDirs = ImmutableList.of();
+
+    @JsonProperty("create-dirs")
+    public List<String> getCreateDirs()
+    {
+        return createDirs;
+    }
+
+    @JsonProperty("create-dirs")
+    public void setCreateDirs(List<String> createDirs)
+    {
+        this.createDirs = createDirs;
     }
 
     private String pidFile;
