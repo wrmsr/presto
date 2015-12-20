@@ -26,18 +26,18 @@ public class LauncherConfig
     {
     }
 
-    private List<String> createDirs = ImmutableList.of();
+    private List<String> ensureDirs = ImmutableList.of();
 
-    @JsonProperty("create-dirs")
-    public List<String> getCreateDirs()
+    @JsonProperty("ensure-dirs")
+    public List<String> getEnsureDirs()
     {
-        return createDirs;
+        return ensureDirs;
     }
 
-    @JsonProperty("create-dirs")
-    public void setCreateDirs(List<String> createDirs)
+    @JsonProperty("ensure-dirs")
+    public void setEnsureDirs(List<String> ensureDirs)
     {
-        this.createDirs = createDirs;
+        this.ensureDirs = ensureDirs;
     }
 
     private String pidFile;

@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
 
 public class HiveMain
 {
@@ -56,7 +55,8 @@ public class HiveMain
         gitParser.parse(args).run();
     }
 
-    public static abstract class PassthroughCommand implements Runnable
+    public static abstract class PassthroughCommand
+            implements Runnable
     {
         @Arguments(description = "arguments")
         private List<String> args = newArrayList();
@@ -88,12 +88,13 @@ public class HiveMain
             final String match = " xmlns=\"\"";
             int ix = xml.indexOf(match);
             if (ix > 0) {
-                xml = xml.substring(0, ix) + xml.substring(ix+match.length());
+                xml = xml.substring(0, ix) + xml.substring(ix + match.length());
             }
             return xml;
         }
 
-        public String renderConfig(Iterable<Map.Entry<String, String>> properties) throws Throwable
+        public String renderConfig(Iterable<Map.Entry<String, String>> properties)
+                throws Throwable
         {
             StringWriter sw = new StringWriter();
             XmlFactory f = new XmlFactory();
@@ -119,7 +120,8 @@ public class HiveMain
             return xml;
         }
 
-        public void writeConfigs() throws Throwable
+        public void writeConfigs()
+                throws Throwable
         {
             File cfgDir = Files.createTempDir();
             File dataDir = Files.createTempDir();
@@ -152,7 +154,8 @@ public class HiveMain
     }
 
     @Command(name = "cli", description = "Starts hive cli")
-    public static class CliCommand extends PassthroughCommand
+    public static class CliCommand
+            extends PassthroughCommand
     {
         @Override
         public void runNothrow()
@@ -163,7 +166,8 @@ public class HiveMain
     }
 
     @Command(name = "metastore", description = "Starts hive metastore")
-    public static class Metastore extends PassthroughCommand
+    public static class Metastore
+            extends PassthroughCommand
     {
         @Override
         public void run()
