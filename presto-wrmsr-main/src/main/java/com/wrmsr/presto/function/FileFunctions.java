@@ -30,7 +30,7 @@ public class FileFunctions
     @ScalarFunction("read_file")
     @Description("reads file")
     @SqlType(StandardTypes.VARBINARY)
-    public static Slice isNull(@SqlType(StandardTypes.VARCHAR) Slice path)
+    public static Slice readFile(@SqlType(StandardTypes.VARCHAR) Slice path)
     {
         File file = new File(path.toStringUtf8());
         byte[] bytes;
@@ -46,7 +46,7 @@ public class FileFunctions
     @ScalarFunction("write_file")
     @Description("write file")
     @SqlType(StandardTypes.BIGINT)
-    public static long isNull(@SqlType(StandardTypes.VARCHAR) Slice path, @SqlType(StandardTypes.VARBINARY) Slice slice)
+    public static long writeFile(@SqlType(StandardTypes.VARCHAR) Slice path, @SqlType(StandardTypes.VARBINARY) Slice slice)
     {
         File file = new File(path.toStringUtf8());
         try {

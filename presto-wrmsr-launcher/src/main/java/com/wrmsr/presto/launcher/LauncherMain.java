@@ -68,8 +68,11 @@ import java.util.stream.IntStream;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Shell.shellEscape;
+import static com.wrmsr.presto.util.Strings.getSystemProperties;
+import static com.wrmsr.presto.util.Strings.replaceStringVars;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 /*
@@ -305,18 +308,33 @@ public class LauncherMain
             }
         }
 
+        private String getEnvOrSystemProperty(String key)
+        {
+            String value = getPosix().getenv(key.toUpperCase());
+            if (value != null) {
+                return value;
+            }
+            return System.getProperty(key);
+        }
+
+        protected String replaceVars(String text)
+        {
+            return replaceStringVars(text, this::getEnvOrSystemProperty);
+        }
+
         private void setConfigEnv()
         {
             for (Map.Entry<String, String> e : getConfig().getMergedNode(EnvConfig.class)) {
-                getPosix().libc().setenv(e.getKey(), e.getValue(), 1);
+                getPosix().libc().setenv(e.getKey(), replaceVars(e.getValue()), 1);
             }
         }
 
         private void ensureConfigDirs()
         {
             for (String dir : config.getMergedNode(LauncherConfig.class).getEnsureDirs()) {
-                File f = new File(dir);
-                if (!f.mkdirs()) {
+                File f = new File(replaceVars(dir));
+                f.mkdirs();
+                if (!(f.exists() && f.isDirectory())) {
                     throw new IllegalStateException("Failed to make dir: " + f.getAbsolutePath());
                 }
             }
@@ -516,21 +534,16 @@ public class LauncherMain
     {
         private DaemonProcess daemonProcess;
 
-        public String pidFile()
+        private String pidFile()
         {
             return getConfig().getMergedNode(LauncherConfig.class).getPidFile();
-        }
-
-        public synchronized boolean hasPidFile()
-        {
-            return !Strings.isNullOrEmpty(pidFile());
         }
 
         public synchronized DaemonProcess getDaemonProcess()
         {
             if (daemonProcess == null) {
                 checkArgument(!Strings.isNullOrEmpty(pidFile()), "must set pidfile");
-                daemonProcess = new DaemonProcess(new File(pidFile()));
+                daemonProcess = new DaemonProcess(new File(replaceVars(pidFile())));
             }
             return daemonProcess;
         }
@@ -625,7 +638,7 @@ public class LauncherMain
             LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
             for (String prefix : ImmutableList.of("", "2")) {
                 if (!Strings.isNullOrEmpty(config.getLogFile())) {
-                    shBuilder.add(prefix + ">" + shellEscape(config.getLogFile()));
+                    shBuilder.add(prefix + ">" + shellEscape(replaceVars(config.getLogFile())));
                 }
                 else {
                     shBuilder.add(prefix + ">/dev/null");

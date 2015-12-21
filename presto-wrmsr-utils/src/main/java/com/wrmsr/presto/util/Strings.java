@@ -13,35 +13,51 @@
  */
 package com.wrmsr.presto.util;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
+
 public class Strings
 {
-    // TODO: unescape backslash
-    public static String replaceStringVars(String text, Map<String, String> map)
+    public static Map<String, String> getSystemProperties()
     {
-        String pattern = "\\$\\{([A-Za-z0-9]+)\\}";
+        return System.getProperties().entrySet().stream().map(e -> ImmutablePair.of((String) e.getKey(), (String) e.getValue())).collect(toImmutableMap());
+    }
+
+    // TODO: unescape backslash
+    public static String replaceStringVars(String text, Function<String, String> fn)
+    {
+        String pattern = "\\$\\{([A-Za-z0-9\\.\\-_]+)\\}";
         Pattern expr = Pattern.compile(pattern);
         Matcher matcher = expr.matcher(text);
-        String last = text;
+        Set<String> seen = new HashSet<>();
         while (matcher.find()) {
-            String envValue = map.get(matcher.group(1).toUpperCase());
+            String envValue = fn.apply(matcher.group(1));
             if (envValue == null) {
                 envValue = "";
             }
-            else {
-                envValue = envValue.replace("\\", "\\\\");
-            }
             Pattern subexpr = Pattern.compile(Pattern.quote(matcher.group(0)));
             text = subexpr.matcher(text).replaceAll(envValue);
-            if (text.equals(last)) {
+            if (seen.contains(text)) {
                 throw new IllegalArgumentException("Infinite recursion");
             }
-            last = text;
+            seen.add(text);
         }
         return text;
+    }
+
+    public static String replaceStringVars(String text)
+    {
+        return replaceStringVars(text, getSystemProperties()::get);
     }
 
     /*
