@@ -17,6 +17,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.cluster.ClusterCommands;
 import com.wrmsr.presto.launcher.cluster.ClusterConfig;
@@ -282,6 +283,8 @@ public class LauncherMain
                         if (clusterConfig.getConfig() != null) {
                             ConfigContainer updates = Serialization.roundTrip(OBJECT_MAPPER.get(), clusterConfig.getConfig(), ConfigContainer.class);
                             config = (ConfigContainer) config.merge(updates);
+                            config = (ConfigContainer) config.merge(
+                                    Serialization.roundTrip(OBJECT_MAPPER.get(), ImmutableList.of(ImmutableMap.of("launcher", ImmutableMap.of("cluster-name", clusterName))), ConfigContainer.class));
                             setConfigEnv(config);
                             setConfigSystemProperties(config);
                         }
@@ -301,6 +304,8 @@ public class LauncherMain
                                 if (clusterNodeConfig != null) {
                                     ConfigContainer updates = Serialization.roundTrip(OBJECT_MAPPER.get(), clusterNodeConfig, ConfigContainer.class);
                                     config = (ConfigContainer) config.merge(updates);
+                                    config = (ConfigContainer) config.merge(
+                                            Serialization.roundTrip(OBJECT_MAPPER.get(), ImmutableList.of(ImmutableMap.of("launcher", ImmutableMap.of("cluster-node-name", clusterNodeName))), ConfigContainer.class));
                                     setConfigEnv(config);
                                     setConfigSystemProperties(config);
                                 }
