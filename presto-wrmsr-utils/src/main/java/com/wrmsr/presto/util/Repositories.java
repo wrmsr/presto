@@ -110,7 +110,7 @@ public class Repositories
                     byte[] buf = new byte[65536];
                     int anz;
                     while ((anz = fis.read(buf)) != -1) {
-                        read += 0;
+                        read += anz;
                     }
                 }
                 if (read != sz) {
