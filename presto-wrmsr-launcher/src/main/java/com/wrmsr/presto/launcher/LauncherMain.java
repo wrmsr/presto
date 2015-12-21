@@ -42,9 +42,7 @@ import io.airlift.airline.Command;
 import io.airlift.airline.Help;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
-import io.airlift.log.Level;
 import io.airlift.log.Logger;
-import io.airlift.log.Logging;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
 
@@ -61,6 +59,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -491,10 +490,12 @@ public class LauncherMain
 
         private void configureLoggers()
         {
-            Logging logging = Logging.initialize();
-            for (Map.Entry<String, String> entry : getConfig().getMergedNode(LogConfig.class).getEntries().entrySet()) {
-                Level level = Level.valueOf(entry.getValue().toString().toUpperCase(Locale.US));
-                logging.setLevel(entry.getKey(), level);
+            for (Map.Entry<String, String> e : getConfig().getMergedNode(LogConfig.class).getEntries().entrySet()) {
+                java.util.logging.Logger log = java.util.logging.Logger.getLogger(e.getKey());
+                if (log != null) {
+                    Level level = Level.parse(e.getValue().toUpperCase());
+                    log.setLevel(level);
+                }
             }
         }
 
@@ -503,7 +504,6 @@ public class LauncherMain
         {
             setArgSystemProperties();
             getConfig();
-            configureLoggers();
             ensureConfigDirs();
 
             try {
