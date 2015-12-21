@@ -39,7 +39,7 @@ public class SshRemoteRunner
     {
         ImmutableList.Builder<String> builder = ImmutableList.builder();
         if (target.getAuth() instanceof IdentityFileAuth) {
-            builder.add("-i", ((IdentityFileAuth) target.getAuth()).getIdentityFile().getAbsolutePath());
+            builder.add("-i", new File(((IdentityFileAuth) target.getAuth()).getIdentityFile()).getAbsolutePath());
         }
         else {
             throw new IllegalArgumentException(Objects.toString(target.getAuth()));
@@ -176,7 +176,7 @@ public class SshRemoteRunner
                                 "dev8-devc",
                                 22,
                                 "wtimoney",
-                                new IdentityFileAuth(new File(System.getProperty("user.home") + "/.ssh/id_rsa")),
+                                new IdentityFileAuth(System.getProperty("user.home") + "/.ssh/id_rsa"),
                                 "presto"),
                         "touch", "hi");
     }

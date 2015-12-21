@@ -17,9 +17,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
 import com.sun.management.OperatingSystemMXBean;
+import com.wrmsr.presto.launcher.cluster.ClusterCommands;
 import com.wrmsr.presto.launcher.cluster.ClusterConfig;
 import com.wrmsr.presto.launcher.cluster.ClusterUtils;
 import com.wrmsr.presto.launcher.cluster.ClustersConfig;
@@ -42,38 +41,33 @@ import io.airlift.airline.Command;
 import io.airlift.airline.Help;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import io.airlift.log.Level;
 import io.airlift.log.Logger;
-import io.airlift.resolver.ArtifactResolver;
-import io.airlift.resolver.DefaultArtifact;
+import io.airlift.log.Logging;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
-import org.sonatype.aether.artifact.Artifact;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Method;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Jvm.getJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Shell.shellEscape;
-import static com.wrmsr.presto.util.Strings.getSystemProperties;
 import static com.wrmsr.presto.util.Strings.replaceStringVars;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
@@ -182,6 +176,7 @@ public class LauncherMain
                         Restart.class,
                         Status.class,
                         Kill.class,
+                        ClusterCommand.class,
                         CliCommand.class,
                         H2.class,
                         Hive.class,
@@ -190,9 +185,8 @@ public class LauncherMain
                         Nashorn.class
                 );
 
-        Cli<Runnable> gitParser = builder.build();
-
-        gitParser.parse(args).run();
+        Cli<Runnable> cliParser = builder.build();
+        cliParser.parse(args).run();
     }
 
     @Command(name = "launch", description = "Launches presto server (argless)")
@@ -232,7 +226,7 @@ public class LauncherMain
     }
 
     public static abstract class LauncherCommand
-            implements Runnable
+            implements Runnable, LauncherSupport
     {
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
         public List<String> configFiles = new ArrayList<>();
@@ -259,6 +253,7 @@ public class LauncherMain
         {
         }
 
+        @Override
         public synchronized ConfigContainer getConfig()
         {
             if (this.config == null) {
@@ -315,7 +310,7 @@ public class LauncherMain
                 }
 
                 PrestoConfigs.writeConfigProperties(config);
-                this.config  = config;
+                this.config = config;
             }
             return this.config;
         }
@@ -344,7 +339,8 @@ public class LauncherMain
             return System.getProperty(key);
         }
 
-        protected String replaceVars(String text)
+        @Override
+        public String replaceVars(String text)
         {
             return replaceStringVars(text, this::getEnvOrSystemProperty);
         }
@@ -435,7 +431,6 @@ public class LauncherMain
                 JvmConfig.GcConfig gc = jvmConfig.getGc();
                 if (gc instanceof JvmConfig.G1GcConfig) {
                     builder.add("-XX:+UseG1GC");
-
                 }
                 else if (gc instanceof JvmConfig.CmsGcConfig) {
                     builder.add("-XX:+UseConcMarkSweepGC");
@@ -444,7 +439,6 @@ public class LauncherMain
                     throw new IllegalArgumentException(gc.toString());
                 }
             }
-
 
             builder.addAll(jvmConfig.getOptions());
 
@@ -492,12 +486,10 @@ public class LauncherMain
 
         private void configureLoggers()
         {
-            for (Map.Entry<String, String> e : getConfig().getMergedNode(LogConfig.class).getEntries().entrySet()) {
-                java.util.logging.Logger log = java.util.logging.Logger.getLogger(e.getKey());
-                if (log != null) {
-                    Level level = Level.parse(e.getValue().toUpperCase());
-                    log.setLevel(level);
-                }
+            Logging logging = Logging.initialize();
+            for (Map.Entry<String, String> entry : getConfig().getMergedNode(LogConfig.class).getEntries().entrySet()) {
+                Level level = Level.valueOf(entry.getValue().toString().toUpperCase(Locale.US));
+                logging.setLevel(entry.getKey(), level);
             }
         }
 
@@ -743,6 +735,23 @@ public class LauncherMain
             else {
                 throw new IllegalArgumentException();
             }
+        }
+    }
+
+    @Command(name = "cluster", description = "Runs cluster command")
+    public static class ClusterCommand
+            extends LauncherCommand
+    {
+        @Arguments(description = "arguments")
+        private List<String> args = newArrayList();
+
+        @Override
+        public void innerRun()
+                throws Throwable
+        {
+            deleteRepositoryOnExit();
+            String[] args = this.args.toArray(new String[this.args.size()]);
+            ClusterCommands.main(this, args);
         }
     }
 

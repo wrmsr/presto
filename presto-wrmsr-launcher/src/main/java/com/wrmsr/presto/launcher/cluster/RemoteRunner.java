@@ -15,44 +15,61 @@ package com.wrmsr.presto.launcher.cluster;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Optional;
 
 public abstract class RemoteRunner
 {
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.WRAPPER_OBJECT
+    )
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = PasswordAuth.class, name = "password"),
+            @JsonSubTypes.Type(value = IdentityFileAuth.class, name = "identity-file"),
+    })
     public static abstract class Auth
     {
     }
 
-    public static final class PasswordAuth extends Auth
+    public static final class PasswordAuth
+            extends Auth
     {
-        private final String password;
+        private String password;
 
-        public PasswordAuth(String password)
+        @JsonCreator
+        public PasswordAuth(
+                @JsonProperty("password") String password)
         {
             this.password = password;
         }
 
+        @JsonProperty("password")
         public String getPassword()
         {
             return password;
         }
     }
 
-    public static final class IdentityFileAuth extends Auth
+    public static final class IdentityFileAuth
+            extends Auth
     {
-        private final File identityFile;
+        private final String identityFile;
 
-        public IdentityFileAuth(File identityFile)
+        @JsonCreator
+        public IdentityFileAuth(
+                @JsonProperty("file") String identityFile)
         {
             this.identityFile = identityFile;
         }
 
-        public File getIdentityFile()
+        @JsonProperty("file")
+        public String getIdentityFile()
         {
             return identityFile;
         }
@@ -144,7 +161,8 @@ public abstract class RemoteRunner
     @FunctionalInterface
     public interface Handler
     {
-        void handle(OutputStream stdin, InputStream stdout, InputStream stderr) throws IOException;
+        void handle(OutputStream stdin, InputStream stdout, InputStream stderr)
+                throws IOException;
     }
 
     public abstract void syncDirectories(Target target, File local, String remote);

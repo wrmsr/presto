@@ -38,15 +38,17 @@ public class Strings
     {
         String pattern = "\\$\\{([A-Za-z0-9\\.\\-_]+)\\}";
         Pattern expr = Pattern.compile(pattern);
-        Matcher matcher = expr.matcher(text);
         Set<String> seen = new HashSet<>();
-        while (matcher.find()) {
+        while (true) {
+            Matcher matcher = expr.matcher(text);
+            if (!matcher.find()) {
+                break;
+            }
             String envValue = fn.apply(matcher.group(1));
             if (envValue == null) {
                 envValue = "";
             }
-            Pattern subexpr = Pattern.compile(Pattern.quote(matcher.group(0)));
-            text = subexpr.matcher(text).replaceAll(envValue);
+            text = text.substring(0, matcher.start()) + envValue + text.substring(matcher.end());
             if (seen.contains(text)) {
                 throw new IllegalArgumentException("Infinite recursion");
             }

@@ -86,7 +86,12 @@ public class POSIXUtils {
         }
     };
 
-    public static POSIX getPOSIX() {
-        return POSIXFactory.getPOSIX(DEFAULT_HANDLER, true);
+    private static POSIX posix;
+
+    public static synchronized POSIX getPOSIX() {
+        if (posix == null) {
+            posix = POSIXFactory.getPOSIX(DEFAULT_HANDLER, true);
+        }
+        return posix;
     }
 }
