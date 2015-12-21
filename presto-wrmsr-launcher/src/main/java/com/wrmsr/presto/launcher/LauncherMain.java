@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.cluster.ClusterConfig;
+import com.wrmsr.presto.launcher.cluster.ClusterUtils;
 import com.wrmsr.presto.launcher.cluster.ClustersConfig;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.config.EnvConfig;
@@ -266,11 +267,13 @@ public class LauncherMain
                     PrestoConfigs.setConfigItem(parts[0], parts[1]);
                 }
                 ConfigContainer config = PrestoConfigs.loadConfig(getClass(), ConfigContainer.class, configFiles);
+                setConfigEnv(config);
+                setConfigSystemProperties(config);
 
                 LauncherConfig launcherConfig = config.getMergedNode(LauncherConfig.class);
                 ClustersConfig clustersConfig = config.getMergedNode(ClustersConfig.class);
                 if (!Strings.isNullOrEmpty(launcherConfig.getClusterNameFile())) {
-                    File clusterNameFile = new File(launcherConfig.getClusterNameFile());
+                    File clusterNameFile = new File(replaceVars(launcherConfig.getClusterNameFile()));
                     if (clusterNameFile.exists()) {
                         String clusterName;
                         try {
@@ -284,12 +287,35 @@ public class LauncherMain
                         if (clusterConfig.getConfig() != null) {
                             ConfigContainer updates = Serialization.roundTrip(OBJECT_MAPPER.get(), clusterConfig.getConfig(), ConfigContainer.class);
                             config = (ConfigContainer) config.merge(updates);
+                            setConfigEnv(config);
+                            setConfigSystemProperties(config);
+                        }
+
+                        if (!Strings.isNullOrEmpty(launcherConfig.getClusterNodeNameFile())) {
+                            File clusterNodeNameFile = new File(replaceVars(launcherConfig.getClusterNodeNameFile()));
+                            if (clusterNodeNameFile.exists()) {
+                                String clusterNodeName;
+                                try {
+                                    clusterNodeName = new String(Files.readAllBytes(clusterNodeNameFile.toPath())).trim();
+                                }
+                                catch (IOException e) {
+                                    throw Throwables.propagate(e);
+                                }
+
+                                List clusterNodeConfig = ClusterUtils.getNodeConfig(clusterConfig, clusterNodeName);
+                                if (clusterNodeConfig != null) {
+                                    ConfigContainer updates = Serialization.roundTrip(OBJECT_MAPPER.get(), clusterNodeConfig, ConfigContainer.class);
+                                    config = (ConfigContainer) config.merge(updates);
+                                    setConfigEnv(config);
+                                    setConfigSystemProperties(config);
+                                }
+                            }
                         }
                     }
                 }
 
                 PrestoConfigs.writeConfigProperties(config);
-                this.config = config;
+                this.config  = config;
             }
             return this.config;
         }
@@ -302,9 +328,9 @@ public class LauncherMain
             }
         }
 
-        private void setConfigSystemProperties()
+        private void setConfigSystemProperties(ConfigContainer config)
         {
-            for (Map.Entry<String, String> e : getConfig().getMergedNode(SystemConfig.class)) {
+            for (Map.Entry<String, String> e : config.getMergedNode(SystemConfig.class)) {
                 System.setProperty(e.getKey(), e.getValue());
             }
         }
@@ -323,9 +349,9 @@ public class LauncherMain
             return replaceStringVars(text, this::getEnvOrSystemProperty);
         }
 
-        private void setConfigEnv()
+        private void setConfigEnv(ConfigContainer config)
         {
-            for (Map.Entry<String, String> e : getConfig().getMergedNode(EnvConfig.class)) {
+            for (Map.Entry<String, String> e : config.getMergedNode(EnvConfig.class)) {
                 getPosix().libc().setenv(e.getKey(), replaceVars(e.getValue()), 1);
             }
         }
@@ -481,9 +507,7 @@ public class LauncherMain
             setArgSystemProperties();
             getConfig();
             configureLoggers();
-            setConfigEnv();
             ensureConfigDirs();
-            setConfigSystemProperties();
 
             try {
                 innerRun();

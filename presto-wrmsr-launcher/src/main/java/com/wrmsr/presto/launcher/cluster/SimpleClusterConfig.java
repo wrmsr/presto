@@ -14,22 +14,23 @@
 package com.wrmsr.presto.launcher.cluster;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 public class SimpleClusterConfig
-    extends ClusterConfig<SimpleClusterConfig.Node>
+        extends ClusterConfig
 {
-    public static class Node extends ClusterConfig.Node
+    public static final class Node
     {
         private RemoteRunner.Target target;
         private Path root;
         private int port;
-        private List config;
+        private List config = ImmutableList.of();
 
-        @JsonProperty("target")
         public RemoteRunner.Target getTarget()
         {
             return target;
@@ -78,7 +79,7 @@ public class SimpleClusterConfig
         }
     }
 
-    private Map defaults;
+    private Map defaults = ImmutableMap.of();
 
     @JsonProperty("defaults")
     public Map getDefaults()
@@ -92,7 +93,7 @@ public class SimpleClusterConfig
         this.defaults = defaults;
     }
 
-    private Map<String, Node> nodes;
+    private Map<String, Node> nodes = ImmutableMap.of();
 
     @JsonProperty("nodes")
     public Map<String, Node> getNodes()

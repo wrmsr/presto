@@ -16,6 +16,7 @@ package com.wrmsr.presto.launcher.cluster;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
@@ -26,13 +27,9 @@ import java.util.List;
 @JsonSubTypes({
         @JsonSubTypes.Type(value = SimpleClusterConfig.class, name = "simple"),
 })
-public abstract class ClusterConfig<N extends ClusterConfig.Node>
+public abstract class ClusterConfig
 {
-    public static abstract class Node
-    {
-    }
-
-    private List config;
+    private List config = ImmutableList.of();
 
     @JsonProperty("config")
     public List getConfig()
