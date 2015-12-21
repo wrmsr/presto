@@ -315,7 +315,7 @@ public class LauncherMain
                     }
                 }
 
-                PrestoConfigs.writeConfigProperties(config);
+                PrestoConfigs.writeConfigProperties(config, this::replaceVars);
                 this.config = config;
             }
             return this.config;
@@ -332,7 +332,7 @@ public class LauncherMain
         private void setConfigSystemProperties(ConfigContainer config)
         {
             for (Map.Entry<String, String> e : config.getMergedNode(SystemConfig.class)) {
-                System.setProperty(e.getKey(), e.getValue());
+                System.setProperty(e.getKey(), replaceVars(e.getValue()));
             }
         }
 
@@ -738,6 +738,8 @@ public class LauncherMain
     public static class Status
             extends DaemonCommand
     {
+        // TODO optional wait time
+
         @Override
         public void innerRun()
                 throws Throwable

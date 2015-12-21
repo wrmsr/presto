@@ -23,6 +23,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static com.wrmsr.presto.util.Jvm.getJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
@@ -91,13 +92,19 @@ public class PrestoConfigs
         return config;
     }
 
-    public static void writeConfigProperties(Object config)
+    public static void writeConfigProperties(Object config, Function<String, String> rewriter)
     {
         Object objectConfig = Serialization.roundTrip(OBJECT_MAPPER.get(), config, Object.class);
         HierarchicalConfiguration hierarchicalConfig = Configs.OBJECT_CONFIG_CODEC.encode(objectConfig);
         Map<String, String> flatConfig = Configs.CONFIG_PROPERTIES_CODEC.encode(hierarchicalConfig);
         Map<String, String> configMap = transformKeys(flatConfig, k -> CONFIG_PROPERTIES_PREFIX + k);
-        configMap.entrySet().stream().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
+        Map<String, String> rewrittenConfigMap = configMap.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), rewriter.apply(e.getValue()))).collect(toImmutableMap());
+        rewrittenConfigMap.entrySet().stream().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
+    }
+
+    public static void writeConfigProperties(Object config)
+    {
+        writeConfigProperties(config, s -> s);
     }
 
     public static <T extends MergeableConfigContainer<?>> T loadConfigFromProperties(Class<T> cls)
