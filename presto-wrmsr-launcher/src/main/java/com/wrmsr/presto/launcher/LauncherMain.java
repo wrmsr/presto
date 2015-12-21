@@ -639,7 +639,7 @@ public class LauncherMain
     {
         public void run(boolean restart)
         {
-            if (!getDaemonProcess().alive()) {
+            if (getDaemonProcess().alive()) {
                 if (restart) {
                     getDaemonProcess().stop();
                 }
