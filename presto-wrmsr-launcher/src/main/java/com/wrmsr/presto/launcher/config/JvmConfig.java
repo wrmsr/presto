@@ -13,37 +13,14 @@
  */
 package com.wrmsr.presto.launcher.config;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.BeanDescription;
-import com.fasterxml.jackson.databind.DeserializationConfig;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
-import com.fasterxml.jackson.databind.deser.ResolvableDeserializer;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.wrmsr.presto.launcher.cluster.SimpleClusterConfig;
-import com.wrmsr.presto.util.Serialization;
-import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 import io.airlift.units.DataSize;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
-import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
-
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public final class JvmConfig
@@ -69,32 +46,49 @@ public final class JvmConfig
         this.alreadyConfigured = alreadyConfigured;
     }
 
-    private Integer debugPort;
-
-    @JsonProperty("debug-port")
-    public Integer getDebugPort()
+    public static final class DebugConfig
     {
-        return debugPort;
+        private Integer port;
+
+        @JsonProperty("port")
+        public Integer getPort()
+        {
+            return port;
+        }
+
+        @JsonProperty("port")
+        public void setPort(Integer port)
+        {
+            this.port = port;
+        }
+
+        private boolean suspend;
+
+        @JsonProperty("suspend")
+        public boolean isSuspend()
+        {
+            return suspend;
+        }
+
+        @JsonProperty("suspend")
+        public void setSuspend(boolean suspend)
+        {
+            this.suspend = suspend;
+        }
     }
 
-    @JsonProperty("debug-port")
-    public void setDebugPort(Integer debugPort)
+    private DebugConfig debug;
+
+    @JsonProperty("debug")
+    public DebugConfig getDebug()
     {
-        this.debugPort = debugPort;
+        return debug;
     }
 
-    private boolean debugSuspend;
-
-    @JsonProperty("debug-suspend")
-    public boolean isDebugSuspend()
+    @JsonProperty("debug")
+    public void setDebug(DebugConfig debug)
     {
-        return debugSuspend;
-    }
-
-    @JsonProperty("debug-suspend")
-    public void setDebugSuspend(boolean debugSuspend)
-    {
-        this.debugSuspend = debugSuspend;
+        this.debug = debug;
     }
 
     public static final class HeapConfig
@@ -240,7 +234,6 @@ public final class JvmConfig
 //        GcConfig user = mapper.readValue("\"g1\"", GcConfig.class);
 //    }
 
-
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
             include = JsonTypeInfo.As.WRAPPER_OBJECT
@@ -281,11 +274,13 @@ public final class JvmConfig
         }
     }
 
-    public static final class CmsGcConfig extends GcConfig
+    public static final class CmsGcConfig
+            extends GcConfig
     {
     }
 
-    public static final class G1GcConfig extends GcConfig
+    public static final class G1GcConfig
+            extends GcConfig
     {
         private long maxPauseMillis;
 

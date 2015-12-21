@@ -353,9 +353,10 @@ public class LauncherMain
 
             ImmutableList.Builder<String> builder = ImmutableList.builder();
 
-            if (jvmConfig.getDebugPort() != null) {
+            JvmConfig.DebugConfig debug = jvmConfig.getDebug();
+            if (debug != null && debug.getPort() != null) {
                 builder.add(JvmConfiguration.DEBUG.valueOf().toString());
-                builder.add(JvmConfiguration.REMOTE_DEBUG.valueOf(jvmConfig.getDebugPort(), jvmConfig.isDebugSuspend()).toString());
+                builder.add(JvmConfiguration.REMOTE_DEBUG.valueOf(debug.getPort(), debug.isSuspend()).toString());
             }
 
             if (jvmConfig.getHeap() != null) {
