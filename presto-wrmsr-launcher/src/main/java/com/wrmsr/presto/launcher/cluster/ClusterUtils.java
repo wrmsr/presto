@@ -16,6 +16,8 @@ package com.wrmsr.presto.launcher.cluster;
 import java.util.List;
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class ClusterUtils
 {
     // TODO: uh oh. guess its about time the launcher got guiced.
@@ -23,7 +25,9 @@ public class ClusterUtils
     public static List getNodeConfig(ClusterConfig clusterConfig, String nodeName)
     {
         if (clusterConfig instanceof SimpleClusterConfig) {
-            return ((SimpleClusterConfig) clusterConfig).getNodes().get(nodeName).getConfig();
+            SimpleClusterConfig.Node nodeConfig = ((SimpleClusterConfig) clusterConfig).getNodes().get(nodeName);
+            checkNotNull(nodeConfig, "Node not found in cluster: " + nodeName);
+            return nodeConfig.getConfig();
         }
         else {
             throw new IllegalArgumentException(Objects.toString(clusterConfig));
