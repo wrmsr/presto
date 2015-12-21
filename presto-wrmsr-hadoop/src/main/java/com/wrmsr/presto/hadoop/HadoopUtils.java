@@ -15,7 +15,6 @@ package com.wrmsr.presto.hadoop;
 
 import com.fasterxml.jackson.dataformat.xml.XmlFactory;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
-import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 
 import javax.xml.namespace.QName;
@@ -71,7 +70,7 @@ public class HadoopUtils
         return xml;
     }
 
-    public static URL writeConfigs(Map<String, String> properties)
+    public static URL writeConfigs(String fileName, Map<String, String> properties)
             throws Throwable
     {
         File cfgDir = Files.createTempDir();
@@ -79,11 +78,9 @@ public class HadoopUtils
         dataDir.deleteOnExit();
 
         String xml = renderConfig(properties.entrySet());
-        for (String f : ImmutableList.of("hive-site.xml")) {
-            try (FileOutputStream fos = new FileOutputStream(new File(cfgDir, f));
-                    BufferedOutputStream bos = new BufferedOutputStream(fos)) {
-                bos.write(xml.getBytes());
-            }
+        try (FileOutputStream fos = new FileOutputStream(new File(cfgDir, fileName));
+                BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+            bos.write(xml.getBytes());
         }
 
         return cfgDir.getAbsoluteFile().toURL();

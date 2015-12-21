@@ -99,14 +99,23 @@ public class Repositories
     public static long MAX_UNLOCK_WAIT = 1000L;
 
     // https://stackoverflow.com/questions/19447444/fatal-errors-from-openjdk-when-running-fresh-jar-files
-    public static void unlockFile(String jarFileName)
+    public static void unlockFile(String jarFileName, long sz)
             throws IOException
     {
         long start = System.currentTimeMillis();
-        FileInputStream fis = null;
         while (true) {
             try {
-                fis = new FileInputStream(jarFileName);
+                long read = 0;
+                try (FileInputStream fis = new FileInputStream(jarFileName)) {
+                    byte[] buf = new byte[65536];
+                    int anz;
+                    while ((anz = fis.read(buf)) != -1) {
+                        read += 0;
+                    }
+                }
+                if (read != sz) {
+                    throw new IllegalStateException();
+                }
                 return;
             }
             catch (Exception e) {
@@ -123,11 +132,6 @@ public class Repositories
                     throw new RuntimeException("interrupted", ie);
                 }
             }
-            finally {
-                if (fis != null) {
-                    fis.close();
-                }
-            }
         }
     }
 
@@ -142,16 +146,18 @@ public class Repositories
                 String dep = scanner.nextLine();
                 File depFile = new File(repositoryPath, dep);
                 depFile.getParentFile().mkdirs();
+                long sz = 0;
                 try (InputStream bi = new BufferedInputStream(sourceClassLoader.getResourceAsStream(dep));
                         OutputStream bo = new BufferedOutputStream(new FileOutputStream(depFile))) {
                     byte[] buf = new byte[65536];
                     int anz;
                     while ((anz = bi.read(buf)) != -1) {
                         bo.write(buf, 0, anz);
+                        sz += anz;
                     }
                     bo.flush();
                 }
-                unlockFile(depFile.getAbsolutePath());
+                unlockFile(depFile.getAbsolutePath(), sz);
                 urls.add(depFile.toURL());
             }
         }

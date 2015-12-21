@@ -24,6 +24,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
+import static com.wrmsr.presto.util.Jvm.getJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
@@ -59,15 +60,20 @@ public class PrestoConfigs
     }
 
     @SuppressWarnings({"unchecked"})
-    public static <T extends MergeableConfigContainer<?>> T loadConfig(Class<T> cls, List<String> filePaths)
+    public static <T extends MergeableConfigContainer<?>> T loadConfig(Class<?> caller, Class<T> cls, List<String> filePaths)
     {
         List<File> files;
         if (filePaths.isEmpty()) {
-            if (!DEFAULT_CONFIG_FILE.exists()) {
-                files = ImmutableList.of();
+            files = ImmutableList.of();
+            if (DEFAULT_CONFIG_FILE.exists()) {
+                files = ImmutableList.of(DEFAULT_CONFIG_FILE);
             }
             else {
-                files = ImmutableList.of(DEFAULT_CONFIG_FILE);
+                File jarFile = getJarFile(caller);
+                File file = new File(jarFile.getParentFile(), DEFAULT_CONFIG_FILE.getPath());
+                if (file.exists()) {
+                    files = ImmutableList.of(file);
+                }
             }
         }
         else {

@@ -13,10 +13,16 @@
  */
 package com.wrmsr.presto.util;
 
+import com.google.common.base.Throwables;
+
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+
+import static com.google.common.base.Preconditions.checkState;
 
 public class Jvm
 {
@@ -40,5 +46,18 @@ public class Jvm
     public static void addClasspathUrl(ClassLoader classLoader, URL url) throws IOException
     {
         addClasspathUrl((URLClassLoader) classLoader, url);
+    }
+
+    public static File getJarFile(Class cls)
+    {
+        File jar;
+        try {
+            jar = new File(cls.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+        }
+        catch (URISyntaxException e) {
+            throw Throwables.propagate(e);
+        }
+        checkState(jar.exists());
+        return jar;
     }
 }

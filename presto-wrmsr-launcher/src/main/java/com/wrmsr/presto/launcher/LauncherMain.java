@@ -69,6 +69,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.wrmsr.presto.util.Jvm.getJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Shell.shellEscape;
 import static com.wrmsr.presto.util.Strings.getSystemProperties;
@@ -264,7 +265,7 @@ public class LauncherMain
                     String[] parts = splitProperty(prop);
                     PrestoConfigs.setConfigItem(parts[0], parts[1]);
                 }
-                ConfigContainer config = PrestoConfigs.loadConfig(ConfigContainer.class, configFiles);
+                ConfigContainer config = PrestoConfigs.loadConfig(getClass(), ConfigContainer.class, configFiles);
 
                 LauncherConfig launcherConfig = config.getMergedNode(LauncherConfig.class);
                 ClustersConfig clustersConfig = config.getMergedNode(ClustersConfig.class);
@@ -422,19 +423,6 @@ public class LauncherMain
             builder.addAll(jvmConfig.getOptions());
 
             return builder.build();
-        }
-
-        public static File getJarFile(Class cls)
-        {
-            File jar;
-            try {
-                jar = new File(cls.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
-            }
-            catch (URISyntaxException e) {
-                throw Throwables.propagate(e);
-            }
-            checkState(jar.exists());
-            return jar;
         }
 
         public static File getJvm()
@@ -639,7 +627,7 @@ public class LauncherMain
             LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
             for (String prefix : ImmutableList.of("", "2")) {
                 if (!Strings.isNullOrEmpty(config.getLogFile())) {
-                    shBuilder.add(prefix + ">" + shellEscape(replaceVars(config.getLogFile())));
+                    shBuilder.add(prefix + ">>" + shellEscape(replaceVars(config.getLogFile())));
                 }
                 else {
                     shBuilder.add(prefix + ">/dev/null");
