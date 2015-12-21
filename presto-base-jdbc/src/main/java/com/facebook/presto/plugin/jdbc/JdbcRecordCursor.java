@@ -34,6 +34,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -65,7 +66,7 @@ public class JdbcRecordCursor
     {
         this.jdbcClient = jdbcClient;
         this.split = split;
-        this.columnHandles = ImmutableList.copyOf(requireNonNull(columnHandles, "columnHandles is null"));
+        this.columnHandles = new ArrayList<>(requireNonNull(columnHandles, "columnHandles is null"));
 
         String sql = jdbcClient.buildSql(split, columnHandles);
 

@@ -13,10 +13,8 @@
  */
 package com.wrmsr.presto.util;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -24,10 +22,18 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 public class Strings
 {
+    public static String[] splitProperty(String prop)
+    {
+        int pos = prop.indexOf("=");
+        checkArgument(pos > 0);
+        return new String[] {prop.substring(0, pos), prop.substring(pos + 1)};
+    }
+
     public static Map<String, String> getSystemProperties()
     {
         return System.getProperties().entrySet().stream().map(e -> ImmutablePair.of((String) e.getKey(), (String) e.getValue())).collect(toImmutableMap());

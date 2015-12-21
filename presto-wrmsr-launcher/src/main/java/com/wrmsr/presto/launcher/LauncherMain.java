@@ -71,6 +71,7 @@ import static com.wrmsr.presto.util.Jvm.getJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Shell.shellEscape;
 import static com.wrmsr.presto.util.Strings.replaceStringVars;
+import static com.wrmsr.presto.util.Strings.splitProperty;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 /*
@@ -218,13 +219,6 @@ public class LauncherMain
             autoConfigure();
             runStaticMethod(getClassloaderUrls(), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[] {String[].class}, new Object[] {new String[] {}});
         }
-    }
-
-    private static String[] splitProperty(String prop)
-    {
-        int pos = prop.indexOf("=");
-        checkArgument(pos > 0);
-        return new String[] {prop.substring(0, pos), prop.substring(pos + 1)};
     }
 
     public static abstract class LauncherCommand
