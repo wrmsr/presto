@@ -26,7 +26,7 @@ public class LauncherConfig
     {
     }
 
-    private List<String> ensureDirs = ImmutableList.of();
+    private List<String> ensureDirs;
 
     @JsonProperty("ensure-dirs")
     public List<String> getEnsureDirs()

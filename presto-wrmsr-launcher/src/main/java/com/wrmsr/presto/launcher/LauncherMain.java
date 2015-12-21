@@ -62,6 +62,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.stream.IntStream;
 
+import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
@@ -358,7 +359,7 @@ public class LauncherMain
 
         private void ensureConfigDirs()
         {
-            for (String dir : config.getMergedNode(LauncherConfig.class).getEnsureDirs()) {
+            for (String dir : firstNonNull(config.getMergedNode(LauncherConfig.class).getEnsureDirs(), ImmutableList.<String>of())) {
                 File f = new File(replaceVars(dir));
                 f.mkdirs();
                 if (!(f.exists() && f.isDirectory())) {

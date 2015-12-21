@@ -14,6 +14,7 @@
 package com.wrmsr.presto.util.config.mergeable;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.wrmsr.presto.util.Mergeable;
 import com.wrmsr.presto.util.Serialization;
@@ -40,6 +41,6 @@ public interface MergeableConfig<N extends MergeableConfig>
         for (Map.Entry<String, Object> entry : otherMap.entrySet()) {
             newMap.put(entry.getKey(), entry.getValue());
         }
-        return Serialization.roundTrip(mapper, otherMap, (Class<N>) getClass());
+        return Serialization.roundTrip(mapper, ImmutableMap.of(name, newMap), (Class<N>) getClass());
     }
 }
