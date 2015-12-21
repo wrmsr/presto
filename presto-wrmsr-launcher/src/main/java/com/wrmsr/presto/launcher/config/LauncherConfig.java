@@ -54,6 +54,22 @@ public class LauncherConfig
         this.pidFile = pidFile;
     }
 
+    public static final String PID_FILE_FD_KEY = "pid-file-fd";
+
+    private Integer pidFileFd;
+
+    @JsonProperty(PID_FILE_FD_KEY)
+    public Integer getPidFileFd()
+    {
+        return pidFileFd;
+    }
+
+    @JsonProperty(PID_FILE_FD_KEY)
+    public void setPidFileFd(Integer pidFileFd)
+    {
+        this.pidFileFd = pidFileFd;
+    }
+
     private String logFile;
 
     @JsonProperty("log-file")

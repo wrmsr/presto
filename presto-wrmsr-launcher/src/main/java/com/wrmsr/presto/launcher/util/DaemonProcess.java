@@ -13,11 +13,15 @@
  */
 package com.wrmsr.presto.launcher.util;
 
+import jnr.constants.platform.Fcntl;
 import jnr.posix.POSIX;
 import jnr.posix.util.Platform;
 
+import javax.annotation.Nullable;
+
 import java.io.File;
 import java.util.Arrays;
+import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -36,48 +40,94 @@ public class DaemonProcess
     public final int SIGTERM;
     public final int SIGKILL;
 
-    public DaemonProcess(File path)
+    public static final int FD_CLOEXEC = 1;
+    public final int F_GETFD;
+    public final int F_SETFD;
+
+    public DaemonProcess(File path, @Nullable Integer fd)
     {
         final int openFlags;
         if (Platform.IS_MAC) {
             openFlags =
                     jnr.constants.platform.darwin.OpenFlags.O_RDWR.intValue() |
-                    jnr.constants.platform.darwin.OpenFlags.O_CREAT.intValue();
-            EWOULDBLOCK = -1; // jnr.constants.platform.darwin.Errno.EWOULDBLOCK.intValue();
+                            jnr.constants.platform.darwin.OpenFlags.O_CREAT.intValue();
+            EWOULDBLOCK = jnr.constants.platform.darwin.Errno.EWOULDBLOCK.intValue();
             SIGTERM = jnr.constants.platform.darwin.Signal.SIGTERM.intValue();
             SIGKILL = jnr.constants.platform.darwin.Signal.SIGKILL.intValue();
+            F_GETFD = jnr.constants.platform.darwin.Fcntl.F_GETFD.intValue();
+            F_SETFD = jnr.constants.platform.darwin.Fcntl.F_SETFD.intValue();
         }
         else if (Platform.IS_LINUX) {
             openFlags =
                     jnr.constants.platform.linux.OpenFlags.O_RDWR.intValue() |
-                    jnr.constants.platform.linux.OpenFlags.O_CREAT.intValue();
+                            jnr.constants.platform.linux.OpenFlags.O_CREAT.intValue();
             EWOULDBLOCK = jnr.constants.platform.linux.Errno.EWOULDBLOCK.intValue();
             SIGTERM = jnr.constants.platform.linux.Signal.SIGTERM.intValue();
             SIGKILL = jnr.constants.platform.linux.Signal.SIGKILL.intValue();
+            F_GETFD = jnr.constants.platform.linux.Fcntl.F_GETFD.intValue();
+            F_SETFD = jnr.constants.platform.linux.Fcntl.F_SETFD.intValue();
         }
         else {
             throw new IllegalStateException("Unsupported platform");
         }
         posix = POSIXUtils.getPOSIX();
+
         this.path = path.getAbsoluteFile();
-        if (path.getParentFile() != null) {
-            path.getParentFile().mkdirs();
+        if (fd != null) {
+            pidFile = fd;
         }
-        pidFile = posix.open(this.path.getAbsolutePath(), openFlags, 0600);
+        else {
+            if (path.getParentFile() != null) {
+                File p = path.getParentFile();
+                path.getParentFile().mkdirs();
+                if (!(p.exists() && p.isDirectory())) {
+                    throw new RuntimeException("Failed to create pidfile dir: " + p);
+                }
+            }
+            pidFile = posix.open(this.path.getAbsolutePath(), openFlags, 0600);
+            if (pidFile < 0) {
+                throw new RuntimeException("Failed to open file: " + Objects.toString(pidFile));
+            }
+            int flags = posix.fcntl(pidFile, Fcntl.F_GETFD);
+            if (flags < 0) {
+                throw new RuntimeException("Failed to get flags: " + Objects.toString(flags));
+            }
+            flags &= ~FD_CLOEXEC;
+            int ret = posix.libc().fcntl(pidFile, F_SETFD, flags);
+            if (ret < 0) {
+                throw new RuntimeException("Failed to open file: " + Objects.toString(pidFile));
+            }
+        }
+
         checkState(pidFile >= 0);
         refresh();
     }
 
+    public DaemonProcess(File path)
+    {
+        this(path, null);
+    }
+
+    public static final int LOCK_EX = 2;
+    public static final int LOCK_NB = 4;
+
     public synchronized void refresh()
     {
-        int ret = posix.flock(pidFile, 2 | 4); // LOCK_EX | LOCK_NB
+        int ret = posix.flock(pidFile, LOCK_EX | LOCK_NB);
         if (ret == 0) {
             locked = true;
-        } else if (ret == EWOULDBLOCK) {
-            locked = false;
+        }
+        else if (ret == -1) {
+            int err = posix.errno();
+            if (err == EWOULDBLOCK) {
+                locked = false;
+            }
+            else {
+                throw new RuntimeException("flock failed: " + err);
+            }
         }
         else {
-            throw new RuntimeException("flock failed: " + ret);
+            throw new RuntimeException("flock returned unexpected result: " + ret);
         }
     }
 

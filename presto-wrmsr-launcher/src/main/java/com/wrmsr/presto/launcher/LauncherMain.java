@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -470,8 +471,10 @@ public class LauncherMain
                 return;
             }
 
+            File jvm = getJvm();
             RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
             ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
+                    .add(jvm.getAbsolutePath())
                     .addAll(jvmOptions)
                     .addAll(runtimeMxBean.getInputArguments())
                     .add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
@@ -484,7 +487,6 @@ public class LauncherMain
                     .addAll(Arrays.asList(LauncherMain.args));
 
             List<String> newArgs = builder.build();
-            File jvm = getJvm();
             getPosix().libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
             throw new IllegalStateException("Unreachable");
         }
@@ -563,7 +565,7 @@ public class LauncherMain
         {
             if (daemonProcess == null) {
                 checkArgument(!Strings.isNullOrEmpty(pidFile()), "must set pidfile");
-                daemonProcess = new DaemonProcess(new File(replaceVars(pidFile())));
+                daemonProcess = new DaemonProcess(new File(replaceVars(pidFile())), getConfig().getMergedNode(LauncherConfig.class).getPidFileFd());
             }
             return daemonProcess;
         }
@@ -637,9 +639,15 @@ public class LauncherMain
     {
         public void run(boolean restart)
         {
-            if (restart) {
-                getDaemonProcess().stop();
+            if (!getDaemonProcess().alive()) {
+                if (restart) {
+                    getDaemonProcess().stop();
+                }
+                else {
+                    return;
+                }
             }
+
             List<String> args = ImmutableList.copyOf(LauncherMain.args);
             String lastArg = args.get(args.size() - 1);
             checkArgument(lastArg.equals("start") || lastArg.equals("restart"));
@@ -653,8 +661,9 @@ public class LauncherMain
                 builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
             }
 
+            builder.add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "launcher." + LauncherConfig.PID_FILE_FD_KEY + "=" + getDaemonProcess().pidFile);
+
             File jar = getJarFile(getClass());
-            // jar = new File("/Users/wtimoney/presto/presto");
             checkState(jar.isFile());
 
             builder
