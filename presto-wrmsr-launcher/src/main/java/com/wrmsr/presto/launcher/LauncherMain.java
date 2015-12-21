@@ -500,12 +500,21 @@ public class LauncherMain
             }
         }
 
+        public boolean shouldDeleteRepository()
+        {
+            return true;
+        }
+
         @Override
         public final void run()
         {
             setArgSystemProperties();
             getConfig();
+            configureLoggers();
             ensureConfigDirs();
+            if (shouldDeleteRepository()) {
+                deleteRepositoryOnExit();
+            }
 
             try {
                 innerRun();
@@ -589,6 +598,12 @@ public class LauncherMain
             extends ServerCommand
     {
         @Override
+        public boolean shouldDeleteRepository()
+        {
+            return false;
+        }
+
+        @Override
         public void innerRun()
                 throws Throwable
         {
@@ -601,6 +616,12 @@ public class LauncherMain
     public static class Daemon
             extends ServerCommand
     {
+        @Override
+        public boolean shouldDeleteRepository()
+        {
+            return false;
+        }
+
         @Override
         public void innerRun()
                 throws Throwable

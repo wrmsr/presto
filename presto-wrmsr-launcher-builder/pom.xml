@@ -21,14 +21,14 @@
     <dependencies>
 
         <dependency>
-            <groupId>com.facebook.presto</groupId>
-            <artifactId>presto-server</artifactId>
-            <scope>test</scope>
+            <groupId>com.wrmsr.presto</groupId>
+            <artifactId>presto-wrmsr-hadoop</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>com.wrmsr.presto</groupId>
-            <artifactId>presto-wrmsr-hadoop</artifactId>
+            <groupId>com.facebook.presto</groupId>
+            <artifactId>presto-main</artifactId>
             <version>${project.version}</version>
         </dependency>
 
