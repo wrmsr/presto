@@ -530,20 +530,19 @@ public class LauncherMain
             if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
                 File r = new File(Repositories.getRepositoryPath());
                 checkState(r.exists() && r.isDirectory());
-                r.deleteOnExit();
-//                Runtime.getRuntime().addShutdownHook(new Thread()
-//                {
-//                    @Override
-//                    public void run()
-//                    {
-//                        try {
-//                            Repositories.removeRecursive(r.toPath());
-//                        }
-//                        catch (IOException e) {
-//                            throw Throwables.propagate(e);
-//                        }
-//                    }
-//                });
+                Runtime.getRuntime().addShutdownHook(new Thread()
+                {
+                    @Override
+                    public void run()
+                    {
+                        try {
+                            Repositories.removeRecursive(r.toPath());
+                        }
+                        catch (IOException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
+                });
             }
         }
     }

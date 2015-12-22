@@ -201,7 +201,12 @@ public class Repositories
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
                     throws IOException
             {
-                Files.delete(file);
+                try {
+                    Files.delete(file);
+                }
+                catch (Exception e) {
+
+                }
                 return FileVisitResult.CONTINUE;
             }
 
@@ -212,7 +217,12 @@ public class Repositories
                 // try to delete the file anyway, even if its attributes
                 // could not be read, since delete-only access is
                 // theoretically possible
-                Files.delete(file);
+                try {
+                    Files.delete(file);
+                }
+                catch (Exception e) {
+
+                }
                 return FileVisitResult.CONTINUE;
             }
 
@@ -221,7 +231,12 @@ public class Repositories
                     throws IOException
             {
                 if (exc == null) {
-                    Files.delete(dir);
+                    try {
+                        Files.delete(dir);
+                    }
+                    catch (Exception e) {
+
+                    }
                     return FileVisitResult.CONTINUE;
                 }
                 else {
