@@ -70,7 +70,7 @@ public class Repositories
         File repositoryPath;
         if (repositoryPathString == null || repositoryPathString.isEmpty()) {
             repositoryPath = Files.createTempDirectory(null).toFile();
-            repositoryPath.deleteOnExit(); // FIXME OSX EXECVE SEGFAULT
+//            repositoryPath.deleteOnExit(); // FIXME OSX EXECVE SEGFAULT
             System.setProperty(key, repositoryPath.getAbsolutePath());
         }
         else {
