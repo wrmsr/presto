@@ -1618,24 +1618,6 @@ uuid, master
 
 
 
-presto-jmx
-presto-cassandra
-presto-example-http
-presto-hive-hadoop2
-presto-blackhole
-presto-kafka
-presto-ml
-presto-mysql
-presto-postgresql
-presto-raptor
-presto-redis
-presto-tpch
-presto-local-file
-presto-teradata-functions
-presto-wrmsr-main
-presto-wrmsr-jython
-presto-wrmsr-hadoop
-
 
 http://obogason.com/fundamental-frequency-estimation-and-machine-learning/
 http://www.stephendiehl.com/posts/haskell_2016.html
@@ -1717,3 +1699,9 @@ properties['log.enable-console'] = 'false'
 
 
 https://avro.apache.org/docs/current/spec.html#json_encoding
+
+
+
+HiveSplitManager.getPartitions()
+https://groups.google.com/forum/#!topic/presto-users/8FewSOe7sOU
+

@@ -60,7 +60,6 @@ import com.wrmsr.presto.scripting.ScriptingManager;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
-import com.wrmsr.presto.type.PropertiesFunction;
 import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.config.Configs;
 import com.wrmsr.presto.util.config.PrestoConfigs;

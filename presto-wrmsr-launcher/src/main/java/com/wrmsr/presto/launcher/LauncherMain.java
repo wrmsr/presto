@@ -503,6 +503,16 @@ public class LauncherMain
             return true;
         }
 
+        private void autoConfigure()
+        {
+            LauncherConfig lc = getConfig().getMergedNode(LauncherConfig.class);
+            if (isNullOrEmpty(System.getProperty("http-server.log.path"))) {
+                if (!isNullOrEmpty(lc.getHttpLogFile())) {
+                    System.setProperty("http-server.log.path", replaceVars(lc.getHttpLogFile()));
+                }
+            }
+        }
+
         @Override
         public final void run()
         {
@@ -513,6 +523,7 @@ public class LauncherMain
             if (shouldDeleteRepository()) {
                 deleteRepositoryOnExit();
             }
+            autoConfigure();
 
             try {
                 innerRun();
@@ -674,8 +685,8 @@ public class LauncherMain
             shBuilder.add("</dev/null");
             LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
             for (String prefix : ImmutableList.of("", "2")) {
-                if (!isNullOrEmpty(config.getLogFile())) {
-                    shBuilder.add(prefix + ">>" + shellEscape(replaceVars(config.getLogFile())));
+                if (!isNullOrEmpty(config.getServerLogFile())) {
+                    shBuilder.add(prefix + ">>" + shellEscape(replaceVars(config.getServerLogFile())));
                 }
                 else {
                     shBuilder.add(prefix + ">/dev/null");

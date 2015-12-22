@@ -14,10 +14,8 @@
 package com.wrmsr.presto.launcher.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-import java.util.Optional;
 
 public class LauncherConfig
         implements Config<LauncherConfig>
@@ -70,18 +68,32 @@ public class LauncherConfig
         this.pidFileFd = pidFileFd;
     }
 
-    private String logFile;
+    private String serverLogFile;
 
-    @JsonProperty("log-file")
-    public String getLogFile()
+    @JsonProperty("server-log-file")
+    public String getServerLogFile()
     {
-        return logFile;
+        return serverLogFile;
     }
 
-    @JsonProperty("log-file")
-    public void setLogFile(String logFile)
+    @JsonProperty("server-log-file")
+    public void setServerLogFile(String serverLogFile)
     {
-        this.logFile = logFile;
+        this.serverLogFile = serverLogFile;
+    }
+
+    private String httpLogFile;
+
+    @JsonProperty("http-log-file")
+    public String getHttpLogFile()
+    {
+        return httpLogFile;
+    }
+
+    @JsonProperty("http-log-file")
+    public void setHttpLogFile(String httpLogFile)
+    {
+        this.httpLogFile = httpLogFile;
     }
 
     private String clusterName;

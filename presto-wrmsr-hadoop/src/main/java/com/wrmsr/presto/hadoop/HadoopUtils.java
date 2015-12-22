@@ -74,8 +74,6 @@ public class HadoopUtils
             throws Throwable
     {
         File cfgDir = Files.createTempDir();
-        File dataDir = Files.createTempDir();
-        dataDir.deleteOnExit();
 
         String xml = renderConfig(properties.entrySet());
         try (FileOutputStream fos = new FileOutputStream(new File(cfgDir, fileName));

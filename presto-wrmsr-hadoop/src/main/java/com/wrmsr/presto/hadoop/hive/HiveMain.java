@@ -19,6 +19,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
+import com.wrmsr.presto.hadoop.HadoopUtils;
 import com.wrmsr.presto.util.Jvm;
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Cli;
@@ -32,6 +33,8 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.StringWriter;
+import java.net.URI;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
@@ -78,52 +81,9 @@ public class HiveMain
             return args.toArray(new String[args.size()]);
         }
 
-        /**
-         * Helper method that tries to remove unnecessary namespace
-         * declaration that default JDK XML parser (SJSXP) sees fit
-         * to add.
-         */
-        protected static String removeSjsxpNamespace(String xml)
-        {
-            final String match = " xmlns=\"\"";
-            int ix = xml.indexOf(match);
-            if (ix > 0) {
-                xml = xml.substring(0, ix) + xml.substring(ix + match.length());
-            }
-            return xml;
-        }
-
-        public String renderConfig(Iterable<Map.Entry<String, String>> properties)
-                throws Throwable
-        {
-            StringWriter sw = new StringWriter();
-            XmlFactory f = new XmlFactory();
-            ToXmlGenerator jg = f.createGenerator(sw);
-
-            jg.setNextName(new QName("configuration"));
-            jg.writeStartObject();
-
-            for (Map.Entry<String, String> e : properties) {
-                jg.setNextName(new QName("property"));
-                jg.writeStartObject();
-                jg.writeFieldName("name");
-                jg.writeString(e.getKey());
-                jg.writeFieldName("value");
-                jg.writeString(e.getValue());
-                jg.writeEndObject();
-            }
-
-            jg.writeEndObject();
-            jg.close();
-            String xml = removeSjsxpNamespace(sw.toString());
-
-            return xml;
-        }
-
         public void writeConfigs()
                 throws Throwable
         {
-            File cfgDir = Files.createTempDir();
             File dataDir = Files.createTempDir();
             dataDir.deleteOnExit();
 
@@ -131,15 +91,8 @@ public class HiveMain
                     .put("hive.metastore.warehouse.dir", dataDir.getAbsolutePath())
                     .build();
 
-            String xml = renderConfig(properties.entrySet());
-            for (String f : ImmutableList.of("hive-site.xml")) {
-                try (FileOutputStream fos = new FileOutputStream(new File(cfgDir, f));
-                        BufferedOutputStream bos = new BufferedOutputStream(fos)) {
-                    bos.write(xml.getBytes());
-                }
-            }
-
-            Jvm.addClasspathUrl(Thread.currentThread().getContextClassLoader(), cfgDir.getAbsoluteFile().toURL());
+            URL cfg = HadoopUtils.writeConfigs("hive-site.xml", properties);
+            Jvm.addClasspathUrl(Thread.currentThread().getContextClassLoader(), cfg);
 
             /*
             hiveDefaultURL = arr$.getResource("hive-default.xml");
