@@ -588,6 +588,12 @@ public class JarSync
         {
             writeBytes(s.getBytes());
         }
+
+        public void flush()
+                throws IOException
+        {
+            stream.flush();
+        }
     }
 
     public static abstract class Driver<Context>
@@ -608,6 +614,7 @@ public class JarSync
         {
             output.writeLong(HANDSHAKE_UUID.getLeastSignificantBits());
             output.writeLong(HANDSHAKE_UUID.getMostSignificantBits());
+            output.flush();
             long leastSigBits = input.readLong();
             long mostSigBits = input.readLong();
             UUID uuid = new UUID(mostSigBits, leastSigBits);
@@ -719,6 +726,7 @@ public class JarSync
             Plan plan = manifest.plan(sinkManifest);
             String planJson = mapper.writeValueAsString(plan);
             output.writeString(planJson);
+            output.flush();
             try (ZipFile sourceZipFile = new ZipFile(sourceFile)) {
                 Context context = new Context(input, output, sourceZipFile);
                 context = execute(plan, context);
@@ -741,6 +749,7 @@ public class JarSync
                     total += bc;
                 }
             }
+            context.output.flush();
             log.info(String.format("Source sent %d bytes", total));
             return context;
         }
@@ -782,6 +791,7 @@ public class JarSync
             Manifest manifest = new Manifest(sinkFile);
             String manifestJson = mapper.writeValueAsString(manifest);
             output.writeString(manifestJson);
+            output.flush();
             String planJson = input.readString();
             Plan plan = mapper.readValue(planJson, Plan.class);
             try (ZipFile sinkZipFile = new ZipFile(sinkFile)) {

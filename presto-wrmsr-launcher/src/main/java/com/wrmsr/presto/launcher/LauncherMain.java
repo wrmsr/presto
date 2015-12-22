@@ -14,8 +14,6 @@
 package com.wrmsr.presto.launcher;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -31,6 +29,7 @@ import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.launcher.config.LogConfig;
 import com.wrmsr.presto.launcher.config.SystemConfig;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
+import com.wrmsr.presto.launcher.util.JarSync;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
 import com.wrmsr.presto.util.Artifacts;
@@ -55,10 +54,10 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.stream.IntStream;
@@ -66,7 +65,9 @@ import java.util.stream.IntStream;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.wrmsr.presto.util.Files.makeDirsAndCheck;
 import static com.wrmsr.presto.util.Jvm.getJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Shell.shellEscape;
@@ -185,7 +186,8 @@ public class LauncherMain
                         Hive.class,
                         Hdfs.class,
                         Jython.class,
-                        Nashorn.class
+                        Nashorn.class,
+                        JarSyncCommand.class
                 );
 
         Cli<Runnable> cliParser = builder.build();
@@ -208,7 +210,7 @@ public class LauncherMain
 
         private void autoConfigure()
         {
-            if (Strings.isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
+            if (isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
                 System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
             }
         }
@@ -263,7 +265,7 @@ public class LauncherMain
 
                 LauncherConfig launcherConfig = config.getMergedNode(LauncherConfig.class);
                 ClustersConfig clustersConfig = config.getMergedNode(ClustersConfig.class);
-                if (!Strings.isNullOrEmpty(launcherConfig.getClusterNameFile())) {
+                if (!isNullOrEmpty(launcherConfig.getClusterNameFile())) {
                     File clusterNameFile = new File(replaceVars(launcherConfig.getClusterNameFile()));
                     if (clusterNameFile.exists()) {
                         String clusterName;
@@ -284,7 +286,7 @@ public class LauncherMain
                             setConfigSystemProperties(config);
                         }
 
-                        if (!Strings.isNullOrEmpty(launcherConfig.getClusterNodeNameFile())) {
+                        if (!isNullOrEmpty(launcherConfig.getClusterNodeNameFile())) {
                             File clusterNodeNameFile = new File(replaceVars(launcherConfig.getClusterNodeNameFile()));
                             if (clusterNodeNameFile.exists()) {
                                 String clusterNodeName;
@@ -325,8 +327,10 @@ public class LauncherMain
 
         private void setConfigSystemProperties(ConfigContainer config)
         {
-            for (Map.Entry<String, String> e : config.getMergedNode(SystemConfig.class)) {
-                System.setProperty(e.getKey(), replaceVars(e.getValue()));
+            for (SystemConfig c : config.getNodes(SystemConfig.class)) {
+                for (Map.Entry<String, String> e : c) {
+                    System.setProperty(e.getKey(), replaceVars(e.getValue()));
+                }
             }
         }
 
@@ -347,19 +351,17 @@ public class LauncherMain
 
         private void setConfigEnv(ConfigContainer config)
         {
-            for (Map.Entry<String, String> e : config.getMergedNode(EnvConfig.class)) {
-                getPosix().libc().setenv(e.getKey(), replaceVars(e.getValue()), 1);
+            for (EnvConfig c : config.getNodes(EnvConfig.class)) {
+                for (Map.Entry<String, String> e : c) {
+                    getPosix().libc().setenv(e.getKey(), replaceVars(e.getValue()), 1);
+                }
             }
         }
 
         private void ensureConfigDirs()
         {
             for (String dir : firstNonNull(config.getMergedNode(LauncherConfig.class).getEnsureDirs(), ImmutableList.<String>of())) {
-                File f = new File(replaceVars(dir));
-                f.mkdirs();
-                if (!(f.exists() && f.isDirectory())) {
-                    throw new IllegalStateException("Failed to make dir: " + f.getAbsolutePath());
-                }
+                makeDirsAndCheck(new File(replaceVars(dir)));
             }
         }
 
@@ -384,7 +386,7 @@ public class LauncherMain
 
             if (jvmConfig.getHeap() != null) {
                 JvmConfig.HeapConfig heap = jvmConfig.getHeap();
-                checkArgument(!Strings.isNullOrEmpty(heap.getSize()));
+                checkArgument(!isNullOrEmpty(heap.getSize()));
                 OperatingSystemMXBean os = (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
                 long base;
                 if (heap.isFree()) {
@@ -472,7 +474,7 @@ public class LauncherMain
                     .addAll(jvmOptions)
                     .addAll(runtimeMxBean.getInputArguments())
                     .add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
-            if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+            if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
                 builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
             }
             builder
@@ -525,7 +527,7 @@ public class LauncherMain
 
         public synchronized void deleteRepositoryOnExit()
         {
-            if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+            if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
                 File r = new File(Repositories.getRepositoryPath());
                 checkState(r.exists() && r.isDirectory());
                 Runtime.getRuntime().addShutdownHook(new Thread()
@@ -558,7 +560,7 @@ public class LauncherMain
         public synchronized DaemonProcess getDaemonProcess()
         {
             if (daemonProcess == null) {
-                checkArgument(!Strings.isNullOrEmpty(pidFile()), "must set pidfile");
+                checkArgument(!isNullOrEmpty(pidFile()), "must set pidfile");
                 daemonProcess = new DaemonProcess(new File(replaceVars(pidFile())), getConfig().getMergedNode(LauncherConfig.class).getPidFileFd());
             }
             return daemonProcess;
@@ -571,7 +573,7 @@ public class LauncherMain
         public void launch()
         {
             Launch launch = new Launch();
-            if (Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+            if (isNullOrEmpty(Repositories.getRepositoryPath())) {
                 launch.getClassloaderUrls();
                 String wd = new File(new File(System.getProperty("user.dir")), "presto-main").getAbsolutePath();
                 File wdf = new File(wd);
@@ -651,7 +653,7 @@ public class LauncherMain
                     .add(jvm.getAbsolutePath());
             RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
             // builder.addAll(runtimeMxBean.getInputArguments());
-            if (!Strings.isNullOrEmpty(Repositories.getRepositoryPath())) {
+            if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
                 builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
             }
 
@@ -672,7 +674,7 @@ public class LauncherMain
             shBuilder.add("</dev/null");
             LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
             for (String prefix : ImmutableList.of("", "2")) {
-                if (!Strings.isNullOrEmpty(config.getLogFile())) {
+                if (!isNullOrEmpty(config.getLogFile())) {
                     shBuilder.add(prefix + ">>" + shellEscape(replaceVars(config.getLogFile())));
                 }
                 else {
@@ -954,6 +956,24 @@ public class LauncherMain
             return "jdk.nashorn.tools.Shell";
         }
     }
+
+    @Command(name = "jarsync", description = "Executes JarSync command")
+    public static class JarSyncCommand
+            extends PassthroughCommand
+    {
+        @Override
+        public String getModuleName()
+        {
+            return null;
+        }
+
+        @Override
+        public String getClassName()
+        {
+            return "com.wrmsr.presto.launcher.JarSyncMain";
+        }
+    }
+
 
     /*
     @Command(name = "mesos", description = "Performs mesos operations")

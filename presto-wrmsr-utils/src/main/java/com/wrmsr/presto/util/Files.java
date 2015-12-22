@@ -47,4 +47,12 @@ public class Files
             fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
         }
     }
+
+    public static void makeDirsAndCheck(File f)
+    {
+        f.mkdirs();
+        if (!(f.exists() && f.isDirectory())) {
+            throw new IllegalStateException("Failed to make dir: " + f.getAbsolutePath());
+        }
+    }
 }
