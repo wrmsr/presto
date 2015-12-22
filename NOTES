@@ -31,153 +31,7 @@ event sources
 random access stores
 first layer caching
 vitess shit
-    <artifactSet to="plugin/jmx">
-        <artifact id="${project.groupId}:presto-jmx:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
 
-    <artifactSet to="plugin/cassandra">
-        <artifact id="${project.groupId}:presto-cassandra:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/example-http">
-        <artifact id="${project.groupId}:presto-example-http:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <!--
-    <artifactSet to="plugin/hive-cdh4">
-        <artifact id="${project.groupId}:presto-hive-cdh4:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/hive-cdh5">
-        <artifact id="${project.groupId}:presto-hive-cdh5:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/hive-hadoop1">
-        <artifact id="${project.groupId}:presto-hive-hadoop1:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-    -->
-
-    <artifactSet to="plugin/hive-hadoop2">
-        <artifact id="${project.groupId}:presto-hive-hadoop2:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/blackhole">
-        <artifact id="${project.groupId}:presto-blackhole:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/kafka">
-        <artifact id="${project.groupId}:presto-kafka:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/ml">
-        <artifact id="${project.groupId}:presto-ml:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/mysql">
-        <artifact id="${project.groupId}:presto-mysql:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/postgresql">
-        <artifact id="${project.groupId}:presto-postgresql:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/raptor">
-        <artifact id="${project.groupId}:presto-raptor:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/redis">
-        <artifact id="${project.groupId}:presto-redis:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/tpch">
-        <artifact id="${project.groupId}:presto-tpch:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/localfile">
-        <artifact id="${project.groupId}:presto-local-file:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/teradata-functions">
-        <artifact id="${project.groupId}:presto-teradata-functions:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <!--
-    <artifactSet to="plugin/elasticsearch">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-elasticsearch:jar:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-    -->
-
-    <!--
-    <artifactSet to="plugin/wrmsr-main">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-main:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/wrmsr-jython">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-jython:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-
-    <artifactSet to="plugin/wrmsr-hadoop">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-hadoop:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-    -->
-
-    <!--
-    <artifactSet to="plugin/wrmsr-jruby">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-jruby:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-    -->
-
-    <!--
-    <artifactSet to="plugin/wrmsr-lucene">
-        <artifact id="com.wrmsr.presto:presto-wrmsr-lucene:zip:${project.version}">
-            <unpack />
-        </artifact>
-    </artifactSet>
-    -->
 nashorn stored procs
 salesforce connector?
 hbase plz
@@ -351,21 +205,10 @@ https://commons.apache.org/proper/commons-configuration/userguide/howto_utilitie
 https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF#LanguageManualUDF-Built-inTable-GeneratingFunctions(UDTF)
 
 
-wrapper will dedupe unshaded jars, write nested classloader
-- http://one-jar.sourceforge.net/
-
-rsync powered jarsync bash/py script pls
-
-
 decoder predicate pushdown to capable stores lols
 
 
 split on scalar fn
-
-00000000: 2321 2f62 696e 2f73 680a 0a65 7865 6320  #!/bin/sh..exec
-00000010: 6a61 7661 202d 586d 7831 4720 2d6a 6172  java -Xmx1G -jar
-00000020: 2022 2430 2220 2224 4022 0a0a 504b 0304   "$0" "$@"..PK..
-
 
 
     @Override
@@ -562,12 +405,6 @@ set type?
   - ... so Void type
    - subclassable for typelevel constants
 
-
-<dependency>
-    <groupId>com.jcraft</groupId>
-    <artifactId>jsch</artifactId>
-    <version>0.1.53</version>
-</dependency>
 
 <dependency>
     <groupId>net.razorvine</groupId>
@@ -1186,67 +1023,11 @@ http://www.ec2instances.info/
 
 
 
-namenode 'org.apache.hadoop.hdfs.server.namenode.NameNode'
-zkfc 'org.apache.hadoop.hdfs.tools.DFSZKFailoverController'
-secondarynamenode 'org.apache.hadoop.hdfs.server.namenode.SecondaryNameNode'
-datanode 'org.apache.hadoop.hdfs.server.datanode.DataNode'
-journalnode 'org.apache.hadoop.hdfs.qjournal.server.JournalNode'
-dfs org.apache.hadoop.fs.FsShell
-dfsadmin org.apache.hadoop.hdfs.tools.DFSAdmin
-haadmin org.apache.hadoop.hdfs.tools.DFSHAAdmin
-fsck org.apache.hadoop.hdfs.tools.DFSck
-balancer org.apache.hadoop.hdfs.server.balancer.Balancer
-mover org.apache.hadoop.hdfs.server.mover.Mover
-storagepolicies org.apache.hadoop.hdfs.tools.GetStoragePolicies
-jmxget org.apache.hadoop.hdfs.tools.JMXGet
-oiv org.apache.hadoop.hdfs.tools.offlineImageViewer.OfflineImageViewerPB
-oiv_legacy org.apache.hadoop.hdfs.tools.offlineImageViewer.OfflineImageViewer
-oev org.apache.hadoop.hdfs.tools.offlineEditsViewer.OfflineEditsViewer
-fetchdt org.apache.hadoop.hdfs.tools.DelegationTokenFetcher
-getconf org.apache.hadoop.hdfs.tools.GetConf
-groups org.apache.hadoop.hdfs.tools.GetGroups
-snapshotDiff org.apache.hadoop.hdfs.tools.snapshot.SnapshotDiff
-lsSnapshottableDir org.apache.hadoop.hdfs.tools.snapshot.LsSnapshottableDir
-portmap org.apache.hadoop.portmap.Portmap
-nfs3 org.apache.hadoop.hdfs.nfs.nfs3.Nfs3
-cacheadmin org.apache.hadoop.hdfs.tools.CacheAdmin
-crypto org.apache.hadoop.hdfs.tools.CryptoAdmin
-version org.apache.hadoop.util.VersionInfo
-
 
 
 user defined enums?
 
 
-
-2015-08-04T17:38:23.227-0700    INFO    Thread-1        com.facebook.presto.server.PluginManager        -- Loading plugin |presto-mysql --
-#
-# A fatal error has been detected by the Java Runtime Environment:
-#
-#  SIGBUS (0xa) at pc=0x0000000108be4eb9, pid=31431, tid=36103
-#
-# JRE version: Java(TM) SE Runtime Environment (8.0_51-b16) (build 1.8.0_51-b16)
-# Java VM: Java HotSpot(TM) 64-Bit Server VM (25.51-b03 mixed mode bsd-amd64 compressed oops)
-# Problematic frame:
-# C  [libzip.dylib+0x2eb9]  newEntry+0x154
-#
-# Failed to write core dump. Core dumps have been disabled. To enable core dumping, try "ulimit -c unlimited" before starting Java again
-#
-# An error report file with more information is saved as:
-# /Users/wtimoney/src/wrmsr/presto/hs_err_pid31431.log
-Compiled method (nm)    7244  178     n 0       java.util.zip.ZipFile::getEntry (native)
- total in heap  [0x000000010add6e90,0x000000010add71f0] = 864
- relocation     [0x000000010add6fb8,0x000000010add6ff8] = 64
- main code      [0x000000010add7000,0x000000010add71f0] = 496
-#
-# If you would like to submit a bug report, please visit:
-#   http://bugreport.java.com/bugreport/crash.jsp
-# The crash happened outside the Java Virtual Machine in native code.
-# See problematic frame for where to report the bug.
-#
-[1]    31431 abort      ~/presto/presto run
-
-super.
 
 
 
@@ -1465,50 +1246,6 @@ http://javaskeleton.blogspot.com/2010/07/avoiding-peer-not-authenticated-with.ht
 
 https://developer.zendesk.com/blog/introducing-maxwell-a-mysql-to-kafka-binlog-processor
 http://ruby-doc.org/stdlib-1.9.3/libdoc/drb/rdoc/DRb.html
-
-
-var fields = {
-    'date' : Date
-    , 'host' : String
-    , 'process_name' : String
-    , 'pid' : parseInt
-    , 'client_ip' : String
-    , 'client_port' : parseInt
-    , 'accept_date' : Date
-    , 'frontend_name' : String
-    , 'backend_name' : String
-    , 'server_name' : String
-    , 'tq' : parseInt
-    , 'tw' : parseInt
-    , 'tc' : parseInt
-    , 'tr' : parseInt
-    , 'tt' : parseInt
-    , 'status_code' : String
-    , 'bytes_read' : parseInt
-    , 'captured_request_cookie' : String
-    , 'captured_response_cookie' : String
-    , 'terminiation_state' : String
-    , 'actconn' : parseInt
-    , 'feconn' : parseInt
-    , 'beconn' : parseInt
-    , 'srv_conn' : parseInt
-    , 'retries' : parseInt
-    , 'srv_queue' : parseInt
-    , 'backend_queue' : parseInt
-//  , 'requestHeaders'
-//  , 'responseHeaders'
-    , 'method' : String
-    , 'request' : String
-    , 'version' : String
-};
-
-var reg = /^(\w+ \d+ \S+) (\S+) (\S+)\[(\d+)\]: (\S+):(\d+) \[(\S+)\] (\S+) (\S+)\/(\S+) (\S+)\/(\S+)\/(\S+)\/(\S+)\/(\S+) (\S+) (\S+) *(\S+) (\S+) (\S+) (\S+)\/(\S+)\/(\S+)\/(\S+)\/(\S+) (\S+)\/(\S+) "(\S+) ([^"]+) (\S+)" *$/gi
-    , obj
-    , matches
-    ;
-
-
-muh https://github.com/thekrakken/java-grok
 
 https://www.elastic.co/guide/en/logstash/current/plugins-filters-grok.html
 
@@ -1908,7 +1645,7 @@ http://ieeexplore.ieee.org/xpl/login.jsp?tp=&arnumber=5334664&url=http%3A%2F%2Fi
 http://psy-lob-saw.blogspot.sg/2013/05/know-thy-java-object-memory-layout.html?m=1
 http://danluu.com/file-consistency/
 https://github.com/danijar/layered
-
+https://github.com/kairosdb/kairosdb
 
 https://github.com/spotify/napalm
 https://github.com/spotify/heroic
@@ -1930,6 +1667,10 @@ https://github.com/spotify/spire-server
 http://blog.trifork.com/2010/01/14/logging-to-the-syslog-from-a-java-application/
 
 https://github.com/thinkaurelius/titan
+http://s3.thinkaurelius.com/docs/titan/1.0.0/indexes.html#vertex-indexes
+http://s3.thinkaurelius.com/docs/titan/1.0.0/data-model.html
+
+
 https://github.com/neo4j
 
 
@@ -1966,3 +1707,13 @@ Merge
 
 
 TEACH ABOUT TMP DIRS. UGH.
+
+
+properties['log.levels-file'] = options.log_levels
+properties['log.output-file'] = options.server_log
+properties['log.enable-console'] = 'false'
+
+
+
+
+https://avro.apache.org/docs/current/spec.html#json_encoding
