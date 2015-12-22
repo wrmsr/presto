@@ -144,11 +144,10 @@ public class Repositories
         try (Scanner scanner = new Scanner(sourceClassLoader.getResourceAsStream("classpaths/" + moduleName))) {
             while (scanner.hasNextLine()) {
                 String dep = scanner.nextLine();
-                File depFile = new File(repositoryPath, dep);
-                depFile.getParentFile().mkdirs();
+                File tmp = Files.createTempFile(null, null).toFile();
                 long sz = 0;
                 try (InputStream bi = new BufferedInputStream(sourceClassLoader.getResourceAsStream(dep));
-                        OutputStream bo = new BufferedOutputStream(new FileOutputStream(depFile))) {
+                        OutputStream bo = new BufferedOutputStream(new FileOutputStream(tmp))) {
                     byte[] buf = new byte[65536];
                     int anz;
                     while ((anz = bi.read(buf)) != -1) {
@@ -157,7 +156,12 @@ public class Repositories
                     }
                     bo.flush();
                 }
-                unlockFile(depFile.getAbsolutePath(), sz);
+                unlockFile(tmp.getAbsolutePath(), sz);
+                File depFile = new File(repositoryPath, dep);
+                depFile.getParentFile().mkdirs();
+                if (!tmp.renameTo(depFile)) {
+                    throw new IOException(String.format("Rename failed: %s -> %s", tmp, depFile));
+                }
                 urls.add(depFile.toURL());
             }
         }
