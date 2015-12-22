@@ -13,28 +13,17 @@
  */
 package com.wrmsr.presto.hadoop.hive;
 
-import com.fasterxml.jackson.dataformat.xml.XmlFactory;
-import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-import com.wrmsr.presto.hadoop.HadoopUtils;
-import com.wrmsr.presto.util.Jvm;
+import com.wrmsr.presto.hadoop.HadoopService;
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
 import io.airlift.airline.Help;
 import org.apache.hadoop.hive.cli.CliDriver;
 
-import javax.xml.namespace.QName;
-
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.StringWriter;
-import java.net.URI;
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
@@ -68,7 +57,6 @@ public class HiveMain
         public void run()
         {
             try {
-                writeConfigs();
                 runNothrow();
             }
             catch (Throwable e) {
@@ -79,27 +67,6 @@ public class HiveMain
         public String[] getArgs()
         {
             return args.toArray(new String[args.size()]);
-        }
-
-        public void writeConfigs()
-                throws Throwable
-        {
-            File dataDir = Files.createTempDir();
-            dataDir.deleteOnExit();
-
-            Map<String, String> properties = ImmutableMap.<String, String>builder()
-                    .put("hive.metastore.warehouse.dir", dataDir.getAbsolutePath())
-                    .build();
-
-            URL cfg = HadoopUtils.writeConfigs("hive-site.xml", properties);
-            Jvm.addClasspathUrl(Thread.currentThread().getContextClassLoader(), cfg);
-
-            /*
-            hiveDefaultURL = arr$.getResource("hive-default.xml");
-            hiveSiteURL = arr$.getResource("hive-site.xml");
-            hivemetastoreSiteUrl = arr$.getResource("hivemetastore-site.xml");
-            hiveServer2SiteUrl = arr$.getResource("hiveserver2-site.xml");
-            */
         }
 
         public abstract void runNothrow()
@@ -132,7 +99,21 @@ public class HiveMain
         public void runNothrow()
                 throws Throwable
         {
-            org.apache.hadoop.hive.metastore.HiveMetaStore.main(getArgs());
+            /*
+            hiveDefaultURL = arr$.getResource("hive-default.xml");
+            hiveSiteURL = arr$.getResource("hive-site.xml");
+            hivemetastoreSiteUrl = arr$.getResource("hivemetastore-site.xml");
+            hiveServer2SiteUrl = arr$.getResource("hiveserver2-site.xml");
+            */
+
+            File dataDir = Files.createTempDir();
+            dataDir.deleteOnExit();
+            Map<String, String> properties = ImmutableMap.<String, String>builder()
+                    .put("hive.metastore.warehouse.dir", dataDir.getAbsolutePath())
+                    .build();
+            HadoopService svc = new HiveMetastoreService(properties, getArgs());
+            svc.start();
+            svc.join();
         }
     }
 }

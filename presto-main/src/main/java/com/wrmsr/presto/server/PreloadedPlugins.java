@@ -55,7 +55,6 @@ public class PreloadedPlugins
         }));
         PluginManagerConfig config;
         try {
-
             Injector injector = app.initialize();
             config = injector.getInstance(PluginManagerConfig.class);
         }

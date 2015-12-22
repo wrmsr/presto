@@ -17,7 +17,7 @@ import com.facebook.presto.spi.Plugin;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.hadoop.config.ConfigContainer;
 import com.wrmsr.presto.hadoop.hive.HiveConfig;
-import com.wrmsr.presto.hadoop.hive.HiveMetastore;
+import com.wrmsr.presto.hadoop.hive.HiveMetastoreService;
 import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.util.config.PrestoConfigs;
 
@@ -49,10 +49,10 @@ public class HadoopPlugin
     {
         if (event instanceof ServerEvent.ConnectorsLoaded) {
             // new HiveMetastore().start();
-            HiveConfig hiveConfig = config.getMergedNode(HiveConfig.class);
-            for (String name : hiveConfig.getStartMetastores()) {
-                new HiveMetastore().start();
-            }
+//            HiveConfig hiveConfig = config.getMergedNode(HiveConfig.class);
+//            for (String name : hiveConfig.getStartMetastores()) {
+//                new HiveMetastoreService().start();
+//            }
         }
     }
 }

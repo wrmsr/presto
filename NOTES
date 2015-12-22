@@ -1705,3 +1705,6 @@ https://avro.apache.org/docs/current/spec.html#json_encoding
 HiveSplitManager.getPartitions()
 https://groups.google.com/forum/#!topic/presto-users/8FewSOe7sOU
 
+
+
+TODO: 2-layer repositories - dump / read shared to ~/.m2, dump blacklisted (all presto-related) to tmp

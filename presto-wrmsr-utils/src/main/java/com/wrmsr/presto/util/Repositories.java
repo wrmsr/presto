@@ -42,6 +42,7 @@ public class Repositories
     // FIXME add static ClassLoader, set in bootstrap via refl
 
     public static final String REPOSITORY_PATH_PROPERTY_KEY = "com.wrmsr.repository.path";
+    public static final String MADE_REPOSITORY_PATH_PROPERTY_KEY = "com.wrmsr.repository.made-path";
 
     public static void addClasspathUrl(URLClassLoader classLoader, URL url)
             throws IOException
@@ -70,8 +71,9 @@ public class Repositories
         File repositoryPath;
         if (repositoryPathString == null || repositoryPathString.isEmpty()) {
             repositoryPath = Files.createTempDirectory(null).toFile();
-//            repositoryPath.deleteOnExit(); // FIXME OSX EXECVE SEGFAULT
+            repositoryPath.deleteOnExit(); // FIXME OSX EXECVE SEGFAULT
             System.setProperty(key, repositoryPath.getAbsolutePath());
+            System.setProperty(MADE_REPOSITORY_PATH_PROPERTY_KEY, "true");
         }
         else {
             repositoryPath = new File(repositoryPathString);
