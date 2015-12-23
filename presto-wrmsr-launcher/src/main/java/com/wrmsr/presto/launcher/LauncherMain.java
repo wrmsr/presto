@@ -673,7 +673,7 @@ public class LauncherMain
             LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
 
             if (!isNullOrEmpty(config.getLogFile())) {
-                builder.add("-Dlog.output-file" + shellEscape(replaceVars(config.getLogFile())));
+                builder.add("-Dlog.output-file=" + replaceVars(config.getLogFile()));
                 builder.add("-Dlog.enable-console=false");
             }
 

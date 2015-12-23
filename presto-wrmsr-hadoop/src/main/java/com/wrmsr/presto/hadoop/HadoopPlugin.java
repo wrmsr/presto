@@ -67,7 +67,8 @@ public class HadoopPlugin
                         HiveConfig.Metastore.LocalDb localDb = (HiveConfig.Metastore.LocalDb) metastore.getDb();
                         checkArgument(!Strings.isNullOrEmpty(localDb.getFile()));
                         properties.put("javax.jdo.option.ConnectionDriverName", "org.apache.derby.jdbc.EmbeddedDriver");
-                        properties.put("javax.jdo.option.ConnectionURL", String.format("jdbc:derby:;databaseName=%s;create=true", URLEncoder.encode(localDb.getFile())));
+                        checkArgument(!localDb.getFile().contains(";"));
+                        properties.put("javax.jdo.option.ConnectionURL", String.format("jdbc:derby:;databaseName=%s;create=true", localDb.getFile()));
                     }
                     else {
                         log.warn("no metastore db configured");

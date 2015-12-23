@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.hadoop.hive;
 
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
@@ -22,6 +23,8 @@ import io.airlift.airline.Arguments;
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
 import io.airlift.airline.Help;
+import io.airlift.airline.Option;
+import io.airlift.airline.OptionType;
 import org.apache.hadoop.hive.cli.CliDriver;
 
 import java.io.File;
@@ -79,10 +82,16 @@ public class HiveMain
     public static class CliCommand
             extends PassthroughCommand
     {
+        @Option(type = OptionType.GLOBAL, name = {"-s", "--server"}, description = "Set metastore server")
+        public String server;
+
         @Override
         public void runNothrow()
                 throws Throwable
         {
+            if (!Strings.isNullOrEmpty(server)) {
+                System.setProperty("hive.metastore.uris", String.format("thrift://%s:9083", server));
+            }
             CliDriver.main(getArgs());
         }
     }
