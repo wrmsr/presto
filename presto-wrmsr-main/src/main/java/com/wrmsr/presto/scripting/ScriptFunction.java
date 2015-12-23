@@ -76,15 +76,15 @@ public class ScriptFunction
     public static final class Config
     {
         private final String name;
-        private final int arity;
         private final Type returnType;
+        private final int arity;
         private final ExecutionType executionType;
 
-        public Config(String name, int arity, Type returnType, ExecutionType executionType)
+        public Config(String name, Type returnType, int arity, ExecutionType executionType)
         {
             this.name = name;
-            this.arity = arity;
             this.returnType = returnType;
+            this.arity = arity;
             this.executionType = executionType;
         }
     }

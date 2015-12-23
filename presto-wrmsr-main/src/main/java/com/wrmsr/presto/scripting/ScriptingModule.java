@@ -57,10 +57,10 @@ public class ScriptingModule
 //        for (int arity = 0; arity < 3; ++arity) {
 //
 //        }
-        scriptFunctionConfigs.add(new ScriptFunction.Config("eval", 0, VarcharType.VARCHAR, ScriptFunction.ExecutionType.EVAL));
+        scriptFunctionConfigs.add(new ScriptFunction.Config("eval", VarcharType.VARCHAR, 0, ScriptFunction.ExecutionType.EVAL));
 
         binder.bind(ScriptFunction.Factory.class).toProvider(FactoryProvider.newFactory(ScriptFunction.Factory.class, ScriptFunction.class));
-        binder.bind(ScriptFunction.Registration.Configs.class).toInstance(new ScriptFunction.Registration.Configs(scriptFunctionConfigs.build()))
+        binder.bind(ScriptFunction.Registration.Configs.class).toInstance(new ScriptFunction.Registration.Configs(scriptFunctionConfigs.build()));
         binder.bind(ScriptFunction.Registration.class).asEagerSingleton();
         functionRegistrationBinder.addBinding().to(ScriptFunction.Registration.class);
     }
