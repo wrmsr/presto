@@ -68,18 +68,46 @@ public class LauncherConfig
         this.pidFileFd = pidFileFd;
     }
 
-    private String serverLogFile;
+    private String logFile;
 
-    @JsonProperty("server-log-file")
-    public String getServerLogFile()
+    @JsonProperty("log-file")
+    public String getLogFile()
     {
-        return serverLogFile;
+        return logFile;
     }
 
-    @JsonProperty("server-log-file")
-    public void setServerLogFile(String serverLogFile)
+    @JsonProperty("log-file")
+    public void setLogFile(String logFile)
     {
-        this.serverLogFile = serverLogFile;
+        this.logFile = logFile;
+    }
+
+    private String stdoutFile;
+
+    @JsonProperty("stdout-file")
+    public String getStdoutFile()
+    {
+        return stdoutFile;
+    }
+
+    @JsonProperty("stdout-file")
+    public void setStdoutFile(String stdoutFile)
+    {
+        this.stdoutFile = stdoutFile;
+    }
+
+    private String stderrFile;
+
+    @JsonProperty("stderr-file")
+    public String getStderrFile()
+    {
+        return stderrFile;
+    }
+
+    @JsonProperty("stderr-file")
+    public void setStderrFile(String stderrFile)
+    {
+        this.stderrFile = stderrFile;
     }
 
     private String httpLogFile;

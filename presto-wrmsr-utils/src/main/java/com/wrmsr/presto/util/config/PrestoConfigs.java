@@ -35,6 +35,7 @@ public class PrestoConfigs
 {
     public static File DEFAULT_CONFIG_FILE = new File("presto.yaml");
 
+    public static final String CONFIG_CONFIGURED_PROPERTY = "com.wrmsr.presto.configured";
     public static final String CONFIG_PROPERTIES_PREFIX = "com.wrmsr.presto.config.";
 
     public static void setConfigItem(String key, String value)
@@ -100,6 +101,7 @@ public class PrestoConfigs
         Map<String, String> configMap = transformKeys(flatConfig, k -> CONFIG_PROPERTIES_PREFIX + k);
         Map<String, String> rewrittenConfigMap = configMap.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), rewriter.apply(e.getValue()))).collect(toImmutableMap());
         rewrittenConfigMap.entrySet().stream().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
+        System.setProperty(CONFIG_CONFIGURED_PROPERTY, "true");
     }
 
     public static void writeConfigProperties(Object config)
@@ -114,6 +116,9 @@ public class PrestoConfigs
 
     public static <T extends MergeableConfigContainer<?>> T loadConfigFromProperties(Class<T> cls, Map<Object, Object> properties)
     {
+        if (!Boolean.valueOf((String) properties.get(CONFIG_CONFIGURED_PROPERTY))) {
+            throw new IllegalStateException("Properties not configured");
+        }
         Map<String, String> configMap = properties.entrySet().stream()
                 .filter(e -> e.getKey() instanceof String && ((String) e.getKey()).startsWith(CONFIG_PROPERTIES_PREFIX) && e.getValue() instanceof String)
                 .map(e -> ImmutablePair.of(((String) e.getKey()).substring(CONFIG_PROPERTIES_PREFIX.length()), (String) e.getValue()))

@@ -17,6 +17,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import com.wrmsr.presto.hadoop.HadoopService;
+import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Cli;
 import io.airlift.airline.Command;
@@ -27,6 +28,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
 
 public class HiveMain
@@ -53,6 +55,11 @@ public class HiveMain
         @Arguments(description = "arguments")
         private List<String> args = newArrayList();
 
+        public String[] getArgs()
+        {
+            return args.toArray(new String[args.size()]);
+        }
+
         @Override
         public void run()
         {
@@ -62,11 +69,6 @@ public class HiveMain
             catch (Throwable e) {
                 throw Throwables.propagate(e);
             }
-        }
-
-        public String[] getArgs()
-        {
-            return args.toArray(new String[args.size()]);
         }
 
         public abstract void runNothrow()
@@ -90,16 +92,15 @@ public class HiveMain
             extends PassthroughCommand
     {
         @Override
-        public void run()
-        {
-            super.run();
-        }
-
-        @Override
         public void runNothrow()
                 throws Throwable
         {
             /*
+            METASTORE_CONNECTION_DRIVER("javax.jdo.option.ConnectionDriverName", "org.apache.derby.jdbc.EmbeddedDriver",
+
+            javax.jdo.option.ConnectionURL
+            "jdbc:derby:;databaseName=metastore_db;create=true",
+
             hiveDefaultURL = arr$.getResource("hive-default.xml");
             hiveSiteURL = arr$.getResource("hive-site.xml");
             hivemetastoreSiteUrl = arr$.getResource("hivemetastore-site.xml");
@@ -108,10 +109,11 @@ public class HiveMain
 
             File dataDir = Files.createTempDir();
             dataDir.deleteOnExit();
-            Map<String, String> properties = ImmutableMap.<String, String>builder()
-                    .put("hive.metastore.warehouse.dir", dataDir.getAbsolutePath())
-                    .build();
-            HadoopService svc = new HiveMetastoreService(properties, getArgs());
+
+            ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String>builder();
+            builder.put("hive.metastore.warehouse.dir", dataDir.getAbsolutePath());
+
+            HadoopService svc = new HiveMetastoreService(builder.build(), getArgs());
             svc.start();
             svc.join();
         }

@@ -93,8 +93,6 @@ public class HadoopUtils
     public static void installConfig(String fileName, Map<String, String> properties)
             throws IOException
     {
-        File dataDir = Files.createTempDir();
-        dataDir.deleteOnExit();
         URL cfg = writeConfig(fileName, properties);
         Jvm.addClasspathUrl(Thread.currentThread().getContextClassLoader(), cfg);
     }

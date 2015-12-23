@@ -116,8 +116,10 @@ public interface HadoopService
         protected Thread createThread()
         {
             return HadoopUtils.hadoopRunnableThread(() -> {
-                HadoopUtils.installConfig(configName, properties);
-                Class cls = Thread.currentThread().getContextClassLoader().loadClass(className);
+                Class cls = Thread.currentThread().getContextClassLoader().loadClass("com.wrmsr.presto.hadoop.HadoopUtils");
+                cls.getMethod("installConfig", String.class, Map.class).invoke(null, new Object[]{configName, properties});
+
+                cls = Thread.currentThread().getContextClassLoader().loadClass(className);
                 cls.getMethod("main", String[].class).invoke(null, new Object[] {args});
             });
         }

@@ -670,6 +670,13 @@ public class LauncherMain
 
             builder.add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "launcher." + LauncherConfig.PID_FILE_FD_KEY + "=" + getDaemonProcess().pidFile);
 
+            LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
+
+            if (!isNullOrEmpty(config.getLogFile())) {
+                builder.add("-Dlog.output-file" + shellEscape(replaceVars(config.getLogFile())));
+                builder.add("-Dlog.enable-console=false");
+            }
+
             File jar = getJarFile(getClass());
             checkState(jar.isFile());
 
@@ -683,15 +690,21 @@ public class LauncherMain
                     // .add("setsid")
                     .addAll(builder.build().stream().map(s -> shellEscape(s)).collect(toImmutableList()));
             shBuilder.add("</dev/null");
-            LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
-            for (String prefix : ImmutableList.of("", "2")) {
-                if (!isNullOrEmpty(config.getServerLogFile())) {
-                    shBuilder.add(prefix + ">>" + shellEscape(replaceVars(config.getServerLogFile())));
-                }
-                else {
-                    shBuilder.add(prefix + ">/dev/null");
-                }
+
+            if (!isNullOrEmpty(config.getStdoutFile())) {
+                shBuilder.add(">>" + shellEscape(replaceVars(config.getStdoutFile())));
             }
+            else {
+                shBuilder.add(">/dev/null");
+            }
+
+            if (!isNullOrEmpty(config.getStderrFile())) {
+                shBuilder.add("2>>" + shellEscape(replaceVars(config.getStderrFile())));
+            }
+            else {
+                shBuilder.add(">/dev/null");
+            }
+
             shBuilder.add("&");
 
             String cmd = Joiner.on(" ").join(shBuilder.build());
