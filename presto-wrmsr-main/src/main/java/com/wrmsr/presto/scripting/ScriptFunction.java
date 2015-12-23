@@ -65,26 +65,45 @@ import static java.lang.invoke.MethodHandles.lookup;
 public class ScriptFunction
         extends SqlScalarFunction
 {
-    public static final String NAME = "script";
-    // private static final MethodHandle METHOD_HANDLE = methodHandle(ScriptFunction.class, "script", Context.class, ConnectorSession.class, Slice.class, Slice.class, Object[].class);
-
     private final ScriptingManager scriptingManager;
-    private final Type retType;
-    private final int arity;
+
+    public enum ExecutionType
+    {
+        INVOKE,
+        EVAL
+    }
+
+    public static final class Config
+    {
+        private final String name;
+        private final int arity;
+        private final Type returnType;
+        private final ExecutionType executionType;
+
+        public Config(String name, int arity, Type returnType, ExecutionType executionType)
+        {
+            this.name = name;
+            this.arity = arity;
+            this.returnType = returnType;
+            this.executionType = executionType;
+        }
+    }
+
+    private final Config config;
 
     @FunctionalInterface
     public interface Factory
     {
-        ScriptFunction create(Type retType, int arity);
+        ScriptFunction create(Config config);
     }
 
-    public final static class Registration
+    public static class Registration
             implements FunctionRegistration
     {
-        public static class MaxArity
-                extends Box<Integer>
+        public static class Configs
+                extends Box<List<Config>>
         {
-            public MaxArity(Integer value)
+            public Configs(List<Config> value)
             {
                 super(value);
             }
@@ -93,11 +112,11 @@ public class ScriptFunction
         private final List<SqlFunction> functions;
 
         @Inject
-        public Registration(Factory factory, MaxArity maxArity)
+        public Registration(Factory factory, Configs configs)
         {
             ImmutableList.Builder<SqlFunction> builder = ImmutableList.builder();
-            for (int i = 0; i < maxArity.getValue(); ++i) {
-                builder.add(factory.create(VarcharType.VARCHAR, i));
+            for (Config config : configs.getValue()) {
+                builder.add(factory.create(config));
             }
             functions = builder.build();
         }
@@ -110,21 +129,19 @@ public class ScriptFunction
     }
 
     @Inject
-    public ScriptFunction(ScriptingManager scriptingManager, @Assisted Type retType, @Assisted int arity) // bahahaha
+    public ScriptFunction(ScriptingManager scriptingManager, @Assisted Config config)
     {
         super(
-                NAME,
-                IntStream.range(0, arity).boxed().map(n -> new TypeParameter("T" + n.toString(), false, false, null)).collect(toImmutableList()),
-                retType.getTypeSignature().getBase(),
+                config.name,
+                IntStream.range(0, config.arity).boxed().map(n -> new TypeParameter("T" + n.toString(), false, false, null)).collect(toImmutableList()),
+                config.returnType.getTypeSignature().getBase(),
                 ImmutableList.<String>builder()
                         .add("varchar")
                         .add("varchar")
-                        .addAll(IntStream.range(0, arity).boxed().map(n -> "T" + n.toString()).collect(toImmutableList()))
+                        .addAll(IntStream.range(0, config.arity).boxed().map(n -> "T" + n.toString()).collect(toImmutableList()))
                         .build());
-
-        this.arity = arity;
-        this.retType = retType;
         this.scriptingManager = scriptingManager;
+        this.config = config;
     }
 
     @Override
@@ -148,13 +165,13 @@ public class ScriptFunction
     private static class Context
     {
         private final ScriptingManager scriptingManager;
-        private final Type retType;
+        private final Config config;
         private final List<Type> argTypes;
 
-        public Context(ScriptingManager scriptingManager, Type retType, List<Type> argTypes)
+        public Context(ScriptingManager scriptingManager, Config config, List<Type> argTypes)
         {
             this.scriptingManager = scriptingManager;
-            this.retType = retType;
+            this.config = config;
             this.argTypes = argTypes;
         }
     }
@@ -162,7 +179,7 @@ public class ScriptFunction
     @Override
     public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
-        checkArgument(arity == this.arity + 2);
+        checkArgument(arity == config.arity + 2);
 
         String name = "script_invoker";
 
@@ -191,7 +208,7 @@ public class ScriptFunction
 
         MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), name, type(Slice.class), parameters.stream().map(p -> arg(p.getLeft(), p.getRight())).collect(toImmutableList()));
         methodDefinition.declareAnnotation(ScalarFunction.class);
-        methodDefinition.declareAnnotation(SqlType.class).setValue("value", retType.getTypeSignature().toString());
+        methodDefinition.declareAnnotation(SqlType.class).setValue("value", config.returnType.getTypeSignature().toString());
         methodDefinition.declareParameterAnnotation(SqlType.class, 2).setValue("value", "varchar");
         methodDefinition.declareParameterAnnotation(SqlType.class, 3).setValue("value", "varchar");
         for (int i = 0; i < arity - 2; i++) {
@@ -259,7 +276,7 @@ public class ScriptFunction
 
         MethodHandle methodHandle;
         try {
-            methodHandle = lookup().unreflect(method).bindTo(new Context(scriptingManager, retType, argTypes));
+            methodHandle = lookup().unreflect(method).bindTo(new Context(scriptingManager, config, argTypes));
         }
         catch (IllegalAccessException e) {
             throw new RuntimeException(e);
@@ -268,10 +285,20 @@ public class ScriptFunction
         return new ScalarFunctionImplementation(true, listOf(arity, true), methodHandle, isDeterministic());
     }
 
-    public static Slice script(Context context, ConnectorSession session, Slice scriptingName, Slice functionName, Object... args)
+    public static Slice script(Context context, ConnectorSession session, Slice scriptingName, Slice str, Object... args)
     {
         Scripting scripting = context.scriptingManager.getScripting(scriptingName.toStringUtf8());
-        scripting.invokeFunction(functionName.toStringUtf8(), args);
+        Object ret;
+        switch (context.config.executionType) {
+            case INVOKE:
+                ret = scripting.invoke(str.toStringUtf8(), args);
+                break;
+            case EVAL:
+                checkArgument(args.length == 0);
+                ret = scripting.eval(str.toStringUtf8());
+                break;
+        }
+
         throw new IllegalStateException();
     }
 }

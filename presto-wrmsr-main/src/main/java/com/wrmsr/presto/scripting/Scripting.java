@@ -13,9 +13,12 @@
  */
 package com.wrmsr.presto.scripting;
 
+import com.google.common.base.Throwables;
 import org.apache.commons.lang.NotImplementedException;
 
+import javax.script.Invocable;
 import javax.script.ScriptEngine;
+import javax.script.ScriptException;
 
 public class Scripting
 {
@@ -29,8 +32,24 @@ public class Scripting
     }
 
     // http://www.drdobbs.com/jvm/jsr-223-scripting-for-the-java-platform/215801163?pgno=2
-    public Object invokeFunction(String name, Object... args)
+    public Object invoke(String name, Object... args)
     {
-        throw new NotImplementedException();
+        Invocable inv = (Invocable) scriptEngine;
+        try {
+            return inv.invokeFunction(name, args);
+        }
+        catch (ScriptException | ReflectiveOperationException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    public Object eval(String script)
+    {
+        try {
+            return scriptEngine.eval(script);
+        }
+        catch (ScriptException e) {
+            throw Throwables.propagate(e);
+        }
     }
 }

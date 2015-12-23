@@ -13,7 +13,10 @@
  */
 package com.wrmsr.presto.scripting;
 
+import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.VarcharType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryProvider;
@@ -22,6 +25,8 @@ import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
+
+import java.util.Map;
 
 public class ScriptingModule
         implements Module
@@ -47,8 +52,15 @@ public class ScriptingModule
 
         binder.bind(ScriptingManager.class).asEagerSingleton();
 
+        ImmutableList.Builder<ScriptFunction.Config> scriptFunctionConfigs = ImmutableList.builder();
+//        for (Map.Entry<String, Type> nameMapEntry : ImmutableMap.<String, Type>builder().put(""))
+//        for (int arity = 0; arity < 3; ++arity) {
+//
+//        }
+        scriptFunctionConfigs.add(new ScriptFunction.Config("eval", 0, VarcharType.VARCHAR, ScriptFunction.ExecutionType.EVAL));
+
         binder.bind(ScriptFunction.Factory.class).toProvider(FactoryProvider.newFactory(ScriptFunction.Factory.class, ScriptFunction.class));
-        binder.bind(ScriptFunction.Registration.MaxArity.class).toInstance(new ScriptFunction.Registration.MaxArity(3));
+        binder.bind(ScriptFunction.Registration.Configs.class).toInstance(new ScriptFunction.Registration.Configs(scriptFunctionConfigs.build()))
         binder.bind(ScriptFunction.Registration.class).asEagerSingleton();
         functionRegistrationBinder.addBinding().to(ScriptFunction.Registration.class);
     }

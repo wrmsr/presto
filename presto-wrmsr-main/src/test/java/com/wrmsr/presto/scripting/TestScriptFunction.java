@@ -63,7 +63,7 @@ public class TestScriptFunction
                 ImmutableMap.<String, String>of());
 
         ScriptingManager scriptingManager = new ScriptingManager(null, null);
-        List<? extends SqlFunction> functions = IntStream.range(1, 3).boxed().map(i -> new ScriptFunction(scriptingManager, VarcharType.VARCHAR, i)).collect(toImmutableList());
+        List<? extends SqlFunction> functions = IntStream.range(1, 3).boxed().map(i -> new ScriptFunction(scriptingManager, "script", VarcharType.VARCHAR, i)).collect(toImmutableList());
         localQueryRunner.getMetadata().getFunctionRegistry().addFunctions(functions);
         return localQueryRunner;
     }

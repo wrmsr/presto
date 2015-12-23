@@ -58,6 +58,6 @@ public class ScriptingManager
 
     public Scripting getScripting(String name)
     {
-        throw new NotImplementedException();
+        return scriptings.get(name);
     }
 }
