@@ -36,5 +36,7 @@ public class CodecModule
                 .map(CommonsCompressionTypeCodec::new)
                 .forEach(c -> typeCodecBinder.addBinding().toInstance(c));
 
+//        json, json_values, cbor, cbor_values
+//        field strictness, nullability, *_corrupt
     }
 }

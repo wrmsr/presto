@@ -191,7 +191,7 @@ public class StructManager
             // FIXME lel
             return listBoxCtor.newInstance(Collections.unmodifiableList(boxedValues));
         }
-        catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
+        catch (ReflectiveOperationException e) {
             throw Throwables.propagate(e);
         }
     }

@@ -208,7 +208,9 @@ public class RowTypeConstructorCompiler
                 .newObject(BlockBuilderStatus.class)
                 .dup()
                 .invokeConstructor(BlockBuilderStatus.class)
-                .invokeConstructor(VariableWidthBlockBuilder.class, BlockBuilderStatus.class)
+                .push(rowType.getFields().size())
+                .push(8)
+                .invokeConstructor(VariableWidthBlockBuilder.class, BlockBuilderStatus.class, int.class, int.class)
                 .putVariable(blockBuilder);
 
         // FIXME: reuse returned blockBuilder
