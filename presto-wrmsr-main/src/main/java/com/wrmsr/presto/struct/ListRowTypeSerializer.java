@@ -25,12 +25,12 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class RowTypeSerializer
+public class ListRowTypeSerializer
         extends StdSerializer<Box<List>>
 {
     private final RowType rowType;
 
-    public RowTypeSerializer(RowType rowType, Class listBoxClass)
+    public ListRowTypeSerializer(RowType rowType, Class listBoxClass)
     {
         super(listBoxClass);
         this.rowType = rowType;
@@ -48,12 +48,10 @@ public class RowTypeSerializer
         }
         List<RowType.RowField> rowFields = rowType.getFields();
         checkArgument(list.size() == rowFields.size());
-        jgen.writeStartObject();
+        jgen.writeStartArray();
         for (int i = 0; i < list.size(); ++i) {
-            RowType.RowField rowField = rowFields.get(i);
-            // FIXME nameless = lists
-            jgen.writeObjectField(rowField.getName().get(), list.get(i));
+            jgen.writeObject(list.get(i));
         }
-        jgen.writeEndObject();
+        jgen.writeEndArray();
     }
 }

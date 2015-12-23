@@ -224,7 +224,7 @@ public class StructManager
                         .getFunctions());
         Class<?> sliceBoxClass = CodeGeneration.generateBox(name, Slice.class);
         Class<?> listBoxClass = CodeGeneration.generateBox(name, List.class);
-        StdSerializer serializer = new RowTypeSerializer(rowType, listBoxClass);
+        StdSerializer serializer = new ListRowTypeSerializer(rowType, listBoxClass);
         StdDeserializer deserializer = new RowTypeDeserializer(rowType, sliceBoxClass);
 
         SimpleModule module = new SimpleModule();
