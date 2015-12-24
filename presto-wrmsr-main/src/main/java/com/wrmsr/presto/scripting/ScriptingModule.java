@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.scripting;
 
+import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.VarcharType;
 import com.google.common.collect.ImmutableList;
@@ -57,7 +58,9 @@ public class ScriptingModule
 //        for (int arity = 0; arity < 3; ++arity) {
 //
 //        }
-        scriptFunctionConfigs.add(new ScriptFunction.Config("eval", VarcharType.VARCHAR, 0, ScriptFunction.ExecutionType.EVAL));
+        for (int arity = 0; arity < 20; ++arity) {
+            scriptFunctionConfigs.add(new ScriptFunction.Config("evald", BigintType.BIGINT, arity, ScriptFunction.ExecutionType.EVAL));
+        }
 
         binder.bind(ScriptFunction.Factory.class).toProvider(FactoryProvider.newFactory(ScriptFunction.Factory.class, ScriptFunction.class));
         binder.bind(ScriptFunction.Registration.Configs.class).toInstance(new ScriptFunction.Registration.Configs(scriptFunctionConfigs.build()));

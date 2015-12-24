@@ -33,11 +33,14 @@ import com.facebook.presto.sql.gen.CallSiteBinder;
 import com.facebook.presto.sql.gen.CompilerUtils;
 import com.facebook.presto.type.SqlType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.util.Box;
 import io.airlift.slice.Slice;
+import io.airlift.slice.Slices;
+import org.apache.commons.lang.ClassUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -45,6 +48,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.IntStream;
 
 import static com.facebook.presto.byteCode.Access.FINAL;
@@ -206,7 +210,12 @@ public class ScriptFunction
             parameters.add(ImmutablePair.of("arg" + i, javaType));
         }
 
-        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), name, type(Slice.class), parameters.stream().map(p -> arg(p.getLeft(), p.getRight())).collect(toImmutableList()));
+        Class returnJavaType = ClassUtils.primitiveToWrapper(
+                config.returnType.getJavaType());
+
+        String methodName = "script" + SUFFIX_CHARS_BY_JAVA_TYPE.get(returnJavaType);
+
+        MethodDefinition methodDefinition = definition.declareMethod(a(PUBLIC, STATIC), name, type(returnJavaType), parameters.stream().map(p -> arg(p.getLeft(), p.getRight())).collect(toImmutableList()));
         methodDefinition.declareAnnotation(ScalarFunction.class);
         methodDefinition.declareAnnotation(SqlType.class).setValue("value", config.returnType.getTypeSignature().toString());
         methodDefinition.declareParameterAnnotation(SqlType.class, 2).setValue("value", "varchar");
@@ -256,7 +265,7 @@ public class ScriptFunction
         }
 
         body
-                .invokeStatic(ScriptFunction.class, "script", Slice.class, Context.class, ConnectorSession.class, Slice.class, Slice.class, Object[].class)
+                .invokeStatic(ScriptFunction.class, methodName, returnJavaType, Context.class, ConnectorSession.class, Slice.class, Slice.class, Object[].class)
                 .retObject();
 
         Class<?> cls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(ScriptFunction.class.getClassLoader()));
@@ -285,7 +294,7 @@ public class ScriptFunction
         return new ScalarFunctionImplementation(true, listOf(arity, true), methodHandle, isDeterministic());
     }
 
-    public static Slice script(Context context, ConnectorSession session, Slice scriptingName, Slice str, Object... args)
+    public static Object script(Context context, ConnectorSession session, Slice scriptingName, Slice str, Object... args)
     {
         Scripting scripting = context.scriptingManager.getScripting(scriptingName.toStringUtf8());
         Object ret;
@@ -297,8 +306,56 @@ public class ScriptFunction
                 checkArgument(args.length == 0);
                 ret = scripting.eval(str.toStringUtf8());
                 break;
+            default:
+                throw new IllegalArgumentException(Objects.toString(context.config.executionType));
         }
+        return ret;
+    }
 
-        throw new IllegalStateException();
+    public static final Map<Class, Character> SUFFIX_CHARS_BY_JAVA_TYPE = ImmutableMap.<Class, Character>builder()
+            .put(Boolean.class, 'b')
+            .put(Long.class, 'l')
+            .put(Double.class, 'd')
+            .put(Slice.class, 's')
+            .put(Void.class, 'v')
+            .build();
+
+    public static Boolean scriptb(Context context, ConnectorSession session, Slice scriptingName, Slice str, Object... args)
+    {
+        return (Boolean) script(context, session, scriptingName, str, args);
+    }
+
+    public static Long scriptl(Context context, ConnectorSession session, Slice scriptingName, Slice str, Object... args)
+    {
+        Number num = (Number) script(context, session, scriptingName, str, args);
+        return num != null ? num.longValue() : null;
+    }
+
+    public static Double scriptd(Context context, ConnectorSession session, Slice scriptingName, Slice str, Object... args)
+    {
+        Number num = (Number) script(context, session, scriptingName, str, args);
+        return num != null ? num.doubleValue() : null;
+    }
+
+    public static Slice scripts(Context context, ConnectorSession session, Slice scriptingName, Slice str, Object... args)
+    {
+        Object ret = script(context, session, scriptingName, str, args);
+        if (ret instanceof Slice) {
+            return (Slice) ret;
+        }
+        else if (ret instanceof String) {
+            return Slices.utf8Slice((String) ret);
+        }
+        else if (ret instanceof byte[]) {
+            return Slices.wrappedBuffer((byte[]) ret);
+        }
+        else {
+            throw new IllegalStateException();
+        }
+    }
+
+    public static Void scriptv(Context context, ConnectorSession session, Slice scriptingName, Slice str, Object... args)
+    {
+        return (Void) script(context, session, scriptingName, str, args);
     }
 }
