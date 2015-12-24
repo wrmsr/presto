@@ -20,6 +20,8 @@ import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.util.Compression;
 
+import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
+
 public class CodecModule
         implements Module
 {
@@ -38,5 +40,7 @@ public class CodecModule
 
 //        json, json_values, cbor, cbor_values
 //        field strictness, nullability, *_corrupt
+
+        typeCodecBinder.addBinding().toInstance(new JacksonTypeCodec("json", OBJECT_MAPPER.get()));
     }
 }

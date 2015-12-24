@@ -65,9 +65,4 @@ public class TypeCodecManager
         metadata.addFunctions(ImmutableList.of(ef, df, cf0, cf1));
         typeCodecs.put(typeCodec.getName(), typeCodec);
     }
-
-    public Optional<TypeCodec> getTypeCodec(String name)
-    {
-        throw new UnsupportedOperationException();
-    }
 }
