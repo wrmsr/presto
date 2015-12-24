@@ -298,6 +298,7 @@ public class LauncherBuilder
 
         File wrapperJarFile = null;
         Set<Entry> entries = newHashSet();
+        Set<String> uncachedRepoPaths = newHashSet();
         for (String name : names) {
             String pom = name + "/pom.xml";
             // log.info(pom);
@@ -350,7 +351,9 @@ public class LauncherBuilder
                     }
                     else {
                         entries.add(new FileEntry(jarPathStr, localFile));
-                        repoPaths.add(jarPathStr);
+                        checkState(jarPathStr.startsWith("repository/"));
+                        repoPaths.add(jarPathStr.substring("repository/".length()));
+                        uncachedRepoPaths.add(jarPathStr.substring("repository/".length()));
                     }
                 }
                 else {
@@ -375,7 +378,8 @@ public class LauncherBuilder
                 entries.add(new FileEntry(jarPathStr, file));
 
                 //log.info(jarPathStr);
-                repoPaths.add(jarPathStr);
+                checkState(jarPathStr.startsWith("repository/"));
+                repoPaths.add(jarPathStr.substring("repository/".length()));
             }
 
             String repoPathsStr = String.join("\n", repoPaths) + "\n";
@@ -384,6 +388,11 @@ public class LauncherBuilder
             classpathPath = classpathPath.substring(1);
             entries.add(new BytesEntry(classpathPath, repoPathsStr.getBytes(), System.currentTimeMillis()));
         }
+
+        List<String> sortedUncachedRepoPaths = newArrayList(uncachedRepoPaths);
+        Collections.sort(sortedUncachedRepoPaths);
+        String uncachedRepoPathsStr = String.join("\n", sortedUncachedRepoPaths) + "\n";
+        entries.add(new BytesEntry("classpaths/.uncached", uncachedRepoPathsStr.getBytes(), System.currentTimeMillis()));
 
         checkState(wrapperJarFile != null);
         Map<String, Entry> entryMap = entries.stream().collect(toMap(Entry::getJarPath, e -> e));

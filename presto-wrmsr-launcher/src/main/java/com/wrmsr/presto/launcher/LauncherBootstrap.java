@@ -15,11 +15,18 @@ package com.wrmsr.presto.launcher;
 
 import com.wrmsr.presto.util.Repositories;
 
+import java.io.File;
+
 public class LauncherBootstrap
 {
     public static void main(String[] args)
             throws Throwable
     {
+        if (System.getProperty(Repositories.REPOSITORY_CACHE_PATH_PROPERTY_KEY) == null) {
+            File repositoryCachePath = new File(new File(System.getProperty("user.home"), ".m2"), "repository");
+            System.setProperty(Repositories.REPOSITORY_CACHE_PATH_PROPERTY_KEY, repositoryCachePath.getAbsolutePath());
+        }
+
         Repositories.setupClassLoaderForModule(LauncherBootstrap.class.getClassLoader(), "presto-wrmsr-launcher");
         Class<?> cls = Class.forName("com.wrmsr.presto.launcher.LauncherMain");
         cls.getDeclaredMethod("main", String[].class).invoke(null, new Object[] {args});

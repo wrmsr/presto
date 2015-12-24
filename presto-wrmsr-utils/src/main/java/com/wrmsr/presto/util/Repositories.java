@@ -30,8 +30,10 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 
 public class Repositories
 {
@@ -41,6 +43,7 @@ public class Repositories
 
     // FIXME add static ClassLoader, set in bootstrap via refl
 
+    public static final String REPOSITORY_CACHE_PATH_PROPERTY_KEY = "com.wrmsr.repository.cache-path";
     public static final String REPOSITORY_PATH_PROPERTY_KEY = "com.wrmsr.repository.path";
     public static final String MADE_REPOSITORY_PATH_PROPERTY_KEY = "com.wrmsr.repository.made-path";
 
@@ -137,33 +140,82 @@ public class Repositories
         }
     }
 
+    public static File tryGetCacheDep(String dep)
+    {
+        String s = System.getProperty(REPOSITORY_CACHE_PATH_PROPERTY_KEY);
+        if (s == null || s.isEmpty()) {
+            return null;
+        }
+        File cacheFile = new File(s, dep);
+        if (!cacheFile.exists() || !cacheFile.isFile()) {
+            return null;
+        }
+        return cacheFile;
+    }
+
+    public static void tryPutCacheDep(String dep, File depFile)
+    {
+        String s = System.getProperty(REPOSITORY_CACHE_PATH_PROPERTY_KEY);
+        if (s == null || s.isEmpty()) {
+            return;
+        }
+        File cacheFile = new File(s, dep);
+        File parent = new File(cacheFile.getParent());
+        parent.mkdirs();
+        if (!(parent.exists() && parent.isDirectory())) {
+            throw new IllegalStateException("Failed to make dir: " + parent.getAbsolutePath());
+        }
+    }
+
     public static List<URL> resolveUrlsForModule(ClassLoader sourceClassLoader, String moduleName)
             throws IOException
     {
         List<URL> urls = new ArrayList<>();
         File repositoryPath = getOrMakeRepositoryPath();
+        Set<String> uncachedDeps = new HashSet<>();
+        try (Scanner scanner = new Scanner(sourceClassLoader.getResourceAsStream("classpaths/.uncached"))) {
+            while (scanner.hasNextLine()) {
+                uncachedDeps.add(scanner.nextLine());
+            }
+        }
+        String cachePath = System.getProperty(REPOSITORY_CACHE_PATH_PROPERTY_KEY);
 
         try (Scanner scanner = new Scanner(sourceClassLoader.getResourceAsStream("classpaths/" + moduleName))) {
             while (scanner.hasNextLine()) {
                 String dep = scanner.nextLine();
-                File tmp = Files.createTempFile(null, null).toFile();
-                long sz = 0;
-                try (InputStream bi = new BufferedInputStream(sourceClassLoader.getResourceAsStream(dep));
-                        OutputStream bo = new BufferedOutputStream(new FileOutputStream(tmp))) {
-                    byte[] buf = new byte[65536];
-                    int anz;
-                    while ((anz = bi.read(buf)) != -1) {
-                        bo.write(buf, 0, anz);
-                        sz += anz;
+
+                File depFile;
+                if (cachePath != null && !cachePath.isEmpty() && !uncachedDeps.contains(dep)) {
+                    depFile = new File(cachePath, dep);
+                }
+                else {
+                    depFile = new File(repositoryPath, dep);
+                }
+
+                if (!depFile.exists()) {
+                    File parent = depFile.getParentFile();
+                    parent.mkdirs();
+                    if (!(parent.exists() && parent.isDirectory())) {
+                        throw new IOException("Failed to make dirs: " + parent.toString());
                     }
-                    bo.flush();
+                    File tmp = new File(depFile.getAbsolutePath() + ".tmp");
+                    long sz = 0;
+                    try (InputStream bi = new BufferedInputStream(sourceClassLoader.getResourceAsStream("repository/" + dep));
+                            OutputStream bo = new BufferedOutputStream(new FileOutputStream(tmp))) {
+                        byte[] buf = new byte[65536];
+                        int anz;
+                        while ((anz = bi.read(buf)) != -1) {
+                            bo.write(buf, 0, anz);
+                            sz += anz;
+                        }
+                        bo.flush();
+                    }
+                    unlockFile(tmp.getAbsolutePath(), sz);
+                    if (!tmp.renameTo(depFile)) {
+                        throw new IOException(String.format("Rename failed: %s -> %s", tmp, depFile));
+                    }
                 }
-                unlockFile(tmp.getAbsolutePath(), sz);
-                File depFile = new File(repositoryPath, dep);
-                depFile.getParentFile().mkdirs();
-                if (!tmp.renameTo(depFile)) {
-                    throw new IOException(String.format("Rename failed: %s -> %s", tmp, depFile));
-                }
+
                 urls.add(depFile.toURL());
             }
         }
