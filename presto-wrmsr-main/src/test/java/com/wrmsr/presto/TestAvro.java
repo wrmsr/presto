@@ -13,12 +13,40 @@
  */
 package com.wrmsr.presto;
 
+import com.facebook.presto.byteCode.ByteCodeBlock;
+import com.facebook.presto.byteCode.ClassDefinition;
+import com.facebook.presto.byteCode.DynamicClassLoader;
+import com.facebook.presto.byteCode.FieldDefinition;
+import com.facebook.presto.byteCode.MethodDefinition;
+import com.facebook.presto.byteCode.Parameter;
+import com.facebook.presto.byteCode.Scope;
+import com.facebook.presto.sql.gen.CallSiteBinder;
+import com.facebook.presto.sql.gen.CompilerUtils;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.avro.AvroFactory;
 import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import com.fasterxml.jackson.dataformat.avro.schema.AvroSchemaGenerator;
+import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.struct.RowTypeConstructorCompiler;
 import org.apache.avro.Schema;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.testng.annotations.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.facebook.presto.byteCode.Access.FINAL;
+import static com.facebook.presto.byteCode.Access.PUBLIC;
+import static com.facebook.presto.byteCode.Access.a;
+import static com.facebook.presto.byteCode.Parameter.arg;
+import static com.facebook.presto.byteCode.ParameterizedType.type;
+import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
+import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
 public class TestAvro
 {
@@ -31,24 +59,25 @@ public class TestAvro
     }
 
     @Test
-    public void testStuff() throws Throwable
+    public void testStuff()
+            throws Throwable
     {
         String SCHEMA_JSON = "{\n"
-                +"\"type\": \"record\",\n"
-                +"\"name\": \"Employee\",\n"
-                +"\"fields\": [\n"
-                +" {\"name\": \"name\", \"type\": \"string\"},\n"
-                +" {\"name\": \"age\", \"type\": \"int\"},\n"
-                +" {\"name\": \"emails\", \"type\": {\"type\": \"array\", \"items\": \"string\"}},\n"
-                +" {\"name\": \"boss\", \"type\": [\"Employee\",\"null\"]}\n"
-                +"]}";
+                + "\"type\": \"record\",\n"
+                + "\"name\": \"Employee\",\n"
+                + "\"fields\": [\n"
+                + " {\"name\": \"name\", \"type\": \"string\"},\n"
+                + " {\"name\": \"age\", \"type\": \"int\"},\n"
+                + " {\"name\": \"emails\", \"type\": {\"type\": \"array\", \"items\": \"string\"}},\n"
+                + " {\"name\": \"boss\", \"type\": [\"Employee\",\"null\"]}\n"
+                + "]}";
         Schema raw = new Schema.Parser().setValidate(true).parse(SCHEMA_JSON);
         AvroSchema schema = new AvroSchema(raw);
 
         ObjectMapper mapper = new ObjectMapper(new AvroFactory());
 
         Employee empl;
-        byte[] avroData ;
+        byte[] avroData;
 
 //        avroData = ... ; // or find an InputStream
 //        Employee empl = mapper.reader(Employee.class)
@@ -58,14 +87,15 @@ public class TestAvro
         empl = new Employee();
         empl.name = "hi";
         empl.age = 2;
-        empl.emails = new String[]{"blah", "boo"};
+        empl.emails = new String[] {"blah", "boo"};
 
         avroData = mapper.writer(schema)
                 .writeValueAsBytes(empl);
     }
 
     @Test
-    public void testStuff2() throws Throwable
+    public void testStuff2()
+            throws Throwable
     {
         ObjectMapper mapper = new ObjectMapper(new AvroFactory());
         AvroSchemaGenerator gen = new AvroSchemaGenerator();
@@ -77,7 +107,8 @@ public class TestAvro
     }
 
     @Test
-    public void testDeep() throws Throwable
+    public void testDeep()
+            throws Throwable
     {
         String mySchema = "{\n" +
                 "    \"name\": \"person\",\n" +
@@ -100,5 +131,62 @@ public class TestAvro
                 "}";
         Schema raw = new Schema.Parser().setValidate(true).parse(mySchema);
         AvroSchema schema = new AvroSchema(raw);
+    }
+
+    @Test
+    public void testPojoStruct()
+            throws Throwable
+    {
+        List<Pair<String, Class>> fields = ImmutableList.<Pair<String, Class>>builder()
+                .add(ImmutablePair.of("x", int.class))
+                .add(ImmutablePair.of("y", int.class))
+                .build();
+
+        ClassDefinition definition = new ClassDefinition(
+                a(PUBLIC, FINAL),
+                CompilerUtils.makeClassName("point2"),
+                type(Object.class));
+
+        Map<String, FieldDefinition> fieldDefinitions = new HashMap<>();
+        for (Pair<String, Class> field : fields) {
+            FieldDefinition fieldDefinition = definition.declareField(a(PUBLIC, FINAL), field.getKey(), field.getValue());
+            fieldDefinition.declareAnnotation(JsonProperty.class).setValue("value", field.getKey());
+            fieldDefinitions.put(field.getKey(), fieldDefinition);
+        }
+
+        List<Parameter> parameters = new ArrayList<>();
+        for (Pair<String, Class> field : fields) {
+            parameters.add(arg(field.getKey(), field.getValue()));
+        }
+
+        MethodDefinition methodDefinition = definition.declareConstructor(a(PUBLIC), parameters);
+        methodDefinition.declareAnnotation(JsonCreator.class);
+
+        for (int i = 0; i < fields.size(); ++i) {
+            methodDefinition.declareParameterAnnotation(JsonProperty.class, i).setValue("value", fields.get(i).getKey());
+        }
+
+        Scope scope = methodDefinition.getScope();
+        CallSiteBinder binder = new CallSiteBinder();
+        ByteCodeBlock body = methodDefinition.getBody();
+
+        body
+                .getVariable(scope.getThis())
+                .invokeConstructor(Object.class);
+
+        for (Pair<String, Class> field : fields) {
+            body
+                    .getVariable(scope.getThis())
+                    .getVariable(scope.getVariable(field.getKey()))
+                    .putField(fieldDefinitions.get(field.getKey()));
+        }
+
+        body
+                .ret();
+
+        Class pointCls = defineClass(definition, Object.class, binder.getBindings(), new DynamicClassLoader(RowTypeConstructorCompiler.class.getClassLoader()));
+
+        Object obj = pointCls.getDeclaredConstructor(int.class, int.class).newInstance(1, 2);
+        OBJECT_MAPPER.get().writeValueAsString(obj);
     }
 }

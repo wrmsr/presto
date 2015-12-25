@@ -38,8 +38,8 @@ public class CodecModule
                 .map(CommonsCompressionTypeCodec::new)
                 .forEach(c -> typeCodecBinder.addBinding().toInstance(c));
 
-//        json, json_values, cbor, cbor_values
-//        field strictness, nullability, *_corrupt
+        // json, json_values, cbor, cbor_values
+        // field strictness, nullability, *_corrupt
 
         typeCodecBinder.addBinding().toInstance(new JacksonTypeCodec("json", OBJECT_MAPPER.get()));
     }
