@@ -24,10 +24,12 @@ import com.facebook.presto.sql.gen.CallSiteBinder;
 import com.facebook.presto.sql.gen.CompilerUtils;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.avro.AvroFactory;
 import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import com.fasterxml.jackson.dataformat.avro.schema.AvroSchemaGenerator;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.struct.RowTypeConstructorCompiler;
 import org.apache.avro.Schema;
@@ -35,6 +37,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.testng.annotations.Test;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,6 +50,7 @@ import static com.facebook.presto.byteCode.Parameter.arg;
 import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class TestAvro
 {
@@ -133,6 +137,89 @@ public class TestAvro
         AvroSchema schema = new AvroSchema(raw);
     }
 
+    public static abstract class StructFieldType
+    {
+
+    }
+
+    public static final class StructField
+    {
+        public final String name;
+        public final Class cls;
+
+        public StructField(String name, Class cls)
+        {
+            this.name = name;
+            this.cls = cls;
+        }
+    }
+
+    public interface Struct
+    {
+    }
+
+    public abstract class StructSupport<T extends Struct>
+    {
+        protected final Class<T> cls;
+        protected final List<Struct.Field> fields;
+
+        protected final Constructor<T> valuesCtor;
+
+        public StructSupport(Class<T> cls, List<Struct.Field> fields)
+        {
+            this.cls = cls;
+            this.fields = ImmutableList.copyOf(fields);
+
+            try {
+                valuesCtor = cls.getConstructor(Object[].class);
+            }
+            catch (ReflectiveOperationException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
+        public Class<T> structClass()
+        {
+            return cls;
+        }
+
+        public List<Struct.Field> fields()
+        {
+            return fields;
+        }
+
+        public int size()
+        {
+            return fields.size();
+        }
+
+        public abstract void toValues(T struct, Object[] values);
+
+        public Object[] toValues(T struct)
+        {
+            Object[] values = new Object[size()];
+            toValues(struct, values);
+            return values;
+        }
+
+        public T fromValues(Object[] values)
+        {
+            try {
+                return valuesCtor.newInstance(values);
+            }
+            catch (ReflectiveOperationException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
+        public abstract void writeBlock()
+    }
+
+    public interface Blockable
+    {
+
+    }
+
     @Test
     public void testPojoStruct()
             throws Throwable
@@ -146,6 +233,9 @@ public class TestAvro
                 a(PUBLIC, FINAL),
                 CompilerUtils.makeClassName("point2"),
                 type(Object.class));
+
+        definition.declareAnnotation(JsonPropertyOrder.class)
+                .setValue("value", fields.stream().map(Pair::getKey).collect(toImmutableList()));
 
         Map<String, FieldDefinition> fieldDefinitions = new HashMap<>();
         for (Pair<String, Class> field : fields) {
