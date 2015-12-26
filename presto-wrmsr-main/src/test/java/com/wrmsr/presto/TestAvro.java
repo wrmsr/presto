@@ -372,7 +372,7 @@ public class TestAvro
         {
             body
                     .getVariable(blockBuilder);
-            getter.accept(body);;
+            getter.accept(body);
             body
                     .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
                     .pop()
@@ -479,6 +479,15 @@ public class TestAvro
         }
 
         // public abstract void writeBlock()
+    }
+
+    public static class StructFactory
+    {
+        public StructSupport<?> buildStructClass(String name, List<>)
+        {
+
+        }
+
     }
 
     @Test
