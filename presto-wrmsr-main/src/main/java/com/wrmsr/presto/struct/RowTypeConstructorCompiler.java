@@ -178,8 +178,8 @@ public class RowTypeConstructorCompiler
 
     public Class<?> run(RowType rowType, String name)
     {
-        // TODO foo_array
-        List<RowType.RowField> fieldTypes = rowType.getFields();
+    // TODO foo_array
+    List<RowType.RowField> fieldTypes = rowType.getFields();
 
         ClassDefinition definition = new ClassDefinition(
                 a(PUBLIC, FINAL),

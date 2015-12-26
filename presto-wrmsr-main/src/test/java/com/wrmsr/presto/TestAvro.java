@@ -20,6 +20,13 @@ import com.facebook.presto.byteCode.FieldDefinition;
 import com.facebook.presto.byteCode.MethodDefinition;
 import com.facebook.presto.byteCode.Parameter;
 import com.facebook.presto.byteCode.Scope;
+import com.facebook.presto.byteCode.Variable;
+import com.facebook.presto.byteCode.instruction.LabelNode;
+import com.facebook.presto.spi.block.BlockBuilder;
+import com.facebook.presto.spi.type.BigintType;
+import com.facebook.presto.spi.type.BooleanType;
+import com.facebook.presto.spi.type.DoubleType;
+import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.gen.CallSiteBinder;
 import com.facebook.presto.sql.gen.CompilerUtils;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -37,6 +44,8 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.testng.annotations.Test;
 
+import javax.annotation.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,6 +60,9 @@ import static com.facebook.presto.byteCode.ParameterizedType.type;
 import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
+import static io.airlift.slice.SizeOf.SIZE_OF_BYTE;
+import static io.airlift.slice.SizeOf.SIZE_OF_DOUBLE;
+import static io.airlift.slice.SizeOf.SIZE_OF_LONG;
 
 public class TestAvro
 {
@@ -137,20 +149,251 @@ public class TestAvro
         AvroSchema schema = new AvroSchema(raw);
     }
 
-    public static abstract class StructFieldType
+    public static abstract class StructField
     {
+        private final String name;
+        private final int position;
 
-    }
+        private final Type type;
+        private final Class<?> javaType;
+        private final boolean nullable;
+        @Nullable
+        private final Integer length;
 
-    public static final class StructField
-    {
-        public final String name;
-        public final Class cls;
-
-        public StructField(String name, Class cls)
+        public StructField(String name, int position, Type type, Class<?> javaType, boolean nullable, Integer length)
         {
             this.name = name;
-            this.cls = cls;
+            this.position = position;
+            this.type = type;
+            this.javaType = javaType;
+            this.nullable = nullable;
+            this.length = length;
+        }
+
+        public String getName()
+        {
+            return name;
+        }
+
+        public int getPosition()
+        {
+            return position;
+        }
+
+        public Type getType()
+        {
+            return type;
+        }
+
+        public Class<?> getJavaType()
+        {
+            return javaType;
+        }
+
+        public boolean isNullable()
+        {
+            return nullable;
+        }
+
+        @Nullable
+        public Integer getLength()
+        {
+            return length;
+        }
+
+        public abstract void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder);
+    }
+
+    public static final class NonNullableBooleanStructField
+            extends StructField
+    {
+        public NonNullableBooleanStructField(String name, int position)
+        {
+            super(name, position, BooleanType.BOOLEAN, boolean.class, false, (int) SIZE_OF_BYTE);
+        }
+
+        @Override
+        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        {
+            LabelNode isFalse = new LabelNode("isFalse" + getPosition());
+            LabelNode done = new LabelNode("done" + getPosition());
+            body
+                    .getVariable(blockBuilder)
+                    .getVariable(scope.getVariable(getName()))
+                    .ifFalseGoto(isFalse)
+                    .push(1)
+                    .gotoLabel(done)
+                    .visitLabel(isFalse)
+                    .push(0)
+                    .visitLabel(done)
+                    .invokeInterface(BlockBuilder.class, "writeByte", BlockBuilder.class, int.class)
+                    .pop()
+
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop();
+        }
+    }
+
+    public static final class NullableBooleanStructField
+            extends StructField
+    {
+        public NullableBooleanStructField(String name, int position)
+        {
+            super(name, position, BooleanType.BOOLEAN, Boolean.class, true, (int) SIZE_OF_BYTE);
+        }
+
+        @Override
+        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        {
+            LabelNode isNull = new LabelNode("isNull" + getPosition());
+            LabelNode isFalse = new LabelNode("isFalse" + getPosition());
+            LabelNode write = new LabelNode("write" + getPosition());
+            LabelNode done = new LabelNode("done" + getPosition());
+            body
+                    .getVariable(scope.getVariable(getName()))
+                    .ifNullGoto(isNull)
+                    .getVariable(blockBuilder)
+
+                    .getVariable(scope.getVariable(getName()))
+                    .invokeVirtual(Boolean.class, "booleanValue", boolean.class)
+                    .ifFalseGoto(isFalse)
+                    .push(1)
+                    .gotoLabel(write)
+                    .visitLabel(isFalse)
+                    .push(0)
+                    .visitLabel(write)
+                    .invokeInterface(BlockBuilder.class, "writeByte", BlockBuilder.class, int.class)
+                    .pop()
+
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop()
+
+                    .gotoLabel(done)
+                    .visitLabel(isNull)
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
+                    .pop()
+                    .visitLabel(done);
+        }
+    }
+
+    public static final class NonNullableLongStructField
+            extends StructField
+    {
+        public NonNullableLongStructField(String name, int position)
+        {
+            super(name, position, BigintType.BIGINT, long.class, false, (int) SIZE_OF_LONG);
+        }
+
+        @Override
+        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        {
+            body
+                    .getVariable(blockBuilder)
+                    .getVariable(scope.getVariable(getName()))
+                    .invokeInterface(BlockBuilder.class, "writeLong", BlockBuilder.class, long.class)
+                    .pop()
+
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop();
+        }
+    }
+
+    public static final class NullableLongStructField
+            extends StructField
+    {
+        public NullableLongStructField(String name, int position)
+        {
+            super(name, position, BigintType.BIGINT, Long.class, true, (int) SIZE_OF_LONG);
+        }
+
+        @Override
+        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        {
+            LabelNode isNull = new LabelNode("isNull" + getPosition());
+            LabelNode done = new LabelNode("done" + getPosition());
+            body
+                    .getVariable(scope.getVariable(getName()))
+                    .ifNullGoto(isNull)
+                    .getVariable(blockBuilder)
+
+                    .getVariable(scope.getVariable(getName()))
+                    .invokeVirtual(Long.class, "longValue", long.class)
+                    .invokeInterface(BlockBuilder.class, "writeLong", BlockBuilder.class, long.class)
+                    .pop()
+
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop()
+
+                    .gotoLabel(done)
+                    .visitLabel(isNull)
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
+                    .pop()
+                    .visitLabel(done);
+        }
+    }
+
+    public static final class NonNullableDoubleStructField
+            extends StructField
+    {
+        public NonNullableDoubleStructField(String name, int position)
+        {
+            super(name, position, DoubleType.DOUBLE, double.class, false, (int) SIZE_OF_DOUBLE);
+        }
+
+        @Override
+        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        {
+            body
+                    .getVariable(blockBuilder)
+                    .getVariable(scope.getVariable(getName()))
+                    .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
+                    .pop()
+
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop();
+        }
+    }
+
+    public static final class NullableDoubleStructField
+            extends StructField
+    {
+        public NullableDoubleStructField(String name, int position)
+        {
+            super(name, position, DoubleType.DOUBLE, Double.class, true, (int) SIZE_OF_DOUBLE);
+        }
+
+        @Override
+        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        {
+            LabelNode isNull = new LabelNode("isNull" + getPosition());
+            LabelNode done = new LabelNode("done" + getPosition());
+            body
+                    .getVariable(scope.getVariable(getName()))
+                    .ifNullGoto(isNull)
+                    .getVariable(blockBuilder)
+
+                    .getVariable(scope.getVariable(getName()))
+                    .invokeVirtual(Double.class, "doubleValue", double.class)
+                    .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
+                    .pop()
+
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "closeEntry", BlockBuilder.class)
+                    .pop()
+
+                    .gotoLabel(done)
+                    .visitLabel(isNull)
+                    .getVariable(blockBuilder)
+                    .invokeInterface(BlockBuilder.class, "appendNull", BlockBuilder.class)
+                    .pop()
+                    .visitLabel(done);
         }
     }
 
@@ -161,11 +404,11 @@ public class TestAvro
     public abstract class StructSupport<T extends Struct>
     {
         protected final Class<T> cls;
-        protected final List<Struct.Field> fields;
+        protected final List<StructField> fields;
 
         protected final Constructor<T> valuesCtor;
 
-        public StructSupport(Class<T> cls, List<Struct.Field> fields)
+        public StructSupport(Class<T> cls, List<StructField> fields)
         {
             this.cls = cls;
             this.fields = ImmutableList.copyOf(fields);
@@ -178,17 +421,17 @@ public class TestAvro
             }
         }
 
-        public Class<T> structClass()
+        public Class<T> getCls()
         {
             return cls;
         }
 
-        public List<Struct.Field> fields()
+        public List<StructField> getFields()
         {
             return fields;
         }
 
-        public int size()
+        public int getSize()
         {
             return fields.size();
         }
@@ -197,7 +440,7 @@ public class TestAvro
 
         public Object[] toValues(T struct)
         {
-            Object[] values = new Object[size()];
+            Object[] values = new Object[fields.size()];
             toValues(struct, values);
             return values;
         }
@@ -212,12 +455,7 @@ public class TestAvro
             }
         }
 
-        public abstract void writeBlock()
-    }
-
-    public interface Blockable
-    {
-
+        // public abstract void writeBlock()
     }
 
     @Test
