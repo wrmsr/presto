@@ -51,6 +51,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static com.facebook.presto.byteCode.Access.FINAL;
 import static com.facebook.presto.byteCode.Access.PUBLIC;
@@ -201,7 +202,20 @@ public class TestAvro
             return length;
         }
 
-        public abstract void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder);
+        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
+        {
+            throw new UnsupportedOperationException();
+        }
+
+        public void appendBlockWriteArg(ByteCodeBlock body, Variable blockBuilder, Scope scope)
+        {
+            appendBlockWrite(body, blockBuilder, (b) -> b.getVariable(scope.getVariable(getName())));
+        }
+
+        public void appendBlockWriteField(ByteCodeBlock body, Variable blockBuilder, Class<?> cls, Variable instance)
+        {
+            appendBlockWrite(body, blockBuilder, (b) -> b.getVariable(instance).getField(cls, getName(), getJavaType()));
+        }
     }
 
     public static final class NonNullableBooleanStructField
@@ -213,13 +227,15 @@ public class TestAvro
         }
 
         @Override
-        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
         {
             LabelNode isFalse = new LabelNode("isFalse" + getPosition());
             LabelNode done = new LabelNode("done" + getPosition());
+
             body
-                    .getVariable(blockBuilder)
-                    .getVariable(scope.getVariable(getName()))
+                    .getVariable(blockBuilder);
+            getter.accept(body);
+            body
                     .ifFalseGoto(isFalse)
                     .push(1)
                     .gotoLabel(done)
@@ -244,18 +260,20 @@ public class TestAvro
         }
 
         @Override
-        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
         {
             LabelNode isNull = new LabelNode("isNull" + getPosition());
             LabelNode isFalse = new LabelNode("isFalse" + getPosition());
             LabelNode write = new LabelNode("write" + getPosition());
             LabelNode done = new LabelNode("done" + getPosition());
-            body
-                    .getVariable(scope.getVariable(getName()))
-                    .ifNullGoto(isNull)
-                    .getVariable(blockBuilder)
 
-                    .getVariable(scope.getVariable(getName()))
+            getter.accept(body);
+            body
+                    .ifNullGoto(isNull)
+
+                    .getVariable(blockBuilder);
+            getter.accept(body);
+            body
                     .invokeVirtual(Boolean.class, "booleanValue", boolean.class)
                     .ifFalseGoto(isFalse)
                     .push(1)
@@ -288,11 +306,12 @@ public class TestAvro
         }
 
         @Override
-        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
         {
             body
-                    .getVariable(blockBuilder)
-                    .getVariable(scope.getVariable(getName()))
+                    .getVariable(blockBuilder);
+            getter.accept(body);
+            body
                     .invokeInterface(BlockBuilder.class, "writeLong", BlockBuilder.class, long.class)
                     .pop()
 
@@ -311,16 +330,18 @@ public class TestAvro
         }
 
         @Override
-        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
         {
             LabelNode isNull = new LabelNode("isNull" + getPosition());
             LabelNode done = new LabelNode("done" + getPosition());
-            body
-                    .getVariable(scope.getVariable(getName()))
-                    .ifNullGoto(isNull)
-                    .getVariable(blockBuilder)
 
-                    .getVariable(scope.getVariable(getName()))
+            getter.accept(body);
+            body
+                    .ifNullGoto(isNull)
+                    .getVariable(blockBuilder);
+
+            getter.accept(body);
+            body
                     .invokeVirtual(Long.class, "longValue", long.class)
                     .invokeInterface(BlockBuilder.class, "writeLong", BlockBuilder.class, long.class)
                     .pop()
@@ -347,11 +368,12 @@ public class TestAvro
         }
 
         @Override
-        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
         {
             body
-                    .getVariable(blockBuilder)
-                    .getVariable(scope.getVariable(getName()))
+                    .getVariable(blockBuilder);
+            getter.accept(body);;
+            body
                     .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
                     .pop()
 
@@ -370,16 +392,17 @@ public class TestAvro
         }
 
         @Override
-        public void appendBlockWriteArg(ByteCodeBlock body, Scope scope, Variable blockBuilder)
+        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
         {
             LabelNode isNull = new LabelNode("isNull" + getPosition());
             LabelNode done = new LabelNode("done" + getPosition());
+            getter.accept(body);
             body
-                    .getVariable(scope.getVariable(getName()))
                     .ifNullGoto(isNull)
-                    .getVariable(blockBuilder)
+                    .getVariable(blockBuilder);
 
-                    .getVariable(scope.getVariable(getName()))
+            getter.accept(body);
+            body
                     .invokeVirtual(Double.class, "doubleValue", double.class)
                     .invokeInterface(BlockBuilder.class, "writeDouble", BlockBuilder.class, double.class)
                     .pop()

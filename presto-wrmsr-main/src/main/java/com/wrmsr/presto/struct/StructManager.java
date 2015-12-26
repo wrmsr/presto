@@ -234,7 +234,6 @@ public class StructManager
 
         StructInfo structInfo = new StructInfo(
                 rowType,
-                sliceBoxClass,
                 listBoxClass,
                 serializer,
                 deserializer);
