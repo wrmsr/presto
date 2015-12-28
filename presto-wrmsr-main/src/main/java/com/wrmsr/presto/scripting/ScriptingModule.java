@@ -66,12 +66,12 @@ public class ScriptingModule
         ImmutableList.Builder<ScriptFunction.Config> scriptFunctionConfigs = ImmutableList.builder();
         for (Type type : SUPPORTED_TYPES) {
             String suffix = type.getTypeSignature().getBase().toLowerCase();
-            scriptFunctionConfigs.add(new ScriptFunction.Config("eval_" + suffix, UnknownType.UNKNOWN, 1, ScriptFunction.ExecutionType.EVAL));
+            scriptFunctionConfigs.add(new ScriptFunction.Config("eval_" + suffix, type, 0, ScriptFunction.ExecutionType.EVAL));
             for (int arity = 1; arity < 20; ++arity) {
                 scriptFunctionConfigs.add(new ScriptFunction.Config("invoke_" + suffix, type, arity, ScriptFunction.ExecutionType.INVOKE));
             }
         }
-        scriptFunctionConfigs.add(new ScriptFunction.Config("exec", UnknownType.UNKNOWN, 1, ScriptFunction.ExecutionType.EVAL));
+        scriptFunctionConfigs.add(new ScriptFunction.Config("exec", VarbinaryType.VARBINARY, 0, ScriptFunction.ExecutionType.EVAL));
 
         binder.bind(ScriptFunction.Factory.class).toProvider(FactoryProvider.newFactory(ScriptFunction.Factory.class, ScriptFunction.class));
         binder.bind(ScriptFunction.Registration.Configs.class).toInstance(new ScriptFunction.Registration.Configs(scriptFunctionConfigs.build()));

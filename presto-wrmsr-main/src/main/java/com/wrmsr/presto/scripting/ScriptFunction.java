@@ -349,6 +349,9 @@ public class ScriptFunction
         else if (ret instanceof byte[]) {
             return Slices.wrappedBuffer((byte[]) ret);
         }
+        else if (ret == null) {
+            return null;
+        }
         else {
             throw new IllegalStateException();
         }
