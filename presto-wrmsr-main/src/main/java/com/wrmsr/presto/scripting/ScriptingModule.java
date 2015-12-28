@@ -14,10 +14,13 @@
 package com.wrmsr.presto.scripting;
 
 import com.facebook.presto.spi.type.BigintType;
+import com.facebook.presto.spi.type.BooleanType;
+import com.facebook.presto.spi.type.DoubleType;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.spi.type.VarcharType;
+import com.facebook.presto.type.UnknownType;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryProvider;
@@ -27,7 +30,7 @@ import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 
-import java.util.Map;
+import java.util.List;
 
 public class ScriptingModule
         implements Module
@@ -53,14 +56,22 @@ public class ScriptingModule
 
         binder.bind(ScriptingManager.class).asEagerSingleton();
 
+        List<Type> SUPPORTED_TYPES = ImmutableList.of(
+                BooleanType.BOOLEAN,
+                BigintType.BIGINT,
+                DoubleType.DOUBLE,
+                VarcharType.VARCHAR,
+                VarbinaryType.VARBINARY);
+
         ImmutableList.Builder<ScriptFunction.Config> scriptFunctionConfigs = ImmutableList.builder();
-//        for (Map.Entry<String, Type> nameMapEntry : ImmutableMap.<String, Type>builder().put(""))
-//        for (int arity = 0; arity < 3; ++arity) {
-//
-//        }
-        for (int arity = 0; arity < 20; ++arity) {
-            scriptFunctionConfigs.add(new ScriptFunction.Config("evald", BigintType.BIGINT, arity, ScriptFunction.ExecutionType.EVAL));
+        for (Type type : SUPPORTED_TYPES) {
+            String suffix = type.getTypeSignature().getBase().toLowerCase();
+            scriptFunctionConfigs.add(new ScriptFunction.Config("eval_" + suffix, UnknownType.UNKNOWN, 1, ScriptFunction.ExecutionType.EVAL));
+            for (int arity = 1; arity < 20; ++arity) {
+                scriptFunctionConfigs.add(new ScriptFunction.Config("invoke_" + suffix, type, arity, ScriptFunction.ExecutionType.INVOKE));
+            }
         }
+        scriptFunctionConfigs.add(new ScriptFunction.Config("exec", UnknownType.UNKNOWN, 1, ScriptFunction.ExecutionType.EVAL));
 
         binder.bind(ScriptFunction.Factory.class).toProvider(FactoryProvider.newFactory(ScriptFunction.Factory.class, ScriptFunction.class));
         binder.bind(ScriptFunction.Registration.Configs.class).toInstance(new ScriptFunction.Registration.Configs(scriptFunctionConfigs.build()));

@@ -481,14 +481,13 @@ public class TestAvro
         // public abstract void writeBlock()
     }
 
-    public static class StructFactory
-    {
-        public StructSupport<?> buildStructClass(String name, List<>)
-        {
-
-        }
-
-    }
+//    public static class StructFactory
+//    {
+//        public StructSupport<?> buildStructClass(String name, List<>)
+//        {
+//
+//        }
+//    }
 
     @Test
     public void testPojoStruct()
