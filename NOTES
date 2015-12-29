@@ -1601,6 +1601,7 @@ seriously, sigils?
 https://github.com/FasterXML/jackson-module-jsonSchema
 https://github.com/joelittlejohn/jsonschema2pojo
 http://swagger.io/specification/#schemaObject
+https://github.com/everit-org/json-schema/tree/master/core
 
 
 reinterpret_cast
@@ -1651,6 +1652,7 @@ http://blog.trifork.com/2010/01/14/logging-to-the-syslog-from-a-java-application
 https://github.com/thinkaurelius/titan
 http://s3.thinkaurelius.com/docs/titan/1.0.0/indexes.html#vertex-indexes
 http://s3.thinkaurelius.com/docs/titan/1.0.0/data-model.html
+http://s3.thinkaurelius.com/docs/titan/1.0.0/hbase.html
 
 
 https://github.com/neo4j
@@ -1666,7 +1668,6 @@ http://www.datasciencecentral.com/profiles/blogs/10-popular-java-machine-learnin
 
 http://www.cs.waikato.ac.nz/ml/weka/
 http://mallet.cs.umass.edu/
-http://www.datasciencecentral.com/profiles/blogs/10-popular-java-machine-learning-tools-libraries
 https://github.com/apache/mahout
 http://machinelearningmastery.com/java-machine-learning/
 https://code.google.com/p/kmeansclustering/source/browse/#svn%2Ftrunk%2Fkmeansclustering%2Fsrc%2Fcom%2Fstromberglabs%2Fcluster
@@ -1724,3 +1725,37 @@ https://github.com/FasterXML/jackson-module-afterburner
 https://github.com/FasterXML/jackson-module-guice wat
 https://github.com/FasterXML/jackson-dataformat-protobuf
 https://github.com/FasterXML/jackson-dataformat-csv
+
+
+
+https://spark.apache.org/mllib/
+https://spark.apache.org/docs/latest/mllib-statistics.html
+https://spark.apache.org/docs/latest/streaming-programming-guide.html
+https://spark.apache.org/docs/latest/graphx-programming-guide.html
+
+
+
+
+
+https://cloudonaut.io/5-aws-mistakes-you-should-avoid/
+ok so use asg's i guess
+
+
+https://github.com/FasterXML/jackson-databind/wiki/Deserialization-Features
+https://github.com/FasterXML/jackson-databind/wiki/Serialization-features
+http://wiki.fasterxml.com/JacksonMixInAnnotations
+
+
+
+http://blog.acolyer.org/2015/03/06/viewstamped-replication-revisited/
+http://blog.acolyer.org/2015/09/04/feral-concurrency-control-an-empirical-investigation-of-modern-application-integrity/
+http://blog.acolyer.org/2015/10/16/holistic-configuration-management-at-facebook/
+http://blog.acolyer.org/2015/03/26/lineage-driven-fault-injection/
+
+
+https://news.ycombinator.com/item?id=10798265
+
+
+https://github.com/awslabs/aws-shell
+
+https://github.com/eiiches/jackson-jq !!
