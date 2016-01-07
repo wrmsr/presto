@@ -64,6 +64,7 @@ import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.MaterializedResult;
+import com.facebook.presto.testing.TestingTransactionHandle;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -509,7 +510,7 @@ public final class FunctionAssertions
     private static boolean needsBoundValue(Expression projectionExpression)
     {
         final AtomicBoolean hasQualifiedNameReference = new AtomicBoolean();
-        projectionExpression.accept(new DefaultTraversalVisitor<Void, Void>()
+        new DefaultTraversalVisitor<Void, Void>()
         {
             @Override
             protected Void visitQualifiedNameReference(QualifiedNameReference node, Void context)
@@ -517,7 +518,7 @@ public final class FunctionAssertions
                 hasQualifiedNameReference.set(true);
                 return null;
             }
-        }, null);
+        }.process(projectionExpression, null);
 
         return hasQualifiedNameReference.get();
     }
@@ -704,12 +705,12 @@ public final class FunctionAssertions
     {
         static Split createRecordSetSplit()
         {
-            return new Split("test", new TestSplit(true));
+            return new Split("test", TestingTransactionHandle.create("test"), new TestSplit(true));
         }
 
         static Split createNormalSplit()
         {
-            return new Split("test", new TestSplit(false));
+            return new Split("test", TestingTransactionHandle.create("test"), new TestSplit(false));
         }
 
         private final boolean recordSet;
