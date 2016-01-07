@@ -20,6 +20,7 @@ import com.facebook.presto.raptor.util.CurrentNodeId;
 import com.facebook.presto.raptor.util.RebindSafeMBeanServer;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
+import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.PageSorter;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
@@ -83,6 +84,12 @@ public class RaptorConnectorFactory
     }
 
     private static final String STORAGE_ENGINE_KEY = "storage-engine";
+
+    @Override
+    public ConnectorHandleResolver getHandleResolver()
+    {
+        return new RaptorHandleResolver();
+    }
 
     @Override
     public Connector create(String connectorId, Map<String, String> config)

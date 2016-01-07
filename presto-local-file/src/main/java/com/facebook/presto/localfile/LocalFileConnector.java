@@ -14,7 +14,6 @@
 package com.facebook.presto.localfile;
 
 import com.facebook.presto.spi.Connector;
-import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorRecordSetProvider;
 import com.facebook.presto.spi.ConnectorSplitManager;
@@ -26,7 +25,7 @@ import javax.inject.Inject;
 import static java.util.Objects.requireNonNull;
 
 public class LocalFileConnector
-    implements Connector
+        implements Connector
 {
     private static final Logger log = Logger.get(LocalFileConnector.class);
 
@@ -34,21 +33,18 @@ public class LocalFileConnector
     private final LocalFileMetadata metadata;
     private final LocalFileSplitManager splitManager;
     private final LocalFileRecordSetProvider recordSetProvider;
-    private final LocalFileHandleResolver handleResolver;
 
     @Inject
     public LocalFileConnector(
             LifeCycleManager lifeCycleManager,
             LocalFileMetadata metadata,
             LocalFileSplitManager splitManager,
-            LocalFileRecordSetProvider recordSetProvider,
-            LocalFileHandleResolver handleResolver)
+            LocalFileRecordSetProvider recordSetProvider)
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.metadata = requireNonNull(metadata, "metadata is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");
         this.recordSetProvider = requireNonNull(recordSetProvider, "recordSetProvider is null");
-        this.handleResolver = requireNonNull(handleResolver, "handleResolver is null");
     }
 
     @Override
@@ -67,12 +63,6 @@ public class LocalFileConnector
     public ConnectorRecordSetProvider getRecordSetProvider()
     {
         return recordSetProvider;
-    }
-
-    @Override
-    public ConnectorHandleResolver getHandleResolver()
-    {
-        return handleResolver;
     }
 
     @Override

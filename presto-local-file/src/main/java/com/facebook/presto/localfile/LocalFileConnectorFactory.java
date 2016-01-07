@@ -15,6 +15,7 @@ package com.facebook.presto.localfile;
 
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
+import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.NodeManager;
 import com.google.common.base.Throwables;
 import com.google.inject.Injector;
@@ -38,6 +39,12 @@ public class LocalFileConnectorFactory
     public String getName()
     {
         return "localfile";
+    }
+
+    @Override
+    public ConnectorHandleResolver getHandleResolver()
+    {
+        return new LocalFileHandleResolver();
     }
 
     @Override

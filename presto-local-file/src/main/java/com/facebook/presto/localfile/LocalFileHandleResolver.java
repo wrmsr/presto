@@ -19,45 +19,9 @@ import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableLayoutHandle;
 
-import javax.inject.Inject;
-
-import static java.util.Objects.requireNonNull;
-
 public class LocalFileHandleResolver
-    implements ConnectorHandleResolver
+        implements ConnectorHandleResolver
 {
-    private final LocalFileConnectorId connectorId;
-
-    @Inject
-    public LocalFileHandleResolver(LocalFileConnectorId connectorId)
-    {
-        this.connectorId = requireNonNull(connectorId, "connectorId is null");
-    }
-
-    @Override
-    public boolean canHandle(ConnectorTableHandle tableHandle)
-    {
-        return tableHandle instanceof LocalFileTableHandle && ((LocalFileTableHandle) tableHandle).getConnectorId().equals(connectorId);
-    }
-
-    @Override
-    public boolean canHandle(ColumnHandle columnHandle)
-    {
-        return columnHandle instanceof LocalFileColumnHandle && ((LocalFileColumnHandle) columnHandle).getConnectorId().equals(connectorId);
-    }
-
-    @Override
-    public boolean canHandle(ConnectorSplit split)
-    {
-        return split instanceof LocalFileSplit && ((LocalFileSplit) split).getConnectorId().equals(connectorId);
-    }
-
-    @Override
-    public boolean canHandle(ConnectorTableLayoutHandle handle)
-    {
-        return handle instanceof LocalFileTableLayoutHandle;
-    }
-
     @Override
     public Class<? extends ConnectorTableLayoutHandle> getTableLayoutHandleClass()
     {
