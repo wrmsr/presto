@@ -176,33 +176,9 @@ public class PartitionerMetadata
     }
 
     @Override
-    public void commitCreateTable(ConnectorSession session, ConnectorOutputTableHandle tableHandle, Collection<Slice> fragments)
-    {
-        target.commitCreateTable(session, tableHandle, fragments);
-    }
-
-    @Override
-    public void rollbackCreateTable(ConnectorSession session, ConnectorOutputTableHandle tableHandle)
-    {
-        target.rollbackCreateTable(session, tableHandle);
-    }
-
-    @Override
     public ConnectorInsertTableHandle beginInsert(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         return target.beginInsert(session, tableHandle);
-    }
-
-    @Override
-    public void commitInsert(ConnectorSession session, ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
-    {
-        target.commitInsert(session, insertHandle, fragments);
-    }
-
-    @Override
-    public void rollbackInsert(ConnectorSession session, ConnectorInsertTableHandle insertHandle)
-    {
-        target.rollbackInsert(session, insertHandle);
     }
 
     @Override

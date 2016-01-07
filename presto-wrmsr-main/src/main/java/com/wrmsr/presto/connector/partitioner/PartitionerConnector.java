@@ -15,7 +15,6 @@ package com.wrmsr.presto.connector.partitioner;
 
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.ConnectorHandleResolver;
-import com.facebook.presto.spi.connector.ConnectorIndexResolver;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.connector.ConnectorPageSourceProvider;
@@ -23,6 +22,8 @@ import com.facebook.presto.spi.connector.ConnectorRecordSetProvider;
 import com.facebook.presto.spi.connector.ConnectorRecordSinkProvider;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.SystemTable;
+import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
+import com.facebook.presto.spi.transaction.IsolationLevel;
 import com.google.inject.Inject;
 
 import java.util.Set;
@@ -42,10 +43,22 @@ public class PartitionerConnector
         this.partitioner = partitioner;
     }
 
+//    @Override
+//    public ConnectorMetadata getMetadata()
+//    {
+//        return new PartitionerMetadata(target.getTarget().getMetadata());
+//    }
+
     @Override
-    public ConnectorMetadata getMetadata()
+    public ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly)
     {
-        return new PartitionerMetadata(target.getTarget().getMetadata());
+        return target.getTarget().beginTransaction(isolationLevel, readOnly);
+    }
+
+    @Override
+    public ConnectorMetadata getMetadata(ConnectorTransactionHandle transactionHandle)
+    {
+        return target.getTarget().getMetadata(transactionHandle);
     }
 
     @Override
@@ -82,12 +95,6 @@ public class PartitionerConnector
     public ConnectorRecordSinkProvider getRecordSinkProvider()
     {
         return target.getTarget().getRecordSinkProvider();
-    }
-
-    @Override
-    public ConnectorIndexResolver getIndexResolver()
-    {
-        return target.getTarget().getIndexResolver();
     }
 
     @Override
