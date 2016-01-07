@@ -32,26 +32,27 @@ public class ConnectorModule
     public void configure(Binder binder)
     {
         Multibinder<ConnectorFactory> connectorFactoryBinder = Multibinder.newSetBinder(binder, ConnectorFactory.class);
+        Multibinder<com.facebook.presto.spi.ConnectorFactory> legacyConnectorFactoryBinder = Multibinder.newSetBinder(binder, com.facebook.presto.spi.ConnectorFactory.class);
 
         binder.bind(PartitionerConnectorFactory.class).asEagerSingleton();
         connectorFactoryBinder.addBinding().to(PartitionerConnectorFactory.class);
 
         binder.bind(H2ConnectorFactory.class).asEagerSingleton();
-        connectorFactoryBinder.addBinding().to(H2ConnectorFactory.class);
+        legacyConnectorFactoryBinder.addBinding().to(H2ConnectorFactory.class);
 
         binder.bind(ExtendedMySqlConnectorFactory.class).asEagerSingleton();
-        connectorFactoryBinder.addBinding().to(ExtendedMySqlConnectorFactory.class);
+        legacyConnectorFactoryBinder.addBinding().to(ExtendedMySqlConnectorFactory.class);
 
         binder.bind(ExtendedPostgreSqlConnectorFactory.class).asEagerSingleton();
-        connectorFactoryBinder.addBinding().to(ExtendedPostgreSqlConnectorFactory.class);
+        legacyConnectorFactoryBinder.addBinding().to(ExtendedPostgreSqlConnectorFactory.class);
 
         binder.bind(RedshiftConnectorFactory.class).asEagerSingleton();
-        connectorFactoryBinder.addBinding().to(RedshiftConnectorFactory.class);
+        legacyConnectorFactoryBinder.addBinding().to(RedshiftConnectorFactory.class);
 
         binder.bind(SqliteConnectorFactory.class).asEagerSingleton();
-        connectorFactoryBinder.addBinding().to(SqliteConnectorFactory.class);
+        legacyConnectorFactoryBinder.addBinding().to(SqliteConnectorFactory.class);
 
         binder.bind(TempConnectorFactory.class).asEagerSingleton();
-        connectorFactoryBinder.addBinding().to(TempConnectorFactory.class);
+        legacyConnectorFactoryBinder.addBinding().to(TempConnectorFactory.class);
     }
 }
