@@ -13,7 +13,7 @@
  */
 package com.wrmsr.presto.connector;
 
-import com.facebook.presto.spi.ConnectorFactory;
+import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;

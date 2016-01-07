@@ -13,7 +13,7 @@
  */
 package com.wrmsr.presto.connector.jdbc.postgresql;
 
-import com.facebook.presto.spi.ConnectorFactory;
+import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.facebook.presto.spi.Plugin;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.MainPlugin;

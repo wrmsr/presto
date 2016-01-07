@@ -13,15 +13,15 @@
  */
 package com.wrmsr.presto.connector.partitioner;
 
-import com.facebook.presto.spi.Connector;
+import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.ConnectorHandleResolver;
-import com.facebook.presto.spi.ConnectorIndexResolver;
-import com.facebook.presto.spi.ConnectorMetadata;
-import com.facebook.presto.spi.ConnectorPageSinkProvider;
-import com.facebook.presto.spi.ConnectorPageSourceProvider;
-import com.facebook.presto.spi.ConnectorRecordSetProvider;
-import com.facebook.presto.spi.ConnectorRecordSinkProvider;
-import com.facebook.presto.spi.ConnectorSplitManager;
+import com.facebook.presto.spi.connector.ConnectorIndexResolver;
+import com.facebook.presto.spi.connector.ConnectorMetadata;
+import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
+import com.facebook.presto.spi.connector.ConnectorPageSourceProvider;
+import com.facebook.presto.spi.connector.ConnectorRecordSetProvider;
+import com.facebook.presto.spi.connector.ConnectorRecordSinkProvider;
+import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.SystemTable;
 import com.google.inject.Inject;
 

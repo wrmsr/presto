@@ -13,7 +13,7 @@
  */
 package com.wrmsr.presto.connector.partitioner;
 
-import com.facebook.presto.spi.Connector;
+import com.facebook.presto.spi.connector.Connector;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

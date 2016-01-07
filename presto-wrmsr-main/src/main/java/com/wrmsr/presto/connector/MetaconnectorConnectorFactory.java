@@ -14,9 +14,9 @@
 package com.wrmsr.presto.connector;
 
 import com.facebook.presto.connector.ConnectorManager;
-import com.facebook.presto.spi.Connector;
-import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
+import com.facebook.presto.spi.connector.Connector;
+import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -79,7 +79,7 @@ public abstract class MetaconnectorConnectorFactory
         Map<String, String> requiredConfiguration;
 
         if (targetConnectorName == null) {
-            target = checkNotNull((Connector) connectorManager.getConnectors().get(targetName), "target-connector-name not specified and target not found");
+            target = checkNotNull(connectorManager.getConnectors().get(targetName), "target-connector-name not specified and target not found");
             requiredConfiguration = ImmutableMap.of();
         }
         else {
@@ -87,7 +87,7 @@ public abstract class MetaconnectorConnectorFactory
             Map<String, String> targetProperties = Configs.stripSubconfig(requiredConfiguration, "target");
 
             connectorManager.createConnection(targetName, targetConnectorName, targetProperties);
-            target = checkNotNull((Connector) connectorManager.getConnectors().get(targetName));
+            target = checkNotNull(connectorManager.getConnectors().get(targetName));
         }
 
         return create(target, connectorId, requiredConfiguration);

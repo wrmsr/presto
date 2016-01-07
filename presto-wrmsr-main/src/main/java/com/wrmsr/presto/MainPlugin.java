@@ -27,7 +27,7 @@ import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.server.PluginManager;
 import com.facebook.presto.server.TaskUpdateRequest;
-import com.facebook.presto.spi.ConnectorFactory;
+import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.block.BlockEncodingSerde;

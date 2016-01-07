@@ -15,7 +15,7 @@ package com.wrmsr.presto.connector.jdbc;
 
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.facebook.presto.plugin.jdbc.JdbcHandleResolver;
-import com.facebook.presto.spi.ConnectorSplit;
+import com.facebook.presto.spi.connector.ConnectorSplit;
 import com.google.inject.Inject;
 
 public class ExtendedJdbcHandleResolver
