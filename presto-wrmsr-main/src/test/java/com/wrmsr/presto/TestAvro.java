@@ -13,22 +13,22 @@
  */
 package com.wrmsr.presto;
 
-import com.facebook.presto.byteCode.ByteCodeBlock;
-import com.facebook.presto.byteCode.ClassDefinition;
-import com.facebook.presto.byteCode.DynamicClassLoader;
-import com.facebook.presto.byteCode.FieldDefinition;
-import com.facebook.presto.byteCode.MethodDefinition;
-import com.facebook.presto.byteCode.Parameter;
-import com.facebook.presto.byteCode.Scope;
-import com.facebook.presto.byteCode.Variable;
-import com.facebook.presto.byteCode.instruction.LabelNode;
+import com.facebook.presto.bytecode.BytecodeBlock;
+import com.facebook.presto.bytecode.ClassDefinition;
+import com.facebook.presto.bytecode.DynamicClassLoader;
+import com.facebook.presto.bytecode.FieldDefinition;
+import com.facebook.presto.bytecode.MethodDefinition;
+import com.facebook.presto.bytecode.Parameter;
+import com.facebook.presto.bytecode.Scope;
+import com.facebook.presto.bytecode.Variable;
+import com.facebook.presto.bytecode.instruction.LabelNode;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.BooleanType;
 import com.facebook.presto.spi.type.DoubleType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.gen.CallSiteBinder;
-import com.facebook.presto.sql.gen.CompilerUtils;
+import com.facebook.presto.bytecode.CompilerUtils;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -53,12 +53,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static com.facebook.presto.byteCode.Access.FINAL;
-import static com.facebook.presto.byteCode.Access.PUBLIC;
-import static com.facebook.presto.byteCode.Access.a;
-import static com.facebook.presto.byteCode.Parameter.arg;
-import static com.facebook.presto.byteCode.ParameterizedType.type;
-import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
+import static com.facebook.presto.bytecode.Access.FINAL;
+import static com.facebook.presto.bytecode.Access.PUBLIC;
+import static com.facebook.presto.bytecode.Access.a;
+import static com.facebook.presto.bytecode.Parameter.arg;
+import static com.facebook.presto.bytecode.ParameterizedType.type;
+import static com.facebook.presto.bytecode.CompilerUtils.defineClass;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static io.airlift.slice.SizeOf.SIZE_OF_BYTE;
@@ -202,17 +202,17 @@ public class TestAvro
             return length;
         }
 
-        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
+        protected void appendBlockWrite(BytecodeBlock body, Variable blockBuilder, Consumer<BytecodeBlock> getter)
         {
             throw new UnsupportedOperationException();
         }
 
-        public void appendBlockWriteArg(ByteCodeBlock body, Variable blockBuilder, Scope scope)
+        public void appendBlockWriteArg(BytecodeBlock body, Variable blockBuilder, Scope scope)
         {
             appendBlockWrite(body, blockBuilder, (b) -> b.getVariable(scope.getVariable(getName())));
         }
 
-        public void appendBlockWriteField(ByteCodeBlock body, Variable blockBuilder, Class<?> cls, Variable instance)
+        public void appendBlockWriteField(BytecodeBlock body, Variable blockBuilder, Class<?> cls, Variable instance)
         {
             appendBlockWrite(body, blockBuilder, (b) -> b.getVariable(instance).getField(cls, getName(), getJavaType()));
         }
@@ -227,7 +227,7 @@ public class TestAvro
         }
 
         @Override
-        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
+        protected void appendBlockWrite(BytecodeBlock body, Variable blockBuilder, Consumer<BytecodeBlock> getter)
         {
             LabelNode isFalse = new LabelNode("isFalse" + getPosition());
             LabelNode done = new LabelNode("done" + getPosition());
@@ -260,7 +260,7 @@ public class TestAvro
         }
 
         @Override
-        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
+        protected void appendBlockWrite(BytecodeBlock body, Variable blockBuilder, Consumer<BytecodeBlock> getter)
         {
             LabelNode isNull = new LabelNode("isNull" + getPosition());
             LabelNode isFalse = new LabelNode("isFalse" + getPosition());
@@ -306,7 +306,7 @@ public class TestAvro
         }
 
         @Override
-        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
+        protected void appendBlockWrite(BytecodeBlock body, Variable blockBuilder, Consumer<BytecodeBlock> getter)
         {
             body
                     .getVariable(blockBuilder);
@@ -330,7 +330,7 @@ public class TestAvro
         }
 
         @Override
-        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
+        protected void appendBlockWrite(BytecodeBlock body, Variable blockBuilder, Consumer<BytecodeBlock> getter)
         {
             LabelNode isNull = new LabelNode("isNull" + getPosition());
             LabelNode done = new LabelNode("done" + getPosition());
@@ -368,7 +368,7 @@ public class TestAvro
         }
 
         @Override
-        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
+        protected void appendBlockWrite(BytecodeBlock body, Variable blockBuilder, Consumer<BytecodeBlock> getter)
         {
             body
                     .getVariable(blockBuilder);
@@ -392,7 +392,7 @@ public class TestAvro
         }
 
         @Override
-        protected void appendBlockWrite(ByteCodeBlock body, Variable blockBuilder, Consumer<ByteCodeBlock> getter)
+        protected void appendBlockWrite(BytecodeBlock body, Variable blockBuilder, Consumer<BytecodeBlock> getter)
         {
             LabelNode isNull = new LabelNode("isNull" + getPosition());
             LabelNode done = new LabelNode("done" + getPosition());
@@ -527,7 +527,7 @@ public class TestAvro
 
         Scope scope = methodDefinition.getScope();
         CallSiteBinder binder = new CallSiteBinder();
-        ByteCodeBlock body = methodDefinition.getBody();
+        BytecodeBlock body = methodDefinition.getBody();
 
         body
                 .getVariable(scope.getThis())

@@ -14,13 +14,13 @@
 // https://github.com/shubham166/presto/tree/Hash_Function
 package com.wrmsr.presto.function;
 
-import com.facebook.presto.byteCode.ByteCodeBlock;
-import com.facebook.presto.byteCode.ClassDefinition;
-import com.facebook.presto.byteCode.DynamicClassLoader;
-import com.facebook.presto.byteCode.MethodDefinition;
-import com.facebook.presto.byteCode.Parameter;
-import com.facebook.presto.byteCode.Scope;
-import com.facebook.presto.byteCode.Variable;
+import com.facebook.presto.bytecode.BytecodeBlock;
+import com.facebook.presto.bytecode.ClassDefinition;
+import com.facebook.presto.bytecode.DynamicClassLoader;
+import com.facebook.presto.bytecode.MethodDefinition;
+import com.facebook.presto.bytecode.Parameter;
+import com.facebook.presto.bytecode.Scope;
+import com.facebook.presto.bytecode.Variable;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.metadata.TypeParameter;
@@ -32,7 +32,7 @@ import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.sql.gen.CallSiteBinder;
-import com.facebook.presto.sql.gen.CompilerUtils;
+import com.facebook.presto.bytecode.CompilerUtils;
 import com.facebook.presto.type.BigintOperators;
 import com.facebook.presto.util.ImmutableCollectors;
 import com.google.common.base.Joiner;
@@ -43,17 +43,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-import static com.facebook.presto.byteCode.Access.FINAL;
-import static com.facebook.presto.byteCode.Access.PRIVATE;
-import static com.facebook.presto.byteCode.Access.PUBLIC;
-import static com.facebook.presto.byteCode.Access.STATIC;
-import static com.facebook.presto.byteCode.Access.a;
-import static com.facebook.presto.byteCode.Parameter.arg;
-import static com.facebook.presto.byteCode.ParameterizedType.type;
+import static com.facebook.presto.bytecode.Access.FINAL;
+import static com.facebook.presto.bytecode.Access.PRIVATE;
+import static com.facebook.presto.bytecode.Access.PUBLIC;
+import static com.facebook.presto.bytecode.Access.STATIC;
+import static com.facebook.presto.bytecode.Access.a;
+import static com.facebook.presto.bytecode.Parameter.arg;
+import static com.facebook.presto.bytecode.ParameterizedType.type;
 import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.facebook.presto.spi.StandardErrorCode.INVALID_FUNCTION_ARGUMENT;
-import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
-import static com.facebook.presto.sql.gen.SqlTypeByteCodeExpression.constantType;
+import static com.facebook.presto.bytecode.CompilerUtils.defineClass;
+import static com.facebook.presto.sql.gen.SqlTypeBytecodeExpression.constantType;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.lang.String.format;
 
@@ -158,7 +158,7 @@ public final class HashFunction
         Variable typeVariable = scope.declareVariable(Type.class, "typeVariable");
         Variable rangeTypeVariable = scope.declareVariable(Type.class, "rangeTypeVariable");
         CallSiteBinder binder = new CallSiteBinder();
-        ByteCodeBlock body = methodDefinition.getBody();
+        BytecodeBlock body = methodDefinition.getBody();
 
         body.comment("rangeTypeVariable = rangeType")
                 .append(constantType(binder, rangeType))
@@ -172,7 +172,7 @@ public final class HashFunction
             Class<?> nativeContainerType = nativeContainerTypes.get(i);
             Variable currentBlock = scope.declareVariable(com.facebook.presto.spi.block.Block.class, "block" + i);
             Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder" + i);
-            ByteCodeBlock buildBlock = new ByteCodeBlock()
+            BytecodeBlock buildBlock = new BytecodeBlock()
                     .comment("blockBuilder%d = typeVariable.createBlockBuilder(new BlockBuilderStatus());", i)
                     .getVariable(i == 0 ? rangeTypeVariable : typeVariable)
                     .newObject(BlockBuilderStatus.class)
@@ -204,7 +204,7 @@ public final class HashFunction
                         .invokeStatic(HashFunction.class, "checkNotNaN", void.class, double.class);
             }
 
-            ByteCodeBlock writeBlock = new ByteCodeBlock()
+            BytecodeBlock writeBlock = new BytecodeBlock()
                     .comment("typeVariable.%s(blockBuilder%d, arg%d);", writeMethodName, i, i)
                     .getVariable(i == 0 ? rangeTypeVariable : typeVariable)
                     .getVariable(blockBuilder)
@@ -213,7 +213,7 @@ public final class HashFunction
 
             buildBlock.append(writeBlock);
 
-            ByteCodeBlock storeBlock = new ByteCodeBlock()
+            BytecodeBlock storeBlock = new BytecodeBlock()
                     .comment("block%d = blockBuilder%d.build();", i, i)
                     .getVariable(blockBuilder)
                     .invokeInterface(BlockBuilder.class, "build", com.facebook.presto.spi.block.Block.class)
@@ -240,13 +240,13 @@ public final class HashFunction
         Variable currenHashValueVariable = scope.declareVariable(nativeContainerTypes.get(0), "currentHashValue");
         Variable currentBlockLengthVariable = scope.declareVariable(int.class, "currentLength");
         for (int i = 1; i < nativeContainerTypes.size(); i++) {
-            ByteCodeBlock currentBlockLength = new ByteCodeBlock()
+            BytecodeBlock currentBlockLength = new BytecodeBlock()
                     .getVariable(scope.getVariable("block" + i))
                     .push(0)
                     .invokeInterface(com.facebook.presto.spi.block.Block.class, "getLength", int.class, int.class)
                     .putVariable(currentBlockLengthVariable);
 
-            ByteCodeBlock currentHashValueBlock = new ByteCodeBlock()
+            BytecodeBlock currentHashValueBlock = new BytecodeBlock()
                     .getVariable(scope.getVariable("block" + i))
                     .push(0)
                     .push(0)
@@ -257,7 +257,7 @@ public final class HashFunction
                     .invokeStatic(BigintOperators.class, "modulus", long.class, long.class, nativeContainerTypes.get(0))
                     .putVariable(currenHashValueVariable);
 
-            ByteCodeBlock updateHashValueBlock = new ByteCodeBlock()
+            BytecodeBlock updateHashValueBlock = new BytecodeBlock()
                     .getVariable(currenHashValueVariable)
                     .getVariable(hashValueVariable)
                     .invokeStatic(BigintOperators.class, "add", long.class, long.class, long.class)

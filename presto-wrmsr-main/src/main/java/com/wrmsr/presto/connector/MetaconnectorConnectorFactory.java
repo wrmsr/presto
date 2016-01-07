@@ -79,7 +79,7 @@ public abstract class MetaconnectorConnectorFactory
         Map<String, String> requiredConfiguration;
 
         if (targetConnectorName == null) {
-            target = checkNotNull(connectorManager.getConnectors().get(targetName), "target-connector-name not specified and target not found");
+            target = checkNotNull((Connector) connectorManager.getConnectors().get(targetName), "target-connector-name not specified and target not found");
             requiredConfiguration = ImmutableMap.of();
         }
         else {
@@ -87,7 +87,7 @@ public abstract class MetaconnectorConnectorFactory
             Map<String, String> targetProperties = Configs.stripSubconfig(requiredConfiguration, "target");
 
             connectorManager.createConnection(targetName, targetConnectorName, targetProperties);
-            target = checkNotNull(connectorManager.getConnectors().get(targetName));
+            target = checkNotNull((Connector) connectorManager.getConnectors().get(targetName));
         }
 
         return create(target, connectorId, requiredConfiguration);

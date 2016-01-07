@@ -13,14 +13,14 @@
  */
 package com.wrmsr.presto.struct;
 
-import com.facebook.presto.byteCode.ByteCodeBlock;
-import com.facebook.presto.byteCode.ClassDefinition;
-import com.facebook.presto.byteCode.DynamicClassLoader;
-import com.facebook.presto.byteCode.MethodDefinition;
-import com.facebook.presto.byteCode.Parameter;
-import com.facebook.presto.byteCode.Scope;
-import com.facebook.presto.byteCode.Variable;
-import com.facebook.presto.byteCode.instruction.LabelNode;
+import com.facebook.presto.bytecode.BytecodeBlock;
+import com.facebook.presto.bytecode.ClassDefinition;
+import com.facebook.presto.bytecode.DynamicClassLoader;
+import com.facebook.presto.bytecode.MethodDefinition;
+import com.facebook.presto.bytecode.Parameter;
+import com.facebook.presto.bytecode.Scope;
+import com.facebook.presto.bytecode.Variable;
+import com.facebook.presto.bytecode.instruction.LabelNode;
 import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
@@ -29,7 +29,7 @@ import com.facebook.presto.spi.block.BlockEncoding;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockEncoding;
 import com.facebook.presto.sql.gen.CallSiteBinder;
-import com.facebook.presto.sql.gen.CompilerUtils;
+import com.facebook.presto.bytecode.CompilerUtils;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.SqlType;
 import com.google.common.collect.ImmutableList;
@@ -39,14 +39,14 @@ import io.airlift.slice.Slices;
 
 import java.util.List;
 
-import static com.facebook.presto.byteCode.Access.FINAL;
-import static com.facebook.presto.byteCode.Access.PRIVATE;
-import static com.facebook.presto.byteCode.Access.PUBLIC;
-import static com.facebook.presto.byteCode.Access.STATIC;
-import static com.facebook.presto.byteCode.Access.a;
-import static com.facebook.presto.byteCode.Parameter.arg;
-import static com.facebook.presto.byteCode.ParameterizedType.type;
-import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
+import static com.facebook.presto.bytecode.Access.FINAL;
+import static com.facebook.presto.bytecode.Access.PRIVATE;
+import static com.facebook.presto.bytecode.Access.PUBLIC;
+import static com.facebook.presto.bytecode.Access.STATIC;
+import static com.facebook.presto.bytecode.Access.a;
+import static com.facebook.presto.bytecode.Parameter.arg;
+import static com.facebook.presto.bytecode.ParameterizedType.type;
+import static com.facebook.presto.bytecode.CompilerUtils.defineClass;
 import static com.google.common.base.Preconditions.checkState;
 
 public class RowTypeConstructorCompiler
@@ -68,7 +68,7 @@ public class RowTypeConstructorCompiler
         }
     }
 
-    protected void writeBoolean(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+    protected void writeBoolean(BytecodeBlock body, Variable blockBuilder, Variable arg, int i)
     {
         LabelNode isFalse = new LabelNode("isFalse" + i);
         LabelNode done = new LabelNode("done" + i);
@@ -89,7 +89,7 @@ public class RowTypeConstructorCompiler
                 .pop();
     }
 
-    protected void writeLong(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+    protected void writeLong(BytecodeBlock body, Variable blockBuilder, Variable arg, int i)
     {
         body
                 .getVariable(blockBuilder)
@@ -102,7 +102,7 @@ public class RowTypeConstructorCompiler
                 .pop();
     }
 
-    protected void writeDouble(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+    protected void writeDouble(BytecodeBlock body, Variable blockBuilder, Variable arg, int i)
     {
         body
                 .getVariable(blockBuilder)
@@ -115,7 +115,7 @@ public class RowTypeConstructorCompiler
                 .pop();
     }
 
-    protected void writeSlice(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+    protected void writeSlice(BytecodeBlock body, Variable blockBuilder, Variable arg, int i)
     {
         LabelNode isNull = new LabelNode("isNull" + i);
         LabelNode done = new LabelNode("done" + i);
@@ -143,7 +143,7 @@ public class RowTypeConstructorCompiler
                 .visitLabel(done);
     }
 
-    protected void writeObject(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+    protected void writeObject(BytecodeBlock body, Variable blockBuilder, Variable arg, int i)
     {
         LabelNode isNull = new LabelNode("isNull" + i);
         LabelNode done = new LabelNode("done" + i);
@@ -197,7 +197,7 @@ public class RowTypeConstructorCompiler
 
         Scope scope = methodDefinition.getScope();
         CallSiteBinder binder = new CallSiteBinder();
-        ByteCodeBlock body = methodDefinition.getBody();
+        BytecodeBlock body = methodDefinition.getBody();
 
         Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
 

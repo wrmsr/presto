@@ -44,11 +44,11 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.util.Optional;
 
-import static com.facebook.presto.byteCode.Parameter.arg;
-import static com.facebook.presto.byteCode.ParameterizedType.type;
+import static com.facebook.presto.bytecode.Parameter.arg;
+import static com.facebook.presto.bytecode.ParameterizedType.type;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.sql.SqlFormatter.formatSql;
-import static com.facebook.presto.sql.gen.CompilerUtils.defineClass;
+import static com.facebook.presto.bytecode.CompilerUtils.defineClass;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.google.common.base.Preconditions.checkState;
@@ -181,7 +181,7 @@ public class TestMainPlugin
 
         Scope scope = methodDefinition.getScope();
         CallSiteBinder binder = new CallSiteBinder();
-        com.facebook.presto.byteCode.Block body = methodDefinition.getBody();
+        com.facebook.presto.bytecode.Block body = methodDefinition.getBody();
 
         Variable blockBuilder = scope.declareVariable(BlockBuilder.class, "blockBuilder");
         */

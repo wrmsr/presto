@@ -122,7 +122,6 @@ public class ConnectorManager
         }
     }
 
-
     public Map<String, Connector> getConnectors()
     {
         return Collections.unmodifiableMap(connectors);

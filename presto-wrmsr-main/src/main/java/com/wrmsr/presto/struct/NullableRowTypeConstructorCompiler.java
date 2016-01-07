@@ -13,11 +13,11 @@
  */
 package com.wrmsr.presto.struct;
 
-import com.facebook.presto.byteCode.ByteCodeBlock;
-import com.facebook.presto.byteCode.MethodDefinition;
-import com.facebook.presto.byteCode.Parameter;
-import com.facebook.presto.byteCode.Variable;
-import com.facebook.presto.byteCode.instruction.LabelNode;
+import com.facebook.presto.bytecode.BytecodeBlock;
+import com.facebook.presto.bytecode.MethodDefinition;
+import com.facebook.presto.bytecode.Parameter;
+import com.facebook.presto.bytecode.Variable;
+import com.facebook.presto.bytecode.instruction.LabelNode;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.type.RowType;
@@ -29,7 +29,7 @@ import javax.annotation.Nullable;
 
 import java.util.List;
 
-import static com.facebook.presto.byteCode.Parameter.arg;
+import static com.facebook.presto.bytecode.Parameter.arg;
 
 public class NullableRowTypeConstructorCompiler
         extends RowTypeConstructorCompiler
@@ -74,7 +74,7 @@ public class NullableRowTypeConstructorCompiler
     }
 
     @Override
-    protected void writeBoolean(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+    protected void writeBoolean(BytecodeBlock body, Variable blockBuilder, Variable arg, int i)
     {
         LabelNode isNull = new LabelNode("isNull" + i);
         LabelNode isFalse = new LabelNode("isFalse" + i);
@@ -109,7 +109,7 @@ public class NullableRowTypeConstructorCompiler
     }
 
     @Override
-    protected void writeLong(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+    protected void writeLong(BytecodeBlock body, Variable blockBuilder, Variable arg, int i)
     {
         LabelNode isNull = new LabelNode("isNull" + i);
         LabelNode done = new LabelNode("done" + i);
@@ -136,7 +136,7 @@ public class NullableRowTypeConstructorCompiler
     }
 
     @Override
-    protected void writeDouble(ByteCodeBlock body, Variable blockBuilder, Variable arg, int i)
+    protected void writeDouble(BytecodeBlock body, Variable blockBuilder, Variable arg, int i)
     {
         LabelNode isNull = new LabelNode("isNull" + i);
         LabelNode done = new LabelNode("done" + i);
