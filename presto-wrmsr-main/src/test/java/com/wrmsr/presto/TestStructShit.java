@@ -114,11 +114,12 @@ public class TestStructShit
 
         public Struct(StructDefinition def)
         {
-            this.def = def;
-            ImmutableList.Builder<StructField> fields = ImmutableList.builder();
-            for (int i = 0; i < def.getFields().size(); ++i) {
-            (StructFieldDefinition fieldDef = def.getFields().get(i);
-            }
+//            this.def = def;
+//            ImmutableList.Builder<StructField> fields = ImmutableList.builder();
+//            for (int i = 0; i < def.getFields().size(); ++i) {
+//            (StructFieldDefinition fieldDef = def.getFields().get(i);
+//            }
+            throw new UnsupportedOperationException();
         }
     }
 

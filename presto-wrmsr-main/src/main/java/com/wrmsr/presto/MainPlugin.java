@@ -318,6 +318,11 @@ public class MainPlugin
                 connectorManager.addConnectorFactory(cf);
             }
 
+            Set<com.facebook.presto.spi.ConnectorFactory> lcfs = getInjector().getInstance(Key.get(new TypeLiteral<Set<com.facebook.presto.spi.ConnectorFactory>>() {}));
+            for (com.facebook.presto.spi.ConnectorFactory cf : lcfs) {
+                connectorManager.addConnectorFactory(cf);
+            }
+
             ScriptingManager scriptingManager = getInjector().getInstance(ScriptingManager.class);
             for (Plugin plugin : pluginManager.getLoadedPlugins()) {
                 for (ScriptEngineProvider scriptEngineProvider : plugin.getServices(ScriptEngineProvider.class)) {

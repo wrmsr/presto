@@ -16,6 +16,7 @@ package com.wrmsr.presto.connector.partitioner;
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.spi.connector.Connector;
+import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.wrmsr.presto.MainOptionalConfig;
@@ -55,8 +56,9 @@ public class PartitionerConnectorFactory
     public Connector create(Connector target, String connectorId, Map<String, String> requiredConfiguration)
     {
         Partitioner partitioner = null;
-        if (target instanceof ExtendedJdbcConnector) {
-            JdbcMetadata jdbcMetadata = (JdbcMetadata) ((ExtendedJdbcConnector) target).getMetadata();
+        if (target instanceof LegacyTransactionConnector && ((LegacyTransactionConnector) target).getConnector() instanceof ExtendedJdbcConnector) {
+            ExtendedJdbcConnector ejc = (ExtendedJdbcConnector) ((LegacyTransactionConnector) target).getConnector();
+            JdbcMetadata jdbcMetadata = (JdbcMetadata) ejc.getMetadata();
             ExtendedJdbcClient jdbcClient = (ExtendedJdbcClient) jdbcMetadata.getJdbcClient();
             partitioner = new JdbcPartitioner(
                     runtimeThrowing(() -> jdbcClient.getConnection()),

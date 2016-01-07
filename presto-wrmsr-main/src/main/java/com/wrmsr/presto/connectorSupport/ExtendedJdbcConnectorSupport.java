@@ -23,6 +23,7 @@ import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.google.common.base.Throwables;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnector;
@@ -45,11 +46,13 @@ public class ExtendedJdbcConnectorSupport
 {
     private final ConnectorSession session;
     private final ExtendedJdbcConnector connector;
+    private final Connector wrappedConnector;
 
-    public ExtendedJdbcConnectorSupport(ConnectorSession session, Connector connector)
+    public ExtendedJdbcConnectorSupport(String connectorId, ConnectorSession session, ExtendedJdbcConnector connector)
     {
         this.session = session;
-        this.connector = (ExtendedJdbcConnector) connector;
+        this.connector = connector;
+        wrappedConnector = new LegacyTransactionConnector(connectorId, connector);
     }
 
     public ExtendedJdbcClient getClient()
@@ -121,6 +124,6 @@ public class ExtendedJdbcConnectorSupport
     @Override
     public Connector getConnector()
     {
-        return connector;
+        return wrappedConnector;
     }
 }

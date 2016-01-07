@@ -54,6 +54,11 @@ public class LegacyTransactionConnector
         this.connector = requireNonNull(connector, "connector is null");
     }
 
+    public com.facebook.presto.spi.Connector getConnector()
+    {
+        return connector;
+    }
+
     @Override
     public ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly)
     {

@@ -24,6 +24,7 @@ import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.security.Identity;
+import com.facebook.presto.spi.transaction.IsolationLevel;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
@@ -38,6 +39,7 @@ import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.TestingConnectorSession;
 import com.facebook.presto.tpch.TpchConnectorFactory;
+import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
@@ -101,8 +103,9 @@ public class TestHelper
 
         localQueryRunner.createCatalog("test", connectorFactory, ImmutableMap.<String, String>of());
 
-        Connector connector = connectorFactory.create("test", TestingH2JdbcModule.createProperties(db));
-        ConnectorMetadata metadata = connector.getMetadata();
+        Connector connector =
+                new LegacyTransactionConnector("test", connectorFactory.create("test", TestingH2JdbcModule.createProperties(db)));
+        ConnectorMetadata metadata = connector.getMetadata(connector.beginTransaction(IsolationLevel.READ_UNCOMMITTED, false));
         JdbcMetadata jdbcMetadata = (JdbcMetadata) metadata;
         BaseJdbcClient jdbcClient = (BaseJdbcClient) jdbcMetadata.getJdbcClient();
         try {
@@ -156,7 +159,6 @@ public class TestHelper
             planOptimizersFactory = new PlanOptimizersFactory(
                     lqr.getMetadata(),
                     sqlParser,
-                    new IndexManager(), // ?
                     featuresConfig,
                     true);
 
@@ -193,7 +195,7 @@ public class TestHelper
 
             connectorSupport = ImmutableMap.<String, ConnectorSupport>builder()
                    .put("tpch", new TpchConnectorSupport(session.toConnectorSession(), connectors.get("tpch"), "tiny"))
-                    .put("test", new ExtendedJdbcConnectorSupport(session.toConnectorSession(), (ExtendedJdbcConnector) connectors.get("test")))
+                   .put("test", new ExtendedJdbcConnectorSupport("test", session.toConnectorSession(), (ExtendedJdbcConnector) connectors.get("test")))
                    .build();
         }
     }

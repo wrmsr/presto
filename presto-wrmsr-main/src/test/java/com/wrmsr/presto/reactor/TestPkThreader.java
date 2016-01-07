@@ -102,6 +102,7 @@ import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.MaterializedResult;
 import com.facebook.presto.testing.MaterializedRow;
+import com.facebook.presto.transaction.TransactionHandle;
 import com.facebook.presto.type.ArrayType;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
@@ -516,8 +517,8 @@ public class TestPkThreader
             Connector c = cs.getConnector();
             ConnectorSession csess = session.toConnectorSession();
             SchemaTableName stn = ((HandleDetailsConnectorSupport) cs).getSchemaTableName(node.getTable().getConnectorHandle());
-            ConnectorTableHandle th = c.getMetadata().getTableHandle(csess, stn);
-            Map<String, ColumnHandle> chs = c.getMetadata().getColumnHandles(csess, th);
+            ConnectorTableHandle th = c.getMetadata(null).getTableHandle(csess, stn);
+            Map<String, ColumnHandle> chs = c.getMetadata(null).getColumnHandles(csess, th);
             // PkTableTupleLayout l = cs.getTableTupleLayout(stn);
 
             List<String> pkCols = (((KeyConnectorSupport) cs).getKeys(stn)).stream().filter(k -> k.getType() == KeyConnectorSupport.Key.Type.PRIMARY).map(k -> k.getColumn()).collect(toImmutableList());
@@ -533,7 +534,7 @@ public class TestPkThreader
                 }
                 else {
                     ColumnHandle ch = chs.get(pkCol);
-                    ColumnMetadata cm = c.getMetadata().getColumnMetadata(csess, th, ch);
+                    ColumnMetadata cm = c.getMetadata(null).getColumnMetadata(csess, th, ch);
                     Symbol pkSym = symbolAllocator.newSymbol(pkCol, cm.getType());
 
                     newAssignments.put(pkSym, ch);
@@ -605,7 +606,7 @@ public class TestPkThreader
                             toISPFields(nonPkGkSyms)));
             ConnectorSupport indexTableConnectorSupport = connectorSupport.get(indexTableHandle.getConnectorId());
             Connector indexTableConnector = indexTableConnectorSupport.getConnector();
-            Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
+            Map<String, ColumnHandle> indexTableColumnHandles = indexTableConnector.getMetadata(null).getColumnHandles(session.toConnectorSession(), indexTableHandle.getConnectorHandle());
 
             // TODO optional log(n) recombine, wide rows, special-case reversible combiners (count, sum, array, map)
             TableHandle dataTableHandle = intermediateStorageProvider.getIntermediateStorage(
@@ -615,7 +616,7 @@ public class TestPkThreader
                             Stream.concat(toISPFields(nonGkSyms).stream(), Stream.of(new Layout.Field<>(dataColumnName, VarbinaryType.VARBINARY))).collect(toImmutableList())));
             ConnectorSupport dataTableConnectorSupport = connectorSupport.get(dataTableHandle.getConnectorId());
             Connector dataTableConnector = dataTableConnectorSupport.getConnector();
-            Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata().getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());
+            Map<String, ColumnHandle> dataTableColumnHandles = dataTableConnector.getMetadata(null).getColumnHandles(session.toConnectorSession(), dataTableHandle.getConnectorHandle());
 
             List<Symbol> gkPkSyms = Stream.concat(gkSyms.stream(), nonGkPkSyms.stream()).collect(toImmutableList());
             PlanNode indexQueryRoot = new OutputNode(
@@ -722,7 +723,7 @@ public class TestPkThreader
             sql.append(");");
 
             String connectorId = "test";
-            JdbcMetadata jdbcMetadata = (JdbcMetadata) pq.connectors.get(connectorId).getMetadata();
+            JdbcMetadata jdbcMetadata = (JdbcMetadata) pq.connectors.get(connectorId).getMetadata(null);
             BaseJdbcClient jdbcClient = (BaseJdbcClient) jdbcMetadata.getJdbcClient();
             try {
                 try (Connection sqlConn = jdbcClient.getConnection()) {

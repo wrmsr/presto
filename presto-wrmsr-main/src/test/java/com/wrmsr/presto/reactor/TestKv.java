@@ -28,6 +28,7 @@ import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.RecordSink;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.testing.TestingConnectorSession;
+import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
@@ -291,9 +292,10 @@ public class TestKv
         File tmp = Files.createTempDir();
         tmp.deleteOnExit();
         File db = new File(tmp, "db");
-        Connector connector = connectorFactory.create("test", TestingH2JdbcModule.createProperties(db));
+        Connector connector =
+                new LegacyTransactionConnector("test", connectorFactory.create("test", TestingH2JdbcModule.createProperties(db)));
         // connector.getMetadata().createTable(session,
-        ConnectorMetadata metadata = connector.getMetadata();
+        ConnectorMetadata metadata = connector.getMetadata(null);
         //new JdbcMetadata(new JdbcConnectorId(CONNECTOR_ID), database.getJdbcClient(), new JdbcMetadataConfig());
 
         JdbcMetadata jdbcMetadata = (JdbcMetadata) metadata;
@@ -310,7 +312,7 @@ public class TestKv
                 ImmutableList.of(new ColumnMetadata("text", VARCHAR, false)),
                 ImmutableMap.of(),
                 "bob"));
-        metadata.commitCreateTable(session, oth, ImmutableList.of());
+        //metadata.commitCreateTable(session, oth, ImmutableList.of());
 
         try (Connection connection = jdbcClient.getConnection()) {
             try (Statement stmt = connection.createStatement()) {
@@ -364,7 +366,7 @@ public class TestKv
                 jdbcClient.getConnectionUrl(),
                 fromProperties(jdbcClient.getConnectionProperties()));
 
-        RecordSink rs = connector.getRecordSinkProvider().getRecordSink(session, oth);
+        RecordSink rs = connector.getRecordSinkProvider().getRecordSink(null, session, oth);
 
         rs.beginRecord(1);
         rs.appendString("hi3".getBytes());
