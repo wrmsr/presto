@@ -13,7 +13,7 @@
  */
 package com.wrmsr.presto.spi.connectorSupport;
 
-import com.facebook.presto.spi.Connector;
+import com.facebook.presto.spi.connector.Connector;
 
 public interface ConnectorSupport
 {

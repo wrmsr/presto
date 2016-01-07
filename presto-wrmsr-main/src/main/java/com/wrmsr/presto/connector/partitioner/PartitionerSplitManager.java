@@ -26,6 +26,7 @@ import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableLayoutHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
+import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.predicate.Domain;
 import com.facebook.presto.spi.FixedSplitSource;
 import com.facebook.presto.spi.predicate.TupleDomain;
@@ -60,9 +61,9 @@ public class PartitionerSplitManager
 
     @Override
     @Deprecated
-    public ConnectorPartitionResult getPartitions(ConnectorSession session, ConnectorTableHandle table, TupleDomain<ColumnHandle> tupleDomain)
+    public ConnectorPartitionResult getPartitions(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableHandle table, TupleDomain<ColumnHandle> tupleDomain)
     {
-        ConnectorMetadata metadata = targetConnector.getMetadata();
+        ConnectorMetadata metadata = targetConnector.getMetadata(transactionHandle);
         ConnectorTableMetadata tableMetadata = metadata.getTableMetadata(session, table);
         TupleDomain<String> stringTupleDomain = TupleDomain.all();
         for (Map.Entry<ColumnHandle, Domain> e : tupleDomain.getDomains().get().entrySet()) {
@@ -85,7 +86,7 @@ public class PartitionerSplitManager
                 continue;
             }
 
-            ConnectorPartitionResult r = target.getPartitions(session, table, intersectedDomain);
+            ConnectorPartitionResult r = target.getPartitions(transactionHandle, session, table, intersectedDomain);
             ret.addAll(r.getPartitions()); // FIXME PARTITION-IDS
 
             // if (r.getUndeterminedTupleDomain()) // FIXME
@@ -99,10 +100,10 @@ public class PartitionerSplitManager
 
     @Override
     @Deprecated
-    public ConnectorSplitSource getPartitionSplits(ConnectorSession session, ConnectorTableHandle table, List<ConnectorPartition> partitions)
+    public ConnectorSplitSource getPartitionSplits(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableHandle table, List<ConnectorPartition> partitions)
     {
         List<ConnectorSplit> splits = partitions.stream()
-                .map(p -> target.getPartitionSplits(session, table, ImmutableList.of(p)))
+                .map(p -> target.getPartitionSplits(transactionHandle, session, table, ImmutableList.of(p)))
                 .flatMap(s -> {
                     try {
                         return s.getNextBatch(Integer.MAX_VALUE).get().stream();
@@ -120,9 +121,9 @@ public class PartitionerSplitManager
     }
 
     @Override
-    public ConnectorSplitSource getSplits(ConnectorSession session, ConnectorTableLayoutHandle layout)
+    public ConnectorSplitSource getSplits(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableLayoutHandle layout)
     {
-        return target.getSplits(session, layout);
+        return target.getSplits(transactionHandle, session, layout);
     }
 
     /*
