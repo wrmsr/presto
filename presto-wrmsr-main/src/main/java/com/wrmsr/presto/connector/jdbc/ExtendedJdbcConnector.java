@@ -31,9 +31,15 @@ public class ExtendedJdbcConnector
     private final JdbcClient jdbcClient;
 
     @Inject
-    public ExtendedJdbcConnector(LifeCycleManager lifeCycleManager, JdbcMetadata jdbcMetadata, JdbcSplitManager jdbcSplitManager, JdbcRecordSetProvider jdbcRecordSetProvider, JdbcHandleResolver jdbcHandleResolver, JdbcRecordSinkProvider jdbcRecordSinkProvider, JdbcClient jdbcClient)
+    public ExtendedJdbcConnector(
+            LifeCycleManager lifeCycleManager,
+            JdbcMetadata jdbcMetadata,
+            JdbcSplitManager jdbcSplitManager,
+            JdbcRecordSetProvider jdbcRecordSetProvider,
+            JdbcRecordSinkProvider jdbcRecordSinkProvider,
+            JdbcClient jdbcClient)
     {
-        super(lifeCycleManager, jdbcMetadata, jdbcSplitManager, jdbcRecordSetProvider, jdbcHandleResolver, jdbcRecordSinkProvider);
+        super(lifeCycleManager, jdbcMetadata, jdbcSplitManager, jdbcRecordSetProvider, jdbcRecordSinkProvider);
         this.jdbcClient = checkNotNull(jdbcClient);
     }
 

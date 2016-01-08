@@ -23,6 +23,7 @@ import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
         include = JsonTypeInfo.As.WRAPPER_OBJECT
 )
 @JsonSubTypes({
+        @JsonSubTypes.Type(value = MetaconnectorsConfig.class, name = "metaconnectors"),
         @JsonSubTypes.Type(value = ConnectorsConfig.class, name = "connectors"),
         @JsonSubTypes.Type(value = ExecConfig.class, name = "exec"),
         @JsonSubTypes.Type(value = PluginsConfig.class, name = "plugins"),

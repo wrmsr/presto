@@ -15,6 +15,7 @@ package com.wrmsr.presto.connector.partitioner;
 
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
+import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.google.inject.Binder;

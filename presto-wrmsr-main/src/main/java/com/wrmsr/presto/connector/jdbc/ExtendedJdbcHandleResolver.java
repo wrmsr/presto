@@ -21,12 +21,6 @@ import com.google.inject.Inject;
 public class ExtendedJdbcHandleResolver
         extends JdbcHandleResolver
 {
-    @Inject
-    public ExtendedJdbcHandleResolver(JdbcConnectorId clientId)
-    {
-        super(clientId);
-    }
-
     @Override
     public Class<? extends ConnectorSplit> getSplitClass()
     {

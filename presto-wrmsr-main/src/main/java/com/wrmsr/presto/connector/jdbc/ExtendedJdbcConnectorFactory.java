@@ -21,6 +21,7 @@ import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
 import com.facebook.presto.plugin.jdbc.JdbcRecordSinkProvider;
 import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorFactory;
+import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
@@ -87,6 +88,12 @@ public class ExtendedJdbcConnectorFactory
         {
             extraProperties.put(name, value);
         }
+    }
+
+    @Override
+    public ConnectorHandleResolver getHandleResolver()
+    {
+        return new ExtendedJdbcHandleResolver();
     }
 
     @Override
