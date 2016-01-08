@@ -20,7 +20,6 @@ import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -113,7 +112,7 @@ public abstract class MetaconnectorConnectorFactory
 
     protected Connector createWithOverride(Map<String, String> requiredConfiguration, Module... modules)
     {
-        // https://github.com/facebook/presto/commit/6b0ea03b708bcf1fd9f7eb5ff4876e64c84eba17
+        // https://github.com/facebook/presto/commit/6b0ea03b708bcf1fd9f7eb5ff4876e64c84eba17 fml
         try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(classLoader)) {
             Bootstrap app = new Bootstrap(ImmutableList.<Module>builder().add(module).addAll(Arrays.asList(modules)).build());
 

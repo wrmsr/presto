@@ -24,6 +24,7 @@ import com.wrmsr.presto.connector.jdbc.redshift.RedshiftConnectorFactory;
 import com.wrmsr.presto.connector.jdbc.sqlite.SqliteConnectorFactory;
 import com.wrmsr.presto.connector.jdbc.temp.TempConnectorFactory;
 import com.wrmsr.presto.connector.partitioner.PartitionerConnectorFactory;
+import com.wrmsr.presto.connector.partitioner.PartitionerMetaconnectorFactory;
 
 public class ConnectorModule
     implements Module
@@ -31,11 +32,12 @@ public class ConnectorModule
     @Override
     public void configure(Binder binder)
     {
+        Multibinder<MetaconnectorFactory> metaconnectorFactoryBinder = Multibinder.newSetBinder(binder, MetaconnectorFactory.class);
         Multibinder<ConnectorFactory> connectorFactoryBinder = Multibinder.newSetBinder(binder, ConnectorFactory.class);
         Multibinder<com.facebook.presto.spi.ConnectorFactory> legacyConnectorFactoryBinder = Multibinder.newSetBinder(binder, com.facebook.presto.spi.ConnectorFactory.class);
 
         binder.bind(PartitionerConnectorFactory.class).asEagerSingleton();
-        connectorFactoryBinder.addBinding().to(PartitionerConnectorFactory.class);
+        metaconnectorFactoryBinder.addBinding().to(PartitionerMetaconnectorFactory.class);
 
         binder.bind(H2ConnectorFactory.class).asEagerSingleton();
         legacyConnectorFactoryBinder.addBinding().to(H2ConnectorFactory.class);

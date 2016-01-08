@@ -27,10 +27,10 @@ import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.server.PluginManager;
 import com.facebook.presto.server.TaskUpdateRequest;
-import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
+import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
@@ -255,10 +255,14 @@ public class MainPlugin
 
     private Injector buildInjector()
     {
+        // TODO child injector?
         Bootstrap app = new Bootstrap(buildModule());
 
         try {
-            return app.strictConfig().initialize();
+            return app
+                    .strictConfig()
+                    .doNotInitializeLogging()
+                    .initialize();
         }
         catch (Throwable e) {
             log.error(e);
