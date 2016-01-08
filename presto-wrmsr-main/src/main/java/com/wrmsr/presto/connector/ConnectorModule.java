@@ -32,12 +32,8 @@ public class ConnectorModule
     @Override
     public void configure(Binder binder)
     {
-        Multibinder<MetaconnectorFactory> metaconnectorFactoryBinder = Multibinder.newSetBinder(binder, MetaconnectorFactory.class);
         Multibinder<ConnectorFactory> connectorFactoryBinder = Multibinder.newSetBinder(binder, ConnectorFactory.class);
         Multibinder<com.facebook.presto.spi.ConnectorFactory> legacyConnectorFactoryBinder = Multibinder.newSetBinder(binder, com.facebook.presto.spi.ConnectorFactory.class);
-
-        binder.bind(PartitionerConnectorFactory.class).asEagerSingleton();
-        metaconnectorFactoryBinder.addBinding().to(PartitionerMetaconnectorFactory.class);
 
         binder.bind(H2ConnectorFactory.class).asEagerSingleton();
         legacyConnectorFactoryBinder.addBinding().to(H2ConnectorFactory.class);
@@ -56,5 +52,12 @@ public class ConnectorModule
 
         binder.bind(TempConnectorFactory.class).asEagerSingleton();
         legacyConnectorFactoryBinder.addBinding().to(TempConnectorFactory.class);
+
+        binder.bind(MetaconnectorManager.class).asEagerSingleton();
+
+        Multibinder<MetaconnectorFactory> metaconnectorFactoryBinder = Multibinder.newSetBinder(binder, MetaconnectorFactory.class);
+
+        binder.bind(PartitionerConnectorFactory.class).asEagerSingleton();
+        metaconnectorFactoryBinder.addBinding().to(PartitionerMetaconnectorFactory.class);
     }
 }
