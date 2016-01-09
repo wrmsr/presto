@@ -21,5 +21,5 @@ public interface MetaconnectorFactory
 {
     String getName();
 
-    ConnectorFactory create(String connectorName, Map<String, String> config);
+    ConnectorFactory create(String connectorName, Map<String, String> config, ConnectorFactory target);
 }

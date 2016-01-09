@@ -15,19 +15,16 @@ package com.wrmsr.presto.connector.partitioner;
 
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
-import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.connector.Connector;
+import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.google.inject.Binder;
 import com.google.inject.Module;
-import com.wrmsr.presto.MainOptionalConfig;
 import com.wrmsr.presto.connector.Connectors;
 import com.wrmsr.presto.connector.MetaconnectorConnectorFactory;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.connector.jdbc.JdbcPartitioner;
-
-import javax.inject.Inject;
 
 import java.util.Map;
 
@@ -36,15 +33,12 @@ import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
 public class PartitionerConnectorFactory
         extends MetaconnectorConnectorFactory
 {
-    @Inject
-    public PartitionerConnectorFactory(MainOptionalConfig optionalConfig, ConnectorManager connectorManager)
+    public PartitionerConnectorFactory(
+            ConnectorFactory target,
+            Map<String, String> optionalConfig,
+            ConnectorManager connectorManager)
     {
-        this(optionalConfig.getValue(), new PartitionerModule(null), Connectors.getClassLoader(), connectorManager);
-    }
-
-    public PartitionerConnectorFactory(Map<String, String> optionalConfig, Module module, ClassLoader classLoader, ConnectorManager connectorManager)
-    {
-        super(optionalConfig, module, classLoader, connectorManager);
+        super(target, new PartitionerModule(null), Connectors.getClassLoader(), optionalConfig, connectorManager);
     }
 
     @Override

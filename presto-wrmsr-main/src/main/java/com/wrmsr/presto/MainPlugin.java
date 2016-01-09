@@ -53,8 +53,10 @@ import com.wrmsr.presto.config.Config;
 import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.config.ConnectorsConfig;
 import com.wrmsr.presto.config.ExecConfig;
+import com.wrmsr.presto.config.MetaconnectorsConfig;
 import com.wrmsr.presto.config.PluginsConfig;
 import com.wrmsr.presto.config.PrestoConfig;
+import com.wrmsr.presto.connector.MetaconnectorManager;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.scripting.ScriptingManager;
 import com.wrmsr.presto.server.ModuleProcessor;
@@ -325,6 +327,11 @@ public class MainPlugin
             Set<com.facebook.presto.spi.ConnectorFactory> lcfs = getInjector().getInstance(Key.get(new TypeLiteral<Set<com.facebook.presto.spi.ConnectorFactory>>() {}));
             for (com.facebook.presto.spi.ConnectorFactory cf : lcfs) {
                 connectorManager.addConnectorFactory(cf);
+            }
+
+            MetaconnectorManager mm = getInjector().getInstance(MetaconnectorManager.class);
+            for (Map.Entry<String, MetaconnectorsConfig.Entry> e : config.getMergedNode(MetaconnectorsConfig.class)) {
+                mm.addMetaconnector(e.getKey(), e.getValue().getEntries());
             }
 
             ScriptingManager scriptingManager = getInjector().getInstance(ScriptingManager.class);

@@ -20,10 +20,8 @@ import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Module;
-import com.wrmsr.presto.MainOptionalConfig;
 import com.wrmsr.presto.connector.partitioner.PartitionerConnector;
 import com.wrmsr.presto.util.config.Configs;
 import io.airlift.bootstrap.Bootstrap;
@@ -40,15 +38,21 @@ public abstract class MetaconnectorConnectorFactory
     private final ConnectorFactory target;
     private final Module module;
     private final ClassLoader classLoader;
+    private final Map<String, String> optionalConfig;
+    private final ConnectorManager connectorManager;
 
-    private MainOptionalConfig optionalConfig;
-    private ConnectorManager connectorManager;
-
-    public MetaconnectorConnectorFactory(ConnectorFactory target, Module module, ClassLoader classLoader)
+    public MetaconnectorConnectorFactory(
+            ConnectorFactory target,
+            Module module,
+            ClassLoader classLoader,
+            Map<String, String> optionalConfig,
+            ConnectorManager connectorManager)
     {
         this.target = checkNotNull(target, "target is null");
         this.module = checkNotNull(module, "module is null");
         this.classLoader = checkNotNull(classLoader, "classLoader is null");
+        this.optionalConfig = checkNotNull(optionalConfig, "optionalConfig is null");
+        this.connectorManager = checkNotNull(connectorManager, "connectorManager is null");
     }
 
     public Module getModule()
@@ -61,28 +65,6 @@ public abstract class MetaconnectorConnectorFactory
         return classLoader;
     }
 
-    public MainOptionalConfig getOptionalConfig()
-    {
-        return optionalConfig;
-    }
-
-    @Inject
-    public void setOptionalConfig(MainOptionalConfig optionalConfig)
-    {
-        this.optionalConfig = checkNotNull(optionalConfig);
-    }
-
-    public ConnectorManager getConnectorManager()
-    {
-        return connectorManager;
-    }
-
-    @Inject
-    public void setConnectorManager(ConnectorManager connectorManager)
-    {
-        this.connectorManager = connectorManager;
-    }
-
     @Override
     public ConnectorHandleResolver getHandleResolver()
     {
@@ -93,17 +75,13 @@ public abstract class MetaconnectorConnectorFactory
     public Connector create(String connectorId, Map<String, String> properties)
     {
         checkNotNull(properties, "properties is null");
-        String targetName = checkNotNull(properties.get("target-name")); // FIXME: default %s_
-        String targetConnectorName = checkNotNull(properties.get("target-connector-name"));
 
-        Connector target;
-        Map<String, String> requiredConfiguration;
-
-        requiredConfiguration = new HashMap<>(properties);
+        Map<String, String> requiredConfiguration = new HashMap<>(properties);
         Map<String, String> targetProperties = Configs.stripSubconfig(requiredConfiguration, "target");
 
-        connectorManager.createConnection(targetName, targetConnectorName, targetProperties);
-        target = checkNotNull(connectorManager.getConnectors().get(targetName));
+        String targetId = connectorId = "$target";
+        connectorManager.createConnection(targetId, this.target, targetProperties);
+        Connector target = checkNotNull(connectorManager.getConnectors().get(targetId));
 
         return create(target, connectorId, requiredConfiguration);
     }
@@ -120,7 +98,7 @@ public abstract class MetaconnectorConnectorFactory
                     .strictConfig()
                     .doNotInitializeLogging()
                     .setRequiredConfigurationProperties(requiredConfiguration)
-                    .setOptionalConfigurationProperties(optionalConfig.getValue())
+                    .setOptionalConfigurationProperties(optionalConfig)
                     .initialize();
 
             return injector.getInstance(PartitionerConnector.class);

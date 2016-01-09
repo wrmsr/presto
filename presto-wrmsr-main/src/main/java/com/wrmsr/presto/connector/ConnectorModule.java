@@ -57,7 +57,7 @@ public class ConnectorModule
 
         Multibinder<MetaconnectorFactory> metaconnectorFactoryBinder = Multibinder.newSetBinder(binder, MetaconnectorFactory.class);
 
-        binder.bind(PartitionerConnectorFactory.class).asEagerSingleton();
+        binder.bind(PartitionerMetaconnectorFactory.class).asEagerSingleton();
         metaconnectorFactoryBinder.addBinding().to(PartitionerMetaconnectorFactory.class);
     }
 }

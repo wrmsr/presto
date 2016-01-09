@@ -109,8 +109,8 @@ public class TestConnectorMap
         recordSinkProvider = connector.getRecordSinkProvider();
         assertInstanceOf(recordSinkProvider, CassandraConnectorRecordSinkProvider.class);
 
-        ConnectorHandleResolver handleResolver = connector.getHandleResolver();
-        assertInstanceOf(handleResolver, CassandraHandleResolver.class);
+//        ConnectorHandleResolver handleResolver = connector.getHandleResolver();
+//        assertInstanceOf(handleResolver, CassandraHandleResolver.class);
 
         database = KEYSPACE_NAME.toLowerCase();
         table = new SchemaTableName(database, TABLE_NAME.toLowerCase());

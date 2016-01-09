@@ -28,7 +28,7 @@ public class PartitionerMetaconnectorFactory
     }
 
     @Override
-    public ConnectorFactory create(String connectorName, Map<String, String> config)
+    public ConnectorFactory create(String connectorName, Map<String, String> config, ConnectorFactory target)
     {
         return null;
     }

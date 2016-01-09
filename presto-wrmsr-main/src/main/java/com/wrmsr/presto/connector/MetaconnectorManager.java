@@ -14,12 +14,16 @@
 package com.wrmsr.presto.connector;
 
 import com.facebook.presto.connector.ConnectorManager;
+import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.inject.Inject;
+import com.wrmsr.presto.util.config.Configs;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
@@ -37,8 +41,30 @@ public class MetaconnectorManager
         this.metaconnectorFactories = metaconnectorFactories.stream().map(f -> ImmutablePair.of(f.getName(), f)).collect(toImmutableMap());
     }
 
-    public synchronized void createMetaconnector(Map<String, String> config)
+    public synchronized void addMetaconnector(String connectorName, Map<String, String> config)
     {
+        ConnectorFactory factory = createMetaconnector(connectorName, config);
+        connectorManager.addConnectorFactory(factory);
+    }
 
+    private ConnectorFactory createMetaconnector(String connectorName, Map<String, String> config)
+    {
+        config = new HashMap<>(config);
+        String name = checkNotNull(config.remove("metaconnector.name"));
+        String targetName = checkNotNull(config.remove("target-connector.name"));
+        Map<String, String> targetProperties = new HashMap<>(Configs.stripSubconfig(config, "target"));
+        MetaconnectorFactory factory = metaconnectorFactories.get(name);
+
+        ConnectorFactory target;
+        if (metaconnectorFactories.containsKey(targetName)) {
+            targetProperties.put("metaconnector.name", targetName);
+            target = createMetaconnector(connectorName + "$target", targetProperties);
+        }
+        else {
+            checkArgument(targetProperties.isEmpty());
+            target = connectorManager.getConnectorFactories().get(targetName);
+        }
+
+        return factory.create(connectorName, config, target);
     }
 }

@@ -102,7 +102,6 @@ import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.MaterializedResult;
 import com.facebook.presto.testing.MaterializedRow;
-import com.facebook.presto.transaction.TransactionHandle;
 import com.facebook.presto.type.ArrayType;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;

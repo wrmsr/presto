@@ -152,7 +152,7 @@ public class ConnectorManager
         createConnection(catalogName, connectorFactory, properties);
     }
 
-    private synchronized void createConnection(String catalogName, ConnectorFactory connectorFactory, Map<String, String> properties)
+    public synchronized void createConnection(String catalogName, ConnectorFactory connectorFactory, Map<String, String> properties)
     {
         checkState(!stopped.get(), "ConnectorManager is stopped");
         requireNonNull(catalogName, "catalogName is null");
