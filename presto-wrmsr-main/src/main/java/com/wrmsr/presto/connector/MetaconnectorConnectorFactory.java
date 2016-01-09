@@ -88,7 +88,7 @@ public abstract class MetaconnectorConnectorFactory
         Map<String, String> requiredConfiguration = new HashMap<>(properties);
         Map<String, String> targetProperties = Configs.stripSubconfig(requiredConfiguration, "target");
 
-        String targetId = connectorId = "$target";
+        String targetId = connectorId + "$target";
         connectorManager.createConnection(targetId, this.target, targetProperties);
         Connector target = checkNotNull(connectorManager.getConnectors().get(targetId));
 
