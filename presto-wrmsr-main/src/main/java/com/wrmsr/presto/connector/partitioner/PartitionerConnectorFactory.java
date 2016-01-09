@@ -34,17 +34,13 @@ public class PartitionerConnectorFactory
         extends MetaconnectorConnectorFactory
 {
     public PartitionerConnectorFactory(
+            String name,
+            Map<String, String> config,
             ConnectorFactory target,
             Map<String, String> optionalConfig,
             ConnectorManager connectorManager)
     {
-        super(target, new PartitionerModule(null), Connectors.getClassLoader(), optionalConfig, connectorManager);
-    }
-
-    @Override
-    public String getName()
-    {
-        return "partitioner";
+        super(name, target, new PartitionerModule(null), Connectors.getClassLoader(), optionalConfig, connectorManager);
     }
 
     @Override

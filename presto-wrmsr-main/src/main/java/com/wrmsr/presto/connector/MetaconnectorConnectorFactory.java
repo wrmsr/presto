@@ -35,6 +35,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public abstract class MetaconnectorConnectorFactory
         implements ConnectorFactory
 {
+    private final String name;
     private final ConnectorFactory target;
     private final Module module;
     private final ClassLoader classLoader;
@@ -42,17 +43,25 @@ public abstract class MetaconnectorConnectorFactory
     private final ConnectorManager connectorManager;
 
     public MetaconnectorConnectorFactory(
+            String name,
             ConnectorFactory target,
             Module module,
             ClassLoader classLoader,
             Map<String, String> optionalConfig,
             ConnectorManager connectorManager)
     {
+        this.name = checkNotNull(name, "name is null");
         this.target = checkNotNull(target, "target is null");
         this.module = checkNotNull(module, "module is null");
         this.classLoader = checkNotNull(classLoader, "classLoader is null");
         this.optionalConfig = checkNotNull(optionalConfig, "optionalConfig is null");
         this.connectorManager = checkNotNull(connectorManager, "connectorManager is null");
+    }
+
+    @Override
+    public String getName()
+    {
+        return name;
     }
 
     public Module getModule()

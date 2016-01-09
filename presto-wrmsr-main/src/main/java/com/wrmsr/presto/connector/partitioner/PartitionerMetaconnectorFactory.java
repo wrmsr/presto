@@ -13,7 +13,10 @@
  */
 package com.wrmsr.presto.connector.partitioner;
 
+import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.spi.connector.ConnectorFactory;
+import com.google.inject.Inject;
+import com.wrmsr.presto.MainOptionalConfig;
 import com.wrmsr.presto.connector.MetaconnectorFactory;
 
 import java.util.Map;
@@ -21,6 +24,18 @@ import java.util.Map;
 public class PartitionerMetaconnectorFactory
     implements MetaconnectorFactory
 {
+    private final MainOptionalConfig optionalConfig;
+    private final ConnectorManager connectorManager;
+
+    @Inject
+    public PartitionerMetaconnectorFactory(
+            MainOptionalConfig optionalConfig,
+            ConnectorManager connectorManager)
+    {
+        this.optionalConfig = optionalConfig;
+        this.connectorManager = connectorManager;
+    }
+
     @Override
     public String getName()
     {
@@ -30,6 +45,6 @@ public class PartitionerMetaconnectorFactory
     @Override
     public ConnectorFactory create(String connectorName, Map<String, String> config, ConnectorFactory target)
     {
-        return null;
+        return new PartitionerConnectorFactory(connectorName, config, target, optionalConfig.getValue(), connectorManager);
     }
 }
