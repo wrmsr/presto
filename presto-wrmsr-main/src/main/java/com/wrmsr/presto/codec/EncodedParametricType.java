@@ -14,6 +14,7 @@
 package com.wrmsr.presto.codec;
 
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeParameter;
 import com.facebook.presto.type.ParametricType;
 
 import java.util.List;
@@ -37,11 +38,11 @@ public class EncodedParametricType
     }
 
     @Override
-    public EncodedType createType(List<Type> types, List<Object> literals)
+    public EncodedType createType(List<TypeParameter> parameters)
     {
-        checkArgument(literals.size() == 0);
-        checkArgument(types.size() == 1);
-        Type fromType = types.get(0);
+        checkArgument(parameters.size() == 1);
+        TypeParameter fromTypeParameter = parameters.get(0);
+        Type fromType = fromTypeParameter.getType();
         return new EncodedType(typeCodec, fromType);
     }
 }

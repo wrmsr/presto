@@ -87,7 +87,7 @@ public class DefineStructForQueryFunction
             Metadata metadata,
             AccessControl accessControl)
     {
-        super(FUNCTION_NAME, SIGNATURE.getTypeParameters(), "varchar", ImmutableList.of("varchar", "varchar"));
+        super(FUNCTION_NAME, SIGNATURE.getTypeParameterRequirements(), "varchar", ImmutableList.of("varchar", "varchar"));
         this.structManager = structManager;
         this.sqlParser = checkNotNull(sqlParser);
         this.planOptimizers = checkNotNull(planOptimizers);

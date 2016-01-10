@@ -14,6 +14,7 @@
 package com.wrmsr.presto.type;
 
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeParameter;
 import com.facebook.presto.type.ParametricType;
 
 import java.util.List;
@@ -30,7 +31,7 @@ public class TableParametricType
     }
 
     @Override
-    public Type createType(List<Type> types, List<Object> literals)
+    public Type createType(List<TypeParameter> parameters)
     {
         return null;
     }

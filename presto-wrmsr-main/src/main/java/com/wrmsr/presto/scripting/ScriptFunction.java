@@ -22,7 +22,7 @@ import com.facebook.presto.bytecode.Variable;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.metadata.SqlScalarFunction;
-import com.facebook.presto.metadata.TypeParameter;
+import com.facebook.presto.metadata.TypeParameterRequirement;
 import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.ConnectorSession;
@@ -137,7 +137,7 @@ public class ScriptFunction
     {
         super(
                 config.name,
-                IntStream.range(0, config.arity).boxed().map(n -> new TypeParameter("T" + n.toString(), false, false, null)).collect(toImmutableList()),
+                IntStream.range(0, config.arity).boxed().map(n -> new TypeParameterRequirement("T" + n.toString(), false, false, null)).collect(toImmutableList()),
                 config.returnType.getTypeSignature().getBase(),
                 ImmutableList.<String>builder()
                         .add("varchar")

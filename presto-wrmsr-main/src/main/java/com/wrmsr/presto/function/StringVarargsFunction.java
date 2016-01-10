@@ -17,7 +17,7 @@ import com.facebook.presto.metadata.FunctionKind;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.SqlScalarFunction;
-import com.facebook.presto.metadata.TypeParameter;
+import com.facebook.presto.metadata.TypeParameterRequirement;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
@@ -69,7 +69,7 @@ public abstract class StringVarargsFunction
         this.methodName = methodName;
         this.fixedMethodParametersClasses = fixedMethodParametersClasses;
 
-        List<TypeParameter> typeParameters = buildTypeParameters(fixedParameterTypes);
+        List<TypeParameterRequirement> typeParameters = buildTypeParameters(fixedParameterTypes);
         List<String> argumentTypes = buildArgumentTypes(fixedParameterTypes);
         signature = new Signature(functionName, FunctionKind.SCALAR, typeParameters, functionReturnType, argumentTypes, true);
 
@@ -81,9 +81,9 @@ public abstract class StringVarargsFunction
         methodHandle = Reflection.methodHandle(getClass(), methodName, (Class<?>[]) parameterTypes.toArray(new Class<?>[parameterTypes.size()]));
     }
 
-    protected static List<TypeParameter> buildTypeParameters(List<String> fixedParameterTypes)
+    protected static List<TypeParameterRequirement> buildTypeParameters(List<String> fixedParameterTypes)
     {
-        List<TypeParameter> typeParameters = newArrayList();
+        List<TypeParameterRequirement> typeParameters = newArrayList();
         for (String s : fixedParameterTypes) {
             typeParameters.add(comparableTypeParameter(s));
         }
