@@ -231,7 +231,8 @@ public class LocalQueryRunner
                 new NodeSystemTable(nodeManager),
                 new CatalogSystemTable(metadata),
                 new TablePropertiesSystemTable(metadata),
-                new TransactionsSystemTable(typeRegistry, transactionManager)));
+                new TransactionsSystemTable(typeRegistry, transactionManager)),
+                ImmutableSet.of());
 
         connectorManager.addConnectorFactory(globalSystemConnectorFactory);
         connectorManager.createConnection(GlobalSystemConnector.NAME, GlobalSystemConnector.NAME, ImmutableMap.of());
@@ -401,7 +402,7 @@ public class LocalQueryRunner
         }
 
         @Override
-        public OperatorFactory createOutputOperator(int operatorId, List<Type> sourceTypes)
+        public OperatorFactory createOutputOperator(int operatorId, PlanNodeId planNodeId, List<Type> sourceTypes)
         {
             requireNonNull(sourceTypes, "sourceType is null");
 
@@ -421,7 +422,7 @@ public class LocalQueryRunner
                         materializedResultBuilder.compareAndSet(null, MaterializedResult.resultBuilder(driverContext.getSession(), sourceTypes));
                         resultBuilder = materializedResultBuilder.get();
                     }
-                    OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, MaterializingOperator.class.getSimpleName());
+                    OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, planNodeId, MaterializingOperator.class.getSimpleName());
                     return new MaterializingOperator(operatorContext, resultBuilder);
                 }
 
@@ -433,7 +434,7 @@ public class LocalQueryRunner
                 @Override
                 public OperatorFactory duplicate()
                 {
-                    return createOutputOperator(operatorId, sourceTypes);
+                    return createOutputOperator(operatorId, planNodeId, sourceTypes);
                 }
             };
         }
@@ -631,14 +632,15 @@ public class LocalQueryRunner
         return ImmutableList.copyOf(drivers);
     }
 
-    public OperatorFactory createTableScanOperator(int operatorId, String tableName, String... columnNames)
+    public OperatorFactory createTableScanOperator(int operatorId, PlanNodeId planNodeId, String tableName, String... columnNames)
     {
-        return createTableScanOperator(defaultSession, operatorId, tableName, columnNames);
+        return createTableScanOperator(defaultSession, operatorId, planNodeId, tableName, columnNames);
     }
 
     public OperatorFactory createTableScanOperator(
             Session session,
             int operatorId,
+            PlanNodeId planNodeId,
             String tableName,
             String... columnNames)
     {
@@ -679,7 +681,7 @@ public class LocalQueryRunner
             @Override
             public Operator createOperator(DriverContext driverContext)
             {
-                OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, "BenchmarkSource");
+                OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, planNodeId, "BenchmarkSource");
                 ConnectorPageSource pageSource = pageSourceManager.createPageSource(session, split, columnHandles);
                 return new PageSourceOperator(pageSource, columnTypes, operatorContext);
             }
@@ -697,7 +699,7 @@ public class LocalQueryRunner
         };
     }
 
-    public OperatorFactory createHashProjectOperator(int operatorId, List<Type> columnTypes)
+    public OperatorFactory createHashProjectOperator(int operatorId, PlanNodeId planNodeId, List<Type> columnTypes)
     {
         ImmutableList.Builder<ProjectionFunction> projectionFunctions = ImmutableList.builder();
         for (int i = 0; i < columnTypes.size(); i++) {
@@ -706,6 +708,7 @@ public class LocalQueryRunner
         projectionFunctions.add(new HashProjectionFunction(columnTypes));
         return new FilterAndProjectOperator.FilterAndProjectOperatorFactory(
                 operatorId,
+                planNodeId,
                 new GenericPageProcessor(FilterFunctions.TRUE_FUNCTION, projectionFunctions.build()),
                 ImmutableList.copyOf(Iterables.concat(columnTypes, ImmutableList.of(BIGINT))));
     }
