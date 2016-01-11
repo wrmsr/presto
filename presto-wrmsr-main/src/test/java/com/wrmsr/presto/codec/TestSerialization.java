@@ -19,6 +19,7 @@ import com.facebook.presto.spi.block.InterleavedBlockBuilder;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.spi.type.TypeSignatureParameter;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.DynamicSliceOutput;
 import io.airlift.slice.Slices;
@@ -48,19 +49,37 @@ public class TestSerialization
         @Override
         public Type getType(TypeSignature signature)
         {
-            for (Type type : getTypes()) {
-                if (signature.equals(type.getTypeSignature())) {
-                    return type;
-                }
-            }
             return null;
         }
 
         @Override
-        public Type getParameterizedType(String baseTypeName, List<TypeSignature> typeParameters, List<Object> literalParameters)
+        public Type getParameterizedType(String baseTypeName, List<TypeSignatureParameter> typeParameters)
         {
-            return getType(new TypeSignature(baseTypeName, typeParameters, literalParameters));
+            return null;
         }
+
+        @Override
+        public Type getParameterizedType(String baseTypeName, List<TypeSignature> typeParameters, List<String> literalParameters)
+        {
+            return null;
+        }
+//
+//        @Override
+//        public Type getType(TypeSignature signature)
+//        {
+//            for (Type type : getTypes()) {
+//                if (signature.equals(type.getTypeSignature())) {
+//                    return type;
+//                }
+//            }
+//            return null;
+//        }
+//
+//        @Override
+//        public Type getParameterizedType(String baseTypeName, List<TypeSignature> typeParameters, List<Object> literalParameters)
+//        {
+//            return getType(new TypeSignature(baseTypeName, typeParameters, literalParameters));
+//        }
 
         @Override
         public List<Type> getTypes()

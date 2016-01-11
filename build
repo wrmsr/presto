@@ -17,7 +17,7 @@ for PRJ in presto-spi presto-parser presto-main presto-hive presto-base-jdbc ; d
     touch "$JAR_PATH"
 done
 
-"$MVN" -T 1C clean package install -e \
+"$MVN" -T 1C -U clean package install -e \
        -Denforcer.skip=true \
        -Dmaven.test.skip=true \
        -Dmdep.skip=true \

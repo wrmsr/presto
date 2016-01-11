@@ -15,13 +15,20 @@ package com.wrmsr.presto.connector.jdbc.mysql;
 
 import com.facebook.presto.plugin.jdbc.BaseJdbcConfig;
 import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
+import com.facebook.presto.plugin.jdbc.JdbcSplit;
+import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
+import com.facebook.presto.plugin.jdbc.JdbcTableLayoutHandle;
+import com.facebook.presto.spi.ConnectorSplitSource;
+import com.facebook.presto.spi.FixedSplitSource;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.type.Type;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.mysql.jdbc.Driver;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConfig;
+import com.wrmsr.presto.connector.jdbc.ExtendedJdbcSplit;
 
 import javax.inject.Inject;
 
@@ -30,6 +37,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Set;
 
+import static com.google.common.collect.Maps.fromProperties;
 import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
 import static java.util.Locale.ENGLISH;
 
@@ -106,5 +114,21 @@ public class ExtendedMySqlClient
                 return "datetime";
         }
         return sqlType;
+    }
+
+    @Override
+    public ConnectorSplitSource getSplits(JdbcTableLayoutHandle layoutHandle)
+    {
+        JdbcTableHandle tableHandle = layoutHandle.getTable();
+        ExtendedJdbcSplit jdbcSplit = new ExtendedJdbcSplit(
+                connectorId,
+                tableHandle.getCatalogName(),
+                tableHandle.getSchemaName(),
+                tableHandle.getTableName(),
+                connectionUrl,
+                fromProperties(connectionProperties),
+                layoutHandle.getTupleDomain(),
+                true);
+        return new FixedSplitSource(connectorId, ImmutableList.of(jdbcSplit));
     }
 }

@@ -39,4 +39,6 @@ public class ExtendedJdbcHandleResolver
 //        return (tableHandle instanceof ExtendedJdbcInsertTableHandle) &&
 //                ((ExtendedJdbcInsertTableHandle) tableHandle).getConnectorId().equals(getConnectorId());
 //    }
+
+
 }
