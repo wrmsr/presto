@@ -33,14 +33,12 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-import com.wrmsr.presto.util.collect.SimpleMap;
-import org.intellij.lang.annotations.Language;
+import com.wrmsr.presto.util.collect.JdbcSimpleMap;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -51,11 +49,9 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Maps.fromProperties;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.util.Locale.ENGLISH;
@@ -65,201 +61,6 @@ public class TestKv
     public interface ConnectorEventSource
     {
 
-    }
-
-    public static class MyMap<K, V>
-            extends AbstractMap<K, V>
-    {
-        @Override
-        public Set<Entry<K, V>> entrySet()
-        {
-            return null;
-        }
-
-        @Override
-        public V getOrDefault(Object key, V defaultValue)
-        {
-            return null;
-        }
-
-        @Override
-        public void forEach(BiConsumer<? super K, ? super V> action)
-        {
-
-        }
-
-        @Override
-        public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function)
-        {
-
-        }
-
-        @Override
-        public V putIfAbsent(K key, V value)
-        {
-            return null;
-        }
-
-        @Override
-        public boolean remove(Object key, Object value)
-        {
-            return false;
-        }
-
-        @Override
-        public boolean replace(K key, V oldValue, V newValue)
-        {
-            return false;
-        }
-
-        @Override
-        public V replace(K key, V value)
-        {
-            return null;
-        }
-
-        @Override
-        public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction)
-        {
-            return null;
-        }
-
-        @Override
-        public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction)
-        {
-            return null;
-        }
-
-        @Override
-        public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction)
-        {
-            return null;
-        }
-
-        @Override
-        public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction)
-        {
-            return null;
-        }
-    }
-
-    public static class JdbcSimpleMap
-            implements SimpleMap<byte[], byte[]>
-    {
-        private final Supplier<Connection> connectionSupplier;
-        private final String quote;
-        private final String catalog;
-        private final String schema;
-        private final String table;
-        private final String keyColumn;
-        private final String valueColumn;
-
-        private final String dst;
-        private final @Language("SQL") String putStmt;
-        private final @Language("SQL") String getStmt;
-        private final @Language("SQL") String deleteStmt;
-
-        public JdbcSimpleMap(Supplier<Connection> connectionSupplier, String quote, String catalog, String schema, String table, String keyColumn, String valueColumn)
-        {
-            this.connectionSupplier = connectionSupplier;
-            this.quote = quote;
-            this.catalog = catalog;
-            this.schema = schema;
-            this.table = table;
-            this.keyColumn = keyColumn;
-            this.valueColumn = valueColumn;
-
-            StringBuilder dst = new StringBuilder();
-            if (!isNullOrEmpty(catalog)) {
-                dst.append(quote(catalog)).append('.');
-            }
-            if (!isNullOrEmpty(schema)) {
-                dst.append(quote(schema)).append('.');
-            }
-            dst.append(quote(table));
-            this.dst = dst.toString();
-
-            // putStmt = "merge into " + this.dst + " (" + quote(keyColumn) + ", " + quote(valueColumn) + ") values (?. ?)";
-            // putStmt = "merge into " + this.dst + " values (?. ?)";
-            putStmt = "merge into " + this.dst + " (" + quote(keyColumn) + ", " + quote(valueColumn) + ") key (" + quote(keyColumn) + ") values (?, ?)";
-            getStmt = "select " + quote(valueColumn) + " from " + this.dst + " where " + quote(keyColumn) + " = ?";
-            deleteStmt = "delete from " + this.dst + " where " + quote(keyColumn) + " = ?";
-        }
-
-        private String quote(String name)
-        {
-            name = name.replace(quote, quote + quote);
-            return quote + name + quote;
-        }
-
-        public void createTable()
-        {
-            @Language("SQL") String sql = "create table " + dst + " (" + quote(keyColumn) + " binary primary key, " + quote(valueColumn) + " binary)";
-
-            try {
-                try (Connection conn = connectionSupplier.get();
-                        Statement stmt = conn.createStatement()) {
-                    stmt.execute(sql);
-                    conn.commit();
-                }
-            }
-            catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public byte[] get(byte[] key)
-        {
-            try {
-                try (Connection conn = connectionSupplier.get();
-                        PreparedStatement stmt = conn.prepareStatement(getStmt)) {
-                    stmt.setBytes(1, key);
-                    try (ResultSet resultSet = stmt.executeQuery()) {
-                        if (resultSet.next()) {
-                            return resultSet.getBytes(1);
-                        }
-                        else {
-                            return null;
-                        }
-                    }
-                }
-            }
-            catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void put(byte[] key, byte[] value)
-        {
-            try {
-                try (Connection conn = connectionSupplier.get();
-                        PreparedStatement stmt = conn.prepareStatement(putStmt)) {
-                    stmt.setBytes(1, key);
-                    stmt.setBytes(2, value);
-                    stmt.execute();
-                }
-            }
-            catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void remove(byte[] key)
-        {
-            try {
-                try (Connection conn = connectionSupplier.get();
-                        PreparedStatement stmt = conn.prepareStatement(deleteStmt)) {
-                    stmt.setBytes(1, key);
-                    stmt.execute();
-                }
-            }
-            catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 
     @Test
