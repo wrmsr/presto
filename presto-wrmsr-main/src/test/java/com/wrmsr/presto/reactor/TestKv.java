@@ -19,33 +19,34 @@ import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.plugin.jdbc.JdbcOutputTableHandle;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
-import com.facebook.presto.spi.connector.Connector;
-import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.RecordSink;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.connector.Connector;
+import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.facebook.presto.testing.TestingConnectorSession;
 import com.facebook.presto.transaction.LegacyTransactionConnector;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-import com.wrmsr.presto.reactor.tuples.PkTuple;
 import com.wrmsr.presto.util.collect.SimpleMap;
 import org.intellij.lang.annotations.Language;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -56,7 +57,6 @@ import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Maps.fromProperties;
-import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.util.Locale.ENGLISH;
 
@@ -67,7 +67,8 @@ public class TestKv
 
     }
 
-    public static class MyMap<K, V> extends AbstractMap<K, V>
+    public static class MyMap<K, V>
+            extends AbstractMap<K, V>
     {
         @Override
         public Set<Entry<K, V>> entrySet()
@@ -142,7 +143,7 @@ public class TestKv
         }
     }
 
-    public static class JdbcSImpleMap
+    public static class JdbcSimpleMap
             implements SimpleMap<byte[], byte[]>
     {
         private final Supplier<Connection> connectionSupplier;
@@ -158,7 +159,7 @@ public class TestKv
         private final @Language("SQL") String getStmt;
         private final @Language("SQL") String deleteStmt;
 
-        public JdbcSImpleMap(Supplier<Connection> connectionSupplier, String quote, String catalog, String schema, String table, String keyColumn, String valueColumn)
+        public JdbcSimpleMap(Supplier<Connection> connectionSupplier, String quote, String catalog, String schema, String table, String keyColumn, String valueColumn)
         {
             this.connectionSupplier = connectionSupplier;
             this.quote = quote;
@@ -178,7 +179,9 @@ public class TestKv
             dst.append(quote(table));
             this.dst = dst.toString();
 
-            putStmt = "merge into " + this.dst + " (" + quote(keyColumn) + ", " + quote(valueColumn) + ") values (?. ?)";
+            // putStmt = "merge into " + this.dst + " (" + quote(keyColumn) + ", " + quote(valueColumn) + ") values (?. ?)";
+            // putStmt = "merge into " + this.dst + " values (?. ?)";
+            putStmt = "merge into " + this.dst + " (" + quote(keyColumn) + ", " + quote(valueColumn) + ") key (" + quote(keyColumn) + ") values (?, ?)";
             getStmt = "select " + quote(valueColumn) + " from " + this.dst + " where " + quote(keyColumn) + " = ?";
             deleteStmt = "delete from " + this.dst + " where " + quote(keyColumn) + " = ?";
         }
@@ -203,10 +206,8 @@ public class TestKv
             catch (SQLException e) {
                 throw new RuntimeException(e);
             }
-
         }
 
-        /*
         @Override
         public byte[] get(byte[] key)
         {
@@ -217,7 +218,8 @@ public class TestKv
                     try (ResultSet resultSet = stmt.executeQuery()) {
                         if (resultSet.next()) {
                             return resultSet.getBytes(1);
-                        } else {
+                        }
+                        else {
                             return null;
                         }
                     }
@@ -231,33 +233,57 @@ public class TestKv
         @Override
         public void put(byte[] key, byte[] value)
         {
-
+            try {
+                try (Connection conn = connectionSupplier.get();
+                        PreparedStatement stmt = conn.prepareStatement(putStmt)) {
+                    stmt.setBytes(1, key);
+                    stmt.setBytes(2, value);
+                    stmt.execute();
+                }
+            }
+            catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         @Override
         public void remove(byte[] key)
         {
-
+            try {
+                try (Connection conn = connectionSupplier.get();
+                        PreparedStatement stmt = conn.prepareStatement(deleteStmt)) {
+                    stmt.setBytes(1, key);
+                    stmt.execute();
+                }
+            }
+            catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         }
-        */
+    }
 
-        @Override
-        public byte[] get(byte[] key)
-        {
-            return null;
-        }
+    @Test
+    public void testJdbc()
+            throws Throwable
+    {
+        Class.forName("org.h2.Driver");
 
-        @Override
-        public void put(byte[] key, byte[] value)
-        {
-
-        }
-
-        @Override
-        public void remove(byte[] key)
-        {
-
-        }
+        JdbcSimpleMap m = new JdbcSimpleMap(
+                () -> {
+                    try {
+                        return DriverManager.getConnection("jdbc:h2:~/test", "sa", "");
+                    }
+                    catch (SQLException e) {
+                        throw Throwables.propagate(e);
+                    }
+                },
+                "`", null, null, "kv", "k", "v");
+        // m.createTable();
+        System.out.println(m.get(new byte[] {(byte) 1}));
+        m.put(new byte[] {(byte) 1}, new byte[] {(byte) 2});
+        System.out.println(m.get(new byte[] {(byte) 1}));
+        m.remove(new byte[] {(byte) 1});
+        System.out.println(m.get(new byte[] {(byte) 1}));
     }
 
     @Test
