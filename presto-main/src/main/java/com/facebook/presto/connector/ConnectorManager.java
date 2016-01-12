@@ -132,6 +132,7 @@ public class ConnectorManager
         return Collections.unmodifiableMap(connectors);
     }
 
+    @Deprecated
     public void addConnectorFactory(com.facebook.presto.spi.ConnectorFactory connectorFactory)
     {
         addConnectorFactory(new LegacyTransactionConnectorFactory(connectorFactory));
