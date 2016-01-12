@@ -17,6 +17,7 @@ import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorFactory;
 
+import java.io.File;
 import java.util.Map;
 
 public class ViewsConnectorFactory
@@ -37,6 +38,7 @@ public class ViewsConnectorFactory
     @Override
     public Connector create(String connectorId, Map<String, String> config)
     {
-        return null;
+        File directory = new File(config.get("directory"));
+        return new ViewsConnector(new ViewsConnectorMetadata(new DirectoryViewStorage(directory)));
     }
 }

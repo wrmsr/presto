@@ -16,6 +16,7 @@ package com.wrmsr.presto.util;
 import com.google.common.io.CharStreams;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -29,6 +30,15 @@ public class Files
 {
     private Files()
     {
+    }
+
+    public static void writeFile(String path, String content) throws IOException
+    {
+        try (BufferedWriter bw = java.nio.file.Files.newBufferedWriter(
+                FileSystems.getDefault().getPath(path),
+                StandardCharsets.UTF_8)) {
+            bw.write(content);
+        }
     }
 
     public static String readFile(String path) throws IOException

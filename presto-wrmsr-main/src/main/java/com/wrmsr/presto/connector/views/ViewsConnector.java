@@ -22,6 +22,13 @@ import com.facebook.presto.spi.transaction.IsolationLevel;
 public class ViewsConnector
     implements Connector
 {
+    private final ViewsConnectorMetadata metadata;
+
+    public ViewsConnector(ViewsConnectorMetadata metadata)
+    {
+        this.metadata = metadata;
+    }
+
     @Override
     public ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly)
     {
@@ -31,7 +38,7 @@ public class ViewsConnector
     @Override
     public ConnectorMetadata getMetadata(ConnectorTransactionHandle transactionHandle)
     {
-        return new ViewsConnectorMetadata();
+        return metadata;
     }
 
     @Override

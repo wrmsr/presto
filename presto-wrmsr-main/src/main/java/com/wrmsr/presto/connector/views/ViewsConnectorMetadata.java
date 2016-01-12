@@ -23,18 +23,23 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class ViewsConnectorMetadata
     implements ConnectorMetadata
 {
-    private final ViewsProvider viewsProvider;
+    private final ViewStorage viewStorage;
 
-    public ViewsConnectorMetadata(ViewsProvider viewsProvider)
+    public ViewsConnectorMetadata(ViewStorage viewStorage)
     {
-        this.viewsProvider = viewsProvider;
+        this.viewStorage = viewStorage;
     }
 
     @Override
@@ -82,24 +87,46 @@ public class ViewsConnectorMetadata
     @Override
     public void createView(ConnectorSession session, SchemaTableName viewName, String viewData, boolean replace)
     {
-
+        checkArgument(viewName.getSchemaName().equals("views"));
+        viewStorage.putView(viewName.getTableName(), viewData);
     }
 
     @Override
     public void dropView(ConnectorSession session, SchemaTableName viewName)
     {
-
+        checkArgument(viewName.getSchemaName().equals("views"));
+        viewStorage.dropView(viewName.getTableName());
     }
 
     @Override
     public List<SchemaTableName> listViews(ConnectorSession session, String schemaNameOrNull)
     {
-        return null;
+        if (schemaNameOrNull != null) {
+            checkArgument(schemaNameOrNull.equals("views"));
+        }
+        return viewStorage.getViewNames().stream().map(n -> new SchemaTableName("views", n)).collect(toImmutableList());
     }
 
     @Override
     public Map<SchemaTableName, ConnectorViewDefinition> getViews(ConnectorSession session, SchemaTablePrefix prefix)
     {
-        return null;
+        checkArgument(prefix.getSchemaName().equals("views"));
+        ImmutableMap.Builder<SchemaTableName, ConnectorViewDefinition> views = ImmutableMap.builder();
+        List<SchemaTableName> tableNames;
+        if (prefix.getTableName() != null) {
+            tableNames = ImmutableList.of(new SchemaTableName(prefix.getSchemaName(), prefix.getTableName()));
+        }
+        else {
+            tableNames = listViews(session, prefix.getSchemaName());
+        }
+
+        for (SchemaTableName schemaTableName : tableNames) {
+            views.put(schemaTableName, new ConnectorViewDefinition(
+                        schemaTableName,
+                        Optional.empty(),
+                        viewStorage.getView(schemaTableName.getTableName())));
+        }
+
+        return views.build();
     }
 }

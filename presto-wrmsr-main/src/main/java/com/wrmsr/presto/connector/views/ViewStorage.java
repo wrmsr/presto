@@ -13,11 +13,21 @@
  */
 package com.wrmsr.presto.connector.views;
 
-import java.util.Set;
+import java.util.List;
 
-public interface ViewsProvider
+public interface ViewStorage
 {
-    Set<String> getViewNames();
+    List<String> getViewNames();
 
     String getView(String name);
+
+    default void putView(String name, String content)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    default void dropView(String name)
+    {
+        throw new UnsupportedOperationException();
+    }
 }
