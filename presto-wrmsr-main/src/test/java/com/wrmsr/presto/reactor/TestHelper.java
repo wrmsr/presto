@@ -39,6 +39,7 @@ import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.TestingConnectorSession;
 import com.facebook.presto.tpch.TpchConnectorFactory;
+import com.facebook.presto.transaction.LegacyConnectorMetadata;
 import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -106,7 +107,7 @@ public class TestHelper
         Connector connector =
                 new LegacyTransactionConnector("test", connectorFactory.create("test", TestingH2JdbcModule.createProperties(db)));
         ConnectorMetadata metadata = connector.getMetadata(connector.beginTransaction(IsolationLevel.READ_UNCOMMITTED, false));
-        JdbcMetadata jdbcMetadata = (JdbcMetadata) metadata;
+        JdbcMetadata jdbcMetadata = (JdbcMetadata) ((LegacyConnectorMetadata) metadata).getMetadata();
         BaseJdbcClient jdbcClient = (BaseJdbcClient) jdbcMetadata.getJdbcClient();
         try {
             try (Connection connection = jdbcClient.getConnection()) {
@@ -147,7 +148,7 @@ public class TestHelper
             statement = sqlParser.createStatement(sql);
             lqr = createLocalQueryRunner();
 
-            session = lqr.getDefaultSession();
+            session = lqr.getDefaultSession().withTransactionId(lqr.getTransactionManager().beginTransaction(true));
 
             idAllocator = new PlanNodeIdAllocator();
 

@@ -57,6 +57,11 @@ public class LegacyConnectorMetadata
         this.indexResolver = requireNonNull(indexResolver, "indexResolver is null");
     }
 
+    public com.facebook.presto.spi.ConnectorMetadata getMetadata()
+    {
+        return metadata;
+    }
+
     @Override
     public List<String> listSchemaNames(ConnectorSession session)
     {
