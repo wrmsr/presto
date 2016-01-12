@@ -20,11 +20,14 @@ import com.facebook.presto.spi.connector.ConnectorSplitManager;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.transaction.IsolationLevel;
 
+import javax.inject.Inject;
+
 public class ViewsConnector
     implements Connector
 {
     private final ViewsConnectorMetadata metadata;
 
+    @Inject
     public ViewsConnector(ViewsConnectorMetadata metadata)
     {
         this.metadata = metadata;

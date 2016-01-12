@@ -14,13 +14,20 @@
 package com.wrmsr.presto.connector.views;
 
 import com.facebook.presto.spi.ConnectorHandleResolver;
+import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorFactory;
+import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
+import com.google.inject.Injector;
+import io.airlift.bootstrap.Bootstrap;
 
 import javax.inject.Inject;
 
 import java.io.File;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 public class ViewsConnectorFactory
         implements ConnectorFactory
@@ -48,7 +55,25 @@ public class ViewsConnectorFactory
     @Override
     public Connector create(String connectorId, Map<String, String> config)
     {
-        File directory = new File(config.get("directory"));
-        return new ViewsConnector(new ViewsConnectorMetadata(new DirectoryViewStorage(directory), viewAnalyzer));
+        requireNonNull(config, "config is null");
+        Class storageCls =
+                !Strings.isNullOrEmpty(config.getOrDefault("directory", null)) ? DirectoryViewStorage.class : null;
+
+        try {
+            Bootstrap app = new Bootstrap(
+                    binder -> binder.bind(ViewAnalyzer.class).toInstance(viewAnalyzer),
+                    new ViewsModule(storageCls));
+
+            Injector injector = app
+                    .strictConfig()
+                    .doNotInitializeLogging()
+                    .setRequiredConfigurationProperties(config)
+                    .initialize();
+
+            return injector.getInstance(ViewsConnector.class);
+        }
+        catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
     }
 }

@@ -21,7 +21,7 @@ public class ViewsConfig
 {
     private File directory;
 
-    public File directory()
+    public File getDirectory()
     {
         return directory;
     }
@@ -30,5 +30,44 @@ public class ViewsConfig
     public void setDirectory(File directory)
     {
         this.directory = directory;
+    }
+
+    private String jdbcConnectionUrl;
+
+    public String getJdbcConnectionUrl()
+    {
+        return jdbcConnectionUrl;
+    }
+
+    @Config("jdbc-connection-url")
+    public void setJdbcConnectionUrl(String jdbcConnectionUrl)
+    {
+        this.jdbcConnectionUrl = jdbcConnectionUrl;
+    }
+
+    private String jdbcTableName;
+
+    public String getJdbcTableName()
+    {
+        return jdbcTableName;
+    }
+
+    @Config("jdbc-table-name")
+    public void setJdbcTableName(String jdbcTableName)
+    {
+        this.jdbcTableName = jdbcTableName;
+    }
+
+    private String schemaName = "views";
+
+    public String getSchemaName()
+    {
+        return schemaName;
+    }
+
+    @Config("schema-name")
+    public void setSchemaName(String schemaName)
+    {
+        this.schemaName = schemaName;
     }
 }

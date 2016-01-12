@@ -35,6 +35,8 @@ import com.facebook.presto.sql.tree.Statement;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import javax.inject.Inject;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,7 @@ public class ViewsConnectorMetadata
     private final ViewStorage viewStorage;
     private final ViewAnalyzer viewAnalyzer;
 
+    @Inject
     public ViewsConnectorMetadata(ViewStorage viewStorage, ViewAnalyzer viewAnalyzer)
     {
         this.viewStorage = viewStorage;
@@ -137,7 +140,8 @@ public class ViewsConnectorMetadata
         for (SchemaTableName schemaTableName : tableNames) {
             String sql = viewStorage.getView(schemaTableName.getTableName());
 
-            viewAnalyzer.getStatementTupleDescriptor(sql, viewAnalyzer.createSession());
+            // com.facebook.presto.metadata ViewDefinition
+            // viewAnalyzer.getStatementTupleDescriptor(sql, viewAnalyzer.createSession());
 
             views.put(schemaTableName, new ConnectorViewDefinition(
                     schemaTableName,
