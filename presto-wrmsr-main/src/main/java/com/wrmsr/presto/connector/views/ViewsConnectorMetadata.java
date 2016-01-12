@@ -18,6 +18,7 @@ import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
+import com.facebook.presto.spi.ConnectorViewDefinition;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
@@ -29,6 +30,13 @@ import java.util.Map;
 public class ViewsConnectorMetadata
     implements ConnectorMetadata
 {
+    private final ViewsProvider viewsProvider;
+
+    public ViewsConnectorMetadata(ViewsProvider viewsProvider)
+    {
+        this.viewsProvider = viewsProvider;
+    }
+
     @Override
     public List<String> listSchemaNames(ConnectorSession session)
     {
@@ -69,5 +77,29 @@ public class ViewsConnectorMetadata
     public Map<SchemaTableName, List<ColumnMetadata>> listTableColumns(ConnectorSession session, SchemaTablePrefix prefix)
     {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void createView(ConnectorSession session, SchemaTableName viewName, String viewData, boolean replace)
+    {
+
+    }
+
+    @Override
+    public void dropView(ConnectorSession session, SchemaTableName viewName)
+    {
+
+    }
+
+    @Override
+    public List<SchemaTableName> listViews(ConnectorSession session, String schemaNameOrNull)
+    {
+        return null;
+    }
+
+    @Override
+    public Map<SchemaTableName, ConnectorViewDefinition> getViews(ConnectorSession session, SchemaTablePrefix prefix)
+    {
+        return null;
     }
 }
