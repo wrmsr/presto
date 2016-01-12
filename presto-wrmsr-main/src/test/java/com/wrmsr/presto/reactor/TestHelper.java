@@ -196,7 +196,7 @@ public class TestHelper
 
             connectorSupport = ImmutableMap.<String, ConnectorSupport>builder()
                    .put("tpch", new TpchConnectorSupport(session.toConnectorSession(), connectors.get("tpch"), "tiny"))
-                   .put("test", new ExtendedJdbcConnectorSupport("test", session.toConnectorSession(), (ExtendedJdbcConnector) connectors.get("test")))
+                   .put("test", new ExtendedJdbcConnectorSupport("test", session.toConnectorSession(), (ExtendedJdbcConnector) ((LegacyTransactionConnector) connectors.get("test")).getConnector()))
                    .build();
         }
     }

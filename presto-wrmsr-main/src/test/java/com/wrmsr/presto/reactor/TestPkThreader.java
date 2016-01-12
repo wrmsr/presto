@@ -70,7 +70,9 @@ import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.predicate.TupleDomain;
+import com.facebook.presto.spi.transaction.IsolationLevel;
 import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeSignature;
@@ -102,6 +104,7 @@ import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.MaterializedResult;
 import com.facebook.presto.testing.MaterializedRow;
+import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.facebook.presto.type.ArrayType;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
@@ -515,9 +518,10 @@ public class TestPkThreader
             ConnectorSupport cs = connectorSupport.get(node.getTable().getConnectorId());
             Connector c = cs.getConnector();
             ConnectorSession csess = session.toConnectorSession();
+            ConnectorTransactionHandle cth = c.beginTransaction(IsolationLevel.READ_UNCOMMITTED, true);
             SchemaTableName stn = ((HandleDetailsConnectorSupport) cs).getSchemaTableName(node.getTable().getConnectorHandle());
-            ConnectorTableHandle th = c.getMetadata(null).getTableHandle(csess, stn);
-            Map<String, ColumnHandle> chs = c.getMetadata(null).getColumnHandles(csess, th);
+            ConnectorTableHandle th = c.getMetadata(cth).getTableHandle(csess, stn);
+            Map<String, ColumnHandle> chs = c.getMetadata(cth).getColumnHandles(csess, th);
             // PkTableTupleLayout l = cs.getTableTupleLayout(stn);
 
             List<String> pkCols = (((KeyConnectorSupport) cs).getKeys(stn)).stream().filter(k -> k.getType() == KeyConnectorSupport.Key.Type.PRIMARY).map(k -> k.getColumn()).collect(toImmutableList());
@@ -533,7 +537,7 @@ public class TestPkThreader
                 }
                 else {
                     ColumnHandle ch = chs.get(pkCol);
-                    ColumnMetadata cm = c.getMetadata(null).getColumnMetadata(csess, th, ch);
+                    ColumnMetadata cm = c.getMetadata(cth).getColumnMetadata(csess, th, ch);
                     Symbol pkSym = symbolAllocator.newSymbol(pkCol, cm.getType());
 
                     newAssignments.put(pkSym, ch);
@@ -541,6 +545,8 @@ public class TestPkThreader
                     pkSyms.add(pkSym);
                 }
             }
+
+            c.rollback(cth);
 
             TableScanNode newNode = new TableScanNode(
                     node.getId(),
@@ -722,7 +728,10 @@ public class TestPkThreader
             sql.append(");");
 
             String connectorId = "test";
-            JdbcMetadata jdbcMetadata = (JdbcMetadata) pq.connectors.get(connectorId).getMetadata(null);
+
+            Connector c = pq.connectors.get(connectorId);
+            ConnectorTransactionHandle cth = c.beginTransaction(IsolationLevel.READ_UNCOMMITTED, false);
+            JdbcMetadata jdbcMetadata = (JdbcMetadata) ((LegacyTransactionConnector) c).getConnector().getMetadata();
             BaseJdbcClient jdbcClient = (BaseJdbcClient) jdbcMetadata.getJdbcClient();
             try {
                 try (Connection sqlConn = jdbcClient.getConnection()) {
@@ -739,6 +748,7 @@ public class TestPkThreader
             catch (SQLException e) {
                 throw new RuntimeException(e);
             }
+            c.commit(cth);
 
             return new TableHandle(connectorId, jdbcMetadata.getTableHandle(pq.session.toConnectorSession(), new SchemaTableName(schemaName, tableName)));
         };
