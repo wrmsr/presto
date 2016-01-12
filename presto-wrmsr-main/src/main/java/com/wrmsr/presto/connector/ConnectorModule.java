@@ -25,6 +25,7 @@ import com.wrmsr.presto.connector.jdbc.sqlite.SqliteConnectorFactory;
 import com.wrmsr.presto.connector.jdbc.temp.TempConnectorFactory;
 import com.wrmsr.presto.connector.partitioner.PartitionerConnectorFactory;
 import com.wrmsr.presto.connector.partitioner.PartitionerMetaconnectorFactory;
+import com.wrmsr.presto.connector.views.ViewsConnectorFactory;
 
 public class ConnectorModule
     implements Module
@@ -33,6 +34,10 @@ public class ConnectorModule
     public void configure(Binder binder)
     {
         Multibinder<ConnectorFactory> connectorFactoryBinder = Multibinder.newSetBinder(binder, ConnectorFactory.class);
+
+        binder.bind(ViewsConnectorFactory.class).asEagerSingleton();
+        connectorFactoryBinder.addBinding().to(ViewsConnectorFactory.class);
+
         Multibinder<com.facebook.presto.spi.ConnectorFactory> legacyConnectorFactoryBinder = Multibinder.newSetBinder(binder, com.facebook.presto.spi.ConnectorFactory.class);
 
         binder.bind(H2ConnectorFactory.class).asEagerSingleton();
