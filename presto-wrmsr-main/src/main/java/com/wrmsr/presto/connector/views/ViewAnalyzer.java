@@ -14,21 +14,34 @@
 package com.wrmsr.presto.connector.views;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.execution.QueryIdGenerator;
 import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.security.AccessControl;
+import com.facebook.presto.spi.PrestoException;
+import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
 import com.facebook.presto.sql.analyzer.QueryExplainer;
+import com.facebook.presto.sql.analyzer.RelationType;
+import com.facebook.presto.sql.analyzer.SemanticErrorCode;
+import com.facebook.presto.sql.analyzer.SemanticException;
+import com.facebook.presto.sql.parser.ParsingException;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.sql.tree.Statement;
 import com.google.common.collect.ImmutableMap;
+import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
 
 import javax.inject.Inject;
 
 import java.util.List;
 import java.util.Optional;
+
+import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
+import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
+import static java.util.Locale.ENGLISH;
 
 public class ViewAnalyzer
 {
@@ -37,6 +50,8 @@ public class ViewAnalyzer
     private final FeaturesConfig featuresConfig;
     private final Metadata metadata;
     private final AccessControl accessControl;
+    private final SessionPropertyManager sessionPropertyManager;
+    private final QueryIdGenerator queryIdGenerator;
 
     @Inject
     public ViewAnalyzer(
@@ -44,13 +59,17 @@ public class ViewAnalyzer
             List<PlanOptimizer> planOptimizers,
             FeaturesConfig featuresConfig,
             Metadata metadata,
-            AccessControl accessControl)
+            AccessControl accessControl,
+            SessionPropertyManager sessionPropertyManager,
+            QueryIdGenerator queryIdGenerator)
     {
         this.sqlParser = sqlParser;
         this.planOptimizers = planOptimizers;
         this.featuresConfig = featuresConfig;
         this.metadata = metadata;
         this.accessControl = accessControl;
+        this.sessionPropertyManager = sessionPropertyManager;
+        this.queryIdGenerator = queryIdGenerator;
     }
 
     public Analysis analyzeStatement(Statement statement, Session session)
@@ -58,5 +77,46 @@ public class ViewAnalyzer
         QueryExplainer explainer = new QueryExplainer(planOptimizers, metadata, accessControl, sqlParser, ImmutableMap.of(), featuresConfig.isExperimentalSyntaxEnabled());
         Analyzer analyzer = new Analyzer(session, metadata, sqlParser, accessControl, Optional.of(explainer), featuresConfig.isExperimentalSyntaxEnabled());
         return analyzer.analyze(statement);
+    }
+
+    public Session createSession()
+    {
+        return Session.builder(new SessionPropertyManager())
+                .setQueryId(queryIdGenerator.createNextQueryId())
+                .setIdentity(new Identity("user", Optional.empty()))
+                .setSource("test")
+                .setCatalog("catalog")
+                .setSchema("schema")
+                .setTimeZoneKey(UTC_KEY)
+                .setLocale(ENGLISH)
+                .setRemoteUserAddress("address")
+                .setUserAgent("agent")
+                .build();
+    }
+
+    public RelationType getStatementTupleDescriptor(String sql, Session session)
+    {
+        // verify round-trip
+        Statement statement;
+        try {
+            statement = sqlParser.createStatement(sql);
+        }
+        catch (ParsingException e) {
+            throw new PrestoException(INTERNAL_ERROR, "Formatted query does not parse: " + sql);
+        }
+
+        Analysis analysis = analyzeStatement(statement, session);
+
+        try {
+            return analysis.getOutputDescriptor();
+        }
+        catch (SemanticException e) {
+            if (e.getCode() == SemanticErrorCode.MISSING_TABLE) {
+                return null;
+            }
+            else {
+                throw e;
+            }
+        }
     }
 }

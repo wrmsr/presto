@@ -13,22 +13,34 @@
  */
 package com.wrmsr.presto.connector.views;
 
+import com.facebook.presto.Session;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.ConnectorViewDefinition;
+import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
+import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.sql.analyzer.Analysis;
+import com.facebook.presto.sql.analyzer.Field;
+import com.facebook.presto.sql.analyzer.RelationType;
+import com.facebook.presto.sql.analyzer.SemanticErrorCode;
+import com.facebook.presto.sql.analyzer.SemanticException;
+import com.facebook.presto.sql.parser.ParsingException;
+import com.facebook.presto.sql.tree.Statement;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
@@ -123,12 +135,14 @@ public class ViewsConnectorMetadata
         }
 
         for (SchemaTableName schemaTableName : tableNames) {
-            String statement = viewStorage.getView(schemaTableName.getTableName());
-//            viewAnalyzer.analyzeStatement(statement, session.);
+            String sql = viewStorage.getView(schemaTableName.getTableName());
+
+            viewAnalyzer.getStatementTupleDescriptor(sql, viewAnalyzer.createSession());
+
             views.put(schemaTableName, new ConnectorViewDefinition(
-                        schemaTableName,
-                        Optional.empty(),
-                        statement));
+                    schemaTableName,
+                    Optional.empty(),
+                    sql));
         }
 
         return views.build();
