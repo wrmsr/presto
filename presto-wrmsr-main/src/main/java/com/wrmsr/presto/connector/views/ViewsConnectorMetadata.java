@@ -36,10 +36,12 @@ public class ViewsConnectorMetadata
     implements ConnectorMetadata
 {
     private final ViewStorage viewStorage;
+    private final ViewAnalyzer viewAnalyzer;
 
-    public ViewsConnectorMetadata(ViewStorage viewStorage)
+    public ViewsConnectorMetadata(ViewStorage viewStorage, ViewAnalyzer viewAnalyzer)
     {
         this.viewStorage = viewStorage;
+        this.viewAnalyzer = viewAnalyzer;
     }
 
     @Override
@@ -121,10 +123,12 @@ public class ViewsConnectorMetadata
         }
 
         for (SchemaTableName schemaTableName : tableNames) {
+            String statement = viewStorage.getView(schemaTableName.getTableName());
+//            viewAnalyzer.analyzeStatement(statement, session.);
             views.put(schemaTableName, new ConnectorViewDefinition(
                         schemaTableName,
                         Optional.empty(),
-                        viewStorage.getView(schemaTableName.getTableName())));
+                        statement));
         }
 
         return views.build();

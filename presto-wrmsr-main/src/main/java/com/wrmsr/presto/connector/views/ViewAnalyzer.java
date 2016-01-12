@@ -1,0 +1,62 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.wrmsr.presto.connector.views;
+
+import com.facebook.presto.Session;
+import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.security.AccessControl;
+import com.facebook.presto.sql.analyzer.Analysis;
+import com.facebook.presto.sql.analyzer.Analyzer;
+import com.facebook.presto.sql.analyzer.FeaturesConfig;
+import com.facebook.presto.sql.analyzer.QueryExplainer;
+import com.facebook.presto.sql.parser.SqlParser;
+import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
+import com.facebook.presto.sql.tree.Statement;
+import com.google.common.collect.ImmutableMap;
+
+import javax.inject.Inject;
+
+import java.util.List;
+import java.util.Optional;
+
+public class ViewAnalyzer
+{
+    private final SqlParser sqlParser;
+    private final List<PlanOptimizer> planOptimizers;
+    private final FeaturesConfig featuresConfig;
+    private final Metadata metadata;
+    private final AccessControl accessControl;
+
+    @Inject
+    public ViewAnalyzer(
+            SqlParser sqlParser,
+            List<PlanOptimizer> planOptimizers,
+            FeaturesConfig featuresConfig,
+            Metadata metadata,
+            AccessControl accessControl)
+    {
+        this.sqlParser = sqlParser;
+        this.planOptimizers = planOptimizers;
+        this.featuresConfig = featuresConfig;
+        this.metadata = metadata;
+        this.accessControl = accessControl;
+    }
+
+    public Analysis analyzeStatement(Statement statement, Session session)
+    {
+        QueryExplainer explainer = new QueryExplainer(planOptimizers, metadata, accessControl, sqlParser, ImmutableMap.of(), featuresConfig.isExperimentalSyntaxEnabled());
+        Analyzer analyzer = new Analyzer(session, metadata, sqlParser, accessControl, Optional.of(explainer), featuresConfig.isExperimentalSyntaxEnabled());
+        return analyzer.analyze(statement);
+    }
+}

@@ -17,12 +17,22 @@ import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorFactory;
 
+import javax.inject.Inject;
+
 import java.io.File;
 import java.util.Map;
 
 public class ViewsConnectorFactory
-    implements ConnectorFactory
+        implements ConnectorFactory
 {
+    private final ViewAnalyzer viewAnalyzer;
+
+    @Inject
+    public ViewsConnectorFactory(ViewAnalyzer viewAnalyzer)
+    {
+        this.viewAnalyzer = viewAnalyzer;
+    }
+
     @Override
     public String getName()
     {
@@ -39,6 +49,6 @@ public class ViewsConnectorFactory
     public Connector create(String connectorId, Map<String, String> config)
     {
         File directory = new File(config.get("directory"));
-        return new ViewsConnector(new ViewsConnectorMetadata(new DirectoryViewStorage(directory)));
+        return new ViewsConnector(new ViewsConnectorMetadata(new DirectoryViewStorage(directory), viewAnalyzer));
     }
 }
