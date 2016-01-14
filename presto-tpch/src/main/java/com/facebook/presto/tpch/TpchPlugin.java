@@ -16,8 +16,10 @@ package com.facebook.presto.tpch;
 import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
+import com.facebook.presto.tpch.testing.SampledTpchConnectorFactory;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
+import com.wrmsr.presto.tpch.TpchConnectorSupport;
 
 import javax.inject.Inject;
 
@@ -44,7 +46,9 @@ public class TpchPlugin
             return ImmutableList.of(type.cast(new TpchConnectorFactory(nodeManager)));
         }
         else if (type == ConnectorSupportFactory.class) {
-            return ImmutableList.of(type.cast(new ConnectorSupportFactory))
+            return ImmutableList.of(
+                    type.cast(new ConnectorSupportFactory.LegacyDefault(TpchConnectorSupport.class, TpchConnectorFactory.ConnectorImpl.class, TpchConnectorSupport::new)),
+                    type.cast(new ConnectorSupportFactory.LegacyDefault(TpchConnectorSupport.class, SampledTpchConnectorFactory.ConnectorImpl.class, TpchConnectorSupport::new)));
         }
         return ImmutableList.of();
     }

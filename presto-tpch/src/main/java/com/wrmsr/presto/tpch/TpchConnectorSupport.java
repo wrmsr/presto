@@ -14,10 +14,10 @@
 package com.wrmsr.presto.tpch;
 
 import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.tpch.TpchColumnHandle;
 import com.facebook.presto.tpch.TpchTableHandle;
@@ -39,7 +39,6 @@ public class TpchConnectorSupport
         implements HandleDetailsConnectorSupport, KeyConnectorSupport
 {
     private final ConnectorSession session;
-    private final Connector connector;
 
     private final String defaultSchema;
 
@@ -57,11 +56,25 @@ public class TpchConnectorSupport
             .put("orders", ImmutableList.of("orderkey"))
             .build();
 
-    public TpchConnectorSupport(ConnectorSession session, Connector connector, String defaultSchema)
+    public TpchConnectorSupport(ConnectorSession session, Connector connector)
+    {
+        this(session);
+    }
+
+    public TpchConnectorSupport(ConnectorSession session, Connector connector, com.facebook.presto.spi.Connector legacyConnector)
+    {
+        this(session);
+    }
+
+    public TpchConnectorSupport(ConnectorSession session)
+    {
+        this(session, "tiny");
+    }
+
+    public TpchConnectorSupport(ConnectorSession session, String defaultSchema)
     {
         checkArgument(schemas.contains(defaultSchema));
         this.session = session;
-        this.connector = connector;
         this.defaultSchema = defaultSchema;
     }
 
@@ -82,12 +95,6 @@ public class TpchConnectorSupport
     public Type getColumnType(ColumnHandle columnHandle)
     {
         return ((TpchColumnHandle) columnHandle).getType();
-    }
-
-    @Override
-    public Connector getConnector()
-    {
-        return connector;
     }
 
     @Override

@@ -54,13 +54,17 @@ public class SampledTpchConnectorFactory
         return new TpchHandleResolver();
     }
 
+    public static abstract class ConnectorImpl implements Connector
+    {
+    }
+
     @Override
     public Connector create(final String connectorId, Map<String, String> properties)
     {
         requireNonNull(properties, "properties is null");
         final int splitsPerNode = getSplitsPerNode(properties);
 
-        return new Connector() {
+        return new ConnectorImpl() {
             @Override
             public ConnectorMetadata getMetadata()
             {

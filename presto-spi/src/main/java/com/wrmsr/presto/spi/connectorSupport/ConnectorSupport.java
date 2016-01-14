@@ -17,5 +17,8 @@ import com.facebook.presto.spi.connector.Connector;
 
 public interface ConnectorSupport
 {
-    Connector getConnector();
+    default Connector getConnector()
+    {
+        throw new UnsupportedOperationException();
+    }
 }
