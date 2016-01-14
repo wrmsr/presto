@@ -23,13 +23,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryProvider;
-import com.google.inject.multibindings.MapBinder;
-import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.function.FunctionRegistration;
+import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 
 import java.util.List;
+
+import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class ScriptingModule
         implements Module
@@ -46,14 +47,13 @@ public class ScriptingModule
     {
         binder.bind(ScriptingConfig.class).toInstance(config.getMergedNode(ScriptingConfig.class));
 
-        Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
-        MapBinder<String, ScriptEngineProvider> scriptEngineProviderBinder = MapBinder.newMapBinder(binder, String.class, ScriptEngineProvider.class);
-
+        newSetBinder(binder, ScriptEngineProvider.class);
         for (String name : ImmutableList.of("nashorn")) {
-            scriptEngineProviderBinder.addBinding(name).toInstance(new BuiltinScriptEngineProvider(name));
+            newSetBinder(binder, ScriptEngineProvider.class).addBinding().toInstance(new BuiltinScriptEngineProvider(name));
         }
 
         binder.bind(ScriptingManager.class).asEagerSingleton();
+        newSetBinder(binder, ServerEvent.Listener.class).addBinding().to(ScriptingManager.class);
 
         List<Type> SUPPORTED_TYPES = ImmutableList.of(
                 BooleanType.BOOLEAN,
@@ -75,6 +75,6 @@ public class ScriptingModule
         binder.bind(ScriptFunction.Factory.class).toProvider(FactoryProvider.newFactory(ScriptFunction.Factory.class, ScriptFunction.class));
         binder.bind(ScriptFunction.Registration.Configs.class).toInstance(new ScriptFunction.Registration.Configs(scriptFunctionConfigs.build()));
         binder.bind(ScriptFunction.Registration.class).asEagerSingleton();
-        functionRegistrationBinder.addBinding().to(ScriptFunction.Registration.class);
+        newSetBinder(binder, FunctionRegistration.class).addBinding().to(ScriptFunction.Registration.class);
     }
 }

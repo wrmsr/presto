@@ -45,14 +45,14 @@ public class ExtendedJdbcConnectorSupport
         implements HandleDetailsConnectorSupport, KeyConnectorSupport, EvalConnectorSupport
 {
     private final ConnectorSession session;
-    private final LegacyTransactionConnector wrapperConnector;
+    private final Connector wrapperConnector;
     private final ExtendedJdbcConnector connector;
 
-    public ExtendedJdbcConnectorSupport(ConnectorSession session, LegacyTransactionConnector wrapperConnector)
+    public ExtendedJdbcConnectorSupport(ConnectorSession session, Connector wrapperConnector, com.facebook.presto.spi.Connector connector)
     {
         this.session = session;
         this.wrapperConnector = wrapperConnector;
-        this.connector = (ExtendedJdbcConnector) wrapperConnector.getConnector();;
+        this.connector = (ExtendedJdbcConnector) connector;;
     }
 
     public ExtendedJdbcClient getClient()

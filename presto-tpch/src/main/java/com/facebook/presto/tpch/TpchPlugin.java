@@ -17,6 +17,7 @@ import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
 
 import javax.inject.Inject;
 
@@ -41,6 +42,9 @@ public class TpchPlugin
         if (type == ConnectorFactory.class) {
             requireNonNull(nodeManager, "nodeManager is null");
             return ImmutableList.of(type.cast(new TpchConnectorFactory(nodeManager)));
+        }
+        else if (type == ConnectorSupportFactory.class) {
+            return ImmutableList.of(type.cast(new ConnectorSupportFactory))
         }
         return ImmutableList.of();
     }

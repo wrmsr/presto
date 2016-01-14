@@ -19,7 +19,9 @@ import com.facebook.presto.spi.type.VarcharType;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.testng.annotations.Test;
 
 import java.util.List;
@@ -62,7 +64,7 @@ public class TestScriptFunction
                 new TpchConnectorFactory(localQueryRunner.getNodeManager(), 1),
                 ImmutableMap.<String, String>of());
 
-        ScriptingManager scriptingManager = new ScriptingManager(null, null);
+        ScriptingManager scriptingManager = new ScriptingManager(null, ImmutableSet.of(), ImmutableList.of());
         List<? extends SqlFunction> functions = IntStream.range(1, 3).boxed().map(i -> new ScriptFunction(scriptingManager, new ScriptFunction.Config("script", VarcharType.VARCHAR, i, ScriptFunction.ExecutionType.INVOKE))).collect(toImmutableList());
         localQueryRunner.getMetadata().getFunctionRegistry().addFunctions(functions);
         return localQueryRunner;

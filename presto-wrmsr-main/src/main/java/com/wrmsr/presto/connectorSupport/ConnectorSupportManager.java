@@ -16,6 +16,7 @@ package com.wrmsr.presto.connectorSupport;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.connector.Connector;
+import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.spi.connectorSupport.ConnectorSupport;
 import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
@@ -75,6 +76,18 @@ public class ConnectorSupportManager
                 return cs;
             }
         }
+
+        if (connector instanceof LegacyTransactionConnector) {
+            LegacyTransactionConnector wrapperConnector = (LegacyTransactionConnector) connector;
+            com.facebook.presto.spi.Connector legacyConnector = wrapperConnector.getConnector();
+            for (ConnectorSupportFactory f : connectorSupportFactories) {
+                Optional<T> cs = f.getLegacyConnectorSupport(cls, connectorSession, connector, legacyConnector);
+                if (cs.isPresent()) {
+                    return cs;
+                }
+            }
+        }
+
         return Optional.empty();
     }
 //
@@ -91,4 +104,4 @@ public class ConnectorSupportManager
 //                chs.stream().map(t::getColumnType).collect(toImmutableList()),
 //                pk);
 //    }
-}
+    }

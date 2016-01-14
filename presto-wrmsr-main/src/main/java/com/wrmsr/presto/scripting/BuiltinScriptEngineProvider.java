@@ -13,10 +13,13 @@
  */
 package com.wrmsr.presto.scripting;
 
+import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+
+import java.util.Set;
 
 public class BuiltinScriptEngineProvider
         implements ScriptEngineProvider
@@ -29,9 +32,9 @@ public class BuiltinScriptEngineProvider
     }
 
     @Override
-    public String getName()
+    public Set<String> getNames()
     {
-        return name;
+        return ImmutableSet.of(name);
     }
 
     @Override

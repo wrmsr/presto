@@ -15,12 +15,14 @@ package com.wrmsr.presto.jython;
 
 import com.facebook.presto.spi.Plugin;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 import org.python.jsr223.PyScriptEngineFactory;
 
 import javax.script.ScriptEngine;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class JythonPlugin
         implements Plugin
@@ -39,9 +41,9 @@ public class JythonPlugin
                             new ScriptEngineProvider()
                             {
                                 @Override
-                                public String getName()
+                                public Set<String> getNames()
                                 {
-                                    return "jython";
+                                    return ImmutableSet.of("jython");
                                 }
 
                                 @Override

@@ -13,30 +13,63 @@
  */
 package com.wrmsr.presto.scripting;
 
+import com.facebook.presto.spi.Plugin;
 import com.google.common.collect.MapMaker;
+import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
+import io.airlift.log.Logger;
 import org.apache.commons.lang.NotImplementedException;
 
 import javax.inject.Inject;
 import javax.script.ScriptEngine;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ScriptingManager
+    implements ServerEvent.Listener
 {
+    private static final Logger log = Logger.get(ScriptingManager.class);
+
     private final ScriptingConfig config;
 
-    private volatile Map<String, ScriptEngineProvider> scriptEngineProviders = new MapMaker().makeMap();
-    private volatile Map<String, Scripting> scriptings = new MapMaker().makeMap();
+    private final Map<String, ScriptEngineProvider> scriptEngineProviders = new MapMaker().makeMap();
+    private final Map<String, Scripting> scriptings = new MapMaker().makeMap();
 
     // FIXME do like ConnectorSupportManager
     @Inject
     public ScriptingManager(
             ScriptingConfig config,
-            Map<String, ScriptEngineProvider> scriptEngineProviders)
+            Set<ScriptEngineProvider> scriptEngineProviders,
+            List<Plugin> mainPlugins)
     {
         this.config = config;
-        this.scriptEngineProviders.putAll(scriptEngineProviders);
+        scriptEngineProviders.forEach(this::register);
+        mainPlugins.forEach(this::register);
+    }
+
+    @Override
+    public synchronized void onServerEvent(ServerEvent event)
+    {
+        if (event instanceof ServerEvent.PluginLoaded) {
+            register(((ServerEvent.PluginLoaded) event).getPlugin());
+        }
+    }
+
+    public synchronized void register(Plugin plugin)
+    {
+        for (ScriptEngineProvider provider : plugin.getServices(ScriptEngineProvider.class)) {
+            register(provider);
+        }
+    }
+
+    public synchronized void register(ScriptEngineProvider provider)
+    {
+        for (String name : provider.getNames()) {
+            log.info("Registering script engine provider %s -> %s", name, provider);
+            scriptEngineProviders.put(name, provider);
+        }
     }
 
     public void addConfigScriptings()
@@ -50,11 +83,6 @@ public class ScriptingManager
     {
         ScriptEngine e = scriptEngineProviders.get(entry.getEngine()).getScriptEngine();
         scriptings.put(name, new Scripting(name, e));
-    }
-
-    public void addScriptEngineProvider(ScriptEngineProvider p)
-    {
-        scriptEngineProviders.put(p.getName(), p);
     }
 
     public Scripting getScripting(String name)

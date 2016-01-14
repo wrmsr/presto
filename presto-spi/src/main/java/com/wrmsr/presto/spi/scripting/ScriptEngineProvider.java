@@ -15,9 +15,11 @@ package com.wrmsr.presto.spi.scripting;
 
 import javax.script.ScriptEngine;
 
+import java.util.Set;
+
 public interface ScriptEngineProvider
 {
-    String getName();
+    Set<String> getNames();
 
     ScriptEngine getScriptEngine();
 }

@@ -60,6 +60,7 @@ import com.wrmsr.presto.connector.MetaconnectorManager;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.scripting.ScriptingManager;
 import com.wrmsr.presto.server.ModuleProcessor;
+import com.wrmsr.presto.server.ServerEventManager;
 import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 import com.wrmsr.presto.util.GuiceUtils;
@@ -127,6 +128,7 @@ public class MainPlugin
     private QueryManager queryManager;
     private SessionPropertyManager sessionPropertyManager;
     private QueryIdGenerator queryIdGenerator;
+    private ServerEventManager serverEventManager;
 
     public MainPlugin()
     {
@@ -223,6 +225,12 @@ public class MainPlugin
         this.queryIdGenerator = queryIdGenerator;
     }
 
+    @Inject
+    public void setServerEventManager(ServerEventManager serverEventManager)
+    {
+        this.serverEventManager = serverEventManager;
+    }
+
     private Module buildInjectedModule()
     {
         return new Module()
@@ -246,6 +254,7 @@ public class MainPlugin
                 binder.bind(QueryManager.class).toInstance(checkNotNull(queryManager));
                 binder.bind(SessionPropertyManager.class).toInstance(checkNotNull(sessionPropertyManager));
                 binder.bind(QueryIdGenerator.class).toInstance(checkNotNull(queryIdGenerator));
+                binder.bind(ServerEventManager.class).toInstance(serverEventManager);
             }
         };
     }
@@ -290,6 +299,11 @@ public class MainPlugin
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.MainPluginsLoaded) {
+            Set<ServerEvent.Listener> sels = getInjector().getInstance(Key.get(new TypeLiteral<Set<ServerEvent.Listener>>() {}));
+            for (ServerEvent.Listener sel : sels) {
+                serverEventManager.addListener(sel);
+            }
+
             for (String plugin : config.getMergedNode(PluginsConfig.class)) {
                 try {
                     pluginManager.loadPlugin(plugin);
@@ -334,12 +348,8 @@ public class MainPlugin
                 mm.addMetaconnector(e.getKey(), e.getValue().getEntries());
             }
 
+            // FIXME ugh
             ScriptingManager scriptingManager = getInjector().getInstance(ScriptingManager.class);
-            for (Plugin plugin : pluginManager.getLoadedPlugins()) {
-                for (ScriptEngineProvider scriptEngineProvider : plugin.getServices(ScriptEngineProvider.class)) {
-                    scriptingManager.addScriptEngineProvider(scriptEngineProvider);
-                }
-            }
             scriptingManager.addConfigScriptings();
         }
 

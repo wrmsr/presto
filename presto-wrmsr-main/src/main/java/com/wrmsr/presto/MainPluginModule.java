@@ -29,11 +29,14 @@ import com.wrmsr.presto.connectorSupport.ConnectorSupportModule;
 import com.wrmsr.presto.function.FunctionModule;
 import com.wrmsr.presto.scripting.ScriptingModule;
 import com.wrmsr.presto.serialization.SerializationModule;
+import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.struct.StructModule;
 import com.wrmsr.presto.type.TypeModule;
 
 import java.util.List;
 import java.util.Map;
+
+import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class MainPluginModule
         implements Module
@@ -58,6 +61,8 @@ public class MainPluginModule
         binder.install(new SerializationModule());
         binder.install(new StructModule());
         binder.install(new TypeModule());
+
+        newSetBinder(binder, ServerEvent.Listener.class);
     }
 
     @Provides
