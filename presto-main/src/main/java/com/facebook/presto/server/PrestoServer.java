@@ -32,6 +32,7 @@ import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
 import com.wrmsr.presto.server.PreloadedPlugins;
+import com.wrmsr.presto.server.ServerEventManager;
 import com.wrmsr.presto.spi.ServerEvent;
 import com.google.inject.Scopes;
 import io.airlift.bootstrap.Bootstrap;
@@ -130,19 +131,15 @@ public class PrestoServer
         try {
             Injector injector = app.strictConfig().initialize();
 
-            Iterable<ServerEvent.Listener> listeners = injector.getInstance(Key.get(new TypeLiteral<Set<ServerEvent.Listener>>() {}));
+            ServerEventManager serverEventManager = injector.getInstance(ServerEventManager.class);
 
             injector.getInstance(PluginManager.class).loadPlugins();
 
-            for (ServerEvent.Listener listener : listeners) {
-                listener.onServerEvent(new ServerEvent.MainPluginsLoaded());
-            }
+            serverEventManager.onEvent(new ServerEvent.MainPluginsLoaded());
 
             injector.getInstance(CatalogManager.class).loadCatalogs();
 
-            for (ServerEvent.Listener listener : listeners) {
-                listener.onServerEvent(new ServerEvent.MainConnectorsLoaded());
-            }
+            serverEventManager.onEvent(new ServerEvent.MainConnectorsLoaded());
 
             // TODO: remove this huge hack
             updateDatasources(
@@ -151,9 +148,7 @@ public class PrestoServer
                     injector.getInstance(ServerConfig.class),
                     injector.getInstance(NodeSchedulerConfig.class));
 
-            for (ServerEvent.Listener listener : listeners) {
-                listener.onServerEvent(new ServerEvent.MainDataSourcesLoaded());
-            }
+            serverEventManager.onEvent(new ServerEvent.MainDataSourcesLoaded());
 
             injector.getInstance(AccessControlManager.class).loadSystemAccessControl();
 

@@ -96,7 +96,6 @@ import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.wrmsr.presto.server.PreloadedPluginSet;
 import com.wrmsr.presto.server.ServerEventManager;
-import com.wrmsr.presto.spi.ServerEvent;
 import io.airlift.concurrent.BoundedExecutor;
 import io.airlift.configuration.AbstractConfigurationAwareModule;
 import io.airlift.discovery.client.ServiceDescriptor;
