@@ -48,10 +48,10 @@ public class LegacyConnectorSupportFactory
         if (!(connector instanceof LegacyTransactionConnector)) {
             return Optional.empty();
         }
-        LegacyTransactionConnector wrapperConnectr = (LegacyTransactionConnector) connector;
-        com.facebook.presto.spi.Connector legacyConnector = wrapperConnectr.getConnector();
-        if (connectorClass.isInstance(legacyConnector) && this.connectorSupportClass.isAssignableFrom(connectorSupportClass)) {
-            return Optional.of((T) connectorSupportConstructor.construct(connectorSession, wrapperConnectr));
+        LegacyTransactionConnector wrapperConnector = (LegacyTransactionConnector) connector;
+        com.facebook.presto.spi.Connector legacyConnector = wrapperConnector.getConnector();
+        if (connectorClass.isInstance(legacyConnector) && connectorSupportClass.isAssignableFrom(this.connectorSupportClass)) {
+            return Optional.of((T) connectorSupportConstructor.construct(connectorSession, wrapperConnector));
         }
         else {
             return Optional.empty();
