@@ -54,6 +54,13 @@ case "`uname`" in
   CYGWIN*) cygwin=true ;;
   MINGW*) mingw=true;;
   Darwin*) darwin=true
+           if [ -z "$JAVA_HOME" ] && [ -x "/usr/libexec/java_home" ]; then
+             #
+             # Apple JDKs
+             #
+             export JAVA_HOME=`/usr/libexec/java_home`
+           fi
+
            #
            # Look for the Apple JDKs first to preserve the existing behaviour, and then look
            # for the new JDKs provided by Oracle.
@@ -78,13 +85,6 @@ case "`uname`" in
              #
              export JAVA_HOME=/Library/Java/JavaVirtualMachines/CurrentJDK/Contents/Home
            fi           
-
-           if [ -z "$JAVA_HOME" ] && [ -x "/usr/libexec/java_home" ]; then
-             #
-             # Apple JDKs
-             #
-             export JAVA_HOME=`/usr/libexec/java_home`
-           fi
            ;;
 esac
 
