@@ -39,6 +39,8 @@ import com.facebook.presto.split.RecordPageSourceProvider;
 import com.facebook.presto.split.SplitManager;
 import com.facebook.presto.transaction.LegacyTransactionConnectorFactory;
 import com.facebook.presto.transaction.TransactionManager;
+import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.spi.ServerEvent;
 import io.airlift.log.Logger;
 
 import javax.annotation.PreDestroy;
@@ -102,6 +104,14 @@ public class ConnectorManager
         this.handleResolver = handleResolver;
         this.nodeManager = nodeManager;
         this.transactionManager = transactionManager;
+    }
+
+    private Set<ServerEvent.Listener> serverEventListeners = ImmutableSet.of();
+
+    @Inject
+    public void setServerEventListeners(Set<ServerEvent.Listener> serverEventListeners)
+    {
+        this.serverEventListeners = serverEventListeners;
     }
 
     @PreDestroy
@@ -189,6 +199,10 @@ public class ConnectorManager
         // Register session and table properties once per catalog
         metadataManager.getSessionPropertyManager().addConnectorSessionProperties(catalogName, connector.getSessionProperties());
         metadataManager.getTablePropertyManager().addTableProperties(catalogName, connector.getTableProperties());
+
+        for (ServerEvent.Listener listener : serverEventListeners) {
+            listener.onServerEvent(new ServerEvent.ConnectorLoaded(catalogName, connectorId, factory, properties));
+        }
     }
 
     private synchronized void addConnectorInternal(ConnectorType type, String catalogName, String connectorId, Connector connector)

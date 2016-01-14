@@ -45,14 +45,14 @@ public class ExtendedJdbcConnectorSupport
         implements HandleDetailsConnectorSupport, KeyConnectorSupport, EvalConnectorSupport
 {
     private final ConnectorSession session;
+    private final LegacyTransactionConnector wrapperConnector;
     private final ExtendedJdbcConnector connector;
-    private final Connector wrappedConnector;
 
-    public ExtendedJdbcConnectorSupport(String connectorId, ConnectorSession session, ExtendedJdbcConnector connector)
+    public ExtendedJdbcConnectorSupport(ConnectorSession session, LegacyTransactionConnector wrapperConnector)
     {
         this.session = session;
-        this.connector = connector;
-        wrappedConnector = new LegacyTransactionConnector(connectorId, connector);
+        this.wrapperConnector = wrapperConnector;
+        this.connector = (ExtendedJdbcConnector) wrapperConnector.getConnector();;
     }
 
     public ExtendedJdbcClient getClient()
@@ -124,6 +124,6 @@ public class ExtendedJdbcConnectorSupport
     @Override
     public Connector getConnector()
     {
-        return wrappedConnector;
+        return wrapperConnector;
     }
 }

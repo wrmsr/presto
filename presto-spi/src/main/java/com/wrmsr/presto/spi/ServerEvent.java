@@ -13,6 +13,11 @@
  */
 package com.wrmsr.presto.spi;
 
+import com.facebook.presto.spi.Plugin;
+import com.facebook.presto.spi.connector.ConnectorFactory;
+
+import java.util.Map;
+
 public abstract class ServerEvent
 {
     public interface Listener
@@ -20,15 +25,66 @@ public abstract class ServerEvent
         void onServerEvent(ServerEvent event);
     }
 
-    public static final class PluginsLoaded extends ServerEvent
+    public static final class MainPluginsLoaded extends ServerEvent
     {
     }
 
-    public static final class ConnectorsLoaded extends ServerEvent
+    public static final class MainConnectorsLoaded extends ServerEvent
     {
     }
 
-    public static final class DataSourcesLoaded extends ServerEvent
+    public static final class MainDataSourcesLoaded extends ServerEvent
     {
+    }
+
+    public static final class PluginLoaded extends ServerEvent
+    {
+        private final Plugin plugin;
+
+        public PluginLoaded(Plugin plugin)
+        {
+            this.plugin = plugin;
+        }
+
+        public Plugin getPlugin()
+        {
+            return plugin;
+        }
+    }
+
+    public static final class ConnectorLoaded extends ServerEvent
+    {
+        private final String catalogName;
+        private final String connectorId;
+        private final ConnectorFactory factory;
+        private final Map<String, String> properties;
+
+        public ConnectorLoaded(String catalogName, String connectorId, ConnectorFactory factory, Map<String, String> properties)
+        {
+            this.catalogName = catalogName;
+            this.connectorId = connectorId;
+            this.factory = factory;
+            this.properties = properties;
+        }
+
+        public String getCatalogName()
+        {
+            return catalogName;
+        }
+
+        public String getConnectorId()
+        {
+            return connectorId;
+        }
+
+        public ConnectorFactory getFactory()
+        {
+            return factory;
+        }
+
+        public Map<String, String> getProperties()
+        {
+            return properties;
+        }
     }
 }

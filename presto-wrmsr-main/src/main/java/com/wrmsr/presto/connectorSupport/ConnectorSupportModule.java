@@ -16,6 +16,7 @@ package com.wrmsr.presto.connectorSupport;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
 
 public class ConnectorSupportModule
@@ -24,8 +25,11 @@ public class ConnectorSupportModule
     @Override
     public void configure(Binder binder)
     {
-        Multibinder.newSetBinder(binder, ConnectorSupportFactory.class);
+        Multibinder<ConnectorSupportFactory> factoryBinder = Multibinder.newSetBinder(binder, ConnectorSupportFactory.class);
 
         binder.bind(ConnectorSupportManager.class).asEagerSingleton();
+
+        factoryBinder.addBinding().toInstance(new LegacyConnectorSupportFactory(
+                ExtendedJdbcConnector.class, ExtendedJdbcConnectorSupport.class, ExtendedJdbcConnectorSupport::new));
     }
 }

@@ -57,7 +57,7 @@ public class HadoopPlugin
     @Override
     public void onServerEvent(ServerEvent event)
     {
-        if (event instanceof ServerEvent.ConnectorsLoaded) {
+        if (event instanceof ServerEvent.MainConnectorsLoaded) { // on self load
             HiveConfig hiveConfig = config.getMergedNode(HiveConfig.class);
             for (Map.Entry<String, HiveConfig.Metastore> e : hiveConfig.getMetastores().entrySet()) {
                 HiveConfig.Metastore metastore = e.getValue();

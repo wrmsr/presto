@@ -29,6 +29,7 @@ import com.facebook.presto.type.TypeRegistry;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.inject.Injector;
@@ -101,7 +102,7 @@ public class PluginManager
     private final Map<String, String> optionalConfig;
     private final AtomicBoolean pluginsLoading = new AtomicBoolean();
     private final AtomicBoolean pluginsLoaded = new AtomicBoolean();
-    private final List<ServerEvent.Listener> serverEventListeners = new CopyOnWriteArrayList<>();
+    private final List<ServerEvent.Listener> pluginServerEventListeners = new CopyOnWriteArrayList<>();
     private final CopyOnWriteArrayList<Plugin> loadedPlugins = new CopyOnWriteArrayList<>();
 
     @Inject
@@ -147,6 +148,14 @@ public class PluginManager
         this.preloadedPlugins = requireNonNull(preloadedPlugins);
     }
 
+    private Set<ServerEvent.Listener> serverEventListeners = ImmutableSet.of();
+
+    @Inject
+    public void setServerEventListeners(Set<ServerEvent.Listener> serverEventListeners)
+    {
+        this.serverEventListeners = serverEventListeners;
+    }
+
     public CopyOnWriteArrayList<Plugin> getLoadedPlugins()
     {
         return loadedPlugins;
@@ -155,7 +164,7 @@ public class PluginManager
     @Override
     public void onServerEvent(ServerEvent event)
     {
-        for (ServerEvent.Listener listener : serverEventListeners) {
+        for (ServerEvent.Listener listener : pluginServerEventListeners) {
             listener.onServerEvent(event);
         }
     }
@@ -259,10 +268,14 @@ public class PluginManager
 
         for (ServerEvent.Listener serverEventListener : plugin.getServices(ServerEvent.Listener.class)) {
             log.info("Registering server event listener %s", serverEventListener.getClass().getName());
-            serverEventListeners.add(serverEventListener);
+            pluginServerEventListeners.add(serverEventListener);
         }
 
         loadedPlugins.add(plugin);
+
+        for (ServerEvent.Listener listener : serverEventListeners) {
+            listener.onServerEvent(new ServerEvent.PluginLoaded(plugin));
+        }
     }
 
     public static URLClassLoader buildClassLoader(ArtifactResolver resolver, String plugin)

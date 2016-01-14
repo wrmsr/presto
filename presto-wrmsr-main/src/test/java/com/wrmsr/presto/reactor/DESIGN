@@ -1,0 +1,17 @@
+RxJava?
+ probably
+ + worked well in carbide
+ + given nature of kafka sources will probably benefit from its ability to handle buffer-for-x-milliseconds-or-y-requests-or-z-bytes
+ + figured out error handling
+ - complex
+ - a new vocabulary
+ - trendy
+
+Kafka:
+  streamed (kafka.javaapi.consumer.ConsumerConnector::createMessageStreamsByFilter)
+   vs
+  polled (kafka.javaapi.consumer.SimpleConsumer < com.facebook.presto.kafka.KafkaSimpleConsumerManager)
+ prob polled at first, simpler error handling
+ * another point for rx, handle this bullshit
+
+pk's depend on connector id + topic

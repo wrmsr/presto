@@ -135,13 +135,13 @@ public class PrestoServer
             injector.getInstance(PluginManager.class).loadPlugins();
 
             for (ServerEvent.Listener listener : listeners) {
-                listener.onServerEvent(new ServerEvent.PluginsLoaded());
+                listener.onServerEvent(new ServerEvent.MainPluginsLoaded());
             }
 
             injector.getInstance(CatalogManager.class).loadCatalogs();
 
             for (ServerEvent.Listener listener : listeners) {
-                listener.onServerEvent(new ServerEvent.ConnectorsLoaded());
+                listener.onServerEvent(new ServerEvent.MainConnectorsLoaded());
             }
 
             // TODO: remove this huge hack
@@ -152,7 +152,7 @@ public class PrestoServer
                     injector.getInstance(NodeSchedulerConfig.class));
 
             for (ServerEvent.Listener listener : listeners) {
-                listener.onServerEvent(new ServerEvent.DataSourcesLoaded());
+                listener.onServerEvent(new ServerEvent.MainDataSourcesLoaded());
             }
 
             injector.getInstance(AccessControlManager.class).loadSystemAccessControl();

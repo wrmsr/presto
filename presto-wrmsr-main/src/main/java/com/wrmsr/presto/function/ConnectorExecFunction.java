@@ -14,11 +14,11 @@
 package com.wrmsr.presto.function;
 
 import com.facebook.presto.connector.ConnectorManager;
-import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcConnector;
-import com.facebook.presto.plugin.jdbc.JdbcMetadata;
-import com.google.common.base.Throwables;
+import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.connector.Connector;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.connectorSupport.ConnectorSupportManager;
+import com.wrmsr.presto.spi.connectorSupport.EvalConnectorSupport;
 import com.wrmsr.presto.util.jdbc.ScriptRunner;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
@@ -27,16 +27,15 @@ import javax.inject.Inject;
 
 import java.io.StringReader;
 import java.lang.invoke.MethodHandle;
-import java.sql.Connection;
-import java.sql.SQLException;
 
 public class ConnectorExecFunction
         extends StringVarargsFunction
 {
     private final ConnectorManager connectorManager;
+    private final ConnectorSupportManager connectorSupportManager;
 
     @Inject
-    public ConnectorExecFunction(ConnectorManager connectorManager)
+    public ConnectorExecFunction(ConnectorManager connectorManager, ConnectorSupportManager connectorSupportManager)
     {
         super(
                 "connector_exec",
@@ -47,38 +46,34 @@ public class ConnectorExecFunction
                 "connector_exec",
                 ImmutableList.of(Context.class, Slice.class));
         this.connectorManager = connectorManager;
+        this.connectorSupportManager = connectorSupportManager;
     }
 
-    protected static class Context
+    private static class Context
     {
-        public final ConnectorManager connectorManager;
+        private final ConnectorManager connectorManager;
+        private final ConnectorSupportManager connectorSupportManager;
 
-        public Context(ConnectorManager connectorManager)
+        public Context(ConnectorManager connectorManager, ConnectorSupportManager connectorSupportManager)
         {
             this.connectorManager = connectorManager;
+            this.connectorSupportManager = connectorSupportManager;
         }
     }
 
     @Override
     protected MethodHandle bindMethodHandle()
     {
-        return super.bindMethodHandle().bindTo(new Context(connectorManager));
+        return super.bindMethodHandle().bindTo(new Context(connectorManager, connectorSupportManager));
     }
 
-    public static Slice connector_exec(Context context, Slice connectorName, Object[] commands)
+    public static Slice connector_exec(ConnectorSession connectorSession, Context context, Slice connectorName, Object[] commands)
     {
-        JdbcConnector connector = (JdbcConnector) context.connectorManager.getConnectors().get(connectorName.toStringUtf8());
-        JdbcMetadata metadata = (JdbcMetadata) connector.getMetadata();
-        BaseJdbcClient client = (BaseJdbcClient) metadata.getJdbcClient();
-        try (Connection connection = client.getConnection()) {
-            for (int i = 0; i < commands.length; ++i) {
-                String sql = ((Slice) commands[i]).toStringUtf8();
-                ScriptRunner scriptRunner = new ScriptRunner(connection);
-                scriptRunner.runScript(new StringReader(sql));
-            }
-        }
-        catch (SQLException e) {
-            throw Throwables.propagate(e);
+        Connector c = context.connectorManager.getConnectors().get(connectorName.toStringUtf8());
+        EvalConnectorSupport ecs = context.connectorSupportManager.getConnectorSupport(EvalConnectorSupport.class, connectorSession, c).get();
+        for (int i = 0; i < commands.length; ++i) {
+            String cmd = ((Slice) commands[i]).toStringUtf8();
+            ecs.exec(cmd);
         }
         return Slices.EMPTY_SLICE;
     }

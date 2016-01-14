@@ -289,7 +289,7 @@ public class MainPlugin
     @Override
     public void onServerEvent(ServerEvent event)
     {
-        if (event instanceof ServerEvent.PluginsLoaded) {
+        if (event instanceof ServerEvent.MainPluginsLoaded) {
             for (String plugin : config.getMergedNode(PluginsConfig.class)) {
                 try {
                     pluginManager.loadPlugin(plugin);
@@ -343,31 +343,28 @@ public class MainPlugin
             scriptingManager.addConfigScriptings();
         }
 
-        else if (event instanceof ServerEvent.ConnectorsLoaded) {
-            for (Config node : config.getNodes()) {
-                if (node instanceof ConnectorsConfig) {
-                    for (Map.Entry<String, ConnectorsConfig.Entry> e : ((ConnectorsConfig) node).getEntries().entrySet()) {
-                        Object rt;
-                        try {
-                            rt = OBJECT_MAPPER.get().readValue(OBJECT_MAPPER.get().writeValueAsString(e.getValue()), Map.class);
-                        }
-                        catch (IOException ex) {
-                            throw Throwables.propagate(ex);
-                        }
-                        HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(rt);
-                        Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
-
-                        String targetConnectorName = connProps.get("connector.name");
-                        connProps.remove("connector.name");
-                        String targetName = e.getKey();
-                        connectorManager.createConnection(targetName, targetConnectorName, connProps);
-                        checkNotNull(connectorManager.getConnectors().get(targetName));
-                    }
+        else if (event instanceof ServerEvent.MainConnectorsLoaded) {
+            for (Map.Entry<String, ConnectorsConfig.Entry> e : config.getMergedNode(ConnectorsConfig.class).getEntries().entrySet()) {
+                Object rt;
+                try {
+                    rt = OBJECT_MAPPER.get().readValue(OBJECT_MAPPER.get().writeValueAsString(e.getValue()), Map.class);
                 }
+                catch (IOException ex) {
+                    throw Throwables.propagate(ex);
+                }
+                HierarchicalConfiguration hc = Configs.OBJECT_CONFIG_CODEC.encode(rt);
+                Map<String, String> connProps = newHashMap(Configs.CONFIG_PROPERTIES_CODEC.encode(hc));
+
+                String targetConnectorName = connProps.get("connector.name");
+                connProps.remove("connector.name");
+                String targetName = e.getKey();
+                log.info(String.format("Loading connector: %s", targetConnectorName));
+                connectorManager.createConnection(targetName, targetConnectorName, connProps);
+                checkNotNull(connectorManager.getConnectors().get(targetName));
             }
         }
 
-        else if (event instanceof ServerEvent.DataSourcesLoaded) {
+        else if (event instanceof ServerEvent.MainDataSourcesLoaded) {
             for (Config node : config.getNodes()) {
                 if (node instanceof ExecConfig) {
                     for (ExecConfig.Subject subject : ((ExecConfig) node).getSubjects().getSubjects()) {

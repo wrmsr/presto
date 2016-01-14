@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.connectorSupport;
+package com.wrmsr.presto.tpch;
 
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.connector.Connector;
@@ -27,12 +27,13 @@ import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.spi.connectorSupport.HandleDetailsConnectorSupport;
 import com.wrmsr.presto.spi.connectorSupport.KeyConnectorSupport;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class TpchConnectorSupport
         implements HandleDetailsConnectorSupport, KeyConnectorSupport
@@ -94,6 +95,7 @@ public class TpchConnectorSupport
     {
         checkArgument(schemas.contains(schemaTableName.getSchemaName()));
         checkArgument(tablePrimaryKeys.containsKey(schemaTableName.getTableName()));
-        return tablePrimaryKeys.get(schemaTableName.getTableName()).stream().map(s -> new Key(s, Key.Type.PRIMARY)).collect(toImmutableList());
+        return Collections.unmodifiableList(tablePrimaryKeys.get(schemaTableName.getTableName()).stream().map(s -> new Key(s, Key.Type.PRIMARY)).collect(Collectors.toList()));
     }
 }
+
