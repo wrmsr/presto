@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 set -e
 unamestr=`uname`
-if [[ "$unamestr" == 'Linux' ]]; then
-    MVN=./mvnw
-else
-    MVN=mvn
-fi
+MVN=./mvnw
 if [ -d ~/.m2/repository/com/facebook/presto ] ; then
     find ~/.m2/repository/com/facebook/presto -name '*.lastUpdated' -delete
 fi
