@@ -29,11 +29,11 @@ import com.facebook.presto.type.TypeRegistry;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.inject.Injector;
 import com.wrmsr.presto.server.PreloadedPluginSet;
+import com.wrmsr.presto.server.ServerEventManager;
 import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.util.Repositories;
 import io.airlift.configuration.ConfigurationFactory;
@@ -71,7 +71,6 @@ import static java.util.Objects.requireNonNull;
 
 @ThreadSafe
 public class PluginManager
-        implements ServerEvent.Listener
 {
     private static final List<String> HIDDEN_CLASSES = ImmutableList.<String>builder()
             .add("org.slf4j")
@@ -102,8 +101,8 @@ public class PluginManager
     private final Map<String, String> optionalConfig;
     private final AtomicBoolean pluginsLoading = new AtomicBoolean();
     private final AtomicBoolean pluginsLoaded = new AtomicBoolean();
-    private final List<ServerEvent.Listener> pluginServerEventListeners = new CopyOnWriteArrayList<>();
     private final CopyOnWriteArrayList<Plugin> loadedPlugins = new CopyOnWriteArrayList<>();
+    private final ServerEventManager serverEventManager;
 
     @Inject
     public PluginManager(Injector injector,
@@ -116,7 +115,8 @@ public class PluginManager
             AccessControlManager accessControlManager,
             BlockEncodingManager blockEncodingManager,
             TypeRegistry typeRegistry,
-            Optional<PreloadedPluginSet> preloadedPlugins)
+            Optional<PreloadedPluginSet> preloadedPlugins,
+            ServerEventManager serverEventManager)
     {
         requireNonNull(injector, "injector is null");
         requireNonNull(nodeInfo, "nodeInfo is null");
@@ -146,27 +146,12 @@ public class PluginManager
         this.blockEncodingManager = requireNonNull(blockEncodingManager, "blockEncodingManager is null");
         this.typeRegistry = requireNonNull(typeRegistry, "typeRegistry is null");
         this.preloadedPlugins = requireNonNull(preloadedPlugins);
-    }
-
-    private Set<ServerEvent.Listener> serverEventListeners = ImmutableSet.of();
-
-    @Inject
-    public void setServerEventListeners(Set<ServerEvent.Listener> serverEventListeners)
-    {
-        this.serverEventListeners = serverEventListeners;
+        this.serverEventManager = serverEventManager;
     }
 
     public CopyOnWriteArrayList<Plugin> getLoadedPlugins()
     {
         return loadedPlugins;
-    }
-
-    @Override
-    public void onServerEvent(ServerEvent event)
-    {
-        for (ServerEvent.Listener listener : pluginServerEventListeners) {
-            listener.onServerEvent(event);
-        }
     }
 
     public void loadPlugins()
@@ -268,14 +253,12 @@ public class PluginManager
 
         for (ServerEvent.Listener serverEventListener : plugin.getServices(ServerEvent.Listener.class)) {
             log.info("Registering server event listener %s", serverEventListener.getClass().getName());
-            pluginServerEventListeners.add(serverEventListener);
+            serverEventManager.addListener(serverEventListener);
         }
 
         loadedPlugins.add(plugin);
 
-        for (ServerEvent.Listener listener : serverEventListeners) {
-            listener.onServerEvent(new ServerEvent.PluginLoaded(plugin));
-        }
+        serverEventManager.onEvent(new ServerEvent.PluginLoaded(plugin));
     }
 
     public static URLClassLoader buildClassLoader(ArtifactResolver resolver, String plugin)

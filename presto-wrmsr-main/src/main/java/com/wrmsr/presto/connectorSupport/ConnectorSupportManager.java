@@ -13,24 +13,58 @@
  */
 package com.wrmsr.presto.connectorSupport;
 
-import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.ConnectorSession;
+import com.facebook.presto.spi.Plugin;
+import com.facebook.presto.spi.connector.Connector;
+import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.spi.connectorSupport.ConnectorSupport;
 import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
+import io.airlift.log.Logger;
 
 import javax.inject.Inject;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ConnectorSupportManager
+        implements ServerEvent.Listener
 {
-    private volatile Set<ConnectorSupportFactory> connectorSupportFactories;
+    private static final Logger log = Logger.get(ConnectorSupportManager.class);
+
+    private final CopyOnWriteArrayList<ConnectorSupportFactory> connectorSupportFactories = new CopyOnWriteArrayList<>();
 
     @Inject
-    public ConnectorSupportManager(Set<ConnectorSupportFactory> connectorSupportFactories)
+    public ConnectorSupportManager(
+            Set<ConnectorSupportFactory> connectorSupportFactories,
+            List<Plugin> mainPlugins)
     {
-        this.connectorSupportFactories = connectorSupportFactories;
+        this.connectorSupportFactories.addAll(connectorSupportFactories);
+        for (Plugin plugin : mainPlugins) {
+            register(plugin);
+        }
+    }
+
+    @Override
+    public synchronized void onServerEvent(ServerEvent event)
+    {
+        if (event instanceof ServerEvent.PluginLoaded) {
+            register(((ServerEvent.PluginLoaded) event).getPlugin());
+        }
+    }
+
+    private void register(Plugin plugin)
+    {
+        for (ConnectorSupportFactory connectorSupportFactory : plugin.getServices(ConnectorSupportFactory.class)) {
+            register(connectorSupportFactory);
+        }
+    }
+
+    private void register(ConnectorSupportFactory connectorSupportFactory)
+    {
+        log.info("Registering connector support factory %s", connectorSupportFactory);
+        connectorSupportFactories.add(connectorSupportFactory);
     }
 
     public <T extends ConnectorSupport> Optional<T> getConnectorSupport(Class<T> cls, ConnectorSession connectorSession, Connector connector)

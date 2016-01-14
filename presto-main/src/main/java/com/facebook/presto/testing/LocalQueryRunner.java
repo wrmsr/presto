@@ -121,6 +121,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.wrmsr.presto.server.ServerEventManager;
 import io.airlift.units.Duration;
 import org.intellij.lang.annotations.Language;
 
@@ -225,7 +226,8 @@ public class LocalQueryRunner
                 pageSinkManager,
                 new HandleResolver(),
                 nodeManager,
-                transactionManager);
+                transactionManager,
+                new ServerEventManager());
 
         GlobalSystemConnectorFactory globalSystemConnectorFactory = new GlobalSystemConnectorFactory(ImmutableSet.of(
                 new NodeSystemTable(nodeManager),

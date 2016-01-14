@@ -39,7 +39,7 @@ import com.facebook.presto.split.RecordPageSourceProvider;
 import com.facebook.presto.split.SplitManager;
 import com.facebook.presto.transaction.LegacyTransactionConnectorFactory;
 import com.facebook.presto.transaction.TransactionManager;
-import com.google.common.collect.ImmutableSet;
+import com.wrmsr.presto.server.ServerEventManager;
 import com.wrmsr.presto.spi.ServerEvent;
 import io.airlift.log.Logger;
 
@@ -76,6 +76,7 @@ public class ConnectorManager
     private final HandleResolver handleResolver;
     private final NodeManager nodeManager;
     private final TransactionManager transactionManager;
+    private final ServerEventManager serverEventManager;
 
     private final ConcurrentMap<String, ConnectorFactory> connectorFactories = new ConcurrentHashMap<>();
 
@@ -93,7 +94,8 @@ public class ConnectorManager
             PageSinkManager pageSinkManager,
             HandleResolver handleResolver,
             NodeManager nodeManager,
-            TransactionManager transactionManager)
+            TransactionManager transactionManager,
+            ServerEventManager serverEventManager)
     {
         this.metadataManager = metadataManager;
         this.accessControlManager = accessControlManager;
@@ -104,14 +106,7 @@ public class ConnectorManager
         this.handleResolver = handleResolver;
         this.nodeManager = nodeManager;
         this.transactionManager = transactionManager;
-    }
-
-    private Set<ServerEvent.Listener> serverEventListeners = ImmutableSet.of();
-
-    @Inject
-    public void setServerEventListeners(Set<ServerEvent.Listener> serverEventListeners)
-    {
-        this.serverEventListeners = serverEventListeners;
+        this.serverEventManager = serverEventManager;
     }
 
     @PreDestroy
@@ -200,9 +195,7 @@ public class ConnectorManager
         metadataManager.getSessionPropertyManager().addConnectorSessionProperties(catalogName, connector.getSessionProperties());
         metadataManager.getTablePropertyManager().addTableProperties(catalogName, connector.getTableProperties());
 
-        for (ServerEvent.Listener listener : serverEventListeners) {
-            listener.onServerEvent(new ServerEvent.ConnectorLoaded(catalogName, connectorId, factory, properties));
-        }
+        serverEventManager.onEvent(new ServerEvent.ConnectorLoaded(catalogName, connectorId, factory, properties));
     }
 
     private synchronized void addConnectorInternal(ConnectorType type, String catalogName, String connectorId, Connector connector)

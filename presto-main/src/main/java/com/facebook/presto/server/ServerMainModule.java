@@ -95,6 +95,7 @@ import com.google.inject.Provides;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
 import com.wrmsr.presto.server.PreloadedPluginSet;
+import com.wrmsr.presto.server.ServerEventManager;
 import com.wrmsr.presto.spi.ServerEvent;
 import io.airlift.concurrent.BoundedExecutor;
 import io.airlift.configuration.AbstractConfigurationAwareModule;
@@ -304,7 +305,7 @@ public class ServerMainModule
                 });
 
 
-        newSetBinder(binder, new TypeLiteral<ServerEvent.Listener>() {});
+        binder.bind(ServerEventManager.class).asEagerSingleton();
 
         // server info resource
         binder.bind(ServerInfo.class).toInstance(new ServerInfo(nodeVersion));
@@ -314,7 +315,6 @@ public class ServerMainModule
         binder.bind(new TypeLiteral<Optional<PreloadedPluginSet>>() {}).toInstance(Optional.empty());
         binder.bind(PluginManager.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(PluginManagerConfig.class);
-        newSetBinder(binder, new TypeLiteral<ServerEvent.Listener>() {}).addBinding().to(PluginManager.class);
 
         // optimizers
         binder.bind(new TypeLiteral<List<PlanOptimizer>>() {}).toProvider(PlanOptimizersFactory.class).in(Scopes.SINGLETON);

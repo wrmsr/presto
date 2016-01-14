@@ -29,6 +29,7 @@ public class ScriptingManager
     private volatile Map<String, ScriptEngineProvider> scriptEngineProviders = new MapMaker().makeMap();
     private volatile Map<String, Scripting> scriptings = new MapMaker().makeMap();
 
+    // FIXME do like ConnectorSupportManager
     @Inject
     public ScriptingManager(
             ScriptingConfig config,

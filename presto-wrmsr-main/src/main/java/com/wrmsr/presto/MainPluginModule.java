@@ -13,11 +13,17 @@
  */
 package com.wrmsr.presto;
 
+import com.facebook.presto.connector.ConnectorManager;
+import com.facebook.presto.server.PluginManager;
+import com.facebook.presto.spi.Plugin;
+import com.facebook.presto.spi.connector.Connector;
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import com.wrmsr.presto.codec.CodecModule;
-import com.wrmsr.presto.config.ConfigModule;
 import com.wrmsr.presto.config.ConfigContainer;
+import com.wrmsr.presto.config.ConfigModule;
 import com.wrmsr.presto.connector.ConnectorModule;
 import com.wrmsr.presto.connectorSupport.ConnectorSupportModule;
 import com.wrmsr.presto.function.FunctionModule;
@@ -25,6 +31,9 @@ import com.wrmsr.presto.scripting.ScriptingModule;
 import com.wrmsr.presto.serialization.SerializationModule;
 import com.wrmsr.presto.struct.StructModule;
 import com.wrmsr.presto.type.TypeModule;
+
+import java.util.List;
+import java.util.Map;
 
 public class MainPluginModule
         implements Module
@@ -49,5 +58,19 @@ public class MainPluginModule
         binder.install(new SerializationModule());
         binder.install(new StructModule());
         binder.install(new TypeModule());
+    }
+
+    @Provides
+    @Singleton
+    public List<Plugin> provideMainPlugins(PluginManager pluginManager)
+    {
+        return pluginManager.getLoadedPlugins();
+    }
+
+    @Provides
+    @Singleton
+    public Map<String, Connector> provideMainConnectors(ConnectorManager connectorManager)
+    {
+        return connectorManager.getConnectors();
     }
 }

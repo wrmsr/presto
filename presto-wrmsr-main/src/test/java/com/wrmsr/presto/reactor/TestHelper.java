@@ -45,7 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
 import com.wrmsr.presto.connectorSupport.ExtendedJdbcConnectorSupport;
-import com.wrmsr.presto.connectorSupport.TpchConnectorSupport;
+import com.wrmsr.presto.tpch.TpchConnectorSupport;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnectorFactory;
 import com.wrmsr.presto.spi.connectorSupport.ConnectorSupport;
@@ -196,7 +196,7 @@ public class TestHelper
 
             connectorSupport = ImmutableMap.<String, ConnectorSupport>builder()
                    .put("tpch", new TpchConnectorSupport(session.toConnectorSession(), connectors.get("tpch"), "tiny"))
-                   .put("test", new ExtendedJdbcConnectorSupport("test", session.toConnectorSession(), (ExtendedJdbcConnector) ((LegacyTransactionConnector) connectors.get("test")).getConnector()))
+                   .put("test", new ExtendedJdbcConnectorSupport(session.toConnectorSession(), ((LegacyTransactionConnector) connectors.get("test"))))
                    .build();
         }
     }
