@@ -77,7 +77,7 @@ public abstract class StringVarargsFunction
         for (Class<?> c : fixedMethodParametersClasses) {
             parameterTypes.add(c);
         }
-        parameterTypes.add(Object[].class);
+        parameterTypes.add(Slice[].class);
         methodHandle = Reflection.methodHandle(getClass(), methodName, (Class<?>[]) parameterTypes.toArray(new Class<?>[parameterTypes.size()]));
     }
 
@@ -129,20 +129,16 @@ public abstract class StringVarargsFunction
     {
         Type type = types.get("E");
         checkArgument(type.getJavaType() == Slice.class);
-        checkArgument(arity % varargGroupSize == fixedParameterTypes.size()); // FIXME wtf
-        ImmutableList.Builder<Class<?>> builder = ImmutableList.builder();
-        builder.add(Slice.class);
-        for (int i = 1; i < arity; i++) {
-            builder.add(type.getJavaType());
-        }
+        int numVarargs = arity - fixedParameterTypes.size();
+        checkArgument(numVarargs % varargGroupSize == 0);
 
         List<TypeSignature> argumentTypes = newArrayList();
         for (String s : fixedParameterTypes) {
             argumentTypes.add(parseTypeSignature(s));
         }
-        argumentTypes.addAll(listOf(arity - fixedParameterTypes.size(), type.getTypeSignature()));
+        argumentTypes.addAll(listOf(numVarargs, type.getTypeSignature()));
 
-        MethodHandle methodHandle = bindMethodHandle().asVarargsCollector(Object[].class);
+        MethodHandle methodHandle = bindMethodHandle().asCollector(Slice[].class, numVarargs);
         return new ScalarFunctionImplementation(false, listOf(arity, false), methodHandle, isDeterministic());
 
         /*

@@ -57,7 +57,7 @@ public class PropertiesFunction
         return super.bindMethodHandle().bindTo(this);
     }
 
-    public static Block newProperties(PropertiesFunction self, Object... strs)
+    public static Block newProperties(PropertiesFunction self, Slice[] strs)
     {
         checkArgument(strs.length % 2 == 0);
         BlockBuilder blockBuilder = new InterleavedBlockBuilder(ImmutableList.of(VarcharType.VARCHAR, VarcharType.VARCHAR), new BlockBuilderStatus(), strs.length / 2);

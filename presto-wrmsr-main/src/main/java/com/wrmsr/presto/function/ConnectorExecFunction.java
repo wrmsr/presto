@@ -40,11 +40,11 @@ public class ConnectorExecFunction
         super(
                 "connector_exec",
                 "execute raw connector statements",
-                ImmutableList.of(),
+                ImmutableList.of("varchar"),
                 1,
                 "varchar",
                 "connector_exec",
-                ImmutableList.of(Context.class, Slice.class));
+                ImmutableList.of(Context.class, ConnectorSession.class, Slice.class));
         this.connectorManager = connectorManager;
         this.connectorSupportManager = connectorSupportManager;
     }
@@ -67,12 +67,12 @@ public class ConnectorExecFunction
         return super.bindMethodHandle().bindTo(new Context(connectorManager, connectorSupportManager));
     }
 
-    public static Slice connector_exec(ConnectorSession connectorSession, Context context, Slice connectorName, Object[] commands)
+    public static Slice connector_exec(Context context, ConnectorSession connectorSession, Slice connectorName, Slice[] commands)
     {
         Connector c = context.connectorManager.getConnectors().get(connectorName.toStringUtf8());
         EvalConnectorSupport ecs = context.connectorSupportManager.getConnectorSupport(EvalConnectorSupport.class, connectorSession, c).get();
         for (int i = 0; i < commands.length; ++i) {
-            String cmd = ((Slice) commands[i]).toStringUtf8();
+            String cmd = commands[i].toStringUtf8();
             ecs.exec(cmd);
         }
         return Slices.EMPTY_SLICE;
