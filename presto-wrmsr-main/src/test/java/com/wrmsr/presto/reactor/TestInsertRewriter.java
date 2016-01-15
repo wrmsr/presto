@@ -13,48 +13,10 @@
  */
 package com.wrmsr.presto.reactor;
 
-import com.facebook.presto.Session;
-import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.TableHandle;
-import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.connector.Connector;
-import com.facebook.presto.spi.RecordCursor;
-import com.facebook.presto.spi.SchemaTableName;
-import com.facebook.presto.spi.block.BlockEncodingSerde;
-import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.sql.analyzer.Analysis;
-import com.facebook.presto.sql.planner.ExpressionInterpreter;
-import com.facebook.presto.sql.planner.Plan;
-import com.facebook.presto.sql.planner.Symbol;
-import com.facebook.presto.sql.planner.SymbolResolver;
-import com.facebook.presto.sql.planner.plan.JoinNode;
-import com.facebook.presto.sql.planner.plan.OutputNode;
-import com.facebook.presto.sql.planner.plan.PlanNode;
-import com.facebook.presto.sql.planner.plan.PlanNodeId;
-import com.facebook.presto.sql.planner.plan.PlanVisitor;
-import com.facebook.presto.sql.planner.plan.ProjectNode;
-import com.facebook.presto.sql.planner.plan.TableScanNode;
-import com.facebook.presto.sql.tree.Expression;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.wrmsr.presto.util.ByteArrayWrapper;
-import com.wrmsr.presto.util.collect.SimpleMap;
-import io.airlift.slice.Slice;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.intellij.lang.annotations.Language;
-import org.testng.annotations.Test;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static com.facebook.presto.spi.type.BigintType.BIGINT;
-import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
 /*
@@ -195,9 +157,9 @@ UnionNode
 //            return reactors.values().stream().filter(InputNodeReactor.class::isInstance).map(InputNodeReactor.class::cast).collect(toImmutableList());
 //        }
 //
-//        public SimpleMap<byte[], byte[]> getKv()
+//        public Kv<byte[], byte[]> getKv()
 //        {
-//            return new SimpleMap.KeyCodec<>(new SimpleMap.FromMap<>(newHashMap()), ByteArrayWrapper.CODEC);
+//            return new Kv.KeyCodec<>(new Kv.FromMap<>(newHashMap()), ByteArrayWrapper.CODEC);
 //        }
 //    }
 //
@@ -282,7 +244,7 @@ UnionNode
 //            extends Reactor<OutputNode>
 //    {
 //        // private final Layout layout;
-//        private final SimpleMap<byte[], byte[]> SImpleMap;
+//        private final Kv<byte[], byte[]> SImpleMap;
 //
 //        public OutputNodeReactor(OutputNode node, ReactorContext context, Optional<Reactor> destination)
 //        {

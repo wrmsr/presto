@@ -33,7 +33,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-import com.wrmsr.presto.util.collect.JdbcSimpleMap;
+import com.wrmsr.presto.util.collect.JdbcKv;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -42,13 +42,8 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
@@ -69,7 +64,7 @@ public class TestKv
     {
         Class.forName("org.h2.Driver");
 
-        JdbcSimpleMap m = new JdbcSimpleMap(
+        JdbcKv m = new JdbcKv(
                 () -> {
                     try {
                         return DriverManager.getConnection("jdbc:h2:~/test", "sa", "");

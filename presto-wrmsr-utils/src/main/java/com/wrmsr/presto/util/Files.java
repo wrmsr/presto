@@ -15,9 +15,11 @@ package com.wrmsr.presto.util;
 
 import com.google.common.io.CharStreams;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
@@ -30,6 +32,16 @@ public class Files
 {
     private Files()
     {
+    }
+
+    public static void writeFileBytes(String path, byte[] content) throws IOException
+    {
+        java.nio.file.Files.write(FileSystems.getDefault().getPath(path), content);
+    }
+
+    public static byte[] readFileBytes(String path) throws IOException
+    {
+        return java.nio.file.Files.readAllBytes(FileSystems.getDefault().getPath(path));
     }
 
     public static void writeFile(String path, String content) throws IOException

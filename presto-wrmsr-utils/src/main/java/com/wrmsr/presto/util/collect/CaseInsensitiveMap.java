@@ -19,8 +19,9 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CaseInsensitiveMap<V> extends ForwardingMap<String,
-        V> implements Serializable
+public class CaseInsensitiveMap<V>
+        extends ForwardingMap<String, V>
+        implements Serializable
 {
     private static final long serialVersionUID = -7741335486707072323L;
 

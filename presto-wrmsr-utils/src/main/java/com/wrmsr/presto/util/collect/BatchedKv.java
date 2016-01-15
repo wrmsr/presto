@@ -18,17 +18,19 @@ import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.util.codec.Codec;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.google.common.collect.Sets.newHashSet;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
-public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
+public interface BatchedKv<K, V>
+        extends Kv<K, V>
 {
-    abstract class BatchOperation<K, V> implements Map.Entry<K, V>
+    abstract class BatchOperation<K, V>
+            implements Map.Entry<K, V>
     {
         protected final K key;
         protected final V value;
@@ -58,7 +60,8 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         }
     }
 
-    final class GetBatchOperation<K, V> extends BatchOperation<K, V>
+    final class GetBatchOperation<K, V>
+            extends BatchOperation<K, V>
     {
         public GetBatchOperation(K key)
         {
@@ -66,7 +69,8 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         }
     }
 
-    final class ContainsKeyBatchOperation<K, V> extends BatchOperation<K, V>
+    final class ContainsKeyBatchOperation<K, V>
+            extends BatchOperation<K, V>
     {
         public ContainsKeyBatchOperation(K key)
         {
@@ -74,7 +78,8 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         }
     }
 
-    final class PutBatchOperation<K, V> extends BatchOperation<K, V>
+    final class PutBatchOperation<K, V>
+            extends BatchOperation<K, V>
     {
         public PutBatchOperation(K key, V value)
         {
@@ -87,7 +92,8 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         }
     }
 
-    final class RemoveBatchOperation<K, V> extends BatchOperation<K, V>
+    final class RemoveBatchOperation<K, V>
+            extends BatchOperation<K, V>
     {
         public RemoveBatchOperation(K key)
         {
@@ -95,7 +101,8 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         }
     }
 
-    abstract class BatchResult<K, V> implements Map.Entry<K, V>
+    abstract class BatchResult<K, V>
+            implements Map.Entry<K, V>
     {
         protected final K key;
         protected final V value;
@@ -128,7 +135,8 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         }
     }
 
-    final class GetBatchResult<K, V> extends BatchResult<K, V>
+    final class GetBatchResult<K, V>
+            extends BatchResult<K, V>
     {
         public GetBatchResult(K key, V value)
         {
@@ -136,7 +144,8 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         }
     }
 
-    final class ContainsKeyBatchResult<K, V> extends BatchResult<K, V>
+    final class ContainsKeyBatchResult<K, V>
+            extends BatchResult<K, V>
     {
         protected final boolean isPresent;
 
@@ -159,7 +168,8 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         }
     }
 
-    final class PutBatchResult<K, V> extends BatchResult<K, V>
+    final class PutBatchResult<K, V>
+            extends BatchResult<K, V>
     {
         public PutBatchResult(K key)
         {
@@ -167,7 +177,8 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         }
     }
 
-    final class RemoveBatchResult<K, V> extends BatchResult<K, V>
+    final class RemoveBatchResult<K, V>
+            extends BatchResult<K, V>
     {
         public RemoveBatchResult(K key)
         {
@@ -188,7 +199,6 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         {
             builder.add(new GetBatchOperation<>(key));
             return this;
-
         }
 
         public BatchBuilder<K, V> containsKey(K key)
@@ -270,13 +280,26 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         batch(ImmutableList.of(new RemoveBatchOperation<>(key)));
     }
 
-    final class FromSimpleMap<K, V> implements BatchedSimpleMap<K, V>
+    final class FromKv<K, V>
+            implements BatchedKv<K, V>
     {
-        private final SimpleMap<K, V> target;
+        private final Kv<K, V> target;
 
-        public FromSimpleMap(SimpleMap<K, V> target)
+        public FromKv(Kv<K, V> target)
         {
             this.target = target;
+        }
+
+        @Override
+        public Iterator<K> iterator()
+        {
+            return target.iterator();
+        }
+
+        @Override
+        public ManagedIterator<K> managedIterator()
+        {
+            return target.managedIterator();
         }
 
         @Override
@@ -304,16 +327,18 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         }
     }
 
-    class KeyCodec<KO, KI, V> extends SimpleMap.KeyCodec<KO, KI, V> implements BatchedSimpleMap<KO, V>
+    class KeyCodec<KO, KI, V>
+            extends Kv.KeyCodec<KO, KI, V>
+            implements BatchedKv<KO, V>
     {
-        public KeyCodec(BatchedSimpleMap<KI, V> wrapped, Codec<KO, KI> codec)
+        public KeyCodec(BatchedKv<KI, V> wrapped, Codec<KO, KI> codec)
         {
             super(wrapped, codec);
         }
 
-        private BatchedSimpleMap<KI, V> getWrapped()
+        private BatchedKv<KI, V> getWrapped()
         {
-            return (BatchedSimpleMap<KI, V>) wrapped;
+            return (BatchedKv<KI, V>) wrapped;
         }
 
         @Override
@@ -381,16 +406,18 @@ public interface BatchedSimpleMap<K, V> extends SimpleMap<K, V>
         }
     }
 
-    class ValueCodec<K, VO, VI> extends SimpleMap.ValueCodec<K, VO, VI> implements BatchedSimpleMap<K, VO>
+    class ValueCodec<K, VO, VI>
+            extends Kv.ValueCodec<K, VO, VI>
+            implements BatchedKv<K, VO>
     {
-        public ValueCodec(BatchedSimpleMap<K, VI> wrapped, Codec<VO, VI> codec)
+        public ValueCodec(BatchedKv<K, VI> wrapped, Codec<VO, VI> codec)
         {
             super(wrapped, codec);
         }
 
-        private BatchedSimpleMap<K, VI> getWrapped()
+        private BatchedKv<K, VI> getWrapped()
         {
-            return (BatchedSimpleMap<K, VI>) wrapped;
+            return (BatchedKv<K, VI>) wrapped;
         }
 
         @Override

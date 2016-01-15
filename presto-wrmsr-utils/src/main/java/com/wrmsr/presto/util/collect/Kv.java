@@ -14,15 +14,16 @@
 package com.wrmsr.presto.util.collect;
 
 import com.wrmsr.presto.util.codec.Codec;
-
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public interface SimpleMap<K, V>
+public interface Kv<K, V>
+        extends Iterable<K>
 {
     V get(K key);
 
@@ -35,7 +36,46 @@ public interface SimpleMap<K, V>
 
     void remove(K key);
 
-    class FromMap<K, V> implements SimpleMap<K, V>
+    @Override
+    default Iterator<K> iterator()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    interface ManagedIterator<K>
+            extends Iterator<K>, AutoCloseable
+    {
+        static <K> ManagedIterator<K> wrap(Iterator<K> target)
+        {
+            return new ManagedIterator<K>() {
+                @Override
+                public void close()
+                        throws Exception
+                {
+                }
+
+                @Override
+                public boolean hasNext()
+                {
+                    return target.hasNext();
+                }
+
+                @Override
+                public K next()
+                {
+                    return target.next();
+                }
+            };
+        }
+    }
+
+    default ManagedIterator<K> managedIterator()
+    {
+        return ManagedIterator.wrap(iterator());
+    }
+
+    class FromMap<K, V>
+            implements Kv<K, V>
     {
         private final Map<K, V> target;
 
@@ -67,15 +107,22 @@ public interface SimpleMap<K, V>
         {
             target.remove(key);
         }
+
+        @Override
+        public Iterator<K> iterator()
+        {
+            return target.keySet().iterator();
+        }
     }
 
-    abstract class AbstractToMap<K, V> implements Map<K, V>
+    abstract class AbstractToMap<K, V>
+            implements Map<K, V>
     {
-        private final SimpleMap<K, V> target;
+        private final Kv<K, V> target;
         private final boolean keyCastsThrow;
         private final boolean getForReturns;
 
-        public AbstractToMap(SimpleMap<K, V> target, boolean keyCastsThrow, boolean getForReturns)
+        public AbstractToMap(Kv<K, V> target, boolean keyCastsThrow, boolean getForReturns)
         {
             this.target = target;
             this.keyCastsThrow = keyCastsThrow;
@@ -149,9 +196,10 @@ public interface SimpleMap<K, V>
         }
     }
 
-    class RestrictedToMap<K, V> extends AbstractToMap<K, V>
+    class RestrictedToMap<K, V>
+            extends AbstractToMap<K, V>
     {
-        public RestrictedToMap(SimpleMap<K, V> target, boolean keyCastsThrow, boolean getForReturns)
+        public RestrictedToMap(Kv<K, V> target, boolean keyCastsThrow, boolean getForReturns)
         {
             super(target, keyCastsThrow, getForReturns);
         }
@@ -265,9 +313,10 @@ public interface SimpleMap<K, V>
         }
     }
 
-    class UnrestrictedToMap<K, V> extends AbstractToMap<K, V>
+    class UnrestrictedToMap<K, V>
+            extends AbstractToMap<K, V>
     {
-        public UnrestrictedToMap(SimpleMap<K, V> target, boolean keyCastsThrow, boolean getForReturns)
+        public UnrestrictedToMap(Kv<K, V> target, boolean keyCastsThrow, boolean getForReturns)
         {
             super(target, keyCastsThrow, getForReturns);
         }
@@ -315,12 +364,13 @@ public interface SimpleMap<K, V>
         }
     }
 
-    class KeyCodec<KO, KI, V> implements SimpleMap<KO, V>
+    class KeyCodec<KO, KI, V>
+            implements Kv<KO, V>
     {
-        protected final SimpleMap<KI, V> wrapped;
+        protected final Kv<KI, V> wrapped;
         protected final Codec<KO, KI> codec;
 
-        public KeyCodec(SimpleMap<KI, V> wrapped, Codec<KO, KI> codec)
+        public KeyCodec(Kv<KI, V> wrapped, Codec<KO, KI> codec)
         {
             this.wrapped = wrapped;
             this.codec = codec;
@@ -349,14 +399,60 @@ public interface SimpleMap<K, V>
         {
             return wrapped.containsKey(codec.encode(key));
         }
+
+        @Override
+        public Iterator<KO> iterator()
+        {
+            Iterator<KI> it = wrapped.iterator();
+            return new Iterator<KO>() {
+                @Override
+                public boolean hasNext()
+                {
+                    return it.hasNext();
+                }
+
+                @Override
+                public KO next()
+                {
+                    return codec.decode(it.next());
+                }
+            };
+        }
+
+        @Override
+        public ManagedIterator<KO> managedIterator()
+        {
+            ManagedIterator<KI> it = wrapped.managedIterator();
+            return new ManagedIterator<KO>() {
+                @Override
+                public void close()
+                        throws Exception
+                {
+                    it.close();
+                }
+
+                @Override
+                public boolean hasNext()
+                {
+                    return it.hasNext();
+                }
+
+                @Override
+                public KO next()
+                {
+                    return codec.decode(it.next());
+                }
+            };
+        }
     }
 
-    class ValueCodec<K, VO, VI> implements SimpleMap<K, VO>
+    class ValueCodec<K, VO, VI>
+            implements Kv<K, VO>
     {
-        protected final SimpleMap<K, VI> wrapped;
+        protected final Kv<K, VI> wrapped;
         protected final Codec<VO, VI> codec;
 
-        public ValueCodec(SimpleMap<K, VI> wrapped, Codec<VO, VI> codec)
+        public ValueCodec(Kv<K, VI> wrapped, Codec<VO, VI> codec)
         {
             this.wrapped = wrapped;
             this.codec = codec;
@@ -390,6 +486,18 @@ public interface SimpleMap<K, V>
         public void remove(K key)
         {
             wrapped.remove(key);
+        }
+
+        @Override
+        public Iterator<K> iterator()
+        {
+            return wrapped.iterator();
+        }
+
+        @Override
+        public ManagedIterator<K> managedIterator()
+        {
+            return wrapped.managedIterator();
         }
     }
 }

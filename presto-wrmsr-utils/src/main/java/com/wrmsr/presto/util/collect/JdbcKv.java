@@ -24,8 +24,8 @@ import java.util.function.Supplier;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
-public class JdbcSimpleMap
-        implements SimpleMap<byte[], byte[]>
+public class JdbcKv
+        implements Kv<byte[], byte[]>
 {
     private final Supplier<Connection> connectionSupplier;
     private final String quote;
@@ -40,7 +40,7 @@ public class JdbcSimpleMap
     private final @Language("SQL") String getStmt;
     private final @Language("SQL") String deleteStmt;
 
-    public JdbcSimpleMap(Supplier<Connection> connectionSupplier, String quote, String catalog, String schema, String table, String keyColumn, String valueColumn)
+    public JdbcKv(Supplier<Connection> connectionSupplier, String quote, String catalog, String schema, String table, String keyColumn, String valueColumn)
     {
         this.connectionSupplier = connectionSupplier;
         this.quote = quote;

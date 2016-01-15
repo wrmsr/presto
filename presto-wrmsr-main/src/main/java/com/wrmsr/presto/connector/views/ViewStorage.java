@@ -15,6 +15,7 @@ package com.wrmsr.presto.connector.views;
 
 import java.util.List;
 
+// FIXME just make a Kv<String, String> & Iterable<String>
 public interface ViewStorage
 {
     List<String> getViewNames();
