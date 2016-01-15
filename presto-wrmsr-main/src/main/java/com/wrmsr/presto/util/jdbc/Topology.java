@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.util.RedactedSerializer;
-import org.apache.log4j.Logger;
+import io.airlift.log.Logger;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -28,7 +28,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Topology
 {
-    static Logger logger = Logger.getLogger(Topology.class);
+    private static final Logger log = Logger.get(Topology.class);
 
     public static interface Root
             extends Iterable<Group>
