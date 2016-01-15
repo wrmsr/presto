@@ -38,14 +38,18 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.wrmsr.presto.util.Primitives.toBool;
+import static com.wrmsr.presto.util.collect.Maps.toLinkedHashMap;
 
 /*
 ___________________________________________________
@@ -274,7 +278,7 @@ public class Configs
         }
 
         Map<String, String> subproperties = new ConfigurationMap(subconfig).entrySet().stream()
-                .collect(ImmutableCollectors.toImmutableMap(e -> checkNotNull(e.getKey()).toString(), e -> checkNotNull(e.getValue()).toString()));
+                .collect(toLinkedHashMap(e -> checkNotNull(e.getKey()).toString(), e -> checkNotNull(e.getValue()).toString()));
 
         hierarchicalProperties.clearTree(prefix);
         for (String key : Sets.newHashSet(properties.keySet())) {
@@ -388,7 +392,7 @@ public class Configs
         return IntStream.range(0, list.size()).boxed()
                 .flatMap(i -> flattenValues(list.get(i)).entrySet().stream()
                             .map(e -> ImmutablePair.of(new ListItemSigil(i, e.getKey()), e.getValue())))
-                .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+                .collect(toLinkedHashMap(e -> e.getKey(), e -> e.getValue()));
     }
 
     protected static Map<Sigil, String> flattenMap(Map<?, ?> map)
@@ -399,7 +403,7 @@ public class Configs
                     return flattenValues(e.getValue()).entrySet().stream()
                             .map(e2 -> ImmutablePair.of(new MapEntrySigil(key, e2.getKey()), e2.getValue()));
                 })
-                .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey(), e -> e.getValue()));
+                .collect(toLinkedHashMap(e -> e.getKey(), e -> e.getValue()));
     }
 
     protected static Map<Sigil, String> flattenValues(Object object)
@@ -418,7 +422,7 @@ public class Configs
     public static Map<String, String> flatten(Object object)
     {
         return flattenValues(object).entrySet().stream()
-                .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey().render(), e -> e.getValue()));
+                .collect(toLinkedHashMap(e -> e.getKey().render(), e -> e.getValue()));
     }
 
 //    @SuppressWarnings({"unchecked"})
@@ -476,7 +480,7 @@ public class Configs
             }
             return properties.entrySet().stream()
                     .filter(e -> e.getValue() != null)
-                    .collect(ImmutableCollectors.toImmutableMap(e -> e.getKey().toString(), e -> e.getValue().toString()));
+                    .collect(toLinkedHashMap(e -> e.getKey().toString(), e -> e.getValue().toString()));
         }
         else if (Serialization.OBJECT_MAPPERS_BY_EXTENSION.containsKey(extension)) {
             ObjectMapper objectMapper = Serialization.OBJECT_MAPPERS_BY_EXTENSION.get(extension).get();

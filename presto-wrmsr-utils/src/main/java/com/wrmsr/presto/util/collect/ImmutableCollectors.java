@@ -15,6 +15,7 @@ package com.wrmsr.presto.util.collect;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 
@@ -66,7 +67,8 @@ public final class ImmutableCollectors
                 Collector.Characteristics.UNORDERED);
     }
 
-    public static <I, K, V> Collector<I, ImmutableMap.Builder<K, V>, ImmutableMap<K, V>> toImmutableMap(Function<I, K> keyMapper, Function<I, V> valueMapper) {
+    public static <I, K, V> Collector<I, ImmutableMap.Builder<K, V>, ImmutableMap<K, V>> toImmutableMap(Function<I, K> keyMapper, Function<I, V> valueMapper)
+    {
         return Collector.of(
                 ImmutableMap::builder,
                 (builder, in) -> builder.put(keyMapper.apply(in), valueMapper.apply(in)),
@@ -77,5 +79,19 @@ public final class ImmutableCollectors
     public static <K, V> Collector<Map.Entry<K, V>, ImmutableMap.Builder<K, V>, ImmutableMap<K, V>> toImmutableMap()
     {
         return toImmutableMap(Map.Entry::getKey, Map.Entry::getValue);
+    }
+
+    public static <I, K, V> Collector<I, ImmutableMultimap.Builder<K, V>, ImmutableMultimap<K, V>> toImmutableMultimap(Function<I, K> keyMapper, Function<I, V> valueMapper)
+    {
+        return Collector.of(
+                ImmutableMultimap::builder,
+                (builder, in) -> builder.put(keyMapper.apply(in), valueMapper.apply(in)),
+                (ImmutableMultimap.Builder<K, V> left, ImmutableMultimap.Builder<K, V> right) -> left.putAll(right.build()),
+                ImmutableMultimap.Builder<K, V>::build);
+    }
+
+    public static <K, V> Collector<Map.Entry<K, V>, ImmutableMultimap.Builder<K, V>, ImmutableMultimap<K, V>> toImmutableMultimap()
+    {
+        return toImmutableMultimap(Map.Entry::getKey, Map.Entry::getValue);
     }
 }

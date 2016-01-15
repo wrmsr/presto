@@ -29,6 +29,8 @@ import static com.wrmsr.presto.util.Jvm.getJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMultimap;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMultiset;
 import static com.wrmsr.presto.util.collect.Maps.transformKeys;
 
 public class PrestoConfigs
@@ -98,6 +100,7 @@ public class PrestoConfigs
         Object objectConfig = Serialization.roundTrip(OBJECT_MAPPER.get(), config, Object.class);
         HierarchicalConfiguration hierarchicalConfig = Configs.OBJECT_CONFIG_CODEC.encode(objectConfig);
         Map<String, String> flatConfig = Configs.CONFIG_PROPERTIES_CODEC.encode(hierarchicalConfig);
+        Map<String, String> check = flatConfig.keySet().stream().map(k -> k.split("\\.")).map(a -> ImmutablePair.of(a[0], a[1])).collect(toImmutableMap());
         Map<String, String> configMap = transformKeys(flatConfig, k -> CONFIG_PROPERTIES_PREFIX + k);
         Map<String, String> rewrittenConfigMap = configMap.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), rewriter.apply(e.getValue()))).collect(toImmutableMap());
         rewrittenConfigMap.entrySet().stream().forEach(e -> System.setProperty(e.getKey(), e.getValue()));

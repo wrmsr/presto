@@ -13,14 +13,16 @@
  */
 package com.wrmsr.presto.util.collect;
 
-import com.google.common.base.Function;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collector;
 
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 
@@ -43,7 +45,8 @@ public class Maps
             }
         };
 
-        class DuplicateItemException extends IllegalStateException
+        class DuplicateItemException
+                extends IllegalStateException
         {
         }
 
@@ -162,5 +165,33 @@ public class Maps
     public static <K, VF, VT> Map<K, VT> transformValues(Map<K, VF> map, Function<VF, VT> fn)
     {
         return map.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), fn.apply(e.getValue()))).collect(toImmutableMap());
+    }
+
+    public static <I, K, V> Collector<I, LinkedHashMap<K, V>, LinkedHashMap<K, V>> toLinkedHashMap(Function<I, K> keyMapper, Function<I, V> valueMapper)
+    {
+        return Collector.of(
+                LinkedHashMap::new,
+                (builder, in) -> {
+                    K key = keyMapper.apply(in);
+                    if (builder.containsKey(key)) {
+                        throw new IllegalStateException();
+                    }
+                    builder.put(key, valueMapper.apply(in));
+                },
+                (left, right) -> {
+                    for (Map.Entry<K, V> in : right.entrySet()) {
+                        if (left.containsKey(in.getKey())) {
+                            throw new IllegalStateException();
+                        }
+                        left.put(in.getKey(), in.getValue());
+                    }
+                    return left;
+                },
+                Function.identity());
+    }
+
+    public static <K, V> Collector<Map.Entry<K, V>, LinkedHashMap<K, V>, LinkedHashMap<K, V>> toLinkedHashMap()
+    {
+        return toLinkedHashMap(Map.Entry::getKey, Map.Entry::getValue);
     }
 }
