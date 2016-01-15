@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.wrmsr.presto.util.Serialization;
@@ -42,12 +43,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -56,6 +59,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.wrmsr.presto.util.Primitives.toBool;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 import static com.wrmsr.presto.util.collect.Maps.toLinkedHashMap;
 
 /*
@@ -87,9 +92,24 @@ public class Configs
     {
     }
 
+    protected static LinkedHashMap<String, String> sigilSort(Map<String, String> props)
+    {
+        List<Sigil> sortedSigils = props.keySet().stream().map(Sigil::parse).collect(Collectors.toList());
+        Collections.sort(sortedSigils);
+        List<String> sortedKeys = sortedSigils.stream().map(Sigil::render).collect(Collectors.toList());
+        Set<String> sortedKeySet = ImmutableSet.copyOf(sortedKeys);
+        checkState(sortedKeys.size() == sortedKeySet.size());
+        checkState(sortedKeySet.equals(props.keySet()));
+        LinkedHashMap<String, String> ret = new LinkedHashMap<>();
+        for (String k : sortedKeys) {
+            ret.put(k, props.get(k));
+        }
+        return ret;
+    }
+
     protected static HierarchicalConfiguration toHierarchical(Map<String, String> properties)
     {
-        return toHierarchical(new MapConfiguration(properties));
+        return toHierarchical(new MapConfiguration(sigilSort(properties)));
     }
 
     public static final String IS_LIST_ATTR = "__is_list__";
@@ -255,7 +275,7 @@ public class Configs
                 boolean hasListAtt = l.stream().flatMap(n -> n.getAttributes(IS_LIST_ATTR).stream()).map(o -> toBool(o)).findFirst().isPresent();
                 Object no;
                 if (l.size() > 1 || hasListAtt) {
-                    no = l.stream().map(n -> unpackNode(n)).filter(o -> o != null).collect(ImmutableCollectors.toImmutableList());
+                    no = l.stream().map(n -> unpackNode(n)).filter(o -> o != null).collect(toImmutableList());
                 }
                 else {
                     no = unpackNode(l.get(0));
@@ -316,13 +336,26 @@ public class Configs
         return values;
     }
 
+    protected static int clampCmp(int cmp)
+    {
+        if (cmp < 0) {
+            return -1;
+        }
+        else if (cmp > 0) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+
     public static final int LIST_BASE = 0;
     public static final String LIST_START = "(";
     public static final String LIST_END = ")";
     public static final String FIELD_SEPERATOR = ".";
 
     protected static abstract class Sigil
-        implements Comparable<Sigil>
+            implements Comparable<Sigil>
     {
         public String render()
         {
@@ -361,15 +394,22 @@ public class Configs
             }
             else if (listStartPos == 0) {
                 checkState(listEndPos > 1);
-                checkState(fieldSepPos == listEndPos + 1);
                 int index = Integer.parseInt(str.substring(1, listEndPos));
-                String rest = str.substring(listEndPos + 2);
+                String rest = str.substring(listEndPos + 1);
+                if (rest.startsWith(FIELD_SEPERATOR)) {
+                    rest = rest.substring(1);
+                }
                 Sigil next = Sigil.parse(rest);
                 return new ListItemSigil(index, next);
             }
             else {
                 checkState(fieldSepPos == -1 && listStartPos == -1 && listEndPos == -1);
-                return new MapEntrySigil(str, new TerminalSigil());
+                if (!str.isEmpty()) {
+                    return new MapEntrySigil(str, new TerminalSigil());
+                }
+                else {
+                    return new TerminalSigil();
+                }
             }
         }
     }
@@ -402,12 +442,12 @@ public class Configs
         public int compareTo(Sigil o)
         {
             checkNotNull(o);
-            if (getClass() != o.getClass()) {
-                return getClass().getName().compareTo(o.getClass().getName());
+            if (!getClass().getName().equals(o.getClass().getName())) {
+                return clampCmp(getClass().getName().compareTo(o.getClass().getName()));
             }
             ListItemSigil oc = (ListItemSigil) o;
             if (index != oc.index) {
-                return Integer.compare(index, oc.index);
+                return clampCmp(Integer.compare(index, oc.index));
             }
             return next.compareTo(oc.next);
         }
@@ -439,12 +479,12 @@ public class Configs
         public int compareTo(Sigil o)
         {
             checkNotNull(o);
-            if (getClass() != o.getClass()) {
-                return getClass().getName().compareTo(o.getClass().getName());
+            if (!getClass().getName().equals(o.getClass().getName())) {
+                return clampCmp(getClass().getName().compareTo(o.getClass().getName()));
             }
             MapEntrySigil oc = (MapEntrySigil) o;
             if (!key.equals(oc.key)) {
-                return key.compareTo(oc.key);
+                return clampCmp(key.compareTo(oc.key));
             }
             return next.compareTo(oc.next);
         }
@@ -468,10 +508,10 @@ public class Configs
         public int compareTo(Sigil o)
         {
             checkNotNull(o);
-            if (getClass() != o.getClass()) {
-                return getClass().getName().compareTo(o.getClass().getName());
+            if (!getClass().equals(o.getClass().getName())) {
+                return clampCmp(getClass().getName().compareTo(o.getClass().getName()));
             }
-            return -1;
+            return 0;
         }
     }
 

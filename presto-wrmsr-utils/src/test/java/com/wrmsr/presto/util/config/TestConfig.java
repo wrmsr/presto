@@ -22,6 +22,8 @@ import org.testng.annotations.Test;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static org.testng.Assert.assertEquals;
+
 public class TestConfig
 {
     @Test
@@ -242,6 +244,17 @@ public class TestConfig
     public void testUgh()
             throws Throwable
     {
-        Configs.Sigil.parse("thing.other(1).fuck");
+        Configs.Sigil[] s = {
+                Configs.Sigil.parse("thing.other(0).fuck"),
+                Configs.Sigil.parse("thing.other(1).fuck.shit"),
+                Configs.Sigil.parse("thing.other(1).fuck"),
+                Configs.Sigil.parse("thing.other(2).fuck.shit"),
+                Configs.Sigil.parse("x")
+        };
+        for (int i = 0; i < s.length; ++ i) {
+            for (int j = 0; j < s.length; ++j) {
+                assertEquals(s[i].compareTo(s[j]), Configs.clampCmp(Integer.compare(i, j)));
+            }
+        }
     }
 }
