@@ -62,7 +62,6 @@ import com.wrmsr.presto.scripting.ScriptingManager;
 import com.wrmsr.presto.server.ModuleProcessor;
 import com.wrmsr.presto.server.ServerEventManager;
 import com.wrmsr.presto.spi.ServerEvent;
-import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.config.Configs;
 import com.wrmsr.presto.util.config.PrestoConfigs;
@@ -102,7 +101,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static io.airlift.json.JsonCodecBinder.jsonCodecBinder;
-import static java.util.Objects.requireNonNull;
 
 public class MainPlugin
         implements Plugin, ServerEvent.Listener
@@ -114,17 +112,12 @@ public class MainPlugin
     private volatile Injector injector;
 
     private MainOptionalConfig optionalConfig;
+
+    private Injector mainInjector;
     private ConnectorManager connectorManager;
     private TypeRegistry typeRegistry;
-    private NodeManager nodeManager;
     private PluginManager pluginManager;
-    private JsonCodec<ViewDefinition> viewCodec;
     private Metadata metadata;
-    private SqlParser sqlParser;
-    private List<PlanOptimizer> planOptimizers;
-    private FeaturesConfig featuresConfig;
-    private AccessControl accessControl;
-    private BlockEncodingSerde blockEncodingSerde;
     private QueryManager queryManager;
     private SessionPropertyManager sessionPropertyManager;
     private QueryIdGenerator queryIdGenerator;
@@ -142,6 +135,12 @@ public class MainPlugin
     }
 
     @Inject
+    public void setMainInjector(Injector mainInjector)
+    {
+        this.mainInjector = mainInjector;
+    }
+
+    @Inject
     public void setConnectorManager(ConnectorManager connectorManager)
     {
         this.connectorManager = checkNotNull(connectorManager);
@@ -154,57 +153,15 @@ public class MainPlugin
     }
 
     @Inject
-    public void setNodeManager(NodeManager nodeManager)
-    {
-        this.nodeManager = checkNotNull(nodeManager, "nodeManager is null");
-    }
-
-    @Inject
     public void setPluginManager(PluginManager pluginManager)
     {
         this.pluginManager = checkNotNull(pluginManager);
     }
 
     @Inject
-    public void setViewCodec(JsonCodec<ViewDefinition> viewCodec)
-    {
-        this.viewCodec = viewCodec;
-    }
-
-    @Inject
     public void setMetadata(Metadata metadata)
     {
         this.metadata = metadata;
-    }
-
-    @Inject
-    public void setSqlParser(SqlParser sqlParser)
-    {
-        this.sqlParser = sqlParser;
-    }
-
-    @Inject
-    public void setPlanOptimizers(List<PlanOptimizer> planOptimizers)
-    {
-        this.planOptimizers = planOptimizers;
-    }
-
-    @Inject
-    public void setFeaturesConfig(FeaturesConfig featuresConfig)
-    {
-        this.featuresConfig = featuresConfig;
-    }
-
-    @Inject
-    public void setAccessControl(AccessControl accessControl)
-    {
-        this.accessControl = accessControl;
-    }
-
-    @Inject
-    public void setBlockEncodingSerde(BlockEncodingSerde blockEncodingSerde)
-    {
-        this.blockEncodingSerde = requireNonNull(blockEncodingSerde, "blockEncodingSerde is null");
     }
 
     @Inject
@@ -231,6 +188,16 @@ public class MainPlugin
         this.serverEventManager = serverEventManager;
     }
 
+    public static final List<Key> FORWARDED_INJECTIONS = ImmutableList.<Key>of(
+            Key.get(NodeManager.class),
+            Key.get(new TypeLiteral<JsonCodec<ViewDefinition>>() {}),
+            Key.get(SqlParser.class),
+            Key.get(new TypeLiteral<List<PlanOptimizer>>() {}),
+            Key.get(FeaturesConfig.class),
+            Key.get(AccessControl.class),
+            Key.get(BlockEncodingSerde.class)
+    );
+
     private Module buildInjectedModule()
     {
         return new Module()
@@ -242,19 +209,19 @@ public class MainPlugin
                 binder.bind(ConnectorManager.class).toInstance(checkNotNull(connectorManager));
                 binder.bind(TypeRegistry.class).toInstance(checkNotNull(typeRegistry));
                 binder.bind(TypeManager.class).toInstance(checkNotNull(typeRegistry));
-                binder.bind(NodeManager.class).toInstance(checkNotNull(nodeManager));
                 binder.bind(PluginManager.class).toInstance(checkNotNull(pluginManager));
-                binder.bind(new TypeLiteral<JsonCodec<ViewDefinition>>() {}).toInstance(checkNotNull(viewCodec));
                 binder.bind(Metadata.class).toInstance(checkNotNull(metadata));
-                binder.bind(SqlParser.class).toInstance(checkNotNull(sqlParser));
-                binder.bind(new TypeLiteral<List<PlanOptimizer>>() {}).toInstance(checkNotNull(planOptimizers));
-                binder.bind(FeaturesConfig.class).toInstance(checkNotNull(featuresConfig));
-                binder.bind(AccessControl.class).toInstance(checkNotNull(accessControl));
-                binder.bind(BlockEncodingSerde.class).toInstance(checkNotNull(blockEncodingSerde));
+
+                // FIXME kill
                 binder.bind(QueryManager.class).toInstance(checkNotNull(queryManager));
                 binder.bind(SessionPropertyManager.class).toInstance(checkNotNull(sessionPropertyManager));
                 binder.bind(QueryIdGenerator.class).toInstance(checkNotNull(queryIdGenerator));
                 binder.bind(ServerEventManager.class).toInstance(serverEventManager);
+
+                binder.bind(MainInjector.class).toInstance(new MainInjector(mainInjector));
+                for (Key key : FORWARDED_INJECTIONS) {
+                    binder.bind(key).toInstance(mainInjector.getInstance(key));
+                }
             }
         };
     }

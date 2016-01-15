@@ -17,11 +17,14 @@ import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.transaction.LegacyTransactionConnector;
+import com.google.inject.Injector;
+import com.wrmsr.presto.MainInjector;
 import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.spi.connectorSupport.ConnectorSupport;
 import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
 import io.airlift.log.Logger;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 
 import java.util.List;
@@ -36,15 +39,19 @@ public class ConnectorSupportManager
 
     private final CopyOnWriteArrayList<ConnectorSupportFactory> connectorSupportFactories = new CopyOnWriteArrayList<>();
 
+    private final Optional<Injector> mainInjector;
+
     @Inject
     public ConnectorSupportManager(
             Set<ConnectorSupportFactory> connectorSupportFactories,
-            List<Plugin> mainPlugins)
+            List<Plugin> mainPlugins,
+            @Nullable MainInjector mainInjector)
     {
         this.connectorSupportFactories.addAll(connectorSupportFactories);
         for (Plugin plugin : mainPlugins) {
             register(plugin);
         }
+        this.mainInjector = MainInjector.optional(mainInjector);
     }
 
     @Override
@@ -65,9 +72,13 @@ public class ConnectorSupportManager
     private void register(ConnectorSupportFactory connectorSupportFactory)
     {
         log.info("Registering connector support factory %s", connectorSupportFactory);
+        if (mainInjector.isPresent()) {
+            mainInjector.get().injectMembers(connectorSupportFactory);
+        }
         connectorSupportFactories.add(connectorSupportFactory);
     }
 
+    // FIXME cache
     public <T extends ConnectorSupport> Optional<T> getConnectorSupport(Class<T> cls, ConnectorSession connectorSession, Connector connector)
     {
         for (ConnectorSupportFactory f : connectorSupportFactories) {

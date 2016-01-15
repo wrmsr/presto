@@ -21,6 +21,8 @@ import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.kafka.KafkaConnectorSupport;
+import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
 
 import javax.inject.Inject;
 
@@ -71,6 +73,9 @@ public class KafkaPlugin
     {
         if (type == ConnectorFactory.class) {
             return ImmutableList.of(type.cast(new KafkaConnectorFactory(typeManager, nodeManager, tableDescriptionSupplier, optionalConfig)));
+        }
+        else if (type == ConnectorSupportFactory.class) {
+            return ImmutableList.of(type.cast(new ConnectorSupportFactory.LegacyDefault(KafkaConnectorSupport.class, KafkaConnector.class, KafkaConnectorSupport::new)));
         }
         return ImmutableList.of();
     }

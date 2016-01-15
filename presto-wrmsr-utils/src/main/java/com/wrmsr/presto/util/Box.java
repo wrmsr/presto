@@ -13,37 +13,62 @@
  */
 package com.wrmsr.presto.util;
 
-public class Box<T> {
+import javax.annotation.Nullable;
 
+import java.util.Optional;
+
+public class Box<T>
+{
     public final T value;
 
-    public Box(T value) {
+    public Box(T value)
+    {
         this.value = value;
     }
 
-    public T getValue() {
+    public T getValue()
+    {
         return value;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public boolean equals(Object o)
+    {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         Box box = (Box) o;
 
-        if (value != null ? !value.equals(box.value) : box.value != null) return false;
+        if (value != null ? !value.equals(box.value) : box.value != null) {
+            return false;
+        }
 
         return true;
     }
 
     @Override
-    public int hashCode() {
+    public int hashCode()
+    {
         return value != null ? value.hashCode() : 0;
     }
 
     @Override
-    public String toString() {
+    public String toString()
+    {
         return getClass().getSimpleName() + "{value=" + value + '}';
+    }
+
+    public static <T, B extends Box<T>> Optional<T> optional(@Nullable B box)
+    {
+        if (box != null) {
+            return Optional.of(box.getValue());
+        }
+        else {
+            return Optional.empty();
+        }
     }
 }
