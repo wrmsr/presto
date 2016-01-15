@@ -62,6 +62,7 @@
             <scope>test</scope>
         </dependency>
 
+        <!--
         <dependency>
             <groupId>net.spy</groupId>
             <artifactId>spymemcached</artifactId>
@@ -72,6 +73,13 @@
             <artifactId>jmemcached-core</artifactId>
             <version>1.0.0</version>
             <scope>test</scope>
+        </dependency>
+        -->
+
+        <dependency>
+            <groupId>io.reactivex</groupId>
+            <artifactId>rxjava</artifactId>
+            <version>1.1.0</version>
         </dependency>
 
         <dependency>
@@ -145,11 +153,13 @@
             <version>10.11.1.1</version>
         </dependency>
 
+        <!--
         <dependency>
             <groupId>com.turn</groupId>
             <artifactId>ttorrent</artifactId>
             <version>1.4</version>
         </dependency>
+        -->
 
         <dependency>
             <groupId>org.mvel</groupId>
