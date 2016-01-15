@@ -19,9 +19,10 @@ package com.wrmsr.presto.util.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.wrmsr.presto.util.*;
+import com.google.common.collect.Sets;
+import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.codec.Codec;
 import com.wrmsr.presto.util.collect.ImmutableCollectors;
 import org.apache.commons.configuration.Configuration;
@@ -37,12 +38,18 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collector;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -82,12 +89,13 @@ public class Configs
 
     protected static HierarchicalConfiguration toHierarchical(Map<String, String> properties)
     {
-        return toHierarchical(new MapConfiguration(new TreeMap<>(properties)));
+        return toHierarchical(new MapConfiguration(properties));
     }
 
     public static final String IS_LIST_ATTR = "__is_list__";
 
-    protected static class ListAnnotatingHierarchicalConfiguration extends HierarchicalConfiguration
+    protected static class ListAnnotatingHierarchicalConfiguration
+            extends HierarchicalConfiguration
     {
         public ListAnnotatingHierarchicalConfiguration()
         {
@@ -172,7 +180,6 @@ public class Configs
             */
         }
 
-
         private ConfigurationNode processNodeAddData(NodeAddData data)
         {
             ConfigurationNode node = data.getParent();
@@ -194,7 +201,6 @@ public class Configs
             }
             return child;
         }
-
     }
 
     protected static HierarchicalConfiguration toHierarchical(Configuration conf)
@@ -316,6 +322,7 @@ public class Configs
     public static final String FIELD_SEPERATOR = ".";
 
     protected static abstract class Sigil
+        implements Comparable<Sigil>
     {
         public String render()
         {
@@ -325,9 +332,50 @@ public class Configs
         }
 
         public abstract void render(StringBuilder sb);
+
+        public static Sigil parse(String str)
+        {
+            int fieldSepPos = str.indexOf(FIELD_SEPERATOR);
+            int listStartPos = str.indexOf(LIST_START);
+            int listEndPos = str.indexOf(LIST_END);
+
+            if (fieldSepPos == 0 && listStartPos == 1) {
+                int index = Integer.parseInt(str.substring(2, listEndPos));
+                String rest = str.substring(listEndPos);
+                Sigil next = Sigil.parse(rest);
+                return new ListItemSigil(index, next);
+            }
+            else if (fieldSepPos >= 0 && (listStartPos < 0 || fieldSepPos < listStartPos)) {
+                String key = str.substring(0, fieldSepPos);
+                checkState(!key.isEmpty());
+                String rest = str.substring(fieldSepPos + 1);
+                Sigil next = Sigil.parse(rest);
+                return new MapEntrySigil(key, next);
+            }
+            else if (listStartPos > 0) {
+                String key = str.substring(0, listStartPos);
+                checkState(!key.isEmpty());
+                String rest = str.substring(listStartPos);
+                Sigil next = Sigil.parse(rest);
+                return new MapEntrySigil(key, next);
+            }
+            else if (listStartPos == 0) {
+                checkState(listEndPos > 1);
+                checkState(fieldSepPos == listEndPos + 1);
+                int index = Integer.parseInt(str.substring(1, listEndPos));
+                String rest = str.substring(listEndPos + 2);
+                Sigil next = Sigil.parse(rest);
+                return new ListItemSigil(index, next);
+            }
+            else {
+                checkState(fieldSepPos == -1 && listStartPos == -1 && listEndPos == -1);
+                return new MapEntrySigil(str, new TerminalSigil());
+            }
+        }
     }
 
-    protected static final class ListItemSigil extends Sigil
+    protected static final class ListItemSigil
+            extends Sigil
     {
         private final int index;
         private final Sigil next;
@@ -335,7 +383,7 @@ public class Configs
         public ListItemSigil(int index, Sigil next)
         {
             this.index = index;
-            this.next = next;
+            this.next = checkNotNull(next);
         }
 
         @Override
@@ -349,17 +397,32 @@ public class Configs
             }
             next.render(sb);
         }
+
+        @Override
+        public int compareTo(Sigil o)
+        {
+            checkNotNull(o);
+            if (getClass() != o.getClass()) {
+                return getClass().getName().compareTo(o.getClass().getName());
+            }
+            ListItemSigil oc = (ListItemSigil) o;
+            if (index != oc.index) {
+                return Integer.compare(index, oc.index);
+            }
+            return next.compareTo(oc.next);
+        }
     }
 
-    protected static final class MapEntrySigil extends Sigil
+    protected static final class MapEntrySigil
+            extends Sigil
     {
         private final String key;
         private final Sigil next;
 
         public MapEntrySigil(String key, Sigil next)
         {
-            this.key = key;
-            this.next = next;
+            this.key = checkNotNull(key);
+            this.next = checkNotNull(next);
         }
 
         @Override
@@ -371,9 +434,24 @@ public class Configs
             }
             next.render(sb);
         }
+
+        @Override
+        public int compareTo(Sigil o)
+        {
+            checkNotNull(o);
+            if (getClass() != o.getClass()) {
+                return getClass().getName().compareTo(o.getClass().getName());
+            }
+            MapEntrySigil oc = (MapEntrySigil) o;
+            if (!key.equals(oc.key)) {
+                return key.compareTo(oc.key);
+            }
+            return next.compareTo(oc.next);
+        }
     }
 
-    protected static final class TerminalSigil extends Sigil
+    protected static final class TerminalSigil
+            extends Sigil
     {
         private TerminalSigil()
         {
@@ -385,13 +463,23 @@ public class Configs
         public void render(StringBuilder sb)
         {
         }
+
+        @Override
+        public int compareTo(Sigil o)
+        {
+            checkNotNull(o);
+            if (getClass() != o.getClass()) {
+                return getClass().getName().compareTo(o.getClass().getName());
+            }
+            return -1;
+        }
     }
 
     protected static Map<Sigil, String> flattenList(List<?> list)
     {
         return IntStream.range(0, list.size()).boxed()
                 .flatMap(i -> flattenValues(list.get(i)).entrySet().stream()
-                            .map(e -> ImmutablePair.of(new ListItemSigil(i, e.getKey()), e.getValue())))
+                        .map(e -> ImmutablePair.of(new ListItemSigil(i, e.getKey()), e.getValue())))
                 .collect(toLinkedHashMap(e -> e.getKey(), e -> e.getValue()));
     }
 
@@ -503,7 +591,8 @@ public class Configs
             hc -> flatten(Configs.unpackHierarchical(hc)),
             m -> toHierarchical(m));
 
-    public static final class ObjectConfigCodec implements Codec<Object, HierarchicalConfiguration>
+    public static final class ObjectConfigCodec
+            implements Codec<Object, HierarchicalConfiguration>
     {
         @Override
         public HierarchicalConfiguration encode(Object data)
@@ -531,6 +620,8 @@ public class Configs
     }
 
     public static final ObjectConfigCodec OBJECT_CONFIG_CODEC = new ObjectConfigCodec();
+
+    public static final Codec<Object, Map<String, String>> OBJECT_PROPERTIES_CODEC = Codec.compose(OBJECT_CONFIG_CODEC, CONFIG_PROPERTIES_CODEC);
 
     protected static class ListPreservingDefaultConfigurationKey
     {
@@ -724,10 +815,11 @@ public class Configs
 
         private String escapeDelimiters(String key)
         {
-            return (getExpressionEngine().getEscapedDelimiter() == null || key .indexOf(getExpressionEngine().getPropertyDelimiter()) < 0) ? key : StringUtils.replace(key, getExpressionEngine().getPropertyDelimiter(), getExpressionEngine().getEscapedDelimiter());
+            return (getExpressionEngine().getEscapedDelimiter() == null || key.indexOf(getExpressionEngine().getPropertyDelimiter()) < 0) ? key : StringUtils.replace(key, getExpressionEngine().getPropertyDelimiter(), getExpressionEngine().getEscapedDelimiter());
         }
 
-        public class KeyIterator implements Iterator<Object>, Cloneable
+        public class KeyIterator
+                implements Iterator<Object>, Cloneable
         {
             private String current;
             private int startIndex;
@@ -926,7 +1018,7 @@ public class Configs
                 try {
                     int idx = key.lastIndexOf(getExpressionEngine().getIndexStart());
                     if (idx >= 0) {
-                        int endidx = key.indexOf(getExpressionEngine().getIndexEnd(),idx);
+                        int endidx = key.indexOf(getExpressionEngine().getIndexEnd(), idx);
 
                         if (endidx > idx + 1) {
                             indexValue = Integer.parseInt(key.substring(idx + 1, endidx));
@@ -949,7 +1041,8 @@ public class Configs
         }
     }
 
-    protected static class ListPreservingDefaultExpressionEngine implements ExpressionEngine
+    protected static class ListPreservingDefaultExpressionEngine
+            implements ExpressionEngine
     {
         /*
         public static class Key
@@ -1067,7 +1160,8 @@ public class Configs
             }
         }
 
-        public static class NodeAddData extends org.apache.commons.configuration.tree.NodeAddData
+        public static class NodeAddData
+                extends org.apache.commons.configuration.tree.NodeAddData
         {
             private List<String> listAttributes;
 

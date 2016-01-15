@@ -11,17 +11,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.util;
+package com.wrmsr.presto.util.config;
 
-import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.util.Files;
+import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.Configs;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.testng.annotations.Test;
 
 import java.util.Map;
 import java.util.TreeMap;
-
-import static com.google.common.collect.Maps.newHashMap;
 
 public class TestConfig
 {
@@ -237,5 +236,12 @@ public class TestConfig
         HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(map);
         Object obj = Configs.OBJECT_CONFIG_CODEC.decode(hierarchicalConfig);
         System.out.println(obj);
+    }
+
+    @Test
+    public void testUgh()
+            throws Throwable
+    {
+        Configs.Sigil.parse("thing.other(1).fuck");
     }
 }

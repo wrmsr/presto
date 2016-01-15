@@ -16,6 +16,16 @@ package com.wrmsr.presto.util.codec;
 public interface Codec<F, T>
         extends Encoder<F, T>, Decoder<F, T>
 {
+    default F roundTrip(F obj)
+    {
+        return decode(encode(obj));
+    }
+
+    default T reverseRoundTrip(T obj)
+    {
+        return encode(decode(obj));
+    }
+
     static <F, T> Codec<F, T> of(Encoder<F, T> encoder, Decoder<F, T> decoder)
     {
         return new Codec<F, T>()
