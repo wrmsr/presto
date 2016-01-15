@@ -13,8 +13,6 @@
  */
 package com.wrmsr.presto.launcher.cluster;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.leacox.process.FinalizedProcess;
@@ -22,18 +20,13 @@ import com.leacox.process.FinalizedProcessBuilder;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.wrmsr.presto.util.Shell.shellEscape;
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
-public class SshRemoteRunner
-        extends RemoteRunner
+public class SshShellRunner
+        extends ShellRunner
 {
     private List<String> buildTargetArgs(Target target)
     {
@@ -49,7 +42,7 @@ public class SshRemoteRunner
 
     private final long timeout;
 
-    public SshRemoteRunner(long timeout)
+    public SshShellRunner(long timeout)
     {
         this.timeout = timeout;
     }
@@ -82,95 +75,28 @@ public class SshRemoteRunner
         }
     }
 
-//    public void syncDirectoriesRsync(Target target, File local, String remote)
-//    {
-//        checkArgument(!remote.contains("..") && !remote.startsWith("/"));
-//        ImmutableList.Builder<String> builder = ImmutableList.builder();
-//        builder.add("rsync", "-r");
-//        builder.addAll(buildTargetArgs(target));
-//        builder.add(local.getAbsolutePath());
-//        builder.add(String.format("%s@%s:%s", target.getUser(), target.getHost(), remote));
-//
-//        FinalizedProcessBuilder pb = new FinalizedProcessBuilder(builder.build())
-//                .gobbleInputStream(true)
-//                .gobbleErrorStream(true);
-//        try (FinalizedProcess process = pb.start()) {
-//            if (process.waitFor(timeout) != 0) {
-//                throw new RuntimeException("Failed to send file");
-//            }
-//        }
-//        catch (InterruptedException e) {
-//            Thread.currentThread().interrupt();
-//            throw new IllegalStateException();
-//        }
-//        catch (IOException e) {
-//            throw Throwables.propagate(e);
-//        }
-//    }
-
     @Override
     public void syncDirectories(Target target, File local, String remote)
     {
         syncDirectoriesScp(target, local, remote);
     }
 
-    private List<String> buildRunCommandArgs(Target target, String command, String... args)
+    @Override
+    protected List<String> buildRunCommandArgs(Target target, String command, String... args)
     {
         ImmutableList.Builder<String> builder = ImmutableList.builder();
         builder.add("ssh", "-t");
         builder.add("-p", Integer.toString(target.getPort()));
         builder.add(String.format("%s@%s", target.getUser(), target.getHost()));
         builder.addAll(buildTargetArgs(target));
-        if (!Strings.isNullOrEmpty(target.getRoot())) {
-            String escapedCommand = Joiner.on(' ').join(Stream.concat(Stream.of(command), Stream.of(args)).map(s -> shellEscape(s)).collect(toImmutableList()));
-            builder.add(Joiner.on(' ').join("cd", shellEscape(target.getRoot()), "&&", escapedCommand));
-        }
-        else {
-            builder.add(command);
-            builder.addAll(Arrays.asList(args));
-        }
+        builder.addAll(buildTrailingRunCommandArgs(target, command, args));
         return builder.build();
-    }
-
-    @Override
-    public int runCommand(Target target, String command, String... args)
-    {
-        FinalizedProcessBuilder pb = new FinalizedProcessBuilder(buildRunCommandArgs(target, command, args))
-                .gobbleInputStream(true)
-                .gobbleErrorStream(true);
-        try (FinalizedProcess process = pb.start()) {
-            return process.waitFor(timeout);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException();
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
-    @Override
-    public int runCommand(Handler handler, Target target, String command, String... args)
-    {
-        FinalizedProcessBuilder pb = new FinalizedProcessBuilder(buildRunCommandArgs(target, command, args));
-        try (FinalizedProcess process = pb.start()) {
-            handler.handle(process.getOutputStream(), process.getInputStream(), process.getErrorStream());
-            return process.waitFor(timeout);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException();
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
     }
 
     public static void main(String[] args)
             throws Throwable
     {
-        new SshRemoteRunner(60 * 1000)
+        new SshShellRunner(60 * 1000)
                 .runCommand(
                         new Target(
                                 "dev8-devc",

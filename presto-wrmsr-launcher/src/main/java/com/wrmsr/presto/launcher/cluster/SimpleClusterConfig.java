@@ -26,18 +26,18 @@ public class SimpleClusterConfig
 {
     public static final class Node
     {
-        private RemoteRunner.Target target;
+        private ShellRunner.Target target;
         private Path root;
         private int port;
         private List config = ImmutableList.of();
 
-        public RemoteRunner.Target getTarget()
+        public ShellRunner.Target getTarget()
         {
             return target;
         }
 
         @JsonProperty("target")
-        public void setTarget(RemoteRunner.Target target)
+        public void setTarget(ShellRunner.Target target)
         {
             this.target = target;
         }

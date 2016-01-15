@@ -3,3 +3,33 @@ stop
 bootstrap
 sync
 status
+
+
+
+
+//    public void syncDirectoriesRsync(Target target, File local, String remote)
+//    {
+//        checkArgument(!remote.contains("..") && !remote.startsWith("/"));
+//        ImmutableList.Builder<String> builder = ImmutableList.builder();
+//        builder.add("rsync", "-r");
+//        builder.addAll(buildTargetArgs(target));
+//        builder.add(local.getAbsolutePath());
+//        builder.add(String.format("%s@%s:%s", target.getUser(), target.getHost(), remote));
+//
+//        FinalizedProcessBuilder pb = new FinalizedProcessBuilder(builder.build())
+//                .gobbleInputStream(true)
+//                .gobbleErrorStream(true);
+//        try (FinalizedProcess process = pb.start()) {
+//            if (process.waitFor(timeout) != 0) {
+//                throw new RuntimeException("Failed to send file");
+//            }
+//        }
+//        catch (InterruptedException e) {
+//            Thread.currentThread().interrupt();
+//            throw new IllegalStateException();
+//        }
+//        catch (IOException e) {
+//            throw Throwables.propagate(e);
+//        }
+//    }
+

@@ -24,13 +24,13 @@ public class SimpleCluster
 {
 
     protected final SimpleClusterConfig config;
-    protected final RemoteRunner remoteRunner;
+    protected final ShellRunner shellRunner;
     protected final SimpleClusterConfig.Node masterNode;
 
-    public SimpleCluster(SimpleClusterConfig config, RemoteRunner remoteRunner)
+    public SimpleCluster(SimpleClusterConfig config, ShellRunner shellRunner)
     {
         this.config = config;
-        this.remoteRunner = remoteRunner;
+        this.shellRunner = shellRunner;
         masterNode = config.getNodes().get(checkNotNull(config.getMaster()));
     }
 
