@@ -20,6 +20,7 @@ import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.InterleavedBlockBuilder;
 import com.facebook.presto.spi.type.AbstractType;
+import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeSignature;
 import com.google.common.collect.ImmutableList;
@@ -44,7 +45,7 @@ public class MapType
 
     public MapType(Type keyType, Type valueType)
     {
-        this(parameterizedTypeName("map", keyType.getTypeSignature(), valueType.getTypeSignature()), keyType, valueType);
+        this(parameterizedTypeName(StandardTypes.MAP, keyType.getTypeSignature(), valueType.getTypeSignature()), keyType, valueType);
     }
 
     public MapType(TypeSignature typeSignature, Type keyType, Type valueType)
