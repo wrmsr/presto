@@ -63,6 +63,7 @@ public class HadoopPlugin
                 HiveConfig.Metastore metastore = e.getValue();
                 if (metastore.isRun()) {
                     Map<String, String> properties = new HashMap<>();
+                    // FIXME hive.metastore.uris=thrift://localhost:9083
                     if (metastore.getDb() instanceof HiveConfig.Metastore.LocalDb) {
                         HiveConfig.Metastore.LocalDb localDb = (HiveConfig.Metastore.LocalDb) metastore.getDb();
                         checkArgument(!Strings.isNullOrEmpty(localDb.getFile()));
