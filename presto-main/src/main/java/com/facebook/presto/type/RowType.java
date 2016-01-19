@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static com.facebook.presto.spi.type.StandardTypes.ROW;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
@@ -47,8 +48,8 @@ public class RowType
 
     public RowType(List<Type> fieldTypes, Optional<List<String>> fieldNames)
     {
-        this(new TypeSignature(
-                        "row",
+        super(new TypeSignature(
+                        ROW,
                         Lists.transform(fieldTypes, Type::getTypeSignature),
                         fieldNames.orElse(ImmutableList.of()).stream()
                                 .collect(toImmutableList())),
