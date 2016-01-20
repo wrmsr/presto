@@ -25,9 +25,9 @@ import java.io.IOException;
 
 public class StreamKeyValUtil
 {
-
     /**
      * Find the first occured tab in a UTF-8 encoded string
+     *
      * @param utf a byte array containing a UTF-8 encoded string
      * @param start starting offset
      * @param length no. of bytes
@@ -45,6 +45,7 @@ public class StreamKeyValUtil
 
     /**
      * Find the first occured tab in a UTF-8 encoded string
+     *
      * @param utf a byte array containing a UTF-8 encoded string
      * @return position that first tab occures otherwise -1
      */
@@ -57,6 +58,7 @@ public class StreamKeyValUtil
     /**
      * split a UTF-8 byte array into key and value
      * assuming that the delimilator is at splitpos.
+     *
      * @param utf utf-8 encoded string
      * @param start starting offset
      * @param length no. of bytes
@@ -84,6 +86,7 @@ public class StreamKeyValUtil
     /**
      * split a UTF-8 byte array into key and value
      * assuming that the delimilator is at splitpos.
+     *
      * @param utf utf-8 encoded string
      * @param start starting offset
      * @param length no. of bytes
@@ -102,6 +105,7 @@ public class StreamKeyValUtil
     /**
      * split a UTF-8 byte array into key and value
      * assuming that the delimilator is at splitpos.
+     *
      * @param utf utf-8 encoded string
      * @param key contains key upon the method is returned
      * @param val contains value upon the method is returned
@@ -119,6 +123,7 @@ public class StreamKeyValUtil
     /**
      * split a UTF-8 byte array into key and value
      * assuming that the delimilator is at splitpos.
+     *
      * @param utf utf-8 encoded string
      * @param key contains key upon the method is returned
      * @param val contains value upon the method is returned
@@ -133,6 +138,7 @@ public class StreamKeyValUtil
 
     /**
      * Read a utf8 encoded line from a data input stream.
+     *
      * @param lineReader LineReader to read the line from.
      * @param out Text to read into
      * @return number of bytes read

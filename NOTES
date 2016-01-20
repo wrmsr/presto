@@ -2,6 +2,12 @@ com.facebook.presto.operator.PagesIndex
 
 
 
+https://github.com/klbostee/feathers/blob/master/src/output/RawFileOutputFormat.java
+
+insert into blah.my_s3."/some/path-%d.json" select *
+
+could just hijack org.apache.hadoop.fs.FileSystem
+ + LocalFileSystem
 
 
 

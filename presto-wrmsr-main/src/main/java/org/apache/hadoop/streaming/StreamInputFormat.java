@@ -33,7 +33,6 @@ import java.lang.reflect.Constructor;
 public class StreamInputFormat
         extends KeyValueTextInputFormat
 {
-
     @SuppressWarnings("unchecked")
     public RecordReader<Text, Text> getRecordReader(final InputSplit genericSplit,
             JobConf job, Reporter reporter)

@@ -18,10 +18,6 @@
 
 package org.apache.hadoop.streaming;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapreduce.MRConfig;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -33,35 +29,6 @@ import java.net.URL;
  */
 public class StreamUtil
 {
-    /**
-     * It may seem strange to silently switch behaviour when a String
-     * is not a classname; the reason is simplified Usage:<pre>
-     * -mapper [classname | program ]
-     * instead of the explicit Usage:
-     * [-mapper program | -javamapper classname], -mapper and -javamapper are mutually exclusive.
-     * (repeat for -reducer, -combiner) </pre>
-     */
-    public static Class goodClassOrNull(Configuration conf, String className, String defaultPackage)
-    {
-        Class clazz = null;
-        try {
-            clazz = conf.getClassByName(className);
-        }
-        catch (ClassNotFoundException cnf) {
-        }
-        if (clazz == null) {
-            if (className.indexOf('.') == -1 && defaultPackage != null) {
-                className = defaultPackage + "." + className;
-                try {
-                    clazz = conf.getClassByName(className);
-                }
-                catch (ClassNotFoundException cnf) {
-                }
-            }
-        }
-        return clazz;
-    }
-
     public static String findInClasspath(String className)
     {
         return findInClasspath(className, StreamUtil.class.getClassLoader());
@@ -195,12 +162,5 @@ public class StreamUtil
             io.printStackTrace();
         }
         return env;
-    }
-
-    public static boolean isLocalJobTracker(JobConf job)
-    {
-        String framework =
-                job.get(MRConfig.FRAMEWORK_NAME, MRConfig.LOCAL_FRAMEWORK_NAME);
-        return framework.equals(MRConfig.LOCAL_FRAMEWORK_NAME);
     }
 }

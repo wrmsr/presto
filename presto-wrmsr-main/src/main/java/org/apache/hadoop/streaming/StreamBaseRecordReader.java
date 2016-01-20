@@ -39,7 +39,6 @@ import java.io.IOException;
 public abstract class StreamBaseRecordReader
         implements RecordReader<Text, Text>
 {
-
     protected static final Log LOG = LogFactory.getLog(StreamBaseRecordReader.class.getName());
 
     // custom JobConf properties for this class are prefixed with this namespace
