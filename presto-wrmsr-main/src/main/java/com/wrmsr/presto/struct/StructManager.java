@@ -32,6 +32,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Maps;
+import com.wrmsr.presto.type.WrapperType;
 import com.wrmsr.presto.util.Box;
 import com.wrmsr.presto.util.CodeGeneration;
 import io.airlift.slice.Slice;
@@ -81,6 +82,7 @@ public class StructManager
 
     public Object boxValue(Type type, Object value, @Nullable ConnectorSession connectorSession)
     {
+        type = WrapperType.stripAnnotations(type);
         String typeName = type.getTypeSignature().getBase();
         if (value == null) {
             return null;

@@ -29,7 +29,7 @@ public abstract class SliceTypeCodec
     @Override
     public <T> Specialization<T, Slice> specialize(Type fromType)
     {
-        return new Specialization<>(specializeCodec(fromType), VarbinaryType.VARBINARY);
+        return new Specialization<>(specializeCodec(fromType), VarbinaryType.VARBINARY, false);
     }
 
     public abstract <T> Codec<T, Slice> specializeCodec(Type fromType);

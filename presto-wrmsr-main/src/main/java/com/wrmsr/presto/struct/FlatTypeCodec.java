@@ -34,6 +34,6 @@ public class FlatTypeCodec
     public <T> Specialization<T, Block> specialize(Type fromType)
     {
         checkArgument(fromType instanceof RowType);  // FIXME
-        return new Specialization(Codec.identity(), fromType);
+        return new Specialization(Codec.identity(), fromType, true);
     }
 }

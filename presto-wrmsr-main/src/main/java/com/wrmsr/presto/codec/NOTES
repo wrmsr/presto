@@ -1,1 +1,7 @@
 SigilTypeCodec - polymorphic javatype fuck.
+
+impl ret type poly (however ghetto) sooner than later
+ max_bigint v max_double? :(
+
+AnnotationType, implicit cast operators down chain
+ max(bigint, 5) -auto-> bigint

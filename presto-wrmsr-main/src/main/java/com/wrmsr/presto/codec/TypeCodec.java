@@ -43,11 +43,13 @@ public abstract class TypeCodec<J>
     {
         private final Codec<T, J> codec;
         private final Type underlyingType;
+        private final boolean isAnnotation;
 
-        public Specialization(Codec<T, J> codec, Type underlyingType)
+        public Specialization(Codec<T, J> codec, Type underlyingType, boolean isAnnotation)
         {
             this.codec = requireNonNull(codec);
             this.underlyingType = requireNonNull(underlyingType);
+            this.isAnnotation = isAnnotation;
         }
 
         public Codec<T, J> getCodec()
@@ -58,6 +60,11 @@ public abstract class TypeCodec<J>
         public Type getUnderlyingType()
         {
             return underlyingType;
+        }
+
+        public boolean isAnnotation()
+        {
+            return isAnnotation;
         }
     }
 
