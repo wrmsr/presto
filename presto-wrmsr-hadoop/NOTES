@@ -9,6 +9,11 @@ https://hadoop.apache.org/docs/r1.2.1/cluster_setup.html
 org.apache.hadoop.hive.conf.HiveConf.ConfVars.*
 
 
+look at java_sort_ranger
+
+https://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/making_api_requests.html
+
+
 https://aws.amazon.com/elasticmapreduce/faqs/
 https://pythonhosted.org/mrjob/guides/emr-opts.html
 https://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/emr-overview-arch.html
