@@ -1,3 +1,9 @@
+https://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/emr-web-interfaces.html
+
+do emr yarn
+
+
+
 https://hadoop.apache.org/docs/r1.2.1/cluster_setup.html
 
 org.apache.hadoop.hive.conf.HiveConf.ConfVars.*

@@ -234,7 +234,9 @@ public class MainPlugin
     public void onServerEvent(ServerEvent event)
     {
         if (event instanceof ServerEvent.MainPluginsLoaded) {
-            Set<ServerEvent.Listener> sels = getInjector().getInstance(Key.get(new TypeLiteral<Set<ServerEvent.Listener>>() {}));
+            final Injector injector = getInjector();
+
+            Set<ServerEvent.Listener> sels = injector.getInstance(Key.get(new TypeLiteral<Set<ServerEvent.Listener>>() {}));
             for (ServerEvent.Listener sel : sels) {
                 serverEventManager.addListener(sel);
             }
@@ -248,43 +250,43 @@ public class MainPlugin
                 }
             }
 
-            Set<Type> ts = getInjector().getInstance(Key.get(new TypeLiteral<Set<Type>>() {}));
+            Set<Type> ts = injector.getInstance(Key.get(new TypeLiteral<Set<Type>>() {}));
             for (Type t : ts) {
                 typeRegistry.addType(t);
             }
 
-            Set<ParametricType> pts = getInjector().getInstance(Key.get(new TypeLiteral<Set<ParametricType>>() {}));
+            Set<ParametricType> pts = injector.getInstance(Key.get(new TypeLiteral<Set<ParametricType>>() {}));
             for (ParametricType pt : pts) {
                 typeRegistry.addParametricType(pt);
             }
 
-            Set<FunctionRegistration> frs = getInjector().getInstance(Key.get(new TypeLiteral<Set<FunctionRegistration>>() {}));
+            Set<FunctionRegistration> frs = injector.getInstance(Key.get(new TypeLiteral<Set<FunctionRegistration>>() {}));
             for (FunctionRegistration fr : frs) {
                 metadata.addFunctions(fr.getFunctions(typeRegistry));
             }
 
-            Set<SqlFunction> sfs = getInjector().getInstance(Key.get(new TypeLiteral<Set<SqlFunction>>() {}));
+            Set<SqlFunction> sfs = injector.getInstance(Key.get(new TypeLiteral<Set<SqlFunction>>() {}));
             for (SqlFunction sf : sfs) {
                 metadata.addFunctions(new FunctionListBuilder(typeRegistry).function(sf).getFunctions());
             }
 
-            Set<ConnectorFactory> cfs = getInjector().getInstance(Key.get(new TypeLiteral<Set<ConnectorFactory>>() {}));
+            Set<ConnectorFactory> cfs = injector.getInstance(Key.get(new TypeLiteral<Set<ConnectorFactory>>() {}));
             for (ConnectorFactory cf : cfs) {
                 connectorManager.addConnectorFactory(cf);
             }
 
-            Set<com.facebook.presto.spi.ConnectorFactory> lcfs = getInjector().getInstance(Key.get(new TypeLiteral<Set<com.facebook.presto.spi.ConnectorFactory>>() {}));
+            Set<com.facebook.presto.spi.ConnectorFactory> lcfs = injector.getInstance(Key.get(new TypeLiteral<Set<com.facebook.presto.spi.ConnectorFactory>>() {}));
             for (com.facebook.presto.spi.ConnectorFactory cf : lcfs) {
                 connectorManager.addConnectorFactory(cf);
             }
 
-            MetaconnectorManager mm = getInjector().getInstance(MetaconnectorManager.class);
+            MetaconnectorManager mm = injector.getInstance(MetaconnectorManager.class);
             for (Map.Entry<String, MetaconnectorsConfig.Entry> e : config.getMergedNode(MetaconnectorsConfig.class)) {
                 mm.addMetaconnector(e.getKey(), e.getValue().getEntries());
             }
 
             // FIXME ugh
-            ScriptingManager scriptingManager = getInjector().getInstance(ScriptingManager.class);
+            ScriptingManager scriptingManager = injector.getInstance(ScriptingManager.class);
             scriptingManager.addConfigScriptings();
         }
 

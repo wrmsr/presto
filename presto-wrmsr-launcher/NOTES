@@ -1,1 +1,142 @@
 https://github.com/dockerfile/java/blob/master/oracle-java8/Dockerfile
+
+
+
+
+use jar manifest classpath, see hadoop
+
+package org.apache.hadoop.fs;
+public class FileUtil
+
+    /**
+     * Create a jar file at the given path, containing a manifest with a classpath
+     * that references all specified entries.
+     *
+     * Some platforms may have an upper limit on command line length.  For example,
+     * the maximum command line length on Windows is 8191 characters, but the
+     * length of the classpath may exceed this.  To work around this limitation,
+     * use this method to create a small intermediate jar with a manifest that
+     * contains the full classpath.  It returns the absolute path to the new jar,
+     * which the caller may set as the classpath for a new process.
+     *
+     * Environment variable evaluation is not supported within a jar manifest, so
+     * this method expands environment variables before inserting classpath entries
+     * to the manifest.  The method parses environment variables according to
+     * platform-specific syntax (%VAR% on Windows, or $VAR otherwise).  On Windows,
+     * environment variables are case-insensitive.  For example, %VAR% and %var%
+     * evaluate to the same value.
+     *
+     * Specifying the classpath in a jar manifest does not support wildcards, so
+     * this method expands wildcards internally.  Any classpath entry that ends
+     * with * is translated to all files at that path with extension .jar or .JAR.
+     *
+     * @param inputClassPath String input classpath to bundle into the jar manifest
+     * @param pwd Path to working directory to save jar
+     * @param targetDir path to where the jar execution will have its working dir
+     * @param callerEnv Map<String, String> caller's environment variables to use
+     *   for expansion
+     * @return String[] with absolute path to new jar in position 0 and
+     *   unexpanded wild card entry path in position 1
+     * @throws IOException if there is an I/O error while writing the jar file
+     */
+    public static String[] createJarWithClassPath(String inputClassPath, Path pwd,
+            Path targetDir,
+            Map<String, String> callerEnv)
+            throws IOException
+    {
+        // Replace environment variables, case-insensitive on Windows
+        @SuppressWarnings("unchecked")
+        Map<String, String> env = Shell.WINDOWS ? new CaseInsensitiveMap(callerEnv) :
+                callerEnv;
+        String[] classPathEntries = inputClassPath.split(File.pathSeparator);
+        for (int i = 0; i < classPathEntries.length; ++i) {
+            classPathEntries[i] = StringUtils.replaceTokens(classPathEntries[i],
+                    StringUtils.ENV_VAR_PATTERN, env);
+        }
+        File workingDir = new File(pwd.toString());
+        if (!workingDir.mkdirs()) {
+            // If mkdirs returns false because the working directory already exists,
+            // then this is acceptable.  If it returns false due to some other I/O
+            // error, then this method will fail later with an IOException while saving
+            // the jar.
+            LOG.debug("mkdirs false for " + workingDir + ", execution will continue");
+        }
+
+        StringBuilder unexpandedWildcardClasspath = new StringBuilder();
+        // Append all entries
+        List<String> classPathEntryList = new ArrayList<String>(
+                classPathEntries.length);
+        for (String classPathEntry : classPathEntries) {
+            if (classPathEntry.length() == 0) {
+                continue;
+            }
+            if (classPathEntry.endsWith("*")) {
+                boolean foundWildCardJar = false;
+                // Append all jars that match the wildcard
+                Path globPath = new Path(classPathEntry).suffix("{.jar,.JAR}");
+                FileStatus[] wildcardJars = FileContext.getLocalFSFileContext().util()
+                        .globStatus(globPath);
+                if (wildcardJars != null) {
+                    for (FileStatus wildcardJar : wildcardJars) {
+                        foundWildCardJar = true;
+                        classPathEntryList.add(wildcardJar.getPath().toUri().toURL()
+                                .toExternalForm());
+                    }
+                }
+                if (!foundWildCardJar) {
+                    unexpandedWildcardClasspath.append(File.pathSeparator);
+                    unexpandedWildcardClasspath.append(classPathEntry);
+                }
+            }
+            else {
+                // Append just this entry
+                File fileCpEntry = null;
+                if (!new Path(classPathEntry).isAbsolute()) {
+                    fileCpEntry = new File(targetDir.toString(), classPathEntry);
+                }
+                else {
+                    fileCpEntry = new File(classPathEntry);
+                }
+                String classPathEntryUrl = fileCpEntry.toURI().toURL()
+                        .toExternalForm();
+
+                // File.toURI only appends trailing '/' if it can determine that it is a
+                // directory that already exists.  (See JavaDocs.)  If this entry had a
+                // trailing '/' specified by the caller, then guarantee that the
+                // classpath entry in the manifest has a trailing '/', and thus refers to
+                // a directory instead of a file.  This can happen if the caller is
+                // creating a classpath jar referencing a directory that hasn't been
+                // created yet, but will definitely be created before running.
+                if (classPathEntry.endsWith(Path.SEPARATOR) &&
+                        !classPathEntryUrl.endsWith(Path.SEPARATOR)) {
+                    classPathEntryUrl = classPathEntryUrl + Path.SEPARATOR;
+                }
+                classPathEntryList.add(classPathEntryUrl);
+            }
+        }
+        String jarClassPath = StringUtils.join(" ", classPathEntryList);
+
+        // Create the manifest
+        Manifest jarManifest = new Manifest();
+        jarManifest.getMainAttributes().putValue(
+                Attributes.Name.MANIFEST_VERSION.toString(), "1.0");
+        jarManifest.getMainAttributes().putValue(
+                Attributes.Name.CLASS_PATH.toString(), jarClassPath);
+
+        // Write the manifest to output JAR file
+        File classPathJar = File.createTempFile("classpath-", ".jar", workingDir);
+        FileOutputStream fos = null;
+        BufferedOutputStream bos = null;
+        JarOutputStream jos = null;
+        try {
+            fos = new FileOutputStream(classPathJar);
+            bos = new BufferedOutputStream(fos);
+            jos = new JarOutputStream(bos, jarManifest);
+        }
+        finally {
+            IOUtils.cleanup(LOG, jos, bos, fos);
+        }
+        String[] jarCp = {classPathJar.getCanonicalPath(),
+                          unexpandedWildcardClasspath.toString()};
+        return jarCp;
+    }
