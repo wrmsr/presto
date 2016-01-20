@@ -22,24 +22,26 @@ import com.facebook.presto.cassandra.CassandraRecordSetProvider;
 import com.facebook.presto.cassandra.CassandraSplit;
 import com.facebook.presto.cassandra.CassandraSplitManager;
 import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.Connector;
 import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
-import com.facebook.presto.spi.ConnectorMetadata;
 import com.facebook.presto.spi.ConnectorPartitionResult;
-import com.facebook.presto.spi.ConnectorRecordSetProvider;
-import com.facebook.presto.spi.ConnectorRecordSinkProvider;
 import com.facebook.presto.spi.ConnectorSplit;
-import com.facebook.presto.spi.ConnectorSplitManager;
 import com.facebook.presto.spi.ConnectorSplitSource;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.ConnectorTableMetadata;
 import com.facebook.presto.spi.RecordCursor;
 import com.facebook.presto.spi.RecordSink;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.connector.Connector;
+import com.facebook.presto.spi.connector.ConnectorMetadata;
+import com.facebook.presto.spi.connector.ConnectorRecordSetProvider;
+import com.facebook.presto.spi.connector.ConnectorRecordSinkProvider;
+import com.facebook.presto.spi.connector.ConnectorSplitManager;
+import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.predicate.Domain;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.predicate.ValueSet;
+import com.facebook.presto.spi.transaction.IsolationLevel;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.airlift.slice.Slices;
@@ -75,6 +77,7 @@ public class TestConnectorMap
     protected SchemaTableName table;
     protected SchemaTableName tableUnpartitioned;
     protected SchemaTableName invalidTable;
+    private Connector connector;
     private ConnectorMetadata metadata;
     private ConnectorSplitManager splitManager;
     private ConnectorRecordSetProvider recordSetProvider;
@@ -93,12 +96,14 @@ public class TestConnectorMap
                 connectorId,
                 ImmutableMap.<String, String>of());
 
-        Connector connector = connectorFactory.create(connectorId, ImmutableMap.of(
+        connector = connectorFactory.create(connectorId, ImmutableMap.of(
                 "cassandra.contact-points", HOSTNAME,
                 "cassandra.native-protocol-port", Integer.toString(PORT)));
 
-        metadata = connector.getMetadata();
+        ConnectorTransactionHandle cth = connector.beginTransaction(IsolationLevel.READ_COMMITTED, false);
+        metadata = connector.getMetadata(cth);
         assertInstanceOf(metadata, CassandraMetadata.class);
+        connector.rollback(cth);
 
         splitManager = connector.getSplitManager();
         assertInstanceOf(splitManager, CassandraSplitManager.class);
@@ -128,13 +133,15 @@ public class TestConnectorMap
     private void testGetRow()
             throws Exception
     {
+        ConnectorTransactionHandle cth = connector.beginTransaction(IsolationLevel.READ_COMMITTED, false);
+
         ConnectorTableHandle tableHandle = getTableHandle(table);
         ConnectorTableMetadata tableMetadata = metadata.getTableMetadata(SESSION, tableHandle);
         List<ColumnHandle> columnHandles = ImmutableList.copyOf(metadata.getColumnHandles(SESSION, tableHandle).values());
         Map<String, Integer> columnIndex = indexColumns(columnHandles);
 
         ConnectorInsertTableHandle insertTableHandle = metadata.beginInsert(SESSION, tableHandle);
-        RecordSink recordSink = recordSinkProvider.getRecordSink(SESSION, insertTableHandle);
+        RecordSink recordSink = recordSinkProvider.getRecordSink(cth, SESSION, insertTableHandle);
         recordSink.beginRecord(1);
         recordSink.appendString("key 33".getBytes());
         for (int i = 0; i < 4; ++i) {
@@ -157,12 +164,12 @@ public class TestConnectorMap
 //                        columnHandles.get(columnIndex.get("key")),
 //                        NullableValue.of(VARCHAR, Slices.wrappedBuffer(targetKey.getBytes()))));
 
-        ConnectorPartitionResult partitionResult = splitManager.getPartitions(SESSION, tableHandle, td);
-        List<ConnectorSplit> splits = getAllSplits(splitManager.getPartitionSplits(SESSION, tableHandle, partitionResult.getPartitions()));
+        ConnectorPartitionResult partitionResult = splitManager.getPartitions(cth, SESSION, tableHandle, td);
+        List<ConnectorSplit> splits = getAllSplits(splitManager.getPartitionSplits(cth, SESSION, tableHandle, partitionResult.getPartitions()));
 
         for (ConnectorSplit split : splits) {
             CassandraSplit cassandraSplit = (CassandraSplit) split;
-            try (RecordCursor cursor = recordSetProvider.getRecordSet(SESSION, cassandraSplit, columnHandles).cursor()) {
+            try (RecordCursor cursor = recordSetProvider.getRecordSet(cth, SESSION, cassandraSplit, columnHandles).cursor()) {
                 while (cursor.advanceNextPosition()) {
                     String keyValue = cursor.getSlice(columnIndex.get("key")).toStringUtf8();
                     assertTrue(keyValue.startsWith("key "));
@@ -170,6 +177,8 @@ public class TestConnectorMap
                 }
             }
         }
+
+        connector.rollback(cth);
     }
 
     private ConnectorTableHandle getTableHandle(SchemaTableName tableName)
