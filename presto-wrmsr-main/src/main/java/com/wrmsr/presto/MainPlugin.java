@@ -13,11 +13,8 @@
  */
 package com.wrmsr.presto;
 
-import com.facebook.presto.Session;
 import com.facebook.presto.connector.ConnectorManager;
-import com.facebook.presto.execution.QueryId;
 import com.facebook.presto.execution.QueryIdGenerator;
-import com.facebook.presto.execution.QueryInfo;
 import com.facebook.presto.execution.QueryManager;
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
@@ -31,7 +28,6 @@ import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.connector.ConnectorFactory;
-import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
@@ -49,10 +45,8 @@ import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
 import com.google.inject.util.Modules;
-import com.wrmsr.presto.config.Config;
 import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.config.ConnectorsConfig;
-import com.wrmsr.presto.config.ExecConfig;
 import com.wrmsr.presto.config.MetaconnectorsConfig;
 import com.wrmsr.presto.config.PluginsConfig;
 import com.wrmsr.presto.config.PrestoConfig;
@@ -68,7 +62,6 @@ import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.bootstrap.Bootstrap;
 import io.airlift.json.JsonCodec;
 import io.airlift.log.Logger;
-import io.airlift.units.Duration;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -86,13 +79,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
@@ -118,9 +109,6 @@ public class MainPlugin
     private TypeRegistry typeRegistry;
     private PluginManager pluginManager;
     private Metadata metadata;
-    private QueryManager queryManager;
-    private SessionPropertyManager sessionPropertyManager;
-    private QueryIdGenerator queryIdGenerator;
     private ServerEventManager serverEventManager;
 
     public MainPlugin()
@@ -165,24 +153,6 @@ public class MainPlugin
     }
 
     @Inject
-    public void setQueryManager(QueryManager queryManager)
-    {
-        this.queryManager = queryManager;
-    }
-
-    @Inject
-    public void setSessionPropertyManager(SessionPropertyManager sessionPropertyManager)
-    {
-        this.sessionPropertyManager = sessionPropertyManager;
-    }
-
-    @Inject
-    public void setQueryIdGenerator(QueryIdGenerator queryIdGenerator)
-    {
-        this.queryIdGenerator = queryIdGenerator;
-    }
-
-    @Inject
     public void setServerEventManager(ServerEventManager serverEventManager)
     {
         this.serverEventManager = serverEventManager;
@@ -195,7 +165,10 @@ public class MainPlugin
             Key.get(new TypeLiteral<List<PlanOptimizer>>() {}),
             Key.get(FeaturesConfig.class),
             Key.get(AccessControl.class),
-            Key.get(BlockEncodingSerde.class)
+            Key.get(BlockEncodingSerde.class),
+            Key.get(QueryManager.class),
+            Key.get(SessionPropertyManager.class),
+            Key.get(QueryIdGenerator.class)
     );
 
     private Module buildInjectedModule()
@@ -211,12 +184,7 @@ public class MainPlugin
                 binder.bind(TypeManager.class).toInstance(checkNotNull(typeRegistry));
                 binder.bind(PluginManager.class).toInstance(checkNotNull(pluginManager));
                 binder.bind(Metadata.class).toInstance(checkNotNull(metadata));
-
-                // FIXME kill
-                binder.bind(QueryManager.class).toInstance(checkNotNull(queryManager));
-                binder.bind(SessionPropertyManager.class).toInstance(checkNotNull(sessionPropertyManager));
-                binder.bind(QueryIdGenerator.class).toInstance(checkNotNull(queryIdGenerator));
-                binder.bind(ServerEventManager.class).toInstance(serverEventManager);
+                binder.bind(ServerEventManager.class).toInstance(checkNotNull(serverEventManager));
 
                 binder.bind(MainInjector.class).toInstance(new MainInjector(mainInjector));
                 for (Key key : FORWARDED_INJECTIONS) {
@@ -338,66 +306,6 @@ public class MainPlugin
                 log.info(String.format("Loading connector: %s", targetConnectorName));
                 connectorManager.createConnection(targetName, targetConnectorName, connProps);
                 checkNotNull(connectorManager.getConnectors().get(targetName));
-            }
-        }
-
-        else if (event instanceof ServerEvent.MainDataSourcesLoaded) {
-            for (Config node : config.getNodes()) {
-                if (node instanceof ExecConfig) {
-                    for (ExecConfig.Subject subject : ((ExecConfig) node).getSubjects().getSubjects()) {
-                        if (subject instanceof ExecConfig.SqlSubject) {
-                            for (ExecConfig.Verb verb : ((ExecConfig.SqlSubject) subject).getVerbs().getVerbs()) {
-                                ImmutableList.Builder<String> builder = ImmutableList.builder();
-                                if (verb instanceof ExecConfig.StringVerb) {
-                                    builder.add(((ExecConfig.StringVerb) verb).getStatement());
-                                }
-                                else if (verb instanceof ExecConfig.FileVerb) {
-                                    File file = new File(((ExecConfig.FileVerb) verb).getPath());
-                                    byte[] b = new byte[(int) file.length()];
-                                    try (FileInputStream fis = new FileInputStream(file)) {
-                                        fis.read(b);
-                                    }
-                                    catch (IOException e) {
-                                        throw Throwables.propagate(e);
-                                    }
-                                    builder.add(new String(b));
-                                }
-                                else {
-                                    throw new IllegalArgumentException();
-                                }
-                                for (String s : builder.build()) {
-                                    QueryId queryId = queryIdGenerator.createNextQueryId();
-                                    Session session = Session.builder(sessionPropertyManager)
-                                            .setQueryId(queryId)
-                                            .setIdentity(new Identity("system", Optional.<Principal>empty()))
-                                            .build();
-                                    QueryInfo qi = queryManager.createQuery(session, s);
-
-                                    while (!qi.getState().isDone()) {
-                                        try {
-                                            queryManager.waitForStateChange(qi.getQueryId(), qi.getState(), new Duration(10, TimeUnit.MINUTES));
-                                            qi = queryManager.getQueryInfo(qi.getQueryId());
-                                        }
-                                        catch (InterruptedException e) {
-                                            Thread.currentThread().interrupt();
-                                            ;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        else if (subject instanceof ExecConfig.ConnectorSubject) {
-
-                        }
-                        else if (subject instanceof ExecConfig.ScriptSubject) {
-
-                        }
-                        else {
-                            throw new IllegalArgumentException();
-                        }
-                    }
-                }
             }
         }
     }

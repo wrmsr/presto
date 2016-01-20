@@ -11,13 +11,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.function;
+package com.wrmsr.presto.eval;
 
 import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.connector.Connector;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.connectorSupport.ConnectorSupportManager;
+import com.wrmsr.presto.function.StringVarargsFunction;
 import com.wrmsr.presto.spi.connectorSupport.EvalConnectorSupport;
 import com.wrmsr.presto.util.jdbc.ScriptRunner;
 import io.airlift.slice.Slice;
@@ -28,14 +29,14 @@ import javax.inject.Inject;
 import java.io.StringReader;
 import java.lang.invoke.MethodHandle;
 
-public class ConnectorExecFunction
+public class ExecFunction
         extends StringVarargsFunction
 {
     private final ConnectorManager connectorManager;
     private final ConnectorSupportManager connectorSupportManager;
 
     @Inject
-    public ConnectorExecFunction(ConnectorManager connectorManager, ConnectorSupportManager connectorSupportManager)
+    public ExecFunction(ConnectorManager connectorManager, ConnectorSupportManager connectorSupportManager)
     {
         super(
                 "connector_exec",

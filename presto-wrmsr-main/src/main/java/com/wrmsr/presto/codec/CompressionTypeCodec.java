@@ -39,7 +39,7 @@ public class CompressionTypeCodec
 
     @SuppressWarnings({"unchecked"})
     @Override
-    public <T> Codec<T, Slice> getCodec(Type fromType)
+    public <T> Codec<T, Slice> getSliceCodec(Type fromType)
     {
         checkArgument(fromType.equals(VarbinaryType.VARBINARY));
         return (Codec<T, Slice>) sliceCodec;

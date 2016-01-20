@@ -11,24 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.serialization;
+package com.wrmsr.presto.eval;
 
-import com.facebook.presto.spi.type.Type;
-import com.wrmsr.presto.codec.TypeCodec;
-import com.wrmsr.presto.util.codec.Codec;
-import io.airlift.slice.Slice;
-
-public class SerializationTypeCodec
-        extends TypeCodec
+public class EvalFunction
 {
-    public SerializationTypeCodec(String name)
-    {
-        super(name);
-    }
-
-    @Override
-    public <T> Codec<T, Slice> getSliceCodec(Type fromType)
-    {
-        return null;
-    }
 }

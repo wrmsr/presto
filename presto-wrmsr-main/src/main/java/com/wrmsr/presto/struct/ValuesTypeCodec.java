@@ -11,8 +11,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.function;
+package com.wrmsr.presto.struct;
 
-public class ConnectorEvalFunction
+import com.wrmsr.presto.codec.TypeCodec;
+
+public class ValuesTypeCodec
+    extends TypeCodec
 {
+    public ValuesTypeCodec()
+    {
+        super("values");
+    }
 }

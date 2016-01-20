@@ -26,6 +26,7 @@ import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.config.ConfigModule;
 import com.wrmsr.presto.connector.ConnectorModule;
 import com.wrmsr.presto.connectorSupport.ConnectorSupportModule;
+import com.wrmsr.presto.eval.EvalModule;
 import com.wrmsr.presto.function.FunctionModule;
 import com.wrmsr.presto.scripting.ScriptingModule;
 import com.wrmsr.presto.serialization.SerializationModule;
@@ -56,6 +57,7 @@ public class MainPluginModule
         binder.install(new CodecModule());
         binder.install(new ConnectorModule());
         binder.install(new ConnectorSupportModule());
+        binder.install(new EvalModule());
         binder.install(new FunctionModule());
         binder.install(new ScriptingModule(config));
         binder.install(new SerializationModule());

@@ -53,29 +53,18 @@ public class RowType
 
     public RowType(String name, List<Type> fieldTypes, Optional<List<String>> fieldNames)
     {
-        this(name, fieldTypes, fieldNames, Block.class);
-    }
-
-    public RowType(TypeSignature signature, List<Type> fieldTypes, Optional<List<String>> fieldNames)
-    {
-        this(signature, fieldTypes, fieldNames, Block.class);
-    }
-
-    public RowType(String name, List<Type> fieldTypes, Optional<List<String>> fieldNames, Class<?> javaType)
-    {
         this(new TypeSignature(
                         name,
                         Lists.transform(fieldTypes, Type::getTypeSignature),
                         fieldNames.orElse(ImmutableList.of()).stream()
                                 .collect(toImmutableList())),
                 fieldTypes,
-                fieldNames,
-                javaType);
+                fieldNames);
     }
 
-    public RowType(TypeSignature signature, List<Type> fieldTypes, Optional<List<String>> fieldNames, Class<?> javaType)
+    public RowType(TypeSignature signature, List<Type> fieldTypes, Optional<List<String>> fieldNames)
     {
-        super(signature, javaType);
+        super(signature, Block.class);
         ImmutableList.Builder<RowField> builder = ImmutableList.builder();
         for (int i = 0; i < fieldTypes.size(); i++) {
             int index = i;
@@ -85,31 +74,6 @@ public class RowType
 
         parametricType = new RowParametricType(signature.getBase());
     }
-
-//    public RowType(List<Type> fieldTypes, Optional<List<String>> fieldNames)
-//    {
-//        super(new TypeSignature(
-//                        ROW,
-//                        Lists.transform(fieldTypes, Type::getTypeSignature),
-//                        fieldNames.orElse(ImmutableList.of()).stream()
-//                                .collect(toImmutableList())),
-//                fieldTypes, fieldNames);
-//    }
-//
-//    public RowType(TypeSignature signature, List<Type> fieldTypes, Optional<List<String>> fieldNames)
-//    {
-//        super(signature, Block.class);
-//
-//        ImmutableList.Builder<RowField> builder = ImmutableList.builder();
-//        for (int i = 0; i < fieldTypes.size(); i++) {
-//            int index = i;
-//            builder.add(new RowField(fieldTypes.get(i), fieldNames.map((names) -> names.get(index))));
-//        }
-//        fields = builder.build();
-//
-////        parametricType = new RowParametricType(signature.getBase());
-//
-//    }
 
     public RowParametricType getParametricType()
     {

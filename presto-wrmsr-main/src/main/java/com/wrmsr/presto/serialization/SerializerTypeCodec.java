@@ -27,7 +27,7 @@ public class SerializerTypeCodec
     }
 
     @Override
-    public <T> Codec<T, Slice> getCodec(Type fromType)
+    public <T> Codec<T, Slice> getSliceCodec(Type fromType)
     {
         return null;
     }

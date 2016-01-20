@@ -47,7 +47,7 @@ public class EncodeFunction
     {
         checkArgument(types.size() == 1);
         Type fromType = Iterables.getOnlyElement(types.values());
-        Codec<Slice, Slice> codec = typeCodec.getCodec(fromType);
+        Codec<Slice, Slice> codec = typeCodec.getSliceCodec(fromType);
         MethodHandle mh = METHOD_HANDLE.bindTo(codec);
         return new ScalarFunctionImplementation(false, ImmutableList.of(false), mh, true);
     }

@@ -16,8 +16,9 @@ package com.wrmsr.presto.function;
 import com.facebook.presto.metadata.SqlFunction;
 import com.google.inject.Binder;
 import com.google.inject.Module;
-import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.function.bitwise.BitwiseModule;
+
+import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class FunctionModule
         implements Module
@@ -27,13 +28,10 @@ public class FunctionModule
     {
         binder.install(new BitwiseModule());
 
-        Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
-        Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
+        newSetBinder(binder, SqlFunction.class);
+        newSetBinder(binder, FunctionRegistration.class);
 
-        binder.bind(ConnectorExecFunction.class).asEagerSingleton();
-        functionBinder.addBinding().to(ConnectorExecFunction.class);
-
-        functionRegistrationBinder.addBinding().toInstance(FunctionRegistration.of(flb -> {
+        newSetBinder(binder, FunctionRegistration.class).addBinding().toInstance(FunctionRegistration.of(flb -> {
             flb
                     .scalar(CompressionFunctions.class)
                     .scalar(GrokFunctions.class)

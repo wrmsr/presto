@@ -20,6 +20,7 @@ import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.util.Compression;
 
+import static com.google.inject.multibindings.Multibinder.newSetBinder;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
 public class CodecModule
@@ -30,17 +31,17 @@ public class CodecModule
     {
         binder.bind(TypeCodecManager.class).asEagerSingleton();
 
-        Multibinder<ParametricType> parametricTypeBinder = Multibinder.newSetBinder(binder, ParametricType.class);
-        Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
-        Multibinder<TypeCodec> typeCodecBinder = Multibinder.newSetBinder(binder, TypeCodec.class);
+        newSetBinder(binder, ParametricType.class);
+        newSetBinder(binder, SqlFunction.class);
+        newSetBinder(binder, TypeCodec.class);
 
         Compression.COMMONS_COMPRESSION_NAMES.stream()
                 .map(CommonsCompressionTypeCodec::new)
-                .forEach(c -> typeCodecBinder.addBinding().toInstance(c));
+                .forEach(c -> newSetBinder(binder, TypeCodec.class).addBinding().toInstance(c));
 
         // json, json_values, cbor, cbor_values
         // field strictness, nullability, *_corrupt
 
-        typeCodecBinder.addBinding().toInstance(new JacksonTypeCodec("json", OBJECT_MAPPER.get()));
+        newSetBinder(binder, TypeCodec.class).addBinding().toInstance(new JacksonTypeCodec("json", OBJECT_MAPPER.get()));
     }
 }
