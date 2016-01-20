@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.util.collect;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
+import static java.util.Objects.requireNonNull;
 
 public class Maps
 {
@@ -122,8 +124,7 @@ public class Maps
         return buildMap(entries, MapPutter.OVERWRITE);
     }
 
-    public static <K, E> Map<K, List<E>> buildMapToList(Iterator<E> items, Function<E, K> fn)
-    {
+    public static <K, E> Map<K, List<E>> buildMapToList(Iterator<E> items, Function<E, K> fn) {
         Map<K, List<E>> map = new HashMap<>();
         while (items.hasNext()) {
             E item = items.next();
@@ -193,5 +194,18 @@ public class Maps
     public static <K, V> Collector<Map.Entry<K, V>, LinkedHashMap<K, V>, LinkedHashMap<K, V>> toLinkedHashMap()
     {
         return toLinkedHashMap(Map.Entry::getKey, Map.Entry::getValue);
+    }
+
+    public static <K, V> Map<K, V> immutableMapWith(Map<K, V> map, K key, V value)
+    {
+        requireNonNull(key);
+        ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
+        builder.put(key, value);
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            if (!key.equals(entry.getKey())) {
+                builder.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return builder.build();
     }
 }
