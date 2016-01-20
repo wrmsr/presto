@@ -13,10 +13,10 @@
  */
 package com.facebook.presto.tpch;
 
-import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.tpch.testing.SampledTpchConnectorFactory;
+import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.spi.connectorSupport.ConnectorSupportFactory;
 import com.wrmsr.presto.tpch.TpchConnectorSupport;
