@@ -47,8 +47,8 @@ public class TpchPlugin
         }
         else if (type == ConnectorSupportFactory.class) {
             return ImmutableList.of(
-                    type.cast(new ConnectorSupportFactory.LegacyDefault(TpchConnectorSupport.class, TpchConnectorFactory.ConnectorImpl.class, TpchConnectorSupport::new)),
-                    type.cast(new ConnectorSupportFactory.LegacyDefault(TpchConnectorSupport.class, SampledTpchConnectorFactory.ConnectorImpl.class, TpchConnectorSupport::new)));
+                    type.cast(new ConnectorSupportFactory.Default(TpchConnectorSupport.class, TpchConnectorFactory.ConnectorImpl.class, TpchConnectorSupport::new)),
+                    type.cast(new ConnectorSupportFactory.Default(TpchConnectorSupport.class, SampledTpchConnectorFactory.ConnectorImpl.class, TpchConnectorSupport::new)));
         }
         return ImmutableList.of();
     }

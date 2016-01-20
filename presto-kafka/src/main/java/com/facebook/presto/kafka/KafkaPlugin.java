@@ -75,7 +75,7 @@ public class KafkaPlugin
             return ImmutableList.of(type.cast(new KafkaConnectorFactory(typeManager, nodeManager, tableDescriptionSupplier, optionalConfig)));
         }
         else if (type == ConnectorSupportFactory.class) {
-            return ImmutableList.of(type.cast(new ConnectorSupportFactory.LegacyDefault(KafkaConnectorSupport.class, KafkaConnector.class, KafkaConnectorSupport::new)));
+            return ImmutableList.of(type.cast(new ConnectorSupportFactory.Default(KafkaConnectorSupport.class, KafkaConnector.class, KafkaConnectorSupport::new)));
         }
         return ImmutableList.of();
     }

@@ -23,8 +23,8 @@ public class KafkaConnectorSupport
 {
     private final KafkaConnector connector;
 
-    public KafkaConnectorSupport(ConnectorSession session, Connector connector, com.facebook.presto.spi.Connector legacyConnector)
+    public KafkaConnectorSupport(ConnectorSession session, Connector connector)
     {
-        this.connector = (KafkaConnector) legacyConnector;
+        this.connector = (KafkaConnector) connector;
     }
 }
