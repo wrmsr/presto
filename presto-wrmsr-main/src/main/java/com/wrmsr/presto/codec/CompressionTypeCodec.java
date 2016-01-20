@@ -22,14 +22,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.SliceCodecs.SLICE_TO_BYTES_CODEC;
 
 public class CompressionTypeCodec
-        extends TypeCodec<Slice>
+        extends SliceTypeCodec
 {
     private final Codec<byte[], byte[]> bytesCodec;
     private final Codec<Slice, Slice> sliceCodec;
 
     public CompressionTypeCodec(String name, Codec<byte[], byte[]> bytesCodec)
     {
-        super(name, Slice.class);
+        super(name);
         this.bytesCodec = bytesCodec;
         this.sliceCodec = Codec.compose(
                 SLICE_TO_BYTES_CODEC,
@@ -39,7 +39,7 @@ public class CompressionTypeCodec
 
     @SuppressWarnings({"unchecked"})
     @Override
-    public <T> Codec<T, Slice> getCodec(Type fromType)
+    public <T> Codec<T, Slice> specializeCodec(Type fromType)
     {
         checkArgument(fromType.equals(VarbinaryType.VARBINARY));
         return (Codec<T, Slice>) sliceCodec;

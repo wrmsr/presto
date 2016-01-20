@@ -15,6 +15,7 @@ package com.wrmsr.presto.codec;
 
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeParameter;
+import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.type.ParametricType;
 
 import java.util.List;
@@ -43,6 +44,7 @@ public class EncodedParametricType
         checkArgument(parameters.size() == 1);
         TypeParameter fromTypeParameter = parameters.get(0);
         Type fromType = fromTypeParameter.getType();
-        return new EncodedType(typeCodec, fromType);
+        TypeCodec.Specialization specialization = typeCodec.specialize(fromType);
+        return new EncodedType(typeCodec, specialization, fromType);
     }
 }

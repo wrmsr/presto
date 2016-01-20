@@ -42,6 +42,6 @@ public class CodecModule
         // json, json_values, cbor, cbor_values
         // field strictness, nullability, *_corrupt
 
-        newSetBinder(binder, TypeCodec.class).addBinding().toInstance(new JacksonTypeCodec("json", OBJECT_MAPPER.get()));
+        // newSetBinder(binder, TypeCodec.class).addBinding().toInstance(new JacksonTypeCodec("json", OBJECT_MAPPER.get()));
     }
 }

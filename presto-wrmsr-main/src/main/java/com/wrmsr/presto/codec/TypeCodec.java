@@ -16,6 +16,8 @@ package com.wrmsr.presto.codec;
 import com.facebook.presto.spi.type.Type;
 import com.wrmsr.presto.util.codec.Codec;
 
+import static java.util.Objects.requireNonNull;
+
 public abstract class TypeCodec<J>
 {
     protected final String name;
@@ -37,5 +39,27 @@ public abstract class TypeCodec<J>
         return javaType;
     }
 
-    public abstract <T> Codec<T, J> getCodec(Type fromType);
+    public static final class Specialization<T, J>
+    {
+        private final Codec<T, J> codec;
+        private final Type underlyingType;
+
+        public Specialization(Codec<T, J> codec, Type underlyingType)
+        {
+            this.codec = requireNonNull(codec);
+            this.underlyingType = requireNonNull(underlyingType);
+        }
+
+        public Codec<T, J> getCodec()
+        {
+            return codec;
+        }
+
+        public Type getUnderlyingType()
+        {
+            return underlyingType;
+        }
+    }
+
+    public abstract <T> Specialization<T, J> specialize(Type fromType);
 }

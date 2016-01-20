@@ -14,24 +14,23 @@
 package com.wrmsr.presto.codec;
 
 import com.facebook.presto.spi.type.Type;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.facebook.presto.spi.type.VarbinaryType;
 import com.wrmsr.presto.util.codec.Codec;
 import io.airlift.slice.Slice;
 
-public class JacksonTypeCodec
+public abstract class SliceTypeCodec
     extends TypeCodec<Slice>
 {
-    private final ObjectMapper mapper;
-
-    public JacksonTypeCodec(String name, ObjectMapper mapper)
+    public SliceTypeCodec(String name)
     {
         super(name, Slice.class);
-        this.mapper = mapper;
     }
 
     @Override
-    public <T> Codec<T, Slice> getCodec(Type fromType)
+    public <T> Specialization<T, Slice> specialize(Type fromType)
     {
-        return null;
+        return new Specialization<>(specializeCodec(fromType), VarbinaryType.VARBINARY);
     }
+
+    public abstract <T> Codec<T, Slice> specializeCodec(Type fromType);
 }

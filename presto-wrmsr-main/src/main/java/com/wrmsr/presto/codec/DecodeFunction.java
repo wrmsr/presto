@@ -63,7 +63,7 @@ public class DecodeFunction
         else {
             throw new UnsupportedOperationException();
         }
-        Codec codec = typeCodec.getCodec(fromType);
+        Codec codec = typeCodec.specialize(fromType).getCodec();
         MethodHandle boundMh = mh.bindTo(codec);
         return new ScalarFunctionImplementation(false, ImmutableList.of(false), boundMh, true);
     }

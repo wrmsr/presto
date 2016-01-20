@@ -29,10 +29,11 @@ public class FlatTypeCodec
         super("flat", Block.class);
     }
 
+    @SuppressWarnings({"unchecked"})
     @Override
-    public Codec getCodec(Type fromType)
+    public <T> Specialization<T, Block> specialize(Type fromType)
     {
         checkArgument(fromType instanceof RowType);  // FIXME
-        return Codec.identity();
+        return new Specialization(Codec.identity(), fromType);
     }
 }

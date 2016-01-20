@@ -31,7 +31,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class EncodedToVarbinaryCast
         extends SqlOperator
-
 {
     private static final MethodHandle METHOD_HANDLE = methodHandle(EncodedToVarbinaryCast.class, "castSlice", Slice.class);
 
@@ -47,8 +46,9 @@ public class EncodedToVarbinaryCast
     public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
         checkArgument(arity == 1, "Expected arity to be 1");
+        // FIXME blox
         return new ScalarFunctionImplementation(false, ImmutableList.of(false), METHOD_HANDLE, true);
-    }
+}
 
     public static Slice castSlice(Slice slice)
     {

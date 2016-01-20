@@ -16,118 +16,151 @@ package com.wrmsr.presto.codec;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
+import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.type.AbstractVariableWidthType;
-import com.facebook.presto.spi.type.SqlVarbinary;
 import com.facebook.presto.spi.type.Type;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 
-import java.util.List;
-
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
+import static java.util.Objects.requireNonNull;
 
 public class EncodedType
         extends AbstractVariableWidthType
 {
     private final TypeCodec typeCodec;
     private final Type fromType;
+    private final TypeCodec.Specialization specialization;
+    private final Type underlyingType;
 
     // FIXME FUCK install serdes
     @JsonCreator
-    public EncodedType(TypeCodec typeCodec, Type fromType)
+    public EncodedType(TypeCodec typeCodec, TypeCodec.Specialization specialization, Type fromType)
     {
         super(parameterizedTypeName(typeCodec.getName(), fromType.getTypeSignature()), typeCodec.getJavaType());
-        this.typeCodec = typeCodec;
-        this.fromType = fromType;
+        this.typeCodec = requireNonNull(typeCodec);
+        this.specialization = requireNonNull(specialization);
+        this.fromType = requireNonNull(fromType);
+        this.underlyingType = specialization.getUnderlyingType();
     }
 
     @Override
     public boolean isComparable()
     {
-        return true;
+        return underlyingType.isComparable();
     }
 
     @Override
     public boolean isOrderable()
     {
-        return true;
+        return underlyingType.isOrderable();
+    }
+
+    @Override
+    public BlockBuilder createBlockBuilder(BlockBuilderStatus blockBuilderStatus, int expectedEntries, int expectedBytesPerEntry)
+    {
+        return underlyingType.createBlockBuilder(blockBuilderStatus, expectedEntries, expectedBytesPerEntry);
+    }
+
+    @Override
+    public BlockBuilder createBlockBuilder(BlockBuilderStatus blockBuilderStatus, int expectedEntries)
+    {
+        return underlyingType.createBlockBuilder(blockBuilderStatus, expectedEntries);
     }
 
     @Override
     public Object getObjectValue(ConnectorSession session, Block block, int position)
     {
-        if (block.isNull(position)) {
-            return null;
-        }
-
-        return new SqlVarbinary(block.getSlice(position, 0, block.getLength(position)).getBytes());
+        return underlyingType.getObjectValue(session, block, position);
     }
 
     @Override
-    public boolean equalTo(Block leftBlock, int leftPosition, Block rightBlock, int rightPosition)
+    public boolean getBoolean(Block block, int position)
     {
-        int leftLength = leftBlock.getLength(leftPosition);
-        int rightLength = rightBlock.getLength(rightPosition);
-        if (leftLength != rightLength) {
-            return false;
-        }
-        return leftBlock.equals(leftPosition, 0, rightBlock, rightPosition, 0, leftLength);
+        return underlyingType.getBoolean(block, position);
     }
 
     @Override
-    public int hash(Block block, int position)
+    public long getLong(Block block, int position)
     {
-        return block.hash(position, 0, block.getLength(position));
+        return underlyingType.getLong(block, position);
     }
 
     @Override
-    public int compareTo(Block leftBlock, int leftPosition, Block rightBlock, int rightPosition)
+    public double getDouble(Block block, int position)
     {
-        int leftLength = leftBlock.getLength(leftPosition);
-        int rightLength = rightBlock.getLength(rightPosition);
-        return leftBlock.compareTo(leftPosition, 0, leftLength, rightBlock, rightPosition, 0, rightLength);
-    }
-
-    @Override
-    public void appendTo(Block block, int position, BlockBuilder blockBuilder)
-    {
-        if (block.isNull(position)) {
-            blockBuilder.appendNull();
-        }
-        else {
-            block.writeBytesTo(position, 0, block.getLength(position), blockBuilder);
-            blockBuilder.closeEntry();
-        }
+        return underlyingType.getDouble(block, position);
     }
 
     @Override
     public Slice getSlice(Block block, int position)
     {
-        return block.getSlice(position, 0, block.getLength(position));
+        return underlyingType.getSlice(block, position);
+    }
+
+    @Override
+    public Object getObject(Block block, int position)
+    {
+        return underlyingType.getObject(block, position);
+    }
+
+    @Override
+    public void writeBoolean(BlockBuilder blockBuilder, boolean value)
+    {
+        underlyingType.writeBoolean(blockBuilder, value);
+    }
+
+    @Override
+    public void writeLong(BlockBuilder blockBuilder, long value)
+    {
+        underlyingType.writeLong(blockBuilder, value);
+    }
+
+    @Override
+    public void writeDouble(BlockBuilder blockBuilder, double value)
+    {
+        underlyingType.writeDouble(blockBuilder, value);
     }
 
     @Override
     public void writeSlice(BlockBuilder blockBuilder, Slice value)
     {
-        writeSlice(blockBuilder, value, 0, value.length());
+        underlyingType.writeSlice(blockBuilder, value);
     }
 
     @Override
     public void writeSlice(BlockBuilder blockBuilder, Slice value, int offset, int length)
     {
-        blockBuilder.writeBytes(value, offset, length).closeEntry();
+        underlyingType.writeSlice(blockBuilder, value, offset, length);
     }
 
     @Override
-    public List<Type> getTypeParameters()
+    public void writeObject(BlockBuilder blockBuilder, Object value)
     {
-        return ImmutableList.of(fromType);
+        underlyingType.writeObject(blockBuilder, value);
     }
 
     @Override
-    public String getDisplayName()
+    public void appendTo(Block block, int position, BlockBuilder blockBuilder)
     {
-        return "array<" + fromType.getDisplayName() + ">";
+        underlyingType.appendTo(block, position, blockBuilder);
+    }
+
+    @Override
+    public boolean equalTo(Block leftBlock, int leftPosition, Block rightBlock, int rightPosition)
+    {
+        return underlyingType.equalTo(leftBlock, leftPosition, rightBlock, rightPosition);
+    }
+
+    @Override
+    public int hash(Block block, int position)
+    {
+        return underlyingType.hash(block, position);
+    }
+
+    @Override
+    public int compareTo(Block leftBlock, int leftPosition, Block rightBlock, int rightPosition)
+    {
+        return underlyingType.compareTo(leftBlock, leftPosition, rightBlock, rightPosition);
     }
 }
