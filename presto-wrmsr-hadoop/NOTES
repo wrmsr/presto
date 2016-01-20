@@ -9,7 +9,15 @@ https://hadoop.apache.org/docs/r1.2.1/cluster_setup.html
 org.apache.hadoop.hive.conf.HiveConf.ConfVars.*
 
 
+https://aws.amazon.com/elasticmapreduce/faqs/
+https://pythonhosted.org/mrjob/guides/emr-opts.html
+https://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/emr-overview-arch.html
+https://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/emr-web-interfaces.html
 
+https://mrjob.readthedocs.org/en/latest/guides/emr-advanced.html
+https://github.com/Yelp/mrjob/blob/master/mrjob/emr.py#L2042
+
+https://wiki.apache.org/hadoop/HadoopStreaming
 
 
 
