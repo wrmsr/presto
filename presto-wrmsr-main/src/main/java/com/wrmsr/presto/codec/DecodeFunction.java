@@ -16,6 +16,7 @@ package com.wrmsr.presto.codec;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
+import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
@@ -34,9 +35,11 @@ public class DecodeFunction
         extends SqlScalarFunction
 {
     public static final String NAME = "decode";
-    private static final MethodHandle METHOD_HANDLE = methodHandle(DecodeFunction.class, "decodeSlice", Codec.class, Slice.class);
 
     private final TypeCodec typeCodec;
+
+    private static final MethodHandle METHOD_HANDLE_SLICE = methodHandle(DecodeFunction.class, "decodeSlice", Codec.class, Object.class);
+    private static final MethodHandle METHOD_HANDLE_BLOCK = methodHandle(DecodeFunction.class, "decodeBlock", Codec.class, Object.class);
 
     public DecodeFunction(TypeCodec typeCodec)
     {
@@ -49,9 +52,20 @@ public class DecodeFunction
     {
         checkArgument(types.size() == 1);
         Type fromType = Iterables.getOnlyElement(types.values());
-        Codec<Slice, Slice> codec = typeCodec.getSliceCodec(fromType);
-        MethodHandle mh = METHOD_HANDLE.bindTo(codec);
-        return new ScalarFunctionImplementation(false, ImmutableList.of(false), mh, true);
+        Class<?> javaType = fromType.getJavaType();
+        MethodHandle mh;
+        if (javaType == Slice.class) {
+            mh = METHOD_HANDLE_SLICE;
+        }
+        else if (javaType == Block.class) {
+            mh = METHOD_HANDLE_BLOCK;
+        }
+        else {
+            throw new UnsupportedOperationException();
+        }
+        Codec codec = typeCodec.getCodec(fromType);
+        MethodHandle boundMh = mh.bindTo(codec);
+        return new ScalarFunctionImplementation(false, ImmutableList.of(false), boundMh, true);
     }
 
     @Override
@@ -72,8 +86,15 @@ public class DecodeFunction
         return "decode";
     }
 
-    public static Slice decodeSlice(Codec<Slice, Slice> codec, Slice slice)
+    @SuppressWarnings({"unchecked"})
+    public static Slice decodeSlice(Codec codec, Object object)
     {
-        return codec.decode(slice);
+        return (Slice) codec.decode(object);
+    }
+
+    @SuppressWarnings({"unchecked"})
+    public static Block decodeBlock(Codec codec, Object object)
+    {
+        return (Block) codec.decode(object);
     }
 }

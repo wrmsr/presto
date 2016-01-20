@@ -19,18 +19,18 @@ import com.wrmsr.presto.util.codec.Codec;
 import io.airlift.slice.Slice;
 
 public class JacksonTypeCodec
-    extends TypeCodec
+    extends TypeCodec<Slice>
 {
     private final ObjectMapper mapper;
 
     public JacksonTypeCodec(String name, ObjectMapper mapper)
     {
-        super(name);
+        super(name, Slice.class);
         this.mapper = mapper;
     }
 
     @Override
-    public <T> Codec<T, Slice> getSliceCodec(Type fromType)
+    public <T> Codec<T, Slice> getCodec(Type fromType)
     {
         return null;
     }

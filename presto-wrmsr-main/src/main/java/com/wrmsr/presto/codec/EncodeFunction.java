@@ -16,6 +16,7 @@ package com.wrmsr.presto.codec;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
+import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
@@ -34,7 +35,9 @@ public class EncodeFunction
         extends SqlScalarFunction
 {
     private final TypeCodec typeCodec;
-    private static final MethodHandle METHOD_HANDLE = methodHandle(EncodeFunction.class, "encodeSlice", Codec.class, Slice.class);
+
+    private static final MethodHandle METHOD_HANDLE_SLICE = methodHandle(EncodeFunction.class, "encodeSlice", Codec.class, Object.class);
+    private static final MethodHandle METHOD_HANDLE_BLOCK = methodHandle(EncodeFunction.class, "encodeBlock", Codec.class, Object.class);
 
     public EncodeFunction(TypeCodec typeCodec)
     {
@@ -47,9 +50,20 @@ public class EncodeFunction
     {
         checkArgument(types.size() == 1);
         Type fromType = Iterables.getOnlyElement(types.values());
-        Codec<Slice, Slice> codec = typeCodec.getSliceCodec(fromType);
-        MethodHandle mh = METHOD_HANDLE.bindTo(codec);
-        return new ScalarFunctionImplementation(false, ImmutableList.of(false), mh, true);
+        Class<?> javaType = typeCodec.getJavaType();
+        MethodHandle mh;
+        if (javaType == Slice.class) {
+            mh = METHOD_HANDLE_SLICE;
+        }
+        else if (javaType == Block.class) {
+            mh = METHOD_HANDLE_BLOCK;
+        }
+        else {
+            throw new UnsupportedOperationException();
+        }
+        Codec codec = typeCodec.getCodec(fromType);
+        MethodHandle boundMh = mh.bindTo(codec);
+        return new ScalarFunctionImplementation(false, ImmutableList.of(false), boundMh, true);
     }
 
     @Override
@@ -70,8 +84,15 @@ public class EncodeFunction
         return "encode " + typeCodec.getName();
     }
 
-    public static Slice encodeSlice(Codec<Slice, Slice> codec, Slice slice)
+    @SuppressWarnings({"unchecked"})
+    public static Slice encodeSlice(Codec codec, Object object)
     {
-        return codec.encode(slice);
+        return (Slice) codec.encode(object);
+    }
+
+    @SuppressWarnings({"unchecked"})
+    public static Block encodeBlock(Codec codec, Object object)
+    {
+        return (Block) codec.encode(object);
     }
 }

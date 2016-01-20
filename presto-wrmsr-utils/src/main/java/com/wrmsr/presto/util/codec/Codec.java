@@ -26,6 +26,24 @@ public interface Codec<F, T>
         return encode(decode(obj));
     }
 
+    static <T> Codec<T, T> identity()
+    {
+        return new Codec<T, T>()
+        {
+            @Override
+            public T decode(T data)
+            {
+                return data;
+            }
+
+            @Override
+            public T encode(T data)
+            {
+                return data;
+            }
+        };
+    }
+
     static <F, T> Codec<F, T> of(Encoder<F, T> encoder, Decoder<F, T> decoder)
     {
         return new Codec<F, T>()

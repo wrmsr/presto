@@ -37,7 +37,7 @@ public class EncodedType
     @JsonCreator
     public EncodedType(TypeCodec typeCodec, Type fromType)
     {
-        super(parameterizedTypeName(typeCodec.getName(), fromType.getTypeSignature()), Slice.class);
+        super(parameterizedTypeName(typeCodec.getName(), fromType.getTypeSignature()), typeCodec.getJavaType());
         this.typeCodec = typeCodec;
         this.fromType = fromType;
     }

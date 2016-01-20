@@ -13,18 +13,18 @@
  */
 package com.wrmsr.presto.codec;
 
-import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.Type;
 import com.wrmsr.presto.util.codec.Codec;
-import io.airlift.slice.Slice;
 
-public abstract class TypeCodec
+public abstract class TypeCodec<J>
 {
     protected final String name;
+    protected final Class<J> javaType;
 
-    public TypeCodec(String name)
+    protected TypeCodec(String name, Class<J> javaType)
     {
         this.name = name;
+        this.javaType = javaType;
     }
 
     public String getName()
@@ -32,13 +32,10 @@ public abstract class TypeCodec
         return name;
     }
 
-    public <T> Codec<T, Slice> getSliceCodec(Type fromType)
+    public Class<J> getJavaType()
     {
-        throw new UnsupportedOperationException();
+        return javaType;
     }
 
-    public <T> Codec<T, Block> getBlockCodec(Type fromType)
-    {
-        throw new UnsupportedOperationException();
-    }
+    public abstract <T> Codec<T, J> getCodec(Type fromType);
 }

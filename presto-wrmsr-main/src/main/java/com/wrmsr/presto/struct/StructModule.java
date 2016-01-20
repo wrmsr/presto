@@ -17,21 +17,26 @@ import com.facebook.presto.metadata.SqlFunction;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.codec.TypeCodec;
+
+import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class StructModule
-    implements Module
+        implements Module
 {
     @Override
     public void configure(Binder binder)
     {
         binder.bind(StructManager.class).asEagerSingleton();
 
-        Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
+        Multibinder<SqlFunction> functionBinder = newSetBinder(binder, SqlFunction.class);
 
         binder.bind(DefineStructForQueryFunction.class).asEagerSingleton();
         functionBinder.addBinding().to(DefineStructForQueryFunction.class);
 
         binder.bind(DefineStructFunction.class).asEagerSingleton();
         functionBinder.addBinding().to(DefineStructFunction.class);
+
+        newSetBinder(binder, TypeCodec.class).addBinding().toInstance(new FlatTypeCodec());
     }
 }

@@ -13,13 +13,26 @@
  */
 package com.wrmsr.presto.struct;
 
+import com.facebook.presto.spi.block.Block;
+import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.type.RowType;
 import com.wrmsr.presto.codec.TypeCodec;
+import com.wrmsr.presto.util.codec.Codec;
 
-public class ValuesTypeCodec
-    extends TypeCodec
+import static com.google.common.base.Preconditions.checkArgument;
+
+public class FlatTypeCodec
+        extends TypeCodec<Block>
 {
-    public ValuesTypeCodec()
+    public FlatTypeCodec()
     {
-        super("values");
+        super("flat", Block.class);
+    }
+
+    @Override
+    public Codec getCodec(Type fromType)
+    {
+        checkArgument(fromType instanceof RowType);  // FIXME
+        return Codec.identity();
     }
 }

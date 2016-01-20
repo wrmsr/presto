@@ -19,15 +19,15 @@ import com.wrmsr.presto.util.codec.Codec;
 import io.airlift.slice.Slice;
 
 public class SerializerTypeCodec
-    extends TypeCodec
+    extends TypeCodec<Slice>
 {
     public SerializerTypeCodec(String name)
     {
-        super(name);
+        super(name, Slice.class);
     }
 
     @Override
-    public <T> Codec<T, Slice> getSliceCodec(Type fromType)
+    public <T> Codec<T, Slice> getCodec(Type fromType)
     {
         return null;
     }
