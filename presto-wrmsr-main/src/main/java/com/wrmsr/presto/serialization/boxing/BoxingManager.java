@@ -40,7 +40,7 @@ public class BoxingManager
     }
 
     @Override
-    public Optional<Boxer> getBoxer(Type type)
+    public Optional<Boxer> getBoxer(Type type, Context context)
     {
         return null;
     }

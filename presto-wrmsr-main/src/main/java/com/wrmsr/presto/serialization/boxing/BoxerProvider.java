@@ -15,6 +15,7 @@ package com.wrmsr.presto.serialization.boxing;
 
 import com.facebook.presto.spi.type.Type;
 import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.type.WrapperType;
 
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +33,8 @@ public interface BoxerProvider
             this(ImmutableMap.of());
         }
 
+        // FIXME stack?
+
         public Context(Map<Class<?>, Object> entries)
         {
             this.entries = entries;
@@ -43,5 +46,28 @@ public interface BoxerProvider
         }
     }
 
+    final class WrapperMarker
+        implements BoxerProvider
+    {
+        private final Class<? extends WrapperType> cls;
+
+        public WrapperMarker(Class<? extends WrapperType> cls)
+        {
+            this.cls = cls;
+        }
+
+        // FIXME RECIRCULATE???
+        @Override
+        public Optional<Boxer> getBoxer(Type type, Context context)
+        {
+            throw new UnsupportedOperationException();
+        }
+    }
+
     Optional<Boxer> getBoxer(Type type, Context context);
+
+    default Optional<Boxer> getBoxer(Type type)
+    {
+        return getBoxer(type, new Context());
+    }
 }
