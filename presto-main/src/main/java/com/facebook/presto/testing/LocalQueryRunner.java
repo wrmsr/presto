@@ -207,7 +207,6 @@ public class LocalQueryRunner
         this.metadata = new MetadataManager(
                 new FeaturesConfig().setExperimentalSyntaxEnabled(true),
                 typeRegistry,
-                splitManager,
                 blockEncodingSerde,
                 new SessionPropertyManager(),
                 new TablePropertyManager(),

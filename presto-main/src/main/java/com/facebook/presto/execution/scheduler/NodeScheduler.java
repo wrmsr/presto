@@ -34,7 +34,6 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -134,15 +133,9 @@ public class NodeScheduler
 
             for (Node node : nodes) {
                 if (useNetworkTopology && (includeCoordinator || !coordinatorNodeIds.contains(node.getNodeIdentifier()))) {
-                    Optional<NetworkLocation> location = networkLocationCache.get(node.getHostAndPort());
-                    if (location.isPresent()) {
-                        for (int i = 0; i <= location.get().getSegments().size(); i++) {
-                            workersByNetworkPath.put(location.get().subLocation(0, i), node);
-                        }
-                    }
-                    else {
-                        // just add it to the root location, if we couldn't locate the worker
-                        workersByNetworkPath.put(new NetworkLocation(), node);
+                    NetworkLocation location = networkLocationCache.get(node.getHostAndPort());
+                    for (int i = 0; i <= location.getSegments().size(); i++) {
+                        workersByNetworkPath.put(location.subLocation(0, i), node);
                     }
                 }
                 try {

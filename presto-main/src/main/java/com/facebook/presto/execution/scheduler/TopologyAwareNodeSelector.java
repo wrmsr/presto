@@ -30,13 +30,13 @@ import io.airlift.stats.CounterStat;
 
 import javax.annotation.Nullable;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.facebook.presto.execution.scheduler.NetworkLocation.ROOT_LOCATION;
 import static com.facebook.presto.execution.scheduler.NodeScheduler.randomizedNodes;
 import static com.facebook.presto.execution.scheduler.NodeScheduler.selectExactNodes;
 import static com.facebook.presto.execution.scheduler.NodeScheduler.selectNodes;
@@ -138,13 +138,13 @@ public class TopologyAwareNodeSelector
             Node chosenNode = null;
             int depth = networkLocationSegmentNames.size();
             int chosenDepth = 0;
-            List<NetworkLocation> locations = new ArrayList<>();
+            Set<NetworkLocation> locations = new HashSet<>();
             for (HostAddress host : split.getAddresses()) {
-                networkLocationCache.get(host).ifPresent(locations::add);
+                locations.add(networkLocationCache.get(host));
             }
             if (locations.isEmpty()) {
                 // Add the root location
-                locations.add(new NetworkLocation());
+                locations.add(ROOT_LOCATION);
                 depth = 0;
             }
             // Try each address at progressively shallower network locations
