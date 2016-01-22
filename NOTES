@@ -58,6 +58,45 @@ healthcheck endpoint, reactor/exec aware
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+https://github.com/treasure-data/prestogres
+https://github.com/easydatawarehousing/prestoclient
+https://github.com/prestodb/presto-admin
+https://github.com/dropbox/PyHive
+https://github.com/qubole/presto-udfs
+
+
+https://github.com/qubole/quark
+
+https://github.com/ajermakovics/presto-hazelcast
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 auto jdbc partitioning
 further jdbc predicate pushdown
  - composite pk scrolling :|
