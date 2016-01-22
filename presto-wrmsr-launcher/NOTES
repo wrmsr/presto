@@ -12,10 +12,12 @@ TODO jarsync via http endpoint, master sends to slaves
 
 
 reactor command
- reactor build <viewname>
- reactor react <viewname>
+ reactor build <name> --num-workers n
+  (waits for n workers)
+ reactor react <name>
 
 
+hell also add an exec command also with a --num-workers barrier
 
 use jar manifest classpath, see hadoop
 

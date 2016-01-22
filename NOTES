@@ -24,7 +24,9 @@ class ReactorConfig {
     String viewName;
      - xor -
     String statement;
+    List<String> notifyEmails; ***
 }
+
 
 class ReactorState {
     String name; ?
@@ -40,6 +42,8 @@ class ReactorState {
 
 http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
 
+
+periodic status emails :D
 
 
 

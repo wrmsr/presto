@@ -109,7 +109,8 @@ public class PartitionerMetadata
     @Override
     public ConnectorTableMetadata getTableMetadata(ConnectorSession session, ConnectorTableHandle table)
     {
-        return setPartitioning(target.getTableMetadata(session, table));
+        ConnectorTableHandle targetHandle = ((PartitionerTableHandle) table).getTarget(); // FIXME ... the rest of these ...
+        return setPartitioning(target.getTableMetadata(session, targetHandle));
     }
 
     @Override
