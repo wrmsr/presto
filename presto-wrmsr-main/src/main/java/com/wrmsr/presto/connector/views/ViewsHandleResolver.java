@@ -17,10 +17,17 @@ import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.ConnectorTableHandle;
+import com.facebook.presto.spi.ConnectorTableLayoutHandle;
 
 public class ViewsHandleResolver
     implements ConnectorHandleResolver
 {
+    @Override
+    public Class<? extends ConnectorTableLayoutHandle> getTableLayoutHandleClass()
+    {
+        return ViewsTableLayoutHandle.class;
+    }
+
     @Override
     public Class<? extends ConnectorTableHandle> getTableHandleClass()
     {

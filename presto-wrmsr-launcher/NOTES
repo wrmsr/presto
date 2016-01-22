@@ -11,6 +11,11 @@ TODO jarsync via http endpoint, master sends to slaves
  - version check on slave boot, autoupdate
 
 
+reactor command
+ reactor build <viewname>
+ reactor react <viewname>
+
+
 
 use jar manifest classpath, see hadoop
 
