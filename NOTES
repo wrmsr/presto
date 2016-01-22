@@ -17,7 +17,25 @@ https://github.com/apache/bookkeeper
 
 swagger -> https://github.com/square/javapoet
 
+class ReactorsConfig extends MapConfig<String, ReactorConfig>
 
+class ReactorConfig {
+    ...
+    String viewName;
+     - xor -
+    String statement;
+}
+
+class ReactorState {
+    String name; ?
+    String initialJarHead;
+    String lastJarHead;
+    ...
+    Map<String, Position> positions;
+    PlanNode originalPlan;
+    RecctorConfig initialConfig;
+    ReactorConfig lastConfig;
+}
 
 
 http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
