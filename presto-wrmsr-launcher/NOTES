@@ -27,7 +27,14 @@ public class FileUtil
 
 
 
+/usr/lib/jvm/java-8-oracle-1.8.0.45/lib/libjvmkill.so
 
+** do what mvnw does:
+ apple paths
+ javaExecutable fallback
+
+** HONOR $M2_HOME
+ System.getenv("M2_HOME")
 
 
 
@@ -39,15 +46,42 @@ public class FileUtil
 subprocess log appender cfg to stdintoscribe
 syslog
 raw scribe? kafka?
+https://github.com/infynyxx/logback-scribe/tree/master/src/main/java/com/infynyxx/logback/scribe
+
+http://logback.qos.ch/manual/appenders.html#SyslogAppender
+http://logback.qos.ch/xref/ch/qos/logback/classic/net/SyslogAppender.html
+http://blog.trifork.com/2010/01/14/logging-to-the-syslog-from-a-java-application/
+https://en.wikipedia.org/wiki/Syslog
+
+https://github.com/qos-ch/logback-contrib/wiki
+
+
+
+https://mrjob.readthedocs.org/en/latest/guides/setup-cookbook.html
+https://hadoop.apache.org/docs/stable/api/org/apache/hadoop/filecache/DistributedCache.html
 
 
 
 
 
+    LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+    JoranConfigurator configurator = new JoranConfigurator();
+    configurator.setContext(lc);
+    InputStream in = Resources.getResource("logback.xml").openStream();
+    lc.reset();
+    configurator.doConfigure(in);
+    java.util.logging.LogManager.getLogManager().reset();
+    SLF4JBridgeHandler.removeHandlersForRootLogger();
+    SLF4JBridgeHandler.install();
 
 
 
-
+https://github.com/huxi/lilith
+ - add parsers for logline layout formats
+ http://mailman.qos.ch/pipermail/logback-dev/2013-April/008754.html
+ https://github.com/qos-ch/logback-decoder
+  ugh esl
+  https://www.apache.org/legal/resolved.html#category-b fuck my life
 
 
 

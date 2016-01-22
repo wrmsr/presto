@@ -23,7 +23,11 @@ public class LauncherBootstrap
             throws Throwable
     {
         if (System.getProperty(Repositories.REPOSITORY_CACHE_PATH_PROPERTY_KEY) == null) {
-            File repositoryCachePath = new File(new File(System.getProperty("user.home"), ".m2"), "repository");
+            String m2Home = System.getenv("M2_HOME");
+            if (m2Home == null || m2Home.isEmpty()) {
+                m2Home = new File(new File(System.getProperty("user.home")), ".m2").getAbsolutePath();
+            }
+            File repositoryCachePath = new File(new File(m2Home), "repository");
             System.setProperty(Repositories.REPOSITORY_CACHE_PATH_PROPERTY_KEY, repositoryCachePath.getAbsolutePath());
         }
 

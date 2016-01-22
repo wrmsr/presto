@@ -95,6 +95,28 @@ public abstract class ShellRunner
         private Auth auth;
         private String root;
 
+        public static Target localhost()
+        {
+            return new Target("localhost", null, null, null, null);
+        }
+
+//        @JsonCreator
+//        public static Target valueOf(Object object)
+//        {
+//            if (object instanceof String) {
+//                if ("localhost".equals(object)) {
+//                    return localhost();
+//                }
+//            }
+//            else if (object instanceof List) {
+//                return new SubjectList(
+//                        ImmutableList.of(
+//                                new SqlSubject(
+//                                        new VerbList(
+//                                                ((List<String>) object).stream().map(o -> new StringVerb(o)).collect(toImmutableList())))));
+//            }
+//        }
+
         @JsonCreator
         public Target()
         {

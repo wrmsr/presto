@@ -221,7 +221,6 @@ public class ExecConfig
         @JsonCreator
         public static SubjectList valueOf(Object object)
         {
-            ObjectMapper mapper = OBJECT_MAPPER.get();
             if (object instanceof String) {
                 return new SubjectList(
                         ImmutableList.of(

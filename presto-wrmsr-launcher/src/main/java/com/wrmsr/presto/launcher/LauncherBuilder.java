@@ -15,6 +15,7 @@ package com.wrmsr.presto.launcher;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.CharStreams;
@@ -258,7 +259,11 @@ public class LauncherBuilder
         // https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html
         File jarRepoBase = new File("/repository");
         File classpathBase = new File("/classpaths");
-        File repository = new File(System.getProperty("user.home"), ".m2/repository");
+        String m2Home = System.getenv("M2_HOME");
+        if (Strings.isNullOrEmpty(m2Home)) {
+            m2Home = new File(new File(System.getProperty("user.home")), ".m2").getAbsolutePath();
+        }
+        File repository = new File(new File(m2Home), ".m2/repository");
         File cwd = new File(System.getProperty("user.dir"));
 
         ArtifactResolver resolver = new ArtifactResolver(
