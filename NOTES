@@ -47,6 +47,9 @@ http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
 periodic status emails :D
 
 
+healthcheck endpoint, reactor/exec aware
+
+
 
 auto jdbc partitioning
 further jdbc predicate pushdown

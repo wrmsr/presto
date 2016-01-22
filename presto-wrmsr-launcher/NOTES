@@ -59,7 +59,7 @@ https://github.com/qos-ch/logback-contrib/wiki
 
 https://mrjob.readthedocs.org/en/latest/guides/setup-cookbook.html
 https://hadoop.apache.org/docs/stable/api/org/apache/hadoop/filecache/DistributedCache.html
-
+https://mrjob.readthedocs.org/en/latest/guides/emr-bootstrap-cookbook.html
 
 
 
@@ -86,6 +86,9 @@ https://github.com/huxi/lilith
 
 
 
+
+???
+ setup NxN fully-connected immortal http2 conns at boot to work around routing issues?
 
 
 
