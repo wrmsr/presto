@@ -36,6 +36,7 @@ import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
+import io.airlift.log.Logger;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
 
@@ -61,10 +62,13 @@ import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Strings.replaceStringVars;
 import static com.wrmsr.presto.util.Strings.splitProperty;
 
-public abstract class LauncherCommand
+public abstract class AbstractLauncherCommand
         implements Runnable, LauncherSupport
 {
+    private static final Logger log = Logger.get(AbstractLauncherCommand.class);
+
     // TODO bootstrap in run, member inject
+    public static final ThreadLocal<String[]> ORIGINAL_ARGS = new ThreadLocal<>();
 
     @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
     public List<String> configFiles = new ArrayList<>();
@@ -87,7 +91,7 @@ public abstract class LauncherCommand
         return posix;
     }
 
-    public LauncherCommand()
+    public AbstractLauncherCommand()
     {
     }
 
@@ -303,7 +307,7 @@ public abstract class LauncherCommand
 
         File jar = getJarFile(getClass());
         if (!jar.isFile()) {
-            LauncherMain.log.warn("Jvm options specified but not running with a jar file, ignoring");
+            log.warn("Jvm options specified but not running with a jar file, ignoring");
             return;
         }
 
@@ -320,7 +324,7 @@ public abstract class LauncherCommand
         builder
                 .add("-jar")
                 .add(jar.getAbsolutePath())
-                .addAll(Arrays.asList(LauncherMain.args));
+                .addAll(Arrays.asList(ORIGINAL_ARGS.get()));
 
         List<String> newArgs = builder.build();
         getPosix().libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));

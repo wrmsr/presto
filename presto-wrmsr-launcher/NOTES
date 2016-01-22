@@ -104,6 +104,59 @@ https://github.com/huxi/lilith
 
 
 
+--heap
+--debug-port
+--jmx-port
+
+--coordinator
+--node-id
+--random-node-id
+--discovery-uri
+
+com.facebook.presto.server.PluginManager=DEBUG
+com.facebook.presto=INFO
+com.ning.http.client=WARN
+com.sun.jersey.guice.spi.container.GuiceComponentProviderFactory=WARN
+coordinator=false
+coordinator=true
+discovery-server.enabled=true
+discovery.uri=http://example.net:8080
+distributed-joins-enabled=true
+exchange.http-client.connect-timeout=1m
+exchange.http-client.max-connections-per-server=1000
+exchange.http-client.max-connections=1000
+exchange.http-client.read-timeout=1m
+experimental-syntax-enabled=true
+http-server.http.port=8080
+node-scheduler.include-coordinator=false
+node-scheduler.include-coordinator=true
+node-scheduler.multiple-tasks-per-node-enabled=true
+node.data-dir=/Users/wtimoney/presto/data/
+node.environment=production
+node.environment=test
+node.id=ffffffff-ffff-ffff-ffff-ffffffffffff
+plugin.dir=/dev/null
+presto.version=0.105-SNAPSHOT
+presto.version=testversion
+query.client.timeout=5m
+query.max-age=30m
+scheduler.http-client.connect-timeout=1m
+scheduler.http-client.max-connections-per-server=1000
+scheduler.http-client.max-connections=1000
+scheduler.http-client.read-timeout=1m
+task.max-memory=1GB
+
+s3
+ec2
+hdfs
+
+
+
+
+        // NameStore.getInstance().put("www.google.com", "www.microsoft.com");
+        // InetAddress i = InetAddress.getAllByName("www.google.com")[0];
+        // System.out.println(i);
+
 
 
 

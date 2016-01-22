@@ -13,90 +13,31 @@
  */
 package com.wrmsr.presto.launcher;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.wrmsr.presto.launcher.cluster.ClusterCommands;
-import com.wrmsr.presto.launcher.commands.LauncherCommand;
-import com.wrmsr.presto.launcher.config.LauncherConfig;
-import com.wrmsr.presto.launcher.util.DaemonProcess;
-import com.wrmsr.presto.launcher.util.POSIXUtils;
-import com.wrmsr.presto.util.Artifacts;
-import com.wrmsr.presto.util.Repositories;
-import com.wrmsr.presto.util.config.PrestoConfigs;
-import io.airlift.airline.Arguments;
+import com.wrmsr.presto.launcher.commands.AbstractLauncherCommand;
+import com.wrmsr.presto.launcher.commands.CliCommand;
+import com.wrmsr.presto.launcher.commands.ClusterCommand;
+import com.wrmsr.presto.launcher.commands.DaemonCommand;
+import com.wrmsr.presto.launcher.commands.H2Command;
+import com.wrmsr.presto.launcher.commands.HdfsCommand;
+import com.wrmsr.presto.launcher.commands.HiveCommand;
+import com.wrmsr.presto.launcher.commands.JarSyncCommand;
+import com.wrmsr.presto.launcher.commands.JythonCommand;
+import com.wrmsr.presto.launcher.commands.KillCommand;
+import com.wrmsr.presto.launcher.commands.LaunchCommand;
+import com.wrmsr.presto.launcher.commands.NashornCommand;
+import com.wrmsr.presto.launcher.commands.RestartCommand;
+import com.wrmsr.presto.launcher.commands.RunCommand;
+import com.wrmsr.presto.launcher.commands.StartCommand;
+import com.wrmsr.presto.launcher.commands.StatusCommand;
+import com.wrmsr.presto.launcher.commands.StopCommand;
 import io.airlift.airline.Cli;
-import io.airlift.airline.Command;
 import io.airlift.airline.Help;
 import io.airlift.log.Logger;
-import jnr.posix.POSIX;
 
-import java.io.File;
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.IntStream;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.wrmsr.presto.util.Jvm.getJarFile;
-import static com.wrmsr.presto.util.Shell.shellEscape;
-import static com.wrmsr.presto.util.Strings.replaceStringVars;
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
-
-/*
---heap
---debug-port
---jmx-port
-
---coordinator
---node-id
---random-node-id
---discovery-uri
-
-com.facebook.presto.server.PluginManager=DEBUG
-com.facebook.presto=INFO
-com.ning.http.client=WARN
-com.sun.jersey.guice.spi.container.GuiceComponentProviderFactory=WARN
-coordinator=false
-coordinator=true
-discovery-server.enabled=true
-discovery.uri=http://example.net:8080
-distributed-joins-enabled=true
-exchange.http-client.connect-timeout=1m
-exchange.http-client.max-connections-per-server=1000
-exchange.http-client.max-connections=1000
-exchange.http-client.read-timeout=1m
-experimental-syntax-enabled=true
-http-server.http.port=8080
-node-scheduler.include-coordinator=false
-node-scheduler.include-coordinator=true
-node-scheduler.multiple-tasks-per-node-enabled=true
-node.data-dir=/Users/wtimoney/presto/data/
-node.environment=production
-node.environment=test
-node.id=ffffffff-ffff-ffff-ffff-ffffffffffff
-plugin.dir=/dev/null
-presto.version=0.105-SNAPSHOT
-presto.version=testversion
-query.client.timeout=5m
-query.max-age=30m
-scheduler.http-client.connect-timeout=1m
-scheduler.http-client.max-connections-per-server=1000
-scheduler.http-client.max-connections=1000
-scheduler.http-client.read-timeout=1m
-task.max-memory=1GB
-
-s3
-ec2
-hdfs
-*/
 
 public class LauncherMain
 {
@@ -105,8 +46,6 @@ public class LauncherMain
     private LauncherMain()
     {
     }
-
-    protected static String[] args; // meh.
 
     public static List<String> rewriteArgs(List<String> args)
     {
@@ -134,540 +73,33 @@ public class LauncherMain
     public static void main(String[] args)
             throws Throwable
     {
-        // NameStore.getInstance().put("www.google.com", "www.microsoft.com");
-        // InetAddress i = InetAddress.getAllByName("www.google.com")[0];
-        // System.out.println(i);
-
         List<String> newArgs = rewriteArgs(Arrays.asList(args));
         args = newArgs.toArray(new String[newArgs.size()]);
-
-        LauncherMain.args = args;
+        AbstractLauncherCommand.ORIGINAL_ARGS.set(args);
 
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
                 .withCommands(
                         Help.class,
-                        Run.class,
-                        Daemon.class,
-                        Launch.class,
-                        Start.class,
-                        Stop.class,
-                        Restart.class,
-                        Status.class,
-                        Kill.class,
+                        RunCommand.class,
+                        DaemonCommand.class,
+                        LaunchCommand.class,
+                        StartCommand.class,
+                        StopCommand.class,
+                        RestartCommand.class,
+                        StatusCommand.class,
+                        KillCommand.class,
                         ClusterCommand.class,
                         CliCommand.class,
-                        H2.class,
-                        Hive.class,
-                        Hdfs.class,
-                        Jython.class,
-                        Nashorn.class,
+                        H2Command.class,
+                        HiveCommand.class,
+                        HdfsCommand.class,
+                        JythonCommand.class,
+                        NashornCommand.class,
                         JarSyncCommand.class
                 );
 
         Cli<Runnable> cliParser = builder.build();
         cliParser.parse(args).run();
     }
-
-    @Command(name = "launch", description = "Launches presto server (argless)")
-    public static class Launch
-            implements Runnable
-    {
-        private List<URL> classloaderUrls;
-
-        public synchronized List<URL> getClassloaderUrls()
-        {
-            if (classloaderUrls == null) {
-                classloaderUrls = ImmutableList.copyOf(Artifacts.resolveModuleClassloaderUrls("presto-main"));
-            }
-            return classloaderUrls;
-        }
-
-        private void autoConfigure()
-        {
-            if (isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
-                System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
-            }
-        }
-
-        @Override
-        public void run()
-        {
-            autoConfigure();
-            runStaticMethod(getClassloaderUrls(), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[] {String[].class}, new Object[] {new String[] {}});
-        }
-    }
-
-    public static abstract class DaemonCommand
-            extends LauncherCommand
-    {
-        private DaemonProcess daemonProcess;
-
-        private String pidFile()
-        {
-            return getConfig().getMergedNode(LauncherConfig.class).getPidFile();
-        }
-
-        public synchronized DaemonProcess getDaemonProcess()
-        {
-            if (daemonProcess == null) {
-                checkArgument(!isNullOrEmpty(pidFile()), "must set pidfile");
-                daemonProcess = new DaemonProcess(new File(replaceVars(pidFile())), getConfig().getMergedNode(LauncherConfig.class).getPidFileFd());
-            }
-            return daemonProcess;
-        }
-    }
-
-    public static abstract class ServerCommand
-            extends DaemonCommand
-    {
-        public void launch()
-        {
-            Launch launch = new Launch();
-            if (isNullOrEmpty(Repositories.getRepositoryPath())) {
-                launch.getClassloaderUrls();
-                String wd = new File(new File(System.getProperty("user.dir")), "presto-main").getAbsolutePath();
-                File wdf = new File(wd);
-                checkState(wdf.exists() && wdf.isDirectory());
-                System.setProperty("user.dir", wd);
-                POSIX posix = POSIXUtils.getPOSIX();
-                checkState(posix.chdir(wd) == 0);
-            }
-            for (String s : systemProperties) {
-                int i = s.indexOf('=');
-                System.setProperty(s.substring(0, i), s.substring(i + 1));
-            }
-            deleteRepositoryOnExit();
-            launch.run();
-        }
-    }
-
-    @Command(name = "run", description = "Runs presto server")
-    public static class Run
-            extends ServerCommand
-    {
-        @Override
-        public boolean shouldDeleteRepository()
-        {
-            return false;
-        }
-
-        @Override
-        public void innerRun()
-                throws Throwable
-        {
-            maybeRexec();
-            launch();
-        }
-    }
-
-    @Command(name = "daemon", description = "Runs presto server daemon")
-    public static class Daemon
-            extends ServerCommand
-    {
-        @Override
-        public boolean shouldDeleteRepository()
-        {
-            return false;
-        }
-
-        @Override
-        public void innerRun()
-                throws Throwable
-        {
-            maybeRexec();
-            getDaemonProcess().writePid();
-            launch();
-        }
-    }
-
-    public abstract static class StartCommand
-            extends ServerCommand
-    {
-        public void run(boolean restart)
-        {
-            if (getDaemonProcess().alive()) {
-                if (restart) {
-                    getDaemonProcess().stop();
-                }
-                else {
-                    return;
-                }
-            }
-
-            List<String> args = ImmutableList.copyOf(LauncherMain.args);
-            String lastArg = args.get(args.size() - 1);
-            checkArgument(lastArg.equals("start") || lastArg.equals("restart"));
-
-            File jvm = getJvm();
-            ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
-                    .add(jvm.getAbsolutePath());
-            RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-            // builder.addAll(runtimeMxBean.getInputArguments());
-            if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
-                builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
-            }
-
-            builder.add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "launcher." + LauncherConfig.PID_FILE_FD_KEY + "=" + getDaemonProcess().pidFile);
-
-            LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
-
-            if (!isNullOrEmpty(config.getLogFile())) {
-                builder.add("-Dlog.output-file=" + replaceVars(config.getLogFile()));
-                builder.add("-Dlog.enable-console=false");
-            }
-
-            File jar = getJarFile(getClass());
-            checkState(jar.isFile());
-
-            builder
-                    .add("-jar")
-                    .add(jar.getAbsolutePath())
-                    .addAll(IntStream.range(0, args.size() - 1).boxed().map(args::get).collect(toImmutableList()))
-                    .add("daemon");
-
-            ImmutableList.Builder<String> shBuilder = ImmutableList.<String>builder()
-                    // .add("setsid")
-                    .addAll(builder.build().stream().map(s -> shellEscape(s)).collect(toImmutableList()));
-            shBuilder.add("</dev/null");
-
-            if (!isNullOrEmpty(config.getStdoutFile())) {
-                shBuilder.add(">>" + shellEscape(replaceVars(config.getStdoutFile())));
-            }
-            else {
-                shBuilder.add(">/dev/null");
-            }
-
-            if (!isNullOrEmpty(config.getStderrFile())) {
-                shBuilder.add("2>>" + shellEscape(replaceVars(config.getStderrFile())));
-            }
-            else {
-                shBuilder.add(">/dev/null");
-            }
-
-            shBuilder.add("&");
-
-            String cmd = Joiner.on(" ").join(shBuilder.build());
-
-            POSIX posix = POSIXUtils.getPOSIX();
-            File sh = new File("/bin/sh");
-            checkState(sh.exists() && sh.isFile());
-            posix.libc().execv(sh.getAbsolutePath(), sh.getAbsolutePath(), "-c", cmd);
-            throw new IllegalStateException("Unreachable");
-        }
-    }
-
-    @Command(name = "start", description = "Starts presto server")
-    public static class Start
-            extends StartCommand
-    {
-        @Override
-        public void innerRun()
-                throws Throwable
-        {
-            run(false);
-        }
-    }
-
-    @Command(name = "stop", description = "Stops presto server")
-    public static class Stop
-            extends DaemonCommand
-    {
-        @Override
-        public void innerRun()
-                throws Throwable
-        {
-            getDaemonProcess().stop();
-        }
-    }
-
-    @Command(name = "restart", description = "Restarts presto server")
-    public static class Restart
-            extends StartCommand
-    {
-        @Override
-        public void innerRun()
-                throws Throwable
-        {
-            getDaemonProcess().stop();
-            run(true);
-        }
-    }
-
-    @Command(name = "status", description = "Gets status of presto server")
-    public static class Status
-            extends DaemonCommand
-    {
-        // TODO optional wait time
-
-        @Override
-        public void innerRun()
-                throws Throwable
-        {
-            if (!getDaemonProcess().alive()) {
-                System.exit(DaemonProcess.LSB_NOT_RUNNING);
-            }
-            System.out.println(getDaemonProcess().readPid());
-        }
-    }
-
-    @Command(name = "kill", description = "Kills presto server")
-    public static class Kill
-            extends DaemonCommand
-    {
-        @Arguments(description = "arguments")
-        private List<String> args = newArrayList();
-
-        @Override
-        public void innerRun()
-                throws Throwable
-        {
-            deleteRepositoryOnExit();
-            if (args.isEmpty()) {
-                getDaemonProcess().kill();
-            }
-            else if (args.size() == 1) {
-                int signal = Integer.valueOf(args.get(0));
-                getDaemonProcess().kill(signal);
-            }
-            else {
-                throw new IllegalArgumentException();
-            }
-        }
-    }
-
-    @Command(name = "cluster", description = "Runs cluster command")
-    public static class ClusterCommand
-            extends LauncherCommand
-    {
-        @Arguments(description = "arguments")
-        private List<String> args = newArrayList();
-
-        @Override
-        public void innerRun()
-                throws Throwable
-        {
-            deleteRepositoryOnExit();
-            String[] args = this.args.toArray(new String[this.args.size()]);
-            ClusterCommands.main(this, args);
-        }
-    }
-
-    public static void runStaticMethod(String className, String methodName, Class<?>[] parameterTypes, Object[] args)
-    {
-        try {
-            ClassLoader cl = Thread.currentThread().getContextClassLoader();
-            Class cls = cl.loadClass(className);
-            Method main = cls.getMethod(methodName, parameterTypes);
-            main.invoke(null, args);
-        }
-        catch (Exception e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
-    public static void runStaticMethod(List<URL> urls, String className, String methodName, Class<?>[] parameterTypes, Object[] args)
-    {
-        Thread t = new Thread()
-        {
-            @Override
-            public void run()
-            {
-                try {
-                    ClassLoader cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), getContextClassLoader().getParent());
-                    Thread.currentThread().setContextClassLoader(cl);
-                    runStaticMethod(className, methodName, parameterTypes, args);
-                }
-                catch (Exception e) {
-                    throw Throwables.propagate(e);
-                }
-            }
-        };
-        t.start();
-        try {
-            t.join();
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    public static abstract class PassthroughCommand
-            extends LauncherCommand
-    {
-        public abstract String getModuleName();
-
-        public abstract String getClassName();
-
-        @Arguments(description = "arguments")
-        private List<String> args = newArrayList();
-
-        @Override
-        public void innerRun()
-                throws Throwable
-        {
-            deleteRepositoryOnExit();
-            String moduleName = getModuleName();
-            Class<?>[] parameterTypes = new Class<?>[] {String[].class};
-            Object[] args = new Object[] {this.args.toArray(new String[this.args.size()])};
-            if (moduleName == null) {
-                runStaticMethod(getClassName(), "main", parameterTypes, args);
-            }
-            else {
-                runStaticMethod(Artifacts.resolveModuleClassloaderUrls(moduleName), getClassName(), "main", parameterTypes, args);
-            }
-        }
-    }
-
-    @Command(name = "cli", description = "Starts presto cli")
-    public static class CliCommand
-            extends PassthroughCommand
-    {
-        @Override
-        public String getModuleName()
-        {
-            return "presto-cli";
-        }
-
-        @Override
-        public String getClassName()
-        {
-            return "com.facebook.presto.cli.Presto";
-        }
-    }
-
-    @Command(name = "hive", description = "Executes Hive command")
-    public static class Hive
-            extends PassthroughCommand
-    {
-        @Override
-        public String getModuleName()
-        {
-            return "presto-wrmsr-hadoop";
-        }
-
-        @Override
-        public String getClassName()
-        {
-            return "com.wrmsr.presto.hadoop.hive.HiveMain";
-        }
-    }
-
-    @Command(name = "hdfs", description = "Executes HDFS command")
-    public static class Hdfs
-            extends PassthroughCommand
-    {
-        @Override
-        public String getModuleName()
-        {
-            return "presto-wrmsr-hadoop";
-        }
-
-        @Override
-        public String getClassName()
-        {
-            return "com.wrmsr.presto.hadoop.hdfs.HdfsMain";
-        }
-    }
-
-    @Command(name = "h2", description = "Execute H2 command")
-    public static class H2
-            extends PassthroughCommand
-    {
-        @Override
-        public String getModuleName()
-        {
-            return null;
-        }
-
-        @Override
-        public String getClassName()
-        {
-            return "com.wrmsr.presto.launcher.H2Main";
-        }
-    }
-
-    @Command(name = "jython", description = "Starts Jython shell")
-    public static class Jython
-            extends PassthroughCommand
-    {
-        @Override
-        public String getModuleName()
-        {
-            return "presto-wrmsr-jython";
-        }
-
-        @Override
-        public String getClassName()
-        {
-            return "org.python.util.jython";
-        }
-    }
-
-    @Command(name = "nashorn", description = "Starts Nashorn shell")
-    public static class Nashorn
-            extends PassthroughCommand
-    {
-        @Override
-        public String getModuleName()
-        {
-            return null;
-        }
-
-        @Override
-        public String getClassName()
-        {
-            return "jdk.nashorn.tools.Shell";
-        }
-    }
-
-    @Command(name = "jarsync", description = "Executes JarSync command")
-    public static class JarSyncCommand
-            extends PassthroughCommand
-    {
-        @Override
-        public String getModuleName()
-        {
-            return null;
-        }
-
-        @Override
-        public String getClassName()
-        {
-            return "com.wrmsr.presto.launcher.JarSyncMain";
-        }
-    }
-
-
-    /*
-    @Command(name = "mesos", description = "Performs mesos operations")
-    public static class Mesos extends DaemonCommand
-    {
-        @Override
-        public void run()
-        {
-
-        }
-    }
-    */
-
-    /*
-        @Arguments(description = "Patterns of files to be added")
-        public List<String> patterns;
-
-        @Option(name = "-i", description = "Add modified contents interactively.")
-        public boolean interactive;
-
-        @Option(name = "-n", description = "Do not query remote heads")
-        public boolean noQuery;
-
-        @Arguments(description = "Remote to show")
-        public String remote;
-
-        @Option(name = "-t", description = "Track only a specific branch")
-        public String branch;
-
-        @Arguments(description = "Remote repository to add")
-        public List<String> remote;
-    */
 }
