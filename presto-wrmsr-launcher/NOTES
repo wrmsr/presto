@@ -42,6 +42,16 @@ public class FileUtil
 http://logback.qos.ch/manual/configuration.html#auto_configuration
 
 
+  <servlet>
+    <servlet-name>ViewStatusMessages</servlet-name>
+    <servlet-class>ch.qos.logback.classic.ViewStatusMessagesServlet</servlet-class>
+  </servlet>
+
+  <servlet-mapping>
+    <servlet-name>ViewStatusMessages</servlet-name>
+    <url-pattern>/lbClassicStatus</url-pattern>
+  </servlet-mapping>
+
 
 subprocess log appender cfg to stdintoscribe
 syslog
