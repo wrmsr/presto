@@ -1,5 +1,14 @@
 https://github.com/dockerfile/java/blob/master/oracle-java8/Dockerfile
 
+smartstack self-ping port discovery
+
+wait for nodes barrier function w timeout
+
+ttl the lock node
+
+
+TODO jarsync via http endpoint, master sends to slaves
+ - version check on slave boot, autoupdate
 
 
 

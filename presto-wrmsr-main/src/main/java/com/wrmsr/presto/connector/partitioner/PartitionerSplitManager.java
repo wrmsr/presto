@@ -17,8 +17,6 @@ import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
-import com.facebook.presto.spi.ConnectorPartition;
-import com.facebook.presto.spi.ConnectorPartitionResult;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorSplit;
 import com.facebook.presto.spi.connector.ConnectorSplitManager;
@@ -59,6 +57,7 @@ public class PartitionerSplitManager
         this.partitioner = checkNotNull(partitioner);
     }
 
+    /*
     @Override
     @Deprecated
     public ConnectorPartitionResult getPartitions(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableHandle table, TupleDomain<ColumnHandle> tupleDomain)
@@ -123,6 +122,31 @@ public class PartitionerSplitManager
     @Override
     public ConnectorSplitSource getSplits(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableLayoutHandle layout)
     {
+        ConnectorSplitSource underlying = target.getSplits(transactionHandle, session, layout);
+        underlying.get
+        List<ConnectorSplit> splits = partitions.stream()
+                .map(p -> target.getPartitionSplits(transactionHandle, session, table, ImmutableList.of(p)))
+                .flatMap(s -> {
+                    try {
+                        return s.getNextBatch(Integer.MAX_VALUE).get().stream();
+                    }
+                    catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw Throwables.propagate(e);
+                    }
+                    catch (ExecutionException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .collect(ImmutableCollectors.toImmutableList());
+        return new FixedSplitSource(connectorId, splits);
+    }
+    */
+
+    @Override
+    public ConnectorSplitSource getSplits(ConnectorTransactionHandle transactionHandle, ConnectorSession session, ConnectorTableLayoutHandle layout)
+    {
+        // FIXME FUCK
         return target.getSplits(transactionHandle, session, layout);
     }
 

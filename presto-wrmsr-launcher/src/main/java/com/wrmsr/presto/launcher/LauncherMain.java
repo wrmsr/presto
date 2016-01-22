@@ -226,6 +226,8 @@ public class LauncherMain
     public static abstract class LauncherCommand
             implements Runnable, LauncherSupport
     {
+        // TODO bootstrap in run, member inject
+
         @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
         public List<String> configFiles = new ArrayList<>();
 

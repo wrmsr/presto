@@ -30,14 +30,14 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.SchemaTablePrefix;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.airlift.slice.Slice;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.facebook.presto.util.Types.checkType;
 
 public class PartitionerMetadata
         implements ConnectorMetadata
@@ -84,12 +84,17 @@ public class PartitionerMetadata
     @Override
     public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName)
     {
-        return target.getTableHandle(session, tableName);
+        return new PartitionerTableHandle(target.getTableHandle(session, tableName));
     }
 
     @Override
     public List<ConnectorTableLayoutResult> getTableLayouts(ConnectorSession session, ConnectorTableHandle table, Constraint<ColumnHandle> constraint, Optional<Set<ColumnHandle>> desiredColumns)
     {
+        PartitionerTableHandle tableHandle = checkType(table, PartitionerTableHandle.class, "table");
+        List<ConnectorTableLayoutResult> out = target.getTableLayouts(session, table, constraint, desiredColumns);
+
+//        ConnectorTableLayout layout = new ConnectorTableLayout(new JdbcTableLayoutHandle(tableHandle, constraint.getSummary()));
+//        return ImmutableList.of(new ConnectorTableLayoutResult(layout, constraint.getSummary()));
         // FIXME
         return target.getTableLayouts(session, table, constraint, desiredColumns);
     }

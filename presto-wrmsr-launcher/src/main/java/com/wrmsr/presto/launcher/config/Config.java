@@ -16,6 +16,7 @@ package com.wrmsr.presto.launcher.config;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.wrmsr.presto.launcher.cluster.ClustersConfig;
+import com.wrmsr.presto.launcher.zookeeper.ZookeeperConfig;
 import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 
 @JsonTypeInfo(
@@ -29,6 +30,7 @@ import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
         @JsonSubTypes.Type(value = LauncherConfig.class, name = "launcher"),
         @JsonSubTypes.Type(value = LogConfig.class, name = "log"),
         @JsonSubTypes.Type(value = SystemConfig.class, name = "system"),
+        @JsonSubTypes.Type(value = ZookeeperConfig.class, name = "zookeeper"),
 })
 public interface Config<N extends Config<N>>
     extends MergeableConfig<N>

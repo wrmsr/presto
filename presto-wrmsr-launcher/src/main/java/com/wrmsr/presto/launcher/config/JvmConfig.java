@@ -30,6 +30,8 @@ public final class JvmConfig
     {
     }
 
+    // TODO oomkill (include linbin?)
+
     public static final String ALREADY_CONFIGURED_KEY = "already-configured";
 
     private boolean alreadyConfigured;

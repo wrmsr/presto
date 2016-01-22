@@ -42,12 +42,6 @@ public class PartitionerConnector
         this.partitioner = partitioner;
     }
 
-//    @Override
-//    public ConnectorMetadata getMetadata()
-//    {
-//        return new PartitionerMetadata(target.getTarget().getMetadata());
-//    }
-
     @Override
     public ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly)
     {
@@ -57,7 +51,7 @@ public class PartitionerConnector
     @Override
     public ConnectorMetadata getMetadata(ConnectorTransactionHandle transactionHandle)
     {
-        return target.getTarget().getMetadata(transactionHandle);
+        return new PartitionerMetadata(target.getTarget().getMetadata(transactionHandle));
     }
 
     @Override
