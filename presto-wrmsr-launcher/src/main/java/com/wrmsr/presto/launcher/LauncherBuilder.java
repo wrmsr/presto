@@ -263,7 +263,7 @@ public class LauncherBuilder
         if (Strings.isNullOrEmpty(m2Home)) {
             m2Home = new File(new File(System.getProperty("user.home")), ".m2").getAbsolutePath();
         }
-        File repository = new File(new File(m2Home), ".m2/repository");
+        File repository = new File(new File(m2Home), "repository");
         File cwd = new File(System.getProperty("user.dir"));
 
         ArtifactResolver resolver = new ArtifactResolver(

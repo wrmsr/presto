@@ -28,7 +28,7 @@ import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
         @JsonSubTypes.Type(value = EnvConfig.class, name = "env"),
         @JsonSubTypes.Type(value = JvmConfig.class, name = "jvm"),
         @JsonSubTypes.Type(value = LauncherConfig.class, name = "launcher"),
-        @JsonSubTypes.Type(value = LogConfig.class, name = "log"),
+        @JsonSubTypes.Type(value = LoggingConfig.class, name = "logging"),
         @JsonSubTypes.Type(value = SystemConfig.class, name = "system"),
         @JsonSubTypes.Type(value = ZookeeperConfig.class, name = "zookeeper"),
 })

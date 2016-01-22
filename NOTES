@@ -52,6 +52,8 @@ http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
 
 
 periodic status emails :D
+also performance monitoring / stats - profiling, counts per step, intermediate index size / churn, etc
+can store stats in state
 
 
 healthcheck endpoint, reactor/exec aware
