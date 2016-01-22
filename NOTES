@@ -19,6 +19,12 @@ swagger -> https://github.com/square/javapoet
 package io.airlift.http.client;
 https://github.com/Yelp/bravado
 
+ log-config-file: logback.xml
+ log-config: |
+   <xml>
+   ...
+   </xml>
+
 class ReactorsConfig extends MapConfig<String, ReactorConfig>
 
 class ReactorConfig {

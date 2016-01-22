@@ -7,3 +7,7 @@ https://github.com/apache/hadoop-mapreduce/tree/HDFS-641/src/contrib/streaming/s
 
 
 *** stmt -> layout -> jsonschema
+
+
+
+bundle & unpack cpy ffi entrypoint
