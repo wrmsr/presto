@@ -16,6 +16,7 @@ https://github.com/apache/bookkeeper
 
 
 swagger -> https://github.com/square/javapoet
+package io.airlift.http.client;
 
 class ReactorsConfig extends MapConfig<String, ReactorConfig>
 

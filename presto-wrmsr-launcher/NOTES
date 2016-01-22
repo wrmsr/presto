@@ -24,6 +24,46 @@ use jar manifest classpath, see hadoop
 package org.apache.hadoop.fs;
 public class FileUtil
 
+
+
+
+
+
+
+
+
+
+
+
+
+subprocess log appender cfg to stdintoscribe
+syslog
+raw scribe? kafka?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     /**
      * Create a jar file at the given path, containing a manifest with a classpath
      * that references all specified entries.

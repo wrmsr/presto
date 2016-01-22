@@ -4,3 +4,6 @@ https://hadoop.apache.org/docs/r1.2.1/streaming.html
 https://wiki.apache.org/hadoop/HadoopStreaming
 http://www.michael-noll.com/tutorials/writing-an-hadoop-mapreduce-program-in-python/
 https://github.com/apache/hadoop-mapreduce/tree/HDFS-641/src/contrib/streaming/src/java/org/apache/hadoop
+
+
+*** stmt -> layout -> jsonschema

@@ -1,0 +1,7 @@
+per-scripting parameterization:
+ $1, $$ literal
+ dont have to be aware of parsing
+ also args[0], args['foo']
+
+** can communicate via jsonschema **
+ or avro i guess
