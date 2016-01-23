@@ -52,6 +52,7 @@ http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
 
 
 periodic status emails :D
+ - just fuckin do this via a log w an SMTPAppender
 also performance monitoring / stats - profiling, counts per step, intermediate index size / churn, etc
 can store stats in state
 
@@ -59,6 +60,14 @@ can store stats in state
 healthcheck endpoint, reactor/exec aware
 
 
+
+may well need commit log:
+ - shit mode = just cass blob
+ - prob kafka sync
+ - bookeeper?
+  - https://blog.twitter.com/2014/manhattan-our-real-time-multi-tenant-distributed-database-for-twitter-scale
+ - !! or can i get away with inline undo logs per record? replay from last checkpoint apply undos when <
+  - source merging = ?
 
 
 

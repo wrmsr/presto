@@ -24,6 +24,9 @@ use jar manifest classpath, see hadoop
 package org.apache.hadoop.fs;
 public class FileUtil
 
+also have zk lock for reactors
+ -> spi DistributedMutexProvider
+
 
 
 
@@ -160,6 +163,7 @@ hdfs
 
 
 
+FIXME set external port to $PORT_8888
 
 
 

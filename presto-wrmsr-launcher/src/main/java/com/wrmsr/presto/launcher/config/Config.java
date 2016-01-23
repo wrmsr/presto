@@ -16,6 +16,7 @@ package com.wrmsr.presto.launcher.config;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.wrmsr.presto.launcher.cluster.ClustersConfig;
+import com.wrmsr.presto.launcher.logging.LoggingConfig;
 import com.wrmsr.presto.launcher.zookeeper.ZookeeperConfig;
 import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 
