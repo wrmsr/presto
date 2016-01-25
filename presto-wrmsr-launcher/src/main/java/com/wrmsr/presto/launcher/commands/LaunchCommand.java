@@ -30,7 +30,7 @@ public final class LaunchCommand
 {
     private static final Logger log = Logger.get(LaunchCommand.class);
 
-    private List<URL> classloaderUrls;
+    private volatile List<URL> classloaderUrls;
 
     public synchronized List<URL> getClassloaderUrls()
     {

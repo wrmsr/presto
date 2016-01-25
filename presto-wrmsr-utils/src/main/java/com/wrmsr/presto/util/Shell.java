@@ -1199,6 +1199,7 @@ public abstract class Shell
     }
 
     public interface CommandExecutor
+        extends AutoCloseable
     {
         void execute()
                 throws IOException;
