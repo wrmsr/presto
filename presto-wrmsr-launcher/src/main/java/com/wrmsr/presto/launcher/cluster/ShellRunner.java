@@ -32,7 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static com.wrmsr.presto.util.Shell.shellEscape;
+import static com.wrmsr.presto.util.ShellUtils.shellEscape;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public abstract class ShellRunner

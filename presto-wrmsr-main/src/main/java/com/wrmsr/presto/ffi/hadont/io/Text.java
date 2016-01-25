@@ -18,8 +18,6 @@
 
 package com.wrmsr.presto.ffi.hadont.io;
 
-import org.apache.avro.reflect.Stringable;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -45,7 +43,6 @@ import java.util.Arrays;
  * byte array contains valid UTF8 code, calculating the length of an encoded
  * string.
  */
-@Stringable
 public class Text
         extends BinaryComparable
         implements WritableComparable<BinaryComparable>

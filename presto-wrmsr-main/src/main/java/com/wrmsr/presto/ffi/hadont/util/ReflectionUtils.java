@@ -18,6 +18,7 @@
 
 package com.wrmsr.presto.ffi.hadont.util;
 
+import com.wrmsr.presto.util.Time;
 import org.apache.commons.logging.Log;
 import com.wrmsr.presto.ffi.hadont.io.DataInputBuffer;
 import com.wrmsr.presto.ffi.hadont.io.DataOutputBuffer;

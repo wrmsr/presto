@@ -20,14 +20,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.wrmsr.presto.launcher.config.Config;
-import com.wrmsr.presto.util.config.mergeable.StringMapMergeableConfig;
+import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 
 import java.util.List;
 import java.util.Map;
 
 public final class LoggingConfig
-        extends StringMapMergeableConfig<LoggingConfig>
-        implements Config<LoggingConfig>
+        implements MergeableConfig<LoggingConfig>, Config<LoggingConfig>
 {
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,

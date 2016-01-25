@@ -32,7 +32,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.wrmsr.presto.util.Jvm.getJarFile;
-import static com.wrmsr.presto.util.Shell.shellEscape;
+import static com.wrmsr.presto.util.ShellUtils.shellEscape;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public abstract class AbstractStartCommand

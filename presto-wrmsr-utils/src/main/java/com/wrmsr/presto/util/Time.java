@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.ffi.hadont.util;
+package com.wrmsr.presto.util;
 
 /**
  * Utility methods for getting the time and computing intervals.

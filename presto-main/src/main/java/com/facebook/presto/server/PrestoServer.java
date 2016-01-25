@@ -128,7 +128,7 @@ public class PrestoServer
 
         Bootstrap app = new Bootstrap(PreloadedPlugins.processServerModules(modules.build()));
 
-        if (Boolean.getBoolean("presto.do-not-initialize-logging'")) {
+        if (Boolean.getBoolean("presto.do-not-initialize-logging")) {
             app.doNotInitializeLogging();
         }
 
