@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.launcher.LauncherUtils;
 import com.wrmsr.presto.util.Artifacts;
 import io.airlift.airline.Command;
+import io.airlift.log.Logger;
 
 import java.net.URL;
 import java.util.List;
@@ -27,6 +28,8 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public final class LaunchCommand
         implements Runnable
 {
+    private static final Logger log = Logger.get(LaunchCommand.class);
+
     private List<URL> classloaderUrls;
 
     public synchronized List<URL> getClassloaderUrls()
@@ -48,6 +51,16 @@ public final class LaunchCommand
     public void run()
     {
         autoConfigure();
-        LauncherUtils.runStaticMethod(getClassloaderUrls(), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[] {String[].class}, new Object[] {new String[] {}});
+        try {
+            LauncherUtils.runStaticMethod(getClassloaderUrls(), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[] {String[].class}, new Object[] {new String[] {}});
+        }
+        catch (Throwable e) {
+            try {
+                log.error(e);
+            }
+            catch (Throwable e2) {
+            }
+            System.exit(1);
+        }
     }
 }
