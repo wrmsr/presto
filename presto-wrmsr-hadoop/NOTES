@@ -25,6 +25,8 @@ https://github.com/Yelp/mrjob/blob/master/mrjob/emr.py#L2042
 https://wiki.apache.org/hadoop/HadoopStreaming
 
 
+https://hadoop.apache.org/docs/stable/api/org/apache/hadoop/filecache/DistributedCache.html
+
 
 <property>
   <name>javax.jdo.option.ConnectionURL</name>
