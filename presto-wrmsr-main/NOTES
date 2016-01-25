@@ -74,7 +74,9 @@ may well need commit log:
 
 
 
-
+pk annotation type
+pks via wrapper types -> move to spi
+need to store serialized intermediate types -> separate initial and current state rows?
 
 
 
