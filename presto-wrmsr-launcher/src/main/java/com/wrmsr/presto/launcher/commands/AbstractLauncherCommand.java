@@ -332,15 +332,15 @@ public abstract class AbstractLauncherCommand
         throw new IllegalStateException("Unreachable");
     }
 
-    private void configureLoggers()
+    public void configureLoggers()
     {
         Logging logging = Logging.initialize();
-        try {
-            logging.configure(new LoggingConfiguration());
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
+//        try {
+//            logging.configure(new LoggingConfiguration());
+//        }
+//        catch (IOException e) {
+//            throw Throwables.propagate(e);
+//        }
         System.setProperty("presto.do-not-initialize-logging", "true");
 
         LoggingConfig lc = getConfig().getMergedNode(LoggingConfig.class);
@@ -374,7 +374,6 @@ public abstract class AbstractLauncherCommand
         setArgSystemProperties();
         getConfig();
 
-        configureLoggers();
         ensureConfigDirs();
         if (shouldDeleteRepository()) {
             deleteRepositoryOnExit();

@@ -36,10 +36,6 @@ also have zk lock for reactors
  apple paths
  javaExecutable fallback
 
-** HONOR $M2_HOME
- System.getenv("M2_HOME")
-
-
 
 
 http://logback.qos.ch/manual/configuration.html#auto_configuration
@@ -98,6 +94,8 @@ https://github.com/huxi/lilith
 
 
 
+ghetto hardcoded unknown cfg node warning
+ - or gen on build lol jk
 
 
 ???

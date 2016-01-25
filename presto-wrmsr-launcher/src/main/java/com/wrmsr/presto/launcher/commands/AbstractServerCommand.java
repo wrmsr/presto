@@ -13,8 +13,10 @@
  */
 package com.wrmsr.presto.launcher.commands;
 
+import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
 import com.wrmsr.presto.util.Repositories;
+import io.airlift.log.Logger;
 import jnr.posix.POSIX;
 
 import java.io.File;
@@ -25,8 +27,11 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public abstract class AbstractServerCommand
         extends AbstractDaemonCommand
 {
+    private static final Logger log = Logger.get(AbstractServerCommand.class);
+
     public void launch()
     {
+        configureLoggers();
         LaunchCommand launch = new LaunchCommand();
         if (isNullOrEmpty(Repositories.getRepositoryPath())) {
             launch.getClassloaderUrls();
@@ -42,6 +47,16 @@ public abstract class AbstractServerCommand
             System.setProperty(s.substring(0, i), s.substring(i + 1));
         }
         deleteRepositoryOnExit();
+        long delay = getConfig().getMergedNode(LauncherConfig.class).getDelay();
+        if (delay > 0) {
+            log.info(String.format("Delaying launch for %d ms", delay));
+            try {
+                Thread.sleep(delay);
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
         launch.run();
     }
 }

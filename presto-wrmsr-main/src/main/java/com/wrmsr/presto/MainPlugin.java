@@ -323,8 +323,7 @@ public class MainPlugin
             @Override
             public void configure(Binder binder)
             {
-                jsonCodecBinder(binder).bindJsonCodec(TaskUpdateRequest.class);
-
+                // jsonCodecBinder(binder).bindJsonCodec(TaskUpdateRequest.class);
                 // jaxrsBinder(binder).bind(ShutdownResource.class);
             }
         }));

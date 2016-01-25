@@ -179,4 +179,18 @@ public class LauncherConfig
     {
         this.clusterNodeName = clusterNodeName;
     }
+
+    private long delay;
+
+    @JsonProperty("delay")
+    public long getDelay()
+    {
+        return delay;
+    }
+
+    @JsonProperty("delay")
+    public void setDelay(long delay)
+    {
+        this.delay = delay;
+    }
 }

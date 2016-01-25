@@ -11,13 +11,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.util;
+package com.wrmsr.presto.util;
 
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 
-public class ParentLastURLClassLoader extends ClassLoader
+public class ParentLastClassLoader
+        extends ClassLoader
 {
     private ChildURLClassLoader childClassLoader;
 
@@ -77,7 +78,7 @@ public class ParentLastURLClassLoader extends ClassLoader
         }
     }
 
-    public ParentLastURLClassLoader(List<URL> classpath)
+    public ParentLastClassLoader(List<URL> classpath)
     {
         super(Thread.currentThread().getContextClassLoader());
 
