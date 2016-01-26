@@ -2,6 +2,16 @@ com.facebook.presto.operator.PagesIndex
 
 
 
+***
+ @record() equiv... validations, defaults, ... coercions?
+
+ !!! possible antipattern: can you project through?
+  - if not then need to enhance inline validation
+
+
+***
+ zipkin integration via TraceTokenModule - through to subordinate cpy's
+
 https://github.com/klbostee/feathers/blob/master/src/output/RawFileOutputFormat.java
 
 insert into blah.my_s3."/some/path-%d.json" select *
