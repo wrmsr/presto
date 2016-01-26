@@ -18,7 +18,9 @@ import com.google.common.base.Throwables;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class LauncherUtils
 {
@@ -37,6 +39,7 @@ public class LauncherUtils
 
     public static void runStaticMethod(List<URL> urls, String className, String methodName, Class<?>[] parameterTypes, Object[] args)
     {
+        List<Throwable> unhandled = new CopyOnWriteArrayList<>();
         Thread t = new Thread()
         {
             @Override
@@ -53,11 +56,15 @@ public class LauncherUtils
             }
         };
         t.start();
+        t.setUncaughtExceptionHandler((thr, e) -> unhandled.add(e));
         try {
             t.join();
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+        if (!unhandled.isEmpty()) {
+            throw new RuntimeException(unhandled.get(0));
         }
     }
 }

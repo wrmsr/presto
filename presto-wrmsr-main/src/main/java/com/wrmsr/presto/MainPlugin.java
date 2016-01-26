@@ -169,8 +169,8 @@ public class MainPlugin
             Key.get(BlockEncodingSerde.class),
             Key.get(QueryManager.class),
             Key.get(SessionPropertyManager.class),
-            Key.get(QueryIdGenerator.class),
-            Key.get(HttpClient.class)
+            Key.get(QueryIdGenerator.class)
+            // Key.get(HttpClient.class)
     );
 
     private Module buildInjectedModule()

@@ -88,7 +88,7 @@ public abstract class AbstractLauncherCommand
 
     private ConfigContainer config;
 
-    private POSIX posix;
+    private volatile POSIX posix;
 
     public synchronized POSIX getPosix()
     {
@@ -482,6 +482,8 @@ public abstract class AbstractLauncherCommand
             }
             System.exit(1);
         }
+
+        System.exit(0);
     }
 
     public void runServer(boolean restart)
