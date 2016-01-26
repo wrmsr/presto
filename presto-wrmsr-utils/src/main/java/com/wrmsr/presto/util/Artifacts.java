@@ -28,12 +28,24 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Artifacts
 {
     private Artifacts()
     {
+    }
+
+    public static <T> Stream<T> toStream(Optional<T> opt)
+    {
+        if (opt.isPresent()) {
+            return Stream.of(opt.get());
+        }
+        else {
+            return Stream.empty();
+        }
     }
 
     public static List<Artifact> sortedArtifacts(List<Artifact> artifacts)
@@ -65,12 +77,17 @@ public class Artifacts
                     throw new IOException("pom not found");
                 }
 
-                List<Artifact> artifacts = resolver.resolvePom(pom);
-                artifacts = artifacts.stream().map(a -> {
+                List<Artifact> resolvedArtifacts = resolver.resolvePom(pom);
+                Optional<Artifact> projectArtifact = Optional.empty();
+                List<Artifact> projectArtifacts = new ArrayList<>();
+                List<Artifact> mavenArtifacts = new ArrayList<>();
+
+                for (Artifact a : resolvedArtifacts) {
+                    List<Artifact> al = mavenArtifacts;
                     for (String prefix : ImmutableList.of("", "../")) {
                         File f = new File(prefix + a.getArtifactId());
                         if (new File(f, "pom.xml").exists()) {
-                            return new DefaultArtifact(
+                            a = new DefaultArtifact(
                                     a.getGroupId(),
                                     a.getArtifactId(),
                                     a.getClassifier(),
@@ -78,13 +95,29 @@ public class Artifacts
                                     a.getVersion(),
                                     a.getProperties(),
                                     new File(f, "target/classes"));
+                            al = projectArtifacts;
                         }
                     }
-                    return a;
-                }).collect(Collectors.toList());
+                    if (name.equals(a.getArtifactId())) {
+                        if (projectArtifact.isPresent()) {
+                            throw new IllegalStateException();
+                        }
+                        projectArtifact = Optional.of(a);
+                    }
+                    else {
+                        al.add(a);
+                    }
+                }
+
+                List<Artifact> artifacts = Stream.concat(
+                        toStream(projectArtifact),
+                        Stream.concat(
+                                sortedArtifacts(projectArtifacts).stream(),
+                                sortedArtifacts(mavenArtifacts).stream()))
+                        .collect(Collectors.toList());
 
                 List<URL> urls = new ArrayList<>();
-                for (Artifact artifact : sortedArtifacts(artifacts)) {
+                for (Artifact artifact : artifacts) {
                     if (artifact.getFile() == null) {
                         throw new RuntimeException("Could not resolve artifact: " + artifact);
                     }
