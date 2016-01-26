@@ -16,12 +16,21 @@ package io.airlift.log;
 import com.google.common.base.Throwables;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.LogRecord;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class SubprocessHandler
         extends java.util.logging.Handler
 {
     private final Process process;
+    private final StaticFormatter formatter = new StaticFormatter();
+    private final AtomicBoolean reported = new AtomicBoolean();
+    private final Writer writer;
 
     public SubprocessHandler(String[] args)
     {
@@ -32,6 +41,7 @@ public class SubprocessHandler
         catch (IOException e) {
             throw Throwables.propagate(e);
         }
+        writer = new OutputStreamWriter(process.getOutputStream(), UTF_8);
     }
 
     @Override
@@ -44,12 +54,33 @@ public class SubprocessHandler
     @Override
     public void publish(LogRecord record)
     {
+        if (!isLoggable(record)) {
+            return;
+        }
 
+        try {
+            writer.write(formatter.format(record));
+            writer.flush();
+        }
+        catch (Exception e) {
+            // try to report the first error
+            if (!reported.getAndSet(true)) {
+                PrintWriter error = new PrintWriter(writer);
+                error.print("LOGGING FAILED: ");
+                e.printStackTrace(error);
+                error.flush();
+            }
+        }
     }
 
     @Override
     public void flush()
     {
-
+        try {
+            writer.flush();
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
     }
 }

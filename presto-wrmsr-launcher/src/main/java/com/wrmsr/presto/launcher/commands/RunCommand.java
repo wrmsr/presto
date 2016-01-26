@@ -17,7 +17,7 @@ import io.airlift.airline.Command;
 
 @Command(name = "run", description = "Runs presto server")
 public final class RunCommand
-        extends AbstractServerCommand
+        extends AbstractLauncherCommand
 {
     @Override
     public boolean shouldDeleteRepository()

@@ -60,6 +60,7 @@ import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.config.Configs;
 import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.bootstrap.Bootstrap;
+import io.airlift.http.client.HttpClient;
 import io.airlift.json.JsonCodec;
 import io.airlift.log.Logger;
 import org.apache.commons.configuration.HierarchicalConfiguration;
@@ -168,7 +169,8 @@ public class MainPlugin
             Key.get(BlockEncodingSerde.class),
             Key.get(QueryManager.class),
             Key.get(SessionPropertyManager.class),
-            Key.get(QueryIdGenerator.class)
+            Key.get(QueryIdGenerator.class),
+            Key.get(HttpClient.class)
     );
 
     private Module buildInjectedModule()

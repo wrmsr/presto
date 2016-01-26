@@ -17,7 +17,7 @@ import io.airlift.airline.Command;
 
 @Command(name = "stop", description = "Stops presto server")
 public final class StopCommand
-        extends AbstractDaemonCommand
+        extends AbstractLauncherCommand
 {
     @Override
     public void innerRun()

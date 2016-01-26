@@ -17,13 +17,13 @@ import io.airlift.airline.Command;
 
 @Command(name = "restart", description = "Restarts presto server")
 public final class RestartCommand
-        extends AbstractStartCommand
+        extends AbstractLauncherCommand
 {
     @Override
     public void innerRun()
             throws Throwable
     {
         getDaemonProcess().stop();
-        run(true);
+        runServer(true);
     }
 }

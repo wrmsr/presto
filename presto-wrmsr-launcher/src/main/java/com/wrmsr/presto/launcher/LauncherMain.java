@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.launcher;
 
+import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.launcher.commands.AbstractLauncherCommand;
 import com.wrmsr.presto.launcher.commands.CliCommand;
 import com.wrmsr.presto.launcher.commands.ClusterCommand;
@@ -24,6 +25,7 @@ import com.wrmsr.presto.launcher.commands.JarSyncCommand;
 import com.wrmsr.presto.launcher.commands.JythonCommand;
 import com.wrmsr.presto.launcher.commands.KillCommand;
 import com.wrmsr.presto.launcher.commands.LaunchCommand;
+import com.wrmsr.presto.launcher.commands.LauncherCommand;
 import com.wrmsr.presto.launcher.commands.NashornCommand;
 import com.wrmsr.presto.launcher.commands.RestartCommand;
 import com.wrmsr.presto.launcher.commands.RunCommand;
@@ -70,6 +72,26 @@ public class LauncherMain
         return ret;
     }
 
+    public static final List<Class<? extends LauncherCommand>> LAUNCHER_COMMANDS = ImmutableList.<Class<? extends LauncherCommand>>builder().add(
+            RunCommand.class,
+            DaemonCommand.class,
+            LaunchCommand.class,
+            StartCommand.class,
+            StopCommand.class,
+            RestartCommand.class,
+            StatusCommand.class,
+            KillCommand.class,
+            ClusterCommand.class,
+            CliCommand.class,
+            H2Command.class,
+            HiveCommand.class,
+            HdfsCommand.class,
+            JythonCommand.class,
+            NashornCommand.class,
+            JarSyncCommand.class
+    ).build();
+
+    @SuppressWarnings({"unchecked"})
     public static void main(String[] args)
             throws Throwable
     {
@@ -79,25 +101,8 @@ public class LauncherMain
 
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
-                .withCommands(
-                        Help.class,
-                        RunCommand.class,
-                        DaemonCommand.class,
-                        LaunchCommand.class,
-                        StartCommand.class,
-                        StopCommand.class,
-                        RestartCommand.class,
-                        StatusCommand.class,
-                        KillCommand.class,
-                        ClusterCommand.class,
-                        CliCommand.class,
-                        H2Command.class,
-                        HiveCommand.class,
-                        HdfsCommand.class,
-                        JythonCommand.class,
-                        NashornCommand.class,
-                        JarSyncCommand.class
-                );
+                .withCommands(Help.class)
+                .withCommands((List) LAUNCHER_COMMANDS);
 
         Cli<Runnable> cliParser = builder.build();
         cliParser.parse(args).run();

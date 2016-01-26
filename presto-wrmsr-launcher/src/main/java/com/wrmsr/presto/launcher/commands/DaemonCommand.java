@@ -17,7 +17,7 @@ import io.airlift.airline.Command;
 
 @Command(name = "daemon", description = "Runs presto server daemon")
 public final class DaemonCommand
-        extends AbstractServerCommand
+        extends AbstractLauncherCommand
 {
     @Override
     public boolean shouldDeleteRepository()

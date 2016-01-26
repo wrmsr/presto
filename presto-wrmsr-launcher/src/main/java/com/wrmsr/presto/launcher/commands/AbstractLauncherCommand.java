@@ -13,12 +13,13 @@
  */
 package com.wrmsr.presto.launcher.commands;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.LauncherFailureException;
-import com.wrmsr.presto.launcher.LauncherSupport;
+import com.wrmsr.presto.launcher.LauncherUtils;
 import com.wrmsr.presto.launcher.cluster.ClusterConfig;
 import com.wrmsr.presto.launcher.cluster.ClusterUtils;
 import com.wrmsr.presto.launcher.cluster.ClustersConfig;
@@ -26,10 +27,12 @@ import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.config.EnvConfig;
 import com.wrmsr.presto.launcher.config.JvmConfig;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
-import com.wrmsr.presto.launcher.logging.LoggingConfig;
 import com.wrmsr.presto.launcher.config.SystemConfig;
+import com.wrmsr.presto.launcher.logging.LoggingConfig;
+import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
+import com.wrmsr.presto.util.Artifacts;
 import com.wrmsr.presto.util.Repositories;
 import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.PrestoConfigs;
@@ -37,7 +40,6 @@ import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
-import io.airlift.log.LoggingConfiguration;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
 
@@ -45,12 +47,14 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.stream.IntStream;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -60,11 +64,13 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.wrmsr.presto.util.Files.makeDirsAndCheck;
 import static com.wrmsr.presto.util.Jvm.getJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
+import static com.wrmsr.presto.util.ShellUtils.shellEscape;
 import static com.wrmsr.presto.util.Strings.replaceStringVars;
 import static com.wrmsr.presto.util.Strings.splitProperty;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public abstract class AbstractLauncherCommand
-        implements Runnable, LauncherSupport
+        implements LauncherCommand
 {
     private static final Logger log = Logger.get(AbstractLauncherCommand.class);
 
@@ -369,7 +375,7 @@ public abstract class AbstractLauncherCommand
     }
 
     @Override
-    public final void run()
+    public void run()
     {
         setArgSystemProperties();
         getConfig();
@@ -410,5 +416,143 @@ public abstract class AbstractLauncherCommand
                 }
             });
         }
+    }
+
+    private DaemonProcess daemonProcess;
+
+    private String pidFile()
+    {
+        return getConfig().getMergedNode(LauncherConfig.class).getPidFile();
+    }
+
+    public synchronized DaemonProcess getDaemonProcess()
+    {
+        if (daemonProcess == null) {
+            checkArgument(!isNullOrEmpty(pidFile()), "must set pidfile");
+            daemonProcess = new DaemonProcess(new File(replaceVars(pidFile())), getConfig().getMergedNode(LauncherConfig.class).getPidFileFd());
+        }
+        return daemonProcess;
+    }
+
+    public void launch()
+    {
+        configureLoggers();
+        if (isNullOrEmpty(Repositories.getRepositoryPath())) {
+            String wd = new File(new File(System.getProperty("user.dir")), "presto-main").getAbsolutePath();
+            File wdf = new File(wd);
+            checkState(wdf.exists() && wdf.isDirectory());
+            System.setProperty("user.dir", wd);
+            POSIX posix = POSIXUtils.getPOSIX();
+            checkState(posix.chdir(wd) == 0);
+        }
+        for (String s : systemProperties) {
+            int i = s.indexOf('=');
+            System.setProperty(s.substring(0, i), s.substring(i + 1));
+        }
+        deleteRepositoryOnExit();
+        long delay = getConfig().getMergedNode(LauncherConfig.class).getDelay();
+        if (delay > 0) {
+            log.info(String.format("Delaying launch for %d ms", delay));
+            try {
+                Thread.sleep(delay);
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        launchLocal();
+    }
+
+    public void launchLocal()
+    {
+        if (isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
+            System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
+        }
+
+        List<URL> classloaderUrls = ImmutableList.copyOf(Artifacts.resolveModuleClassloaderUrls("presto-main"));
+
+        try {
+            LauncherUtils.runStaticMethod(classloaderUrls, "com.facebook.presto.server.PrestoServer", "main", new Class<?>[] {String[].class}, new Object[] {new String[] {}});
+        }
+        catch (Throwable e) {
+            try {
+                log.error(e);
+            }
+            catch (Throwable e2) {
+            }
+            System.exit(1);
+        }
+    }
+
+    public void runServer(boolean restart)
+    {
+        if (getDaemonProcess().alive()) {
+            if (restart) {
+                getDaemonProcess().stop();
+            }
+            else {
+                return;
+            }
+        }
+
+        List<String> args = ImmutableList.copyOf(ORIGINAL_ARGS.get());
+        String lastArg = args.get(args.size() - 1);
+        checkArgument(lastArg.equals("start") || lastArg.equals("restart"));
+
+        File jvm = getJvm();
+        ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
+                .add(jvm.getAbsolutePath());
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        // builder.addAll(runtimeMxBean.getInputArguments());
+        if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
+            builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
+        }
+
+        builder.add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "launcher." + LauncherConfig.PID_FILE_FD_KEY + "=" + getDaemonProcess().pidFile);
+
+        LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
+
+        if (!isNullOrEmpty(config.getLogFile())) {
+            builder.add("-Dlog.output-file=" + replaceVars(config.getLogFile()));
+            builder.add("-Dlog.enable-console=false");
+        }
+
+        File jar = getJarFile(getClass());
+        checkState(jar.isFile());
+
+        builder
+                .add("-jar")
+                .add(jar.getAbsolutePath())
+                .addAll(IntStream.range(0, args.size() - 1).boxed().map(args::get).collect(toImmutableList()))
+                .add("daemon");
+
+        ImmutableList.Builder<String> shBuilder = ImmutableList.<String>builder()
+                // .add("setsid")
+                .addAll(builder.build().stream().map(s -> shellEscape(s)).collect(toImmutableList()));
+        shBuilder.add("</dev/null");
+
+        if (!isNullOrEmpty(config.getStdoutFile())) {
+            shBuilder.add(">>" + shellEscape(replaceVars(config.getStdoutFile())));
+        }
+        else {
+            shBuilder.add(">/dev/null");
+        }
+
+        if (!isNullOrEmpty(config.getStderrFile())) {
+            shBuilder.add("2>>" + shellEscape(replaceVars(config.getStderrFile())));
+        }
+        else {
+            shBuilder.add(">/dev/null");
+        }
+
+        shBuilder.add("&");
+
+        String cmd = Joiner.on(" ").join(shBuilder.build());
+
+        POSIX posix = POSIXUtils.getPOSIX();
+        File sh = new File("/bin/sh");
+        checkState(sh.exists() && sh.isFile());
+        posix.libc().execv(sh.getAbsolutePath(), sh.getAbsolutePath(), "-c", cmd);
+        throw new IllegalStateException("Unreachable");
     }
 }

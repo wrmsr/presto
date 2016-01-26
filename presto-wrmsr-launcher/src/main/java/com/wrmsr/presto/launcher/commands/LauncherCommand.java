@@ -13,16 +13,9 @@
  */
 package com.wrmsr.presto.launcher.commands;
 
-import io.airlift.airline.Command;
+import com.wrmsr.presto.launcher.LauncherSupport;
 
-@Command(name = "start", description = "Starts presto server")
-public final class StartCommand
-        extends AbstractLauncherCommand
+public interface LauncherCommand
+        extends Runnable, LauncherSupport
 {
-    @Override
-    public void innerRun()
-            throws Throwable
-    {
-        runServer(false);
-    }
 }

@@ -18,7 +18,7 @@ import io.airlift.airline.Command;
 
 @Command(name = "status", description = "Gets status of presto server")
 public final class StatusCommand
-        extends AbstractDaemonCommand
+        extends AbstractLauncherCommand
 {
     // TODO optional wait time
 

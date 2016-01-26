@@ -13,54 +13,26 @@
  */
 package com.wrmsr.presto.launcher.commands;
 
-import com.google.common.collect.ImmutableList;
-import com.wrmsr.presto.launcher.LauncherUtils;
-import com.wrmsr.presto.util.Artifacts;
+import com.google.common.base.Throwables;
 import io.airlift.airline.Command;
 import io.airlift.log.Logger;
 
-import java.net.URL;
-import java.util.List;
-
-import static com.google.common.base.Strings.isNullOrEmpty;
-
 @Command(name = "launch", description = "Launches presto server (argless)")
 public final class LaunchCommand
-        implements Runnable
+        extends AbstractLauncherCommand
 {
     private static final Logger log = Logger.get(LaunchCommand.class);
-
-    private volatile List<URL> classloaderUrls;
-
-    public synchronized List<URL> getClassloaderUrls()
-    {
-        if (classloaderUrls == null) {
-            classloaderUrls = ImmutableList.copyOf(Artifacts.resolveModuleClassloaderUrls("presto-main"));
-        }
-        return classloaderUrls;
-    }
-
-    private void autoConfigure()
-    {
-        if (isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
-            System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
-        }
-    }
 
     @Override
     public void run()
     {
-        autoConfigure();
-        try {
-            LauncherUtils.runStaticMethod(getClassloaderUrls(), "com.facebook.presto.server.PrestoServer", "main", new Class<?>[] {String[].class}, new Object[] {new String[] {}});
-        }
-        catch (Throwable e) {
-            try {
-                log.error(e);
-            }
-            catch (Throwable e2) {
-            }
-            System.exit(1);
-        }
+        launchLocal();
+    }
+
+    @Override
+    public void innerRun()
+            throws Throwable
+    {
+        throw new UnsupportedOperationException();
     }
 }

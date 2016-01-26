@@ -22,7 +22,7 @@ import static com.google.common.collect.Lists.newArrayList;
 
 @Command(name = "kill", description = "Kills presto server")
 public final class KillCommand
-        extends AbstractDaemonCommand
+        extends AbstractLauncherCommand
 {
     @Arguments(description = "arguments")
     private List<String> args = newArrayList();
