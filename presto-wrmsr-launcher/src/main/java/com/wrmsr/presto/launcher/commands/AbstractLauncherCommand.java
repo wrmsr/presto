@@ -482,8 +482,6 @@ public abstract class AbstractLauncherCommand
             }
             System.exit(1);
         }
-
-        System.exit(0);
     }
 
     public void runServer(boolean restart)
