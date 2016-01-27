@@ -28,6 +28,28 @@ also have zk lock for reactors
  -> spi DistributedMutexProvider
 
 
+handle SIGTERM
+ - prob via bash wrapper to redirect to some other sig + sun.misc.signal
+https://github.com/mesosphere/marathon/issues/712
+
+!!! flip watcher - list of files to watch for changes, reboot when changed
+ - done in launcher, preseve original args (env var?)
+ - heh ffi can watch src trees like apache and recreate the subprocs too
+
+
+https://github.com/tcurdt/jdeb
+
+
+jdbc equivalence for iterative dev - will ofc be wrong for txnlity
+id-range and other constrained builds? io bound by kafka? replanned?
+
+http://www.cs.cmu.edu/~wcohen/GuideToBiology-sampleChapter-release1.4.pdf
+
+subprocess modulo env var (% arg?)
+
+wtf is the zipkin id of a fucking adhoc batch or daemon.
+
+*** disable all compression and encoding for local exec
 
 
 /usr/lib/jvm/java-8-oracle-1.8.0.45/lib/libjvmkill.so
