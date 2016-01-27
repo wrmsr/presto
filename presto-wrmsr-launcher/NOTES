@@ -43,6 +43,7 @@ https://github.com/tcurdt/jdeb
 https://github.com/Yelp/paasta/blob/master/paasta_tools/cli/cmds/local_run.py#L59
 
 
+
 jdbc equivalence for iterative dev - will ofc be wrong for txnlity
 id-range and other constrained builds? io bound by kafka? replanned?
 

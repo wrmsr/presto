@@ -138,6 +138,12 @@ https://github.com/ajermakovics/presto-hazelcast
 
 
 
+watchdog SUBPROCESS
+healthchecks
+infinitely sized mr mode?
+would be barrier'd multiple queries to s3
+
+
 
 
 
