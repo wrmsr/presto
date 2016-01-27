@@ -19,20 +19,17 @@ import io.airlift.log.Logger;
 
 @Command(name = "launch", description = "Launches presto server (argless)")
 public final class LaunchCommand
-        extends AbstractLauncherCommand
+        extends AbstractPassthroughCommand
 {
-    private static final Logger log = Logger.get(LaunchCommand.class);
-
     @Override
-    public void run()
+    public String getClassName()
     {
-        launchLocal();
+        return "com.facebook.presto.server.PrestoServer";
     }
 
     @Override
-    public void innerRun()
-            throws Throwable
+    public String getModuleName()
     {
-        throw new UnsupportedOperationException();
+        return "presto-main";
     }
 }

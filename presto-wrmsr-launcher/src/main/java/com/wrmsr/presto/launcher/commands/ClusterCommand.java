@@ -29,10 +29,9 @@ public final class ClusterCommand
     private List<String> args = newArrayList();
 
     @Override
-    public void innerRun()
+    public void launcherRun()
             throws Throwable
     {
-        deleteRepositoryOnExit();
         String[] args = this.args.toArray(new String[this.args.size()]);
         ClusterCommands.main(this, args);
     }

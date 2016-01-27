@@ -32,10 +32,9 @@ public abstract class AbstractPassthroughCommand
     private List<String> args = newArrayList();
 
     @Override
-    public void innerRun()
+    public void launcherRun()
             throws Throwable
     {
-        deleteRepositoryOnExit();
         String moduleName = getModuleName();
         Class<?>[] parameterTypes = new Class<?>[] {String[].class};
         Object[] args = new Object[] {this.args.toArray(new String[this.args.size()])};

@@ -17,16 +17,10 @@ import io.airlift.airline.Command;
 
 @Command(name = "run", description = "Runs presto server")
 public final class RunCommand
-        extends AbstractLauncherCommand
+        extends AbstractServerCommand
 {
     @Override
-    public boolean shouldDeleteRepository()
-    {
-        return false;
-    }
-
-    @Override
-    public void innerRun()
+    public void serverRun()
             throws Throwable
     {
         maybeRexec();

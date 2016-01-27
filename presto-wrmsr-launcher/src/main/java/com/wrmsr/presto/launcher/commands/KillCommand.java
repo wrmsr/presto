@@ -22,16 +22,15 @@ import static com.google.common.collect.Lists.newArrayList;
 
 @Command(name = "kill", description = "Kills presto server")
 public final class KillCommand
-        extends AbstractLauncherCommand
+        extends AbstractServerCommand
 {
     @Arguments(description = "arguments")
     private List<String> args = newArrayList();
 
     @Override
-    public void innerRun()
+    public void serverRun()
             throws Throwable
     {
-        deleteRepositoryOnExit();
         if (args.isEmpty()) {
             getDaemonProcess().kill();
         }
