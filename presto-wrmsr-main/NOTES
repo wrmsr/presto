@@ -8,6 +8,8 @@ com.facebook.presto.operator.PagesIndex
  !!! possible antipattern: can you project through?
   - if not then need to enhance inline validation
 
+ take kwargs? in parser for call as k => v
+
 
 ***
  zipkin integration via TraceTokenModule - through to subordinate cpy's
@@ -20,6 +22,26 @@ could just hijack org.apache.hadoop.fs.FileSystem
  + LocalFileSystem
 
 
+
+java src ffi
+jar native ffi (+ cfgable classpath)
+
+
+
+graphql connector binding:
+http://graphql.org/
+https://code.facebook.com/posts/1691455094417024
+https://www.reindex.io/blog/building-a-graphql-server-with-node-js-and-sql/
+https://github.com/solidsnack/GraphpostgresQL
+http://graphql.org/docs/introspection/
+https://facebook.github.io/react/blog/2015/05/01/graphql-introduction.html
+https://github.com/andimarek/graphql-java <<<
+http://blog.startifact.com/posts/graphql-and-rest.html
+> https://www.w3.org/TR/json-ld/
+https://github.com/graphql-python/graphene > sqlalch
+
+
+https://github.com/linkedin/gobblin
 
 
 https://github.com/apache/bookkeeper
@@ -44,6 +66,11 @@ class ReactorConfig {
     String statement;
     List<String> notifyEmails; ***
 }
+
+^^ tweaks and flags and shit here, like optionally storing last-seen images
+ - on that note short circuit whereever possible
+ - manual stage buffer / delay settings
+  - ideally adaptive at runtime by default
 
 
 class ReactorState {
@@ -85,7 +112,7 @@ may well need commit log:
   - source merging = ?
 
 
-
+https://www.reddit.com/r/bigquery/comments/3cej2b/17_billion_reddit_comments_loaded_on_bigquery/
 
 
 
@@ -521,13 +548,6 @@ set type?
 
 https://github.com/RGBz/aws-s3-class-loader
 https://github.com/sampov2/onejar-maven-plugin
-
-
-<dependency>
-    <groupId>org.rocksdb</groupId>
-    <artifactId>rocksdbjni</artifactId>
-    <version>3.9.1</version>
-</dependency>
 
 
     // setFetchSize(Integer.MIN_VALUE) is a mysql driver specific way to force streaming results,
