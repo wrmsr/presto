@@ -95,7 +95,12 @@ public class Logging
     private void rewireStdStreams()
     {
         logConsole(new NonCloseableOutputStream(System.err));
-        log.info("Logging to stderr");
+        try {
+            log.info("Logging to stderr");
+        }
+        catch (StackOverflowError soe) {
+            System.err.println("StackOverflowError encountered in io.airlift.log.Logging::rewireStdStreams");
+        }
 
         redirectStdStreams();
     }

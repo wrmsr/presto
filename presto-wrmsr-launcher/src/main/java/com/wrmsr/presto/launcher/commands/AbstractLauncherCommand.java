@@ -40,6 +40,7 @@ import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
+import io.airlift.log.LoggingConfiguration;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
 
@@ -341,15 +342,16 @@ public abstract class AbstractLauncherCommand
     public void configureLoggers()
     {
         Logging logging = Logging.initialize();
-//        try {
-//            logging.configure(new LoggingConfiguration());
-//        }
-//        catch (IOException e) {
-//            throw Throwables.propagate(e);
-//        }
+        try {
+            logging.configure(new LoggingConfiguration());
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
         System.setProperty("presto.do-not-initialize-logging", "true");
 
         LoggingConfig lc = getConfig().getMergedNode(LoggingConfig.class);
+
         for (Map.Entry<String, String> e : lc.getLevels().entrySet()) {
             java.util.logging.Logger log = java.util.logging.Logger.getLogger(e.getKey());
             if (log != null) {

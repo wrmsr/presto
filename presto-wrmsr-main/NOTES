@@ -58,6 +58,11 @@ class ReactorState {
 }
 
 
+*** on graceful shutdown / failure
+ - adhoc: tear down intermediates, dead letter delivery
+ - daemon: commit, state storage
+
+
 http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
 
 

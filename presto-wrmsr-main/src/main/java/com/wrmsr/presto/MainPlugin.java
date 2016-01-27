@@ -60,6 +60,7 @@ import com.wrmsr.presto.util.GuiceUtils;
 import com.wrmsr.presto.util.config.Configs;
 import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.bootstrap.Bootstrap;
+import io.airlift.bootstrap.LifeCycleManager;
 import io.airlift.http.client.HttpClient;
 import io.airlift.json.JsonCodec;
 import io.airlift.log.Logger;
@@ -69,6 +70,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.annotation.PreDestroy;
+import javax.annotation.concurrent.GuardedBy;
 import javax.inject.Inject;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -232,6 +235,11 @@ public class MainPlugin
         return checkNotNull(injector);
     }
 
+    public LifeCycleManager getLifeCycleManager()
+    {
+        return getInjector().getInstance(LifeCycleManager.class);
+    }
+
     @Override
     public void onServerEvent(ServerEvent event)
     {
@@ -316,7 +324,34 @@ public class MainPlugin
 
     private void postInject()
     {
+        lifeCycleForwarder.setLifeCycleManager(injector.getInstance(LifeCycleManager.class));
     }
+
+    private static final class LifeCycleForwarder
+    {
+        @GuardedBy("this")
+        private Optional<LifeCycleManager> lifeCycleManager = Optional.empty();
+
+        public synchronized void setLifeCycleManager(LifeCycleManager lifeCycleManager)
+        {
+            this.lifeCycleManager = Optional.of(lifeCycleManager);
+        }
+
+        @PreDestroy
+        public synchronized void onPreDestroy()
+        {
+            if (lifeCycleManager.isPresent()) {
+                try {
+                    lifeCycleManager.get().stop();
+                }
+                catch (Exception e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        }
+    }
+
+    private final LifeCycleForwarder lifeCycleForwarder = new LifeCycleForwarder();
 
     private Module processModule(Module module)
     {
@@ -325,6 +360,8 @@ public class MainPlugin
             @Override
             public void configure(Binder binder)
             {
+                binder.bind(LifeCycleForwarder.class).toInstance(lifeCycleForwarder);
+
                 // jsonCodecBinder(binder).bindJsonCodec(TaskUpdateRequest.class);
                 // jaxrsBinder(binder).bind(ShutdownResource.class);
             }
