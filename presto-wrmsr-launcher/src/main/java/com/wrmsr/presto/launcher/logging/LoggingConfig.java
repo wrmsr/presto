@@ -42,7 +42,19 @@ public final class LoggingConfig
     public static final class SubprocessAppenderConfig
             extends AppenderConfig
     {
+        private List<String> args = ImmutableList.of();
 
+        @JsonProperty("args")
+        public List<String> getArgs()
+        {
+            return args;
+        }
+
+        @JsonProperty("args")
+        public void setArgs(List<String> args)
+        {
+            this.args = ImmutableList.copyOf(args);
+        }
     }
 
     @JsonCreator

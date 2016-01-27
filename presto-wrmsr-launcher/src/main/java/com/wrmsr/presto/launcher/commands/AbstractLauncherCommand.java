@@ -41,6 +41,7 @@ import io.airlift.airline.OptionType;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 import io.airlift.log.LoggingConfiguration;
+import io.airlift.log.SubprocessHandler;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
 
@@ -357,6 +358,17 @@ public abstract class AbstractLauncherCommand
             if (log != null) {
                 Level level = Level.parse(e.getValue().toUpperCase());
                 log.setLevel(level);
+            }
+        }
+
+        for (LoggingConfig.AppenderConfig ac : lc.getAppenders()) {
+            if (ac instanceof LoggingConfig.SubprocessAppenderConfig) {
+                LoggingConfig.SubprocessAppenderConfig sac = (LoggingConfig.SubprocessAppenderConfig) ac;
+                java.util.logging.Logger.getLogger("").addHandler(new SubprocessHandler(sac.getArgs()));
+
+            }
+            else {
+                throw new IllegalStateException();
             }
         }
     }

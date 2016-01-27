@@ -14,11 +14,13 @@
 package io.airlift.log;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.LogRecord;
 
@@ -32,9 +34,10 @@ public class SubprocessHandler
     private final AtomicBoolean reported = new AtomicBoolean();
     private final Writer writer;
 
-    public SubprocessHandler(String[] args)
+    public SubprocessHandler(Iterable<String> args)
     {
-        ProcessBuilder builder = new ProcessBuilder(args);
+        List<String> argList = ImmutableList.copyOf(args);
+        ProcessBuilder builder = new ProcessBuilder(argList.toArray(new String[argList.size()]));
         try {
             process = builder.start();
         }
