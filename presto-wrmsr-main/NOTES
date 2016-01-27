@@ -10,6 +10,8 @@ com.facebook.presto.operator.PagesIndex
 
  take kwargs? in parser for call as k => v
 
+ enums, instancemthods? $?
+
 
 ***
  zipkin integration via TraceTokenModule - through to subordinate cpy's
