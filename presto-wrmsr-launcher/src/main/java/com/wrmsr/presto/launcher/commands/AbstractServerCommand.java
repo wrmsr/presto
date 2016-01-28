@@ -14,13 +14,13 @@
 package com.wrmsr.presto.launcher.commands;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.LauncherFailureException;
 import com.wrmsr.presto.launcher.LauncherUtils;
 import com.wrmsr.presto.launcher.config.JvmConfig;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
+import com.wrmsr.presto.launcher.logging.LauncherLogging;
 import com.wrmsr.presto.launcher.logging.LoggingConfig;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
@@ -29,21 +29,15 @@ import com.wrmsr.presto.util.Artifacts;
 import com.wrmsr.presto.util.Repositories;
 import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.log.Logger;
-import io.airlift.log.Logging;
-import io.airlift.log.LoggingConfiguration;
-import io.airlift.log.SubprocessHandler;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
 import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -70,34 +64,8 @@ public abstract class AbstractServerCommand
 
     public void configureLoggers()
     {
-        Logging logging = Logging.initialize();
-        try {
-            logging.configure(new LoggingConfiguration());
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
+        LauncherLogging.configure(getConfig().getMergedNode(LoggingConfig.class));
         System.setProperty("presto.do-not-initialize-logging", "true");
-
-        LoggingConfig lc = getConfig().getMergedNode(LoggingConfig.class);
-
-        for (Map.Entry<String, String> e : lc.getLevels().entrySet()) {
-            java.util.logging.Logger log = java.util.logging.Logger.getLogger(e.getKey());
-            if (log != null) {
-                Level level = Level.parse(e.getValue().toUpperCase());
-                log.setLevel(level);
-            }
-        }
-
-        for (LoggingConfig.AppenderConfig ac : lc.getAppenders()) {
-            if (ac instanceof LoggingConfig.SubprocessAppenderConfig) {
-                LoggingConfig.SubprocessAppenderConfig sac = (LoggingConfig.SubprocessAppenderConfig) ac;
-                java.util.logging.Logger.getLogger("").addHandler(new SubprocessHandler(sac.getArgs()));
-            }
-            else {
-                throw new IllegalStateException();
-            }
-        }
     }
 
     protected void maybeRexec()

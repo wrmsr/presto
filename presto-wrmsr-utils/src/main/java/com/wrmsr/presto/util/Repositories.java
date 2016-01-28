@@ -30,8 +30,11 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -46,6 +49,28 @@ public class Repositories
     public static final String REPOSITORY_CACHE_PATH_PROPERTY_KEY = "com.wrmsr.repository.cache-path";
     public static final String REPOSITORY_PATH_PROPERTY_KEY = "com.wrmsr.repository.path";
     public static final String MADE_REPOSITORY_PATH_PROPERTY_KEY = "com.wrmsr.repository.made-path";
+
+    public static final Set<String> PROPERTY_KEYS;
+
+    static {
+        Set<String> tmp = new HashSet<>();
+        tmp.add(REPOSITORY_CACHE_PATH_PROPERTY_KEY);
+        tmp.add(REPOSITORY_PATH_PROPERTY_KEY);
+        tmp.add(MADE_REPOSITORY_PATH_PROPERTY_KEY);
+        PROPERTY_KEYS = Collections.unmodifiableSet(tmp);
+    }
+
+    public static Map<String, String> getProperties()
+    {
+        Map<String, String> tmp = new HashMap<>();
+        for (String key : PROPERTY_KEYS) {
+            String value = System.getProperty(key);
+            if (value != null && !value.isEmpty()) {
+                tmp.put(key, value);
+            }
+        }
+        return Collections.unmodifiableMap(tmp);
+    }
 
     public static void addClasspathUrl(URLClassLoader classLoader, URL url)
             throws IOException

@@ -13,6 +13,76 @@
  */
 package com.wrmsr.presto.launcher;
 
-public class LauncherModule
+import com.google.common.collect.ImmutableList;
+import com.google.inject.Binder;
+import com.wrmsr.presto.launcher.commands.LauncherCommand;
+import com.wrmsr.presto.launcher.config.ConfigContainer;
+
+import java.util.List;
+
+public abstract class LauncherModule
 {
+    public List<Class<? extends LauncherCommand>> getLauncherCommands()
+    {
+        return ImmutableList.of();
+    }
+
+    public ConfigContainer rewriteConfig(ConfigContainer config)
+    {
+        return config;
+    }
+
+    public void configureLauncher(Binder binder)
+    {
+    }
+
+    public void configureServer(Binder binder)
+    {
+    }
+
+    public static final class Composite
+        extends LauncherModule
+    {
+        private final List<LauncherModule> children;
+
+        public Composite(Iterable<LauncherModule> children)
+        {
+            this.children = ImmutableList.copyOf(children);
+        }
+
+        @Override
+        public List<Class<? extends LauncherCommand>> getLauncherCommands()
+        {
+            ImmutableList.Builder<Class<? extends LauncherCommand>> builder = ImmutableList.builder();
+            for (LauncherModule child : children) {
+                builder.addAll(child.getLauncherCommands());
+            }
+            return builder.build();
+        }
+
+        @Override
+        public ConfigContainer rewriteConfig(ConfigContainer config)
+        {
+            for (LauncherModule child : children) {
+                config = child.rewriteConfig(config);
+            }
+            return config;
+        }
+
+        @Override
+        public void configureLauncher(Binder binder)
+        {
+            for (LauncherModule child : children) {
+                child.configureLauncher(binder);
+            }
+        }
+
+        @Override
+        public void configureServer(Binder binder)
+        {
+            for (LauncherModule child : children) {
+                child.configureServer(binder);
+            }
+        }
+    }
 }

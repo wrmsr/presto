@@ -11,8 +11,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.logging;
+package com.wrmsr.presto.launcher;
 
-public class LoggingManager
+public class MainLauncherModule
+    extends LauncherModule
 {
 }
