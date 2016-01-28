@@ -11,9 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
-
-import com.wrmsr.presto.launcher.LauncherSupport;
+package com.wrmsr.presto.launcher;
 
 public interface LauncherCommand
         extends Runnable, LauncherSupport

@@ -15,7 +15,6 @@ package com.wrmsr.presto.launcher;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
-import com.wrmsr.presto.launcher.commands.LauncherCommand;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 
 import java.util.List;

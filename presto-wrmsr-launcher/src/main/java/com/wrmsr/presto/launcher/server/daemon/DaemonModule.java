@@ -15,7 +15,7 @@ package com.wrmsr.presto.launcher.server.daemon;
 
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.launcher.LauncherModule;
-import com.wrmsr.presto.launcher.commands.LauncherCommand;
+import com.wrmsr.presto.launcher.LauncherCommand;
 
 import java.util.List;
 

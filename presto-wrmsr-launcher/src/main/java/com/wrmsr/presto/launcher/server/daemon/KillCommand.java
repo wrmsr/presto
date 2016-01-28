@@ -13,7 +13,7 @@
  */
 package com.wrmsr.presto.launcher.server.daemon;
 
-import com.wrmsr.presto.launcher.commands.AbstractServerCommand;
+import com.wrmsr.presto.launcher.AbstractServerCommand;
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
 

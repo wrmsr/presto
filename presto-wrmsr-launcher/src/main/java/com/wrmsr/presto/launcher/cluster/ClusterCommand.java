@@ -13,8 +13,7 @@
  */
 package com.wrmsr.presto.launcher.cluster;
 
-import com.wrmsr.presto.launcher.cluster.ClusterCommands;
-import com.wrmsr.presto.launcher.commands.AbstractLauncherCommand;
+import com.wrmsr.presto.launcher.AbstractLauncherCommand;
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
 

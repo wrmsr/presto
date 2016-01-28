@@ -13,25 +13,6 @@
  */
 package com.wrmsr.presto.launcher;
 
-import com.google.common.collect.ImmutableList;
-import com.wrmsr.presto.launcher.commands.AbstractLauncherCommand;
-import com.wrmsr.presto.launcher.passthrough.CliCommand;
-import com.wrmsr.presto.launcher.cluster.ClusterCommand;
-import com.wrmsr.presto.launcher.server.daemon.DaemonCommand;
-import com.wrmsr.presto.launcher.passthrough.H2Command;
-import com.wrmsr.presto.launcher.passthrough.HdfsCommand;
-import com.wrmsr.presto.launcher.passthrough.HiveCommand;
-import com.wrmsr.presto.launcher.passthrough.JarSyncCommand;
-import com.wrmsr.presto.launcher.passthrough.JythonCommand;
-import com.wrmsr.presto.launcher.server.daemon.KillCommand;
-import com.wrmsr.presto.launcher.server.LaunchCommand;
-import com.wrmsr.presto.launcher.commands.LauncherCommand;
-import com.wrmsr.presto.launcher.passthrough.NashornCommand;
-import com.wrmsr.presto.launcher.server.daemon.RestartCommand;
-import com.wrmsr.presto.launcher.server.RunCommand;
-import com.wrmsr.presto.launcher.server.daemon.StartCommand;
-import com.wrmsr.presto.launcher.server.daemon.StatusCommand;
-import com.wrmsr.presto.launcher.server.daemon.StopCommand;
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
 import io.airlift.log.Logger;
@@ -72,25 +53,6 @@ public class LauncherMain
         return ret;
     }
 
-    public static final List<Class<? extends LauncherCommand>> LAUNCHER_COMMANDS = ImmutableList.<Class<? extends LauncherCommand>>builder().add(
-            RunCommand.class,
-            DaemonCommand.class,
-            LaunchCommand.class,
-            StartCommand.class,
-            StopCommand.class,
-            RestartCommand.class,
-            StatusCommand.class,
-            KillCommand.class,
-            ClusterCommand.class,
-            CliCommand.class,
-            H2Command.class,
-            HiveCommand.class,
-            HdfsCommand.class,
-            JythonCommand.class,
-            NashornCommand.class,
-            JarSyncCommand.class
-    ).build();
-
     @SuppressWarnings({"unchecked"})
     public static void main(String[] args)
             throws Throwable
@@ -99,10 +61,12 @@ public class LauncherMain
         args = newArgs.toArray(new String[newArgs.size()]);
         AbstractLauncherCommand.ORIGINAL_ARGS.set(args);
 
+        LauncherModule module = new MainLauncherModule();
+
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
                 .withCommands(Help.class)
-                .withCommands((List) LAUNCHER_COMMANDS);
+                .withCommands((List) module.getLauncherCommands());
 
         Cli<Runnable> cliParser = builder.build();
         cliParser.parse(args).run();

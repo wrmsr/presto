@@ -14,7 +14,7 @@
 package com.wrmsr.presto.launcher.passthrough;
 
 import com.wrmsr.presto.launcher.LauncherUtils;
-import com.wrmsr.presto.launcher.commands.AbstractLauncherCommand;
+import com.wrmsr.presto.launcher.AbstractLauncherCommand;
 import com.wrmsr.presto.util.Artifacts;
 import io.airlift.airline.Arguments;
 

@@ -13,11 +13,18 @@
  */
 package com.wrmsr.presto.launcher;
 
+import com.wrmsr.presto.launcher.cluster.ClusterModule;
+import com.wrmsr.presto.launcher.passthrough.PassthroughModule;
+import com.wrmsr.presto.launcher.server.ServerModule;
+
 public class MainLauncherModule
     extends LauncherModule.Composite
 {
     public MainLauncherModule()
     {
-        super();
+        super(
+                new ClusterModule(),
+                new PassthroughModule(),
+                new ServerModule());
     }
 }

@@ -11,13 +11,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.sun.management.OperatingSystemMXBean;
-import com.wrmsr.presto.launcher.LauncherFailureException;
-import com.wrmsr.presto.launcher.LauncherUtils;
 import com.wrmsr.presto.launcher.config.JvmConfig;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.launcher.logging.LauncherLogging;

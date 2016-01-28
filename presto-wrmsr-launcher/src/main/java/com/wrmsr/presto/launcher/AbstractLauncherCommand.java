@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
