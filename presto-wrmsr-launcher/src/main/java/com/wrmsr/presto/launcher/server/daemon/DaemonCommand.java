@@ -11,8 +11,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher.server.daemon;
 
+import com.wrmsr.presto.launcher.commands.AbstractServerCommand;
 import io.airlift.airline.Command;
 
 @Command(name = "daemon", description = "Runs presto server daemon")

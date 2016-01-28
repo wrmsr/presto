@@ -11,18 +11,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher.server;
 
+import com.wrmsr.presto.launcher.commands.AbstractServerCommand;
 import io.airlift.airline.Command;
 
-@Command(name = "stop", description = "Stops presto server")
-public final class StopCommand
+@Command(name = "run", description = "Runs presto server")
+public final class RunCommand
         extends AbstractServerCommand
 {
     @Override
     public void serverRun()
             throws Throwable
     {
-        getDaemonProcess().stop();
+        maybeRexec();
+        launch();
     }
 }

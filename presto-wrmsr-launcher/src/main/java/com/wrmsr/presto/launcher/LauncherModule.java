@@ -32,16 +32,20 @@ public abstract class LauncherModule
         return config;
     }
 
-    public void configureLauncher(Binder binder)
+    public void configureLauncher(ConfigContainer config, Binder binder)
     {
     }
 
-    public void configureServer(Binder binder)
+    public void configureServerLogging(ConfigContainer config)
     {
     }
 
-    public static final class Composite
-        extends LauncherModule
+    public void configureServer(ConfigContainer config, Binder binder)
+    {
+    }
+
+    public static class Composite
+            extends LauncherModule
     {
         private final List<LauncherModule> children;
 
@@ -50,10 +54,16 @@ public abstract class LauncherModule
             this.children = ImmutableList.copyOf(children);
         }
 
+        public Composite(LauncherModule first, LauncherModule... rest)
+        {
+            this(ImmutableList.<LauncherModule>builder().add(first).add(rest).build());
+        }
+
         @Override
-        public List<Class<? extends LauncherCommand>> getLauncherCommands()
+        public final List<Class<? extends LauncherCommand>> getLauncherCommands()
         {
             ImmutableList.Builder<Class<? extends LauncherCommand>> builder = ImmutableList.builder();
+            builder.addAll(getLauncherCommandsParent());
             for (LauncherModule child : children) {
                 builder.addAll(child.getLauncherCommands());
             }
@@ -61,8 +71,9 @@ public abstract class LauncherModule
         }
 
         @Override
-        public ConfigContainer rewriteConfig(ConfigContainer config)
+        public final ConfigContainer rewriteConfig(ConfigContainer config)
         {
+            config = rewriteConfigParent(config);
             for (LauncherModule child : children) {
                 config = child.rewriteConfig(config);
             }
@@ -70,19 +81,52 @@ public abstract class LauncherModule
         }
 
         @Override
-        public void configureLauncher(Binder binder)
+        public final void configureLauncher(ConfigContainer config, Binder binder)
         {
+            configureLauncherParent(config, binder);
             for (LauncherModule child : children) {
-                child.configureLauncher(binder);
+                child.configureLauncher(config, binder);
             }
         }
 
         @Override
-        public void configureServer(Binder binder)
+        public void configureServerLogging(ConfigContainer config)
         {
+            configureServerLoggingParent(config);
             for (LauncherModule child : children) {
-                child.configureServer(binder);
+                child.configureServerLogging(config);
             }
+        }
+
+        @Override
+        public final void configureServer(ConfigContainer config, Binder binder)
+        {
+            configureServerParent(config, binder);
+            for (LauncherModule child : children) {
+                child.configureServer(config, binder);
+            }
+        }
+
+        public List<Class<? extends LauncherCommand>> getLauncherCommandsParent()
+        {
+            return ImmutableList.of();
+        }
+
+        public ConfigContainer rewriteConfigParent(ConfigContainer config)
+        {
+            return config;
+        }
+
+        public void configureLauncherParent(ConfigContainer config, Binder binder)
+        {
+        }
+
+        public void configureServerLoggingParent(ConfigContainer config)
+        {
+        }
+
+        public void configureServerParent(ConfigContainer config, Binder binder)
+        {
         }
     }
 }

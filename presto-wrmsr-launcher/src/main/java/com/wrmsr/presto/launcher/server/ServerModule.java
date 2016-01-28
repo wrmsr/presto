@@ -14,15 +14,21 @@
 package com.wrmsr.presto.launcher.server;
 
 import com.google.inject.Binder;
-import com.google.inject.Module;
+import com.wrmsr.presto.launcher.LauncherModule;
+import com.wrmsr.presto.launcher.server.daemon.DaemonModule;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class ServerModule
-        implements Module
+        extends LauncherModule.Composite
 {
+    public ServerModule()
+    {
+        super(new DaemonModule());
+    }
+
     @Override
-    public void configure(Binder binder)
+    public void configureServerParent(Binder binder)
     {
         newSetBinder(binder, ServerSystemPropertyProvider.class);
         newSetBinder(binder, ServerJvmArgumentProvider.class);

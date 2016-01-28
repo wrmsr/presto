@@ -11,25 +11,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher.server.daemon;
 
-import com.google.common.base.Throwables;
+import com.wrmsr.presto.launcher.commands.AbstractServerCommand;
 import io.airlift.airline.Command;
-import io.airlift.log.Logger;
 
-@Command(name = "launch", description = "Launches presto server (argless)")
-public final class LaunchCommand
-        extends AbstractPassthroughCommand
+@Command(name = "restart", description = "Restarts presto server")
+public final class RestartCommand
+        extends AbstractServerCommand
 {
     @Override
-    public String getClassName()
+    public void serverRun()
+            throws Throwable
     {
-        return "com.facebook.presto.server.PrestoServer";
-    }
-
-    @Override
-    public String getModuleName()
-    {
-        return "presto-main";
+        getDaemonProcess().stop();
+        launchDaemon(true);
     }
 }

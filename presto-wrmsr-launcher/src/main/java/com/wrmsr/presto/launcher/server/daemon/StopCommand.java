@@ -11,12 +11,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher.server.daemon;
 
+import com.wrmsr.presto.launcher.commands.AbstractServerCommand;
 import io.airlift.airline.Command;
 
-@Command(name = "restart", description = "Restarts presto server")
-public final class RestartCommand
+@Command(name = "stop", description = "Stops presto server")
+public final class StopCommand
         extends AbstractServerCommand
 {
     @Override
@@ -24,6 +25,5 @@ public final class RestartCommand
             throws Throwable
     {
         getDaemonProcess().stop();
-        launchDaemon(true);
     }
 }

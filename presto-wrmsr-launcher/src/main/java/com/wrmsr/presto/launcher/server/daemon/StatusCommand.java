@@ -11,19 +11,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher.server.daemon;
 
+import com.wrmsr.presto.launcher.commands.AbstractServerCommand;
+import com.wrmsr.presto.launcher.util.DaemonProcess;
 import io.airlift.airline.Command;
 
-@Command(name = "run", description = "Runs presto server")
-public final class RunCommand
+@Command(name = "status", description = "Gets status of presto server")
+public final class StatusCommand
         extends AbstractServerCommand
 {
+    // TODO optional wait time
+
     @Override
     public void serverRun()
             throws Throwable
     {
-        maybeRexec();
-        launch();
+        if (!getDaemonProcess().alive()) {
+            System.exit(DaemonProcess.LSB_NOT_RUNNING);
+        }
+        System.out.println(getDaemonProcess().readPid());
     }
 }

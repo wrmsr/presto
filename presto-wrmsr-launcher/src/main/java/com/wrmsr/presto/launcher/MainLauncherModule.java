@@ -14,6 +14,10 @@
 package com.wrmsr.presto.launcher;
 
 public class MainLauncherModule
-    extends LauncherModule
+    extends LauncherModule.Composite
 {
+    public MainLauncherModule()
+    {
+        super();
+    }
 }
