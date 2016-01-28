@@ -15,6 +15,7 @@ package com.wrmsr.presto.launcher.server;
 
 import com.google.inject.Binder;
 import com.wrmsr.presto.launcher.LauncherModule;
+import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.server.daemon.DaemonModule;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
@@ -28,7 +29,7 @@ public class ServerModule
     }
 
     @Override
-    public void configureServerParent(Binder binder)
+    public void configureServerParent(ConfigContainer config, Binder binder)
     {
         newSetBinder(binder, ServerSystemPropertyProvider.class);
         newSetBinder(binder, ServerJvmArgumentProvider.class);

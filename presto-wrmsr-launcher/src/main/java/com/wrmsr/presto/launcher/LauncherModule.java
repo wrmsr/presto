@@ -19,6 +19,7 @@ import com.wrmsr.presto.launcher.commands.LauncherCommand;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 
 import java.util.List;
+import java.util.function.Function;
 
 public abstract class LauncherModule
 {
@@ -27,7 +28,12 @@ public abstract class LauncherModule
         return ImmutableList.of();
     }
 
-    public ConfigContainer rewriteConfig(ConfigContainer config)
+    public ConfigContainer postprocessConfig(ConfigContainer config)
+    {
+        return config;
+    }
+
+    public ConfigContainer rewriteConfig(ConfigContainer config, Function<ConfigContainer, ConfigContainer> postprocess)
     {
         return config;
     }
@@ -71,11 +77,21 @@ public abstract class LauncherModule
         }
 
         @Override
-        public final ConfigContainer rewriteConfig(ConfigContainer config)
+        public final ConfigContainer postprocessConfig(ConfigContainer config)
         {
-            config = rewriteConfigParent(config);
+            config = postprocessConfigParent(config);
             for (LauncherModule child : children) {
-                config = child.rewriteConfig(config);
+                config = child.postprocessConfig(config);
+            }
+            return config;
+        }
+
+        @Override
+        public final ConfigContainer rewriteConfig(ConfigContainer config, Function<ConfigContainer, ConfigContainer> postprocess)
+        {
+            config = rewriteConfigParent(config, postprocess);
+            for (LauncherModule child : children) {
+                config = child.rewriteConfig(config, postprocess);
             }
             return config;
         }
@@ -112,7 +128,12 @@ public abstract class LauncherModule
             return ImmutableList.of();
         }
 
-        public ConfigContainer rewriteConfigParent(ConfigContainer config)
+        public ConfigContainer postprocessConfigParent(ConfigContainer config)
+        {
+            return config;
+        }
+
+        public ConfigContainer rewriteConfigParent(ConfigContainer config, Function<ConfigContainer, ConfigContainer> postprocess)
         {
             return config;
         }

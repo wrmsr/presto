@@ -11,23 +11,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher.passthrough;
 
 import io.airlift.airline.Command;
 
-@Command(name = "hdfs", description = "Executes HDFS command")
-public final class HdfsCommand
+@Command(name = "cli", description = "Starts presto cli")
+public final class CliCommand
         extends AbstractPassthroughCommand
 {
     @Override
     public String getModuleName()
     {
-        return "presto-wrmsr-hadoop";
+        return "presto-cli";
     }
 
     @Override
     public String getClassName()
     {
-        return "com.wrmsr.presto.hadoop.hdfs.HdfsMain";
+        return "com.facebook.presto.cli.Presto";
     }
 }

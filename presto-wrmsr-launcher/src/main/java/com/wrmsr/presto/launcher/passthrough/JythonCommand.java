@@ -11,23 +11,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher.passthrough;
 
 import io.airlift.airline.Command;
 
-@Command(name = "nashorn", description = "Starts Nashorn shell")
-public final class NashornCommand
+@Command(name = "jython", description = "Starts Jython shell")
+public final class JythonCommand
         extends AbstractPassthroughCommand
 {
     @Override
     public String getModuleName()
     {
-        return null;
+        return "presto-wrmsr-jython";
     }
 
     @Override
     public String getClassName()
     {
-        return "jdk.nashorn.tools.Shell";
+        return "org.python.util.jython";
     }
 }

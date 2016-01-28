@@ -11,28 +11,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher.passthrough;
 
-import com.wrmsr.presto.launcher.cluster.ClusterCommands;
-import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
 
-import java.util.List;
-
-import static com.google.common.collect.Lists.newArrayList;
-
-@Command(name = "cluster", description = "Runs cluster command")
-public final class ClusterCommand
-        extends AbstractLauncherCommand
+@Command(name = "nashorn", description = "Starts Nashorn shell")
+public final class NashornCommand
+        extends AbstractPassthroughCommand
 {
-    @Arguments(description = "arguments")
-    private List<String> args = newArrayList();
+    @Override
+    public String getModuleName()
+    {
+        return null;
+    }
 
     @Override
-    public void launcherRun()
-            throws Throwable
+    public String getClassName()
     {
-        String[] args = this.args.toArray(new String[this.args.size()]);
-        ClusterCommands.main(this, args);
+        return "jdk.nashorn.tools.Shell";
     }
 }

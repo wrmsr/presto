@@ -13,10 +13,8 @@
  */
 package com.wrmsr.presto.launcher.server;
 
-import com.google.common.base.Throwables;
-import com.wrmsr.presto.launcher.commands.AbstractPassthroughCommand;
+import com.wrmsr.presto.launcher.passthrough.AbstractPassthroughCommand;
 import io.airlift.airline.Command;
-import io.airlift.log.Logger;
 
 @Command(name = "launch", description = "Launches presto server (argless)")
 public final class LaunchCommand

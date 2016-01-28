@@ -11,23 +11,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher.passthrough;
 
 import io.airlift.airline.Command;
 
-@Command(name = "jython", description = "Starts Jython shell")
-public final class JythonCommand
+@Command(name = "hive", description = "Executes Hive command")
+public final class HiveCommand
         extends AbstractPassthroughCommand
 {
     @Override
     public String getModuleName()
     {
-        return "presto-wrmsr-jython";
+        return "presto-wrmsr-hadoop";
     }
 
     @Override
     public String getClassName()
     {
-        return "org.python.util.jython";
+        return "com.wrmsr.presto.hadoop.hive.HiveMain";
     }
 }

@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.util;
 
+import com.google.common.base.Throwables;
 import com.google.common.io.CharStreams;
 
 import java.io.BufferedReader;
@@ -25,6 +26,9 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
+import java.nio.file.Path;
+
+import static java.nio.file.Files.readAllBytes;
 
 public class Files
 {
@@ -41,7 +45,7 @@ public class Files
     public static byte[] readFileBytes(String path)
             throws IOException
     {
-        return java.nio.file.Files.readAllBytes(FileSystems.getDefault().getPath(path));
+        return readAllBytes(FileSystems.getDefault().getPath(path));
     }
 
     public static void writeFile(String path, String content)
@@ -123,6 +127,16 @@ public class Files
         }
         else {
             return makeShellPath(file.toString());
+        }
+    }
+
+    public static byte[] readAllBytesNoThrow(Path path)
+    {
+        try {
+            return readAllBytes(path);
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
         }
     }
 

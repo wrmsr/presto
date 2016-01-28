@@ -11,23 +11,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher.passthrough;
 
 import io.airlift.airline.Command;
 
-@Command(name = "cli", description = "Starts presto cli")
-public final class CliCommand
+@Command(name = "jarsync", description = "Executes JarSync command")
+public final class JarSyncCommand
         extends AbstractPassthroughCommand
 {
     @Override
     public String getModuleName()
     {
-        return "presto-cli";
+        return null;
     }
 
     @Override
     public String getClassName()
     {
-        return "com.facebook.presto.cli.Presto";
+        return "com.wrmsr.presto.launcher.JarSyncMain";
     }
 }

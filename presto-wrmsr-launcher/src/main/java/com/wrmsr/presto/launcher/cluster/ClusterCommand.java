@@ -11,23 +11,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.commands;
+package com.wrmsr.presto.launcher.cluster;
 
-import com.wrmsr.presto.launcher.LauncherUtils;
-import com.wrmsr.presto.util.Artifacts;
+import com.wrmsr.presto.launcher.cluster.ClusterCommands;
+import com.wrmsr.presto.launcher.commands.AbstractLauncherCommand;
 import io.airlift.airline.Arguments;
+import io.airlift.airline.Command;
 
 import java.util.List;
 
 import static com.google.common.collect.Lists.newArrayList;
 
-public abstract class AbstractPassthroughCommand
+@Command(name = "cluster", description = "Runs cluster command")
+public final class ClusterCommand
         extends AbstractLauncherCommand
 {
-    public abstract String getModuleName();
-
-    public abstract String getClassName();
-
     @Arguments(description = "arguments")
     private List<String> args = newArrayList();
 
@@ -35,14 +33,7 @@ public abstract class AbstractPassthroughCommand
     public void launcherRun()
             throws Throwable
     {
-        String moduleName = getModuleName();
-        Class<?>[] parameterTypes = new Class<?>[] {String[].class};
-        Object[] args = new Object[] {this.args.toArray(new String[this.args.size()])};
-        if (moduleName == null) {
-            LauncherUtils.runStaticMethod(getClassName(), "main", parameterTypes, args);
-        }
-        else {
-            LauncherUtils.runStaticMethod(Artifacts.resolveModuleClassloaderUrls(moduleName), getClassName(), "main", parameterTypes, args);
-        }
+        String[] args = this.args.toArray(new String[this.args.size()]);
+        ClusterCommands.main(this, args);
     }
 }

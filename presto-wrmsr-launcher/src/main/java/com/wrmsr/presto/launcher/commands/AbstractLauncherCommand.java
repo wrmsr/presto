@@ -24,7 +24,6 @@ import com.wrmsr.presto.launcher.config.EnvConfig;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.launcher.config.SystemConfig;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
-import com.wrmsr.presto.util.Repositories;
 import com.wrmsr.presto.util.Serialization;
 import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.airline.Option;
