@@ -10,6 +10,12 @@ possibly:
 /usr/lib/presto/HEAD
 /usr/lib/presto/classpaths/*
 
+no:
+/etc/init.d/presto
+
+
+https://www.debian.org/doc/manuals/maint-guide/dreq.en.html#control
+
 
 smartstack self-ping port discovery
 
