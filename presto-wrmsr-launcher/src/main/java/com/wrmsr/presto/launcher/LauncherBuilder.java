@@ -247,7 +247,14 @@ public class LauncherBuilder
         Process proc = rt.exec(new String[] {"git", "rev-parse", "--verify", "HEAD"}); // FIXME append -SNAPSHOT if dirty
         BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
         BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-        String rev = stdInput.readLine();
+        String head = stdInput.readLine();
+        proc.waitFor(10, TimeUnit.SECONDS);
+        checkState(proc.exitValue() == 0);
+
+        proc = rt.exec(new String[] {"git", "describe", "--tags"}); // FIXME append -SNAPSHOT if dirty
+        stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+        stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+        String tags = stdInput.readLine();
         proc.waitFor(10, TimeUnit.SECONDS);
         checkState(proc.exitValue() == 0);
 
@@ -465,7 +472,11 @@ public class LauncherBuilder
 
         JarEntry jeHEAD = new JarEntry("HEAD");
         jo.putNextEntry(jeHEAD);
-        jo.write(rev.getBytes());
+        jo.write(head.getBytes());
+
+        JarEntry jeTAGS = new JarEntry("TAGS");
+        jo.putNextEntry(jeTAGS);
+        jo.write(tags.getBytes());
 
         jo.close();
         bo.close();
