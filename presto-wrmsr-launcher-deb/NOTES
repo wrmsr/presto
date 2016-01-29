@@ -1,0 +1,8 @@
+/usr/bin/presto -> /usr/lib/presto/bin/presto
+/usr/lib/presto/bin/presto
+/usr/lib/presto/repository/*
+/etc/presto/site.yaml
+
+possibly:
+/usr/lib/presto/HEAD
+/usr/lib/presto/classpaths/*

@@ -75,278 +75,278 @@ public class DaemonManager
     {
     }
 
-    private void autoConfigure()
-    {
-        LauncherConfig lc = getConfig().getMergedNode(LauncherConfig.class);
-        if (isNullOrEmpty(System.getProperty("http-server.log.path"))) {
-            if (!isNullOrEmpty(lc.getHttpLogFile())) {
-                System.setProperty("http-server.log.path", replaceVars(lc.getHttpLogFile()));
-            }
-        }
-    }
-
-    public void configureLoggers()
-    {
-        Logging logging = Logging.initialize();
-        try {
-            logging.configure(new LoggingConfiguration());
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
-        System.setProperty("presto.do-not-initialize-logging", "true");
-    }
-
-    protected void maybeRexec()
-    {
-        List<String> jvmOptions = getJvmOptions();
-        if (jvmOptions.isEmpty()) {
-            return;
-        }
-
-        File jar = getJarFile(getClass());
-        if (!jar.isFile()) {
-            log.warn("Jvm options specified but not running with a jar file, ignoring");
-            return;
-        }
-
-        File jvm = getJvm();
-        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-        ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
-                .add(jvm.getAbsolutePath())
-                .addAll(jvmOptions)
-                .addAll(runtimeMxBean.getInputArguments())
-                .add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
-        if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
-            builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
-        }
-        builder
-                .add("-jar")
-                .add(jar.getAbsolutePath())
-                .addAll(Arrays.asList(ORIGINAL_ARGS.get()));
-
-        List<String> newArgs = builder.build();
-        getPosix().libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
-        throw new IllegalStateException("Unreachable");
-    }
-
-    private List<String> getJvmOptions()
-    {
-        return getJvmOptions(getConfig().getMergedNode(JvmConfig.class));
-    }
-
-    private List<String> getJvmOptions(JvmConfig jvmConfig)
-    {
-        if (jvmConfig.isAlreadyConfigured()) {
-            return ImmutableList.of();
-        }
-
-        ImmutableList.Builder<String> builder = ImmutableList.builder();
-
-        JvmConfig.DebugConfig debug = jvmConfig.getDebug();
-        if (debug != null && debug.getPort() != null) {
-            builder.add(JvmConfiguration.DEBUG.valueOf().toString());
-            builder.add(JvmConfiguration.REMOTE_DEBUG.valueOf(debug.getPort(), debug.isSuspend()).toString());
-        }
-
-        if (jvmConfig.getHeap() != null) {
-            JvmConfig.HeapConfig heap = jvmConfig.getHeap();
-            checkArgument(!isNullOrEmpty(heap.getSize()));
-            OperatingSystemMXBean os = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-            long base;
-            if (heap.isFree()) {
-                base = os.getFreePhysicalMemorySize();
-            }
-            else {
-                base = os.getTotalPhysicalMemorySize();
-            }
-
-            long sz;
-            if (heap.getSize().endsWith("%")) {
-                sz = ((base * 100) / Integer.parseInt(heap.getSize())) / 100;
-            }
-            else {
-                boolean negative = heap.getSize().startsWith("-");
-                sz = (long) DataSize.valueOf(heap.getSize().substring(negative ? 1 : 0)).getValue(DataSize.Unit.BYTE);
-                if (negative) {
-                    sz = base - sz;
-                }
-            }
-
-            if (heap.getMax() != null) {
-                long max = (long) heap.getMax().getValue(DataSize.Unit.BYTE);
-                if (sz > max) {
-                    sz = max;
-                }
-            }
-            if (heap.getMin() != null) {
-                long min = (long) heap.getMin().getValue(DataSize.Unit.BYTE);
-                if (sz < min) {
-                    if (heap.isAttempt()) {
-                        sz = min;
-                    }
-                    else {
-                        throw new LauncherFailureException(String.format("Insufficient memory: got %d, need %d", sz, min));
-                    }
-                }
-            }
-            checkArgument(sz > 0);
-            builder.add(JvmConfiguration.MAX_HEAP_SIZE.valueOf(new DataSize(sz, DataSize.Unit.BYTE)).toString());
-        }
-
-        if (jvmConfig.getGc() != null) {
-            JvmConfig.GcConfig gc = jvmConfig.getGc();
-            if (gc instanceof JvmConfig.G1GcConfig) {
-                builder.add("-XX:+UseG1GC");
-            }
-            else if (gc instanceof JvmConfig.CmsGcConfig) {
-                builder.add("-XX:+UseConcMarkSweepGC");
-            }
-            else {
-                throw new IllegalArgumentException(gc.toString());
-            }
-        }
-
-        builder.addAll(jvmConfig.getOptions());
-
-        return builder.build();
-    }
-
-    private DaemonProcess daemonProcess;
-
-    private String pidFile()
-    {
-        return getConfig().getMergedNode(LauncherConfig.class).getPidFile();
-    }
-
-    public synchronized DaemonProcess getDaemonProcess()
-    {
-        if (daemonProcess == null) {
-            checkArgument(!isNullOrEmpty(pidFile()), "must set pidfile");
-            daemonProcess = new DaemonProcess(new File(replaceVars(pidFile())), getConfig().getMergedNode(LauncherConfig.class).getPidFileFd());
-        }
-        return daemonProcess;
-    }
-
-    public void launch()
-    {
-        autoConfigure();
-        configureLoggers();
-        if (isNullOrEmpty(Repositories.getRepositoryPath())) {
-            String wd = new File(new File(System.getProperty("user.dir")), "presto-main").getAbsolutePath();
-            File wdf = new File(wd);
-            checkState(wdf.exists() && wdf.isDirectory());
-            System.setProperty("user.dir", wd);
-            POSIX posix = POSIXUtils.getPOSIX();
-            checkState(posix.chdir(wd) == 0);
-        }
-        for (String s : systemProperties) {
-            int i = s.indexOf('=');
-            System.setProperty(s.substring(0, i), s.substring(i + 1));
-        }
-        long delay = getConfig().getMergedNode(LauncherConfig.class).getDelay();
-        if (delay > 0) {
-            log.info(String.format("Delaying launch for %d ms", delay));
-            try {
-                Thread.sleep(delay);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-        launchLocal();
-    }
-
-    public void launchLocal()
-    {
-        if (isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
-            System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
-        }
-
-        List<URL> classloaderUrls = ImmutableList.copyOf(Artifacts.resolveModuleClassloaderUrls("presto-main"));
-
-        try {
-            Statics.runStaticMethod(classloaderUrls, "com.facebook.presto.server.PrestoServer", "main", new Class<?>[] {String[].class}, new Object[] {new String[] {}});
-        }
-        catch (Throwable e) {
-            try {
-                log.error(e);
-            }
-            catch (Throwable e2) {
-            }
-            System.exit(1);
-        }
-    }
-
-    public void launchDaemon(boolean restart)
-    {
-        if (getDaemonProcess().alive()) {
-            if (restart) {
-                getDaemonProcess().stop();
-            }
-            else {
-                return;
-            }
-        }
-
-        List<String> args = ImmutableList.copyOf(ORIGINAL_ARGS.get());
-        String lastArg = args.get(args.size() - 1);
-        checkArgument(lastArg.equals("start") || lastArg.equals("restart"));
-
-        File jvm = getJvm();
-        ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
-                .add(jvm.getAbsolutePath());
-        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-        // builder.addAll(runtimeMxBean.getInputArguments());
-        if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
-            builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
-        }
-
-        builder.add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "launcher." + LauncherConfig.PID_FILE_FD_KEY + "=" + getDaemonProcess().pidFile);
-
-        LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
-
-        if (!isNullOrEmpty(config.getLogFile())) {
-            builder.add("-Dlog.output-file=" + replaceVars(config.getLogFile()));
-            builder.add("-Dlog.enable-console=false");
-        }
-
-        File jar = getJarFile(getClass());
-        checkState(jar.isFile());
-
-        builder
-                .add("-jar")
-                .add(jar.getAbsolutePath())
-                .addAll(IntStream.range(0, args.size() - 1).boxed().map(args::get).collect(toImmutableList()))
-                .add("daemon");
-
-        ImmutableList.Builder<String> shBuilder = ImmutableList.<String>builder()
-                // .add("setsid")
-                .addAll(builder.build().stream().map(s -> shellEscape(s)).collect(toImmutableList()));
-        shBuilder.add("</dev/null");
-
-        if (!isNullOrEmpty(config.getStdoutFile())) {
-            shBuilder.add(">>" + shellEscape(replaceVars(config.getStdoutFile())));
-        }
-        else {
-            shBuilder.add(">/dev/null");
-        }
-
-        if (!isNullOrEmpty(config.getStderrFile())) {
-            shBuilder.add("2>>" + shellEscape(replaceVars(config.getStderrFile())));
-        }
-        else {
-            shBuilder.add(">/dev/null");
-        }
-
-        shBuilder.add("&");
-
-        String cmd = Joiner.on(" ").join(shBuilder.build());
-
-        POSIX posix = POSIXUtils.getPOSIX();
-        File sh = new File("/bin/sh");
-        checkState(sh.exists() && sh.isFile());
-        posix.libc().execv(sh.getAbsolutePath(), sh.getAbsolutePath(), "-c", cmd);
-        throw new IllegalStateException("Unreachable");
-    }
+//    private void autoConfigure()
+//    {
+//        LauncherConfig lc = getConfig().getMergedNode(LauncherConfig.class);
+//        if (isNullOrEmpty(System.getProperty("http-server.log.path"))) {
+//            if (!isNullOrEmpty(lc.getHttpLogFile())) {
+//                System.setProperty("http-server.log.path", replaceVars(lc.getHttpLogFile()));
+//            }
+//        }
+//    }
+//
+//    public void configureLoggers()
+//    {
+//        Logging logging = Logging.initialize();
+//        try {
+//            logging.configure(new LoggingConfiguration());
+//        }
+//        catch (IOException e) {
+//            throw Throwables.propagate(e);
+//        }
+//        System.setProperty("presto.do-not-initialize-logging", "true");
+//    }
+//
+//    protected void maybeRexec()
+//    {
+//        List<String> jvmOptions = getJvmOptions();
+//        if (jvmOptions.isEmpty()) {
+//            return;
+//        }
+//
+//        File jar = getJarFile(getClass());
+//        if (!jar.isFile()) {
+//            log.warn("Jvm options specified but not running with a jar file, ignoring");
+//            return;
+//        }
+//
+//        File jvm = getJvm();
+//        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+//        ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
+//                .add(jvm.getAbsolutePath())
+//                .addAll(jvmOptions)
+//                .addAll(runtimeMxBean.getInputArguments())
+//                .add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
+//        if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
+//            builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
+//        }
+//        builder
+//                .add("-jar")
+//                .add(jar.getAbsolutePath())
+//                .addAll(Arrays.asList(ORIGINAL_ARGS.get()));
+//
+//        List<String> newArgs = builder.build();
+//        getPosix().libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
+//        throw new IllegalStateException("Unreachable");
+//    }
+//
+//    private List<String> getJvmOptions()
+//    {
+//        return getJvmOptions(getConfig().getMergedNode(JvmConfig.class));
+//    }
+//
+//    private List<String> getJvmOptions(JvmConfig jvmConfig)
+//    {
+//        if (jvmConfig.isAlreadyConfigured()) {
+//            return ImmutableList.of();
+//        }
+//
+//        ImmutableList.Builder<String> builder = ImmutableList.builder();
+//
+//        JvmConfig.DebugConfig debug = jvmConfig.getDebug();
+//        if (debug != null && debug.getPort() != null) {
+//            builder.add(JvmConfiguration.DEBUG.valueOf().toString());
+//            builder.add(JvmConfiguration.REMOTE_DEBUG.valueOf(debug.getPort(), debug.isSuspend()).toString());
+//        }
+//
+//        if (jvmConfig.getHeap() != null) {
+//            JvmConfig.HeapConfig heap = jvmConfig.getHeap();
+//            checkArgument(!isNullOrEmpty(heap.getSize()));
+//            OperatingSystemMXBean os = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+//            long base;
+//            if (heap.isFree()) {
+//                base = os.getFreePhysicalMemorySize();
+//            }
+//            else {
+//                base = os.getTotalPhysicalMemorySize();
+//            }
+//
+//            long sz;
+//            if (heap.getSize().endsWith("%")) {
+//                sz = ((base * 100) / Integer.parseInt(heap.getSize())) / 100;
+//            }
+//            else {
+//                boolean negative = heap.getSize().startsWith("-");
+//                sz = (long) DataSize.valueOf(heap.getSize().substring(negative ? 1 : 0)).getValue(DataSize.Unit.BYTE);
+//                if (negative) {
+//                    sz = base - sz;
+//                }
+//            }
+//
+//            if (heap.getMax() != null) {
+//                long max = (long) heap.getMax().getValue(DataSize.Unit.BYTE);
+//                if (sz > max) {
+//                    sz = max;
+//                }
+//            }
+//            if (heap.getMin() != null) {
+//                long min = (long) heap.getMin().getValue(DataSize.Unit.BYTE);
+//                if (sz < min) {
+//                    if (heap.isAttempt()) {
+//                        sz = min;
+//                    }
+//                    else {
+//                        throw new LauncherFailureException(String.format("Insufficient memory: got %d, need %d", sz, min));
+//                    }
+//                }
+//            }
+//            checkArgument(sz > 0);
+//            builder.add(JvmConfiguration.MAX_HEAP_SIZE.valueOf(new DataSize(sz, DataSize.Unit.BYTE)).toString());
+//        }
+//
+//        if (jvmConfig.getGc() != null) {
+//            JvmConfig.GcConfig gc = jvmConfig.getGc();
+//            if (gc instanceof JvmConfig.G1GcConfig) {
+//                builder.add("-XX:+UseG1GC");
+//            }
+//            else if (gc instanceof JvmConfig.CmsGcConfig) {
+//                builder.add("-XX:+UseConcMarkSweepGC");
+//            }
+//            else {
+//                throw new IllegalArgumentException(gc.toString());
+//            }
+//        }
+//
+//        builder.addAll(jvmConfig.getOptions());
+//
+//        return builder.build();
+//    }
+//
+//    private DaemonProcess daemonProcess;
+//
+//    private String pidFile()
+//    {
+//        return getConfig().getMergedNode(LauncherConfig.class).getPidFile();
+//    }
+//
+//    public synchronized DaemonProcess getDaemonProcess()
+//    {
+//        if (daemonProcess == null) {
+//            checkArgument(!isNullOrEmpty(pidFile()), "must set pidfile");
+//            daemonProcess = new DaemonProcess(new File(replaceVars(pidFile())), getConfig().getMergedNode(LauncherConfig.class).getPidFileFd());
+//        }
+//        return daemonProcess;
+//    }
+//
+//    public void launch()
+//    {
+//        autoConfigure();
+//        configureLoggers();
+//        if (isNullOrEmpty(Repositories.getRepositoryPath())) {
+//            String wd = new File(new File(System.getProperty("user.dir")), "presto-main").getAbsolutePath();
+//            File wdf = new File(wd);
+//            checkState(wdf.exists() && wdf.isDirectory());
+//            System.setProperty("user.dir", wd);
+//            POSIX posix = POSIXUtils.getPOSIX();
+//            checkState(posix.chdir(wd) == 0);
+//        }
+//        for (String s : systemProperties) {
+//            int i = s.indexOf('=');
+//            System.setProperty(s.substring(0, i), s.substring(i + 1));
+//        }
+//        long delay = getConfig().getMergedNode(LauncherConfig.class).getDelay();
+//        if (delay > 0) {
+//            log.info(String.format("Delaying launch for %d ms", delay));
+//            try {
+//                Thread.sleep(delay);
+//            }
+//            catch (InterruptedException e) {
+//                Thread.currentThread().interrupt();
+//            }
+//        }
+//        launchLocal();
+//    }
+//
+//    public void launchLocal()
+//    {
+//        if (isNullOrEmpty(System.getProperty("plugin.preloaded"))) {
+//            System.setProperty("plugin.preloaded", "|presto-wrmsr-main");
+//        }
+//
+//        List<URL> classloaderUrls = ImmutableList.copyOf(Artifacts.resolveModuleClassloaderUrls("presto-main"));
+//
+//        try {
+//            Statics.runStaticMethod(classloaderUrls, "com.facebook.presto.server.PrestoServer", "main", new Class<?>[] {String[].class}, new Object[] {new String[] {}});
+//        }
+//        catch (Throwable e) {
+//            try {
+//                log.error(e);
+//            }
+//            catch (Throwable e2) {
+//            }
+//            System.exit(1);
+//        }
+//    }
+//
+//    public void launchDaemon(boolean restart)
+//    {
+//        if (getDaemonProcess().alive()) {
+//            if (restart) {
+//                getDaemonProcess().stop();
+//            }
+//            else {
+//                return;
+//            }
+//        }
+//
+//        List<String> args = ImmutableList.copyOf(ORIGINAL_ARGS.get());
+//        String lastArg = args.get(args.size() - 1);
+//        checkArgument(lastArg.equals("start") || lastArg.equals("restart"));
+//
+//        File jvm = getJvm();
+//        ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
+//                .add(jvm.getAbsolutePath());
+//        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+//        // builder.addAll(runtimeMxBean.getInputArguments());
+//        if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
+//            builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
+//        }
+//
+//        builder.add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "launcher." + LauncherConfig.PID_FILE_FD_KEY + "=" + getDaemonProcess().pidFile);
+//
+//        LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
+//
+//        if (!isNullOrEmpty(config.getLogFile())) {
+//            builder.add("-Dlog.output-file=" + replaceVars(config.getLogFile()));
+//            builder.add("-Dlog.enable-console=false");
+//        }
+//
+//        File jar = getJarFile(getClass());
+//        checkState(jar.isFile());
+//
+//        builder
+//                .add("-jar")
+//                .add(jar.getAbsolutePath())
+//                .addAll(IntStream.range(0, args.size() - 1).boxed().map(args::get).collect(toImmutableList()))
+//                .add("daemon");
+//
+//        ImmutableList.Builder<String> shBuilder = ImmutableList.<String>builder()
+//                // .add("setsid")
+//                .addAll(builder.build().stream().map(s -> shellEscape(s)).collect(toImmutableList()));
+//        shBuilder.add("</dev/null");
+//
+//        if (!isNullOrEmpty(config.getStdoutFile())) {
+//            shBuilder.add(">>" + shellEscape(replaceVars(config.getStdoutFile())));
+//        }
+//        else {
+//            shBuilder.add(">/dev/null");
+//        }
+//
+//        if (!isNullOrEmpty(config.getStderrFile())) {
+//            shBuilder.add("2>>" + shellEscape(replaceVars(config.getStderrFile())));
+//        }
+//        else {
+//            shBuilder.add(">/dev/null");
+//        }
+//
+//        shBuilder.add("&");
+//
+//        String cmd = Joiner.on(" ").join(shBuilder.build());
+//
+//        POSIX posix = POSIXUtils.getPOSIX();
+//        File sh = new File("/bin/sh");
+//        checkState(sh.exists() && sh.isFile());
+//        posix.libc().execv(sh.getAbsolutePath(), sh.getAbsolutePath(), "-c", cmd);
+//        throw new IllegalStateException("Unreachable");
+//    }
 }

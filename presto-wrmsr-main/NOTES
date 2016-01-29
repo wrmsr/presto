@@ -1,7 +1,10 @@
 com.facebook.presto.operator.PagesIndex
 
+http://druid.io/docs/0.8.3/design/index.html
+http://static.druid.io/docs/druid.pdf
+https://drill.apache.org/docs/architecture-introduction/
 
-TODO do what LauncerModule does if only to expose presto module instrumentation
+TODO do what LauncherModule does if only to expose presto module instrumentation
 
 
 ***
@@ -127,8 +130,14 @@ need to store serialized intermediate types -> separate initial and current stat
 
 
 
+!! https://cwiki.apache.org/confluence/display/solr/Parallel+SQL+Interface uh what
+ https://issues.apache.org/jira/browse/SOLR-7560
+ https://mail-archives.apache.org/mod_mbox/lucene-dev/201510.mbox/%3CJIRA.12903949.1444452736000.7097.1444492145007@Atlassian.JIRA%3E
 
-
+http://www.slideshare.net/frsyuki/presto-hadoop-conference-japan-2014
+http://www.slideshare.net/treasure-data/2015-0311td-techtalkinternalsofprestoservice
+http://labs.gree.jp/blog/2014/12/12838/
+https://github.com/alibaba/fastjson
 
 https://github.com/treasure-data/prestogres
 https://github.com/easydatawarehousing/prestoclient
@@ -1947,3 +1956,7 @@ http://www.oracle.com/technetwork/java/javase/community/jlssessions-2015-2633029
 
 
 http://www.slideshare.net/InfoQ/zen-pinterests-graph-storage-service
+
+
+
+https://pkghosh.wordpress.com/2010/10/19/recommendation-engine-powered-by-hadoop-part-1/
