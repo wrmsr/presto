@@ -17,12 +17,14 @@ import com.facebook.presto.metadata.SqlFunction;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.MainModule;
+import com.wrmsr.presto.config.ConfigContainer;
 
 public class SerializationModule
-    implements Module
+    extends MainModule
 {
     @Override
-    public void configure(Binder binder)
+    public void configurePlugin(ConfigContainer config, Binder binder)
     {
         Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
 

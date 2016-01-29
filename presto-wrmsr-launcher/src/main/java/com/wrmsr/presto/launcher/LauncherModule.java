@@ -122,30 +122,30 @@ public abstract class LauncherModule
             }
         }
 
-        public List<Class<? extends LauncherCommand>> getLauncherCommandsParent()
+        protected List<Class<? extends LauncherCommand>> getLauncherCommandsParent()
         {
             return ImmutableList.of();
         }
 
-        public ConfigContainer postprocessConfigParent(ConfigContainer config)
+        protected ConfigContainer postprocessConfigParent(ConfigContainer config)
         {
             return config;
         }
 
-        public ConfigContainer rewriteConfigParent(ConfigContainer config, Function<ConfigContainer, ConfigContainer> postprocess)
+        protected ConfigContainer rewriteConfigParent(ConfigContainer config, Function<ConfigContainer, ConfigContainer> postprocess)
         {
             return config;
         }
 
-        public void configureLauncherParent(ConfigContainer config, Binder binder)
+        protected void configureLauncherParent(ConfigContainer config, Binder binder)
         {
         }
 
-        public void configureServerLoggingParent(ConfigContainer config)
+        protected void configureServerLoggingParent(ConfigContainer config)
         {
         }
 
-        public void configureServerParent(ConfigContainer config, Binder binder)
+        protected void configureServerParent(ConfigContainer config, Binder binder)
         {
         }
     }

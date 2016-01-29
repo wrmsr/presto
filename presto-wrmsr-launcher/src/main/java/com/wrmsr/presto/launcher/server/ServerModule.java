@@ -30,7 +30,7 @@ public class ServerModule
     }
 
     @Override
-    public void configureServerParent(ConfigContainer config, Binder binder)
+    protected void configureServerParent(ConfigContainer config, Binder binder)
     {
         binder.bind(ServerManager.class).in(Scopes.SINGLETON);
 

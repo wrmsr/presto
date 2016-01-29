@@ -19,7 +19,7 @@ import com.google.inject.Module;
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class BoxingModule
-    implements Module
+    extends MainModule
 {
     @Override
     public void configure(Binder binder)

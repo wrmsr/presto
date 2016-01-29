@@ -14,17 +14,26 @@
 package com.wrmsr.presto;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
+import com.google.inject.Key;
 import com.google.inject.Module;
 import com.wrmsr.presto.config.ConfigContainer;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public abstract class MainModule
 {
     public Module processServerModule(ConfigContainer config, Module module)
     {
         return module;
+    }
+
+    public Set<Key> getInjectorForwardings(ConfigContainer config)
+    {
+        return ImmutableSet.of();
     }
 
     public void configurePlugin(ConfigContainer config, Binder binder)
@@ -57,6 +66,17 @@ public abstract class MainModule
         }
 
         @Override
+        public Set<Key> getInjectorForwardings(ConfigContainer config)
+        {
+            Set<Key> tmp = new HashSet<>();
+            tmp.addAll(getInjectorForwardingsParent(config));
+            for (MainModule child : children) {
+                tmp.addAll(child.getInjectorForwardings(config));
+            }
+            return ImmutableSet.copyOf(tmp);
+        }
+
+        @Override
         public final void configurePlugin(ConfigContainer config, Binder binder)
         {
             configurePluginParent(config, binder);
@@ -65,12 +85,17 @@ public abstract class MainModule
             }
         }
 
-        public Module processServerModuleParent(ConfigContainer config, Module module)
+        protected Module processServerModuleParent(ConfigContainer config, Module module)
         {
             return module;
         }
 
-        public void configurePluginParent(ConfigContainer config, Binder binder)
+        protected Set<Key> getInjectorForwardingsParent(ConfigContainer config)
+        {
+            return ImmutableSet.of();
+        }
+
+        protected void configurePluginParent(ConfigContainer config, Binder binder)
         {
         }
     }

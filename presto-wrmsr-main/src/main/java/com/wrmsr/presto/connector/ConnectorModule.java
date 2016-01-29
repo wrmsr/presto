@@ -16,6 +16,8 @@ package com.wrmsr.presto.connector;
 import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.wrmsr.presto.MainModule;
+import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.connector.jdbc.h2.H2ConnectorFactory;
 import com.wrmsr.presto.connector.jdbc.mysql.ExtendedMySqlConnectorFactory;
 import com.wrmsr.presto.connector.jdbc.postgresql.ExtendedPostgreSqlConnectorFactory;
@@ -29,10 +31,10 @@ import com.wrmsr.presto.connector.views.ViewsConnectorFactory;
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class ConnectorModule
-        implements Module
+        extends MainModule
 {
     @Override
-    public void configure(Binder binder)
+    public void configurePlugin(ConfigContainer config, Binder binder)
     {
         binder.bind(ViewAnalyzer.class).asEagerSingleton();
         binder.bind(ViewsConnectorFactory.class).asEagerSingleton();

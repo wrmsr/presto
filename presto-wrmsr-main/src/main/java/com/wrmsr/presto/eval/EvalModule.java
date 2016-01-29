@@ -16,14 +16,16 @@ package com.wrmsr.presto.eval;
 import com.facebook.presto.metadata.SqlFunction;
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.wrmsr.presto.MainModule;
+import com.wrmsr.presto.config.ConfigContainer;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class EvalModule
-        implements Module
+        extends MainModule
 {
     @Override
-    public void configure(Binder binder)
+    public void configurePlugin(ConfigContainer config, Binder binder)
     {
         binder.bind(EvalManager.class).asEagerSingleton();
 

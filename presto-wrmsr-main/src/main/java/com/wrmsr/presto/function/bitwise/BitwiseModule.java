@@ -16,13 +16,15 @@ package com.wrmsr.presto.function.bitwise;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.MainModule;
+import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.function.FunctionRegistration;
 
 public class BitwiseModule
-        implements Module
+        extends MainModule
 {
     @Override
-    public void configure(Binder binder)
+    public void configurePlugin(ConfigContainer config, Binder binder)
     {
         Multibinder<FunctionRegistration> functionRegistrationBinder = Multibinder.newSetBinder(binder, FunctionRegistration.class);
 

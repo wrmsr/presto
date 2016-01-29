@@ -18,16 +18,18 @@ import com.facebook.presto.type.ParametricType;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.MainModule;
+import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.util.Compression;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
 public class CodecModule
-        implements Module
+        extends MainModule
 {
     @Override
-    public void configure(Binder binder)
+    public void configurePlugin(ConfigContainer config, Binder binder)
     {
         binder.bind(TypeCodecManager.class).asEagerSingleton();
 

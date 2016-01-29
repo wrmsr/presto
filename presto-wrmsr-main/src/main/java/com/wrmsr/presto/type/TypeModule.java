@@ -19,13 +19,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.MainModule;
+import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.function.FunctionRegistration;
 
 public class TypeModule
-    implements Module
+    extends MainModule
 {
     @Override
-    public void configure(Binder binder)
+    public void configurePlugin(ConfigContainer config, Binder binder)
     {
         Multibinder<Type> typeBinder = Multibinder.newSetBinder(binder, Type.class);
         Multibinder<ParametricType> parametricTypeBinder = Multibinder.newSetBinder(binder, ParametricType.class);

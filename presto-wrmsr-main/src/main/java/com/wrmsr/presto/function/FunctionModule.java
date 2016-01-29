@@ -16,18 +16,23 @@ package com.wrmsr.presto.function;
 import com.facebook.presto.metadata.SqlFunction;
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.wrmsr.presto.MainModule;
+import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.function.bitwise.BitwiseModule;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class FunctionModule
-        implements Module
+        extends MainModule.Composite
 {
-    @Override
-    public void configure(Binder binder)
+    public FunctionModule()
     {
-        binder.install(new BitwiseModule());
+        super(new BitwiseModule());
+    }
 
+    @Override
+    protected void configurePluginParent(ConfigContainer config, Binder binder)
+    {
         newSetBinder(binder, SqlFunction.class);
         newSetBinder(binder, FunctionRegistration.class);
 

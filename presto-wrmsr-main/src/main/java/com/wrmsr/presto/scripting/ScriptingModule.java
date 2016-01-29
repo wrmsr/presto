@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryProvider;
+import com.wrmsr.presto.MainModule;
 import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.function.FunctionRegistration;
 import com.wrmsr.presto.spi.ServerEvent;
@@ -33,17 +34,10 @@ import java.util.List;
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class ScriptingModule
-        implements Module
+        extends MainModule
 {
-    private final ConfigContainer config;
-
-    public ScriptingModule(ConfigContainer config)
-    {
-        this.config = config;
-    }
-
     @Override
-    public void configure(Binder binder)
+    public void configurePlugin(ConfigContainer config, Binder binder)
     {
         binder.bind(ScriptingConfig.class).toInstance(config.getMergedNode(ScriptingConfig.class));
 

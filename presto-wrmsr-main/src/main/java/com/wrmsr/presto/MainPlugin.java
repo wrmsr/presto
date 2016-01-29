@@ -103,6 +103,7 @@ public class MainPlugin
     private static final Logger log = Logger.get(MainPlugin.class);
 
     private final ConfigContainer config;
+    private final MainModule module;
     private final Object lock = new Object();
     private volatile Injector injector;
 
@@ -118,6 +119,7 @@ public class MainPlugin
     public MainPlugin()
     {
         config = PrestoConfigs.loadConfigFromProperties(ConfigContainer.class);
+        module = new MainPluginModule();
     }
 
     @Override
@@ -206,7 +208,6 @@ public class MainPlugin
 
     private Injector buildInjector()
     {
-        // TODO child injector?
         Bootstrap app = new Bootstrap(buildModule());
 
         try {

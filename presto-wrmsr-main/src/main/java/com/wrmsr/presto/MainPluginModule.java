@@ -18,7 +18,6 @@ import com.facebook.presto.server.PluginManager;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.connector.Connector;
 import com.google.inject.Binder;
-import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.wrmsr.presto.codec.CodecModule;
@@ -33,6 +32,7 @@ import com.wrmsr.presto.serialization.SerializationModule;
 import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.struct.StructModule;
 import com.wrmsr.presto.type.TypeModule;
+import com.wrmsr.presto.util.GuiceUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -40,44 +40,42 @@ import java.util.Map;
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class MainPluginModule
-        implements Module
+        extends MainModule.Composite
 {
-    private final ConfigContainer config;
-
-    public MainPluginModule(ConfigContainer config)
+    public MainPluginModule()
     {
-        this.config = config;
+        super(
+                new ConfigModule(),
+                new CodecModule(),
+                new ConnectorModule(),
+                new ConnectorSupportModule(),
+                new EvalModule(),
+                new FunctionModule(),
+                new ScriptingModule(),
+                new SerializationModule(),
+                new StructModule(),
+                new TypeModule());
     }
 
     @Override
-    public void configure(Binder binder)
+    protected void configurePluginParent(ConfigContainer config, Binder binder)
     {
-        binder.install(new ConfigModule(config));
-
-        binder.install(new CodecModule());
-        binder.install(new ConnectorModule());
-        binder.install(new ConnectorSupportModule());
-        binder.install(new EvalModule());
-        binder.install(new FunctionModule());
-        binder.install(new ScriptingModule(config));
-        binder.install(new SerializationModule());
-        binder.install(new StructModule());
-        binder.install(new TypeModule());
-
         newSetBinder(binder, ServerEvent.Listener.class);
-    }
+        binder.install(new GuiceUtils.EmptyModule()
+        {
+            @Provides
+            @Singleton
+            public List<Plugin> provideMainPlugins(PluginManager pluginManager)
+            {
+                return pluginManager.getLoadedPlugins();
+            }
 
-    @Provides
-    @Singleton
-    public List<Plugin> provideMainPlugins(PluginManager pluginManager)
-    {
-        return pluginManager.getLoadedPlugins();
-    }
-
-    @Provides
-    @Singleton
-    public Map<String, Connector> provideMainConnectors(ConnectorManager connectorManager)
-    {
-        return connectorManager.getConnectors();
+            @Provides
+            @Singleton
+            public Map<String, Connector> provideMainConnectors(ConnectorManager connectorManager)
+            {
+                return connectorManager.getConnectors();
+            }
+        });
     }
 }

@@ -17,15 +17,17 @@ import com.facebook.presto.metadata.SqlFunction;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
+import com.wrmsr.presto.MainModule;
 import com.wrmsr.presto.codec.TypeCodec;
+import com.wrmsr.presto.config.ConfigContainer;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class StructModule
-        implements Module
+        extends MainModule
 {
     @Override
-    public void configure(Binder binder)
+    public void configurePlugin(ConfigContainer config, Binder binder)
     {
         binder.bind(StructManager.class).asEagerSingleton();
 
