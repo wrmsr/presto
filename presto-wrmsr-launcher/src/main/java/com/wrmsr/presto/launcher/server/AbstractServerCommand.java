@@ -21,7 +21,6 @@ import com.wrmsr.presto.launcher.AbstractLauncherCommand;
 import com.wrmsr.presto.launcher.LauncherFailureException;
 import com.wrmsr.presto.launcher.config.JvmConfig;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
-import com.wrmsr.presto.launcher.logging.LauncherLogging;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
 import com.wrmsr.presto.launcher.util.POSIXUtils;

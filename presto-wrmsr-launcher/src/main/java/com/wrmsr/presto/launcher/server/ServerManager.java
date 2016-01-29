@@ -15,4 +15,7 @@ package com.wrmsr.presto.launcher.server;
 
 public class ServerManager
 {
+    public void run()
+    {
+    }
 }
