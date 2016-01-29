@@ -238,25 +238,27 @@ public class LauncherBuilder
         }
     }
 
+    public static String shellExec(String... args)
+            throws Throwable
+    {
+        Runtime rt = Runtime.getRuntime();
+        Process proc = rt.exec(args);
+        BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+        BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+        String ret = stdInput.readLine();
+        proc.waitFor(10, TimeUnit.SECONDS);
+        checkState(proc.exitValue() == 0);
+        return ret;
+    }
+
     public void run(String[] args)
             throws Throwable
     {
         Logging.initialize();
 
-        Runtime rt = Runtime.getRuntime();
-        Process proc = rt.exec(new String[] {"git", "rev-parse", "--verify", "HEAD"}); // FIXME append -SNAPSHOT if dirty
-        BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-        BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-        String head = stdInput.readLine();
-        proc.waitFor(10, TimeUnit.SECONDS);
-        checkState(proc.exitValue() == 0);
-
-        proc = rt.exec(new String[] {"git", "describe", "--tags"}); // FIXME append -SNAPSHOT if dirty
-        stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-        stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-        String tags = stdInput.readLine();
-        proc.waitFor(10, TimeUnit.SECONDS);
-        checkState(proc.exitValue() == 0);
+        String head = shellExec("git", "rev-parse", "--verify", "HEAD"); // FIXME append -SNAPSHOT if dirty
+        String short_ = shellExec("git", "rev-parse", "--short", "HEAD"); // FIXME append -SNAPSHOT if dirty
+        String tags = shellExec("git", "describe", "--tags");
 
         for (String logName : new String[] {"com.ning.http.client.providers.netty.NettyAsyncHttpProvider"}) {
             java.util.logging.Logger.getLogger(logName).setLevel(Level.WARNING);
@@ -473,6 +475,10 @@ public class LauncherBuilder
         JarEntry jeHEAD = new JarEntry("HEAD");
         jo.putNextEntry(jeHEAD);
         jo.write(head.getBytes());
+
+        JarEntry jeSHORT = new JarEntry("SHORT");
+        jo.putNextEntry(jeSHORT);
+        jo.write(short_.getBytes());
 
         JarEntry jeTAGS = new JarEntry("TAGS");
         jo.putNextEntry(jeTAGS);

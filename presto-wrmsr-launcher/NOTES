@@ -7,8 +7,8 @@ https://github.com/dockerfile/java/blob/master/oracle-java8/Dockerfile
 /etc/presto/site.yaml
 
 possibly:
-/usr/lib/presto/HEAD
-/usr/lib/presto/classpaths/*
+/usr/lib/presto/(HEAD|SHORT|TAGS)
+/usr/lib/presto/classpaths/* <- move to MANIFEST.MF
 
 no:
 /etc/init.d/presto
