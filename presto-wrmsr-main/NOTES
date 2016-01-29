@@ -2,6 +2,7 @@ com.facebook.presto.operator.PagesIndex
 
 http://druid.io/docs/0.8.3/design/index.html
 http://static.druid.io/docs/druid.pdf
+https://github.com/druid-io/druid
 https://drill.apache.org/docs/architecture-introduction/
 
 TODO do what LauncherModule does if only to expose presto module instrumentation
