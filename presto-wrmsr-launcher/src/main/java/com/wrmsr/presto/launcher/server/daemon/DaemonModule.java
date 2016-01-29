@@ -19,8 +19,15 @@ import com.google.inject.Scopes;
 import com.wrmsr.presto.launcher.LauncherCommand;
 import com.wrmsr.presto.launcher.LauncherModule;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
+import com.wrmsr.presto.launcher.config.LauncherConfig;
+import com.wrmsr.presto.launcher.util.DaemonProcess;
+import com.wrmsr.presto.util.GuiceUtils;
 
+import java.io.File;
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 public class DaemonModule
         extends LauncherModule
@@ -40,5 +47,14 @@ public class DaemonModule
     public void configureServer(ConfigContainer config, Binder binder)
     {
         binder.bind(DaemonManager.class).in(Scopes.SINGLETON);
+
+        binder.install(new GuiceUtils.EmptyModule()
+        {
+            public DaemonProcess get()
+            {
+                checkArgument(!isNullOrEmpty(pidFile()), "must set pidfile");
+                return new DaemonProcess(new File(replaceVars(pidFile())), getConfig().getMergedNode(LauncherConfig.class).getPidFileFd());
+            }
+        });
     }
 }

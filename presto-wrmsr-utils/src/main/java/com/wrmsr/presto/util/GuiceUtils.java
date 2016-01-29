@@ -357,4 +357,13 @@ public class GuiceUtils
     {
         return new RealOverriddenModuleBuilder(baseModules);
     }
+
+    public static class EmptyModule
+            implements Module
+    {
+        @Override
+        public void configure(Binder binder)
+        {
+        }
+    }
 }

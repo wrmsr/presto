@@ -11,29 +11,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.config;
+package com.wrmsr.presto.launcher.config;
 
 import com.google.inject.Binder;
-import com.google.inject.Module;
+import com.wrmsr.presto.launcher.LauncherModule;
 import com.wrmsr.presto.util.Serialization;
 
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
 public class ConfigModule
-        implements Module
+        extends LauncherModule
 {
-    private final ConfigContainer config;
-
-    public ConfigModule(ConfigContainer config)
-    {
-        this.config = config;
-    }
-
     @Override
-    public void configure(Binder binder)
+    public void configureLauncher(ConfigContainer config, Binder binder)
     {
         for (Class cls : Serialization.getJsonSubtypeMap(OBJECT_MAPPER.get(), Config.class).values()) {
             binder.bind(cls).toInstance(config.getMergedNode(cls));
         }
     }
 }
+

@@ -1,6 +1,8 @@
 com.facebook.presto.operator.PagesIndex
 
 
+TODO do what LauncerModule does if only to expose presto module instrumentation
+
 
 ***
  @record() equiv... validations, defaults, ... coercions?
