@@ -13,28 +13,22 @@
  */
 package com.wrmsr.presto.launcher.logging;
 
-import com.google.common.base.Throwables;
-import io.airlift.log.Logging;
-import io.airlift.log.LoggingConfiguration;
+import com.wrmsr.presto.launcher.LauncherModule;
+import com.wrmsr.presto.launcher.config.ConfigContainer;
 import io.airlift.log.SubprocessHandler;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.logging.Level;
 
-public class LauncherLogging
+public class LoggingModule
+        extends LauncherModule
 {
-    public static void configure(LoggingConfig config)
+    @Override
+    public void configureServerLogging(ConfigContainer config)
     {
-        Logging logging = Logging.initialize();
-        try {
-            logging.configure(new LoggingConfiguration());
-        }
-        catch (IOException e) {
-            throw Throwables.propagate(e);
-        }
+        LoggingConfig loggingConfig = config.getMergedNode(LoggingConfig.class);
 
-        for (Map.Entry<String, String> e : config.getLevels().entrySet()) {
+        for (Map.Entry<String, String> e : loggingConfig.getLevels().entrySet()) {
             java.util.logging.Logger log = java.util.logging.Logger.getLogger(e.getKey());
             if (log != null) {
                 Level level = Level.parse(e.getValue().toUpperCase());
@@ -42,7 +36,7 @@ public class LauncherLogging
             }
         }
 
-        for (LoggingConfig.AppenderConfig ac : config.getAppenders()) {
+        for (LoggingConfig.AppenderConfig ac : loggingConfig.getAppenders()) {
             if (ac instanceof LoggingConfig.SubprocessAppenderConfig) {
                 LoggingConfig.SubprocessAppenderConfig sac = (LoggingConfig.SubprocessAppenderConfig) ac;
                 java.util.logging.Logger.getLogger("").addHandler(new SubprocessHandler(sac.getArgs()));

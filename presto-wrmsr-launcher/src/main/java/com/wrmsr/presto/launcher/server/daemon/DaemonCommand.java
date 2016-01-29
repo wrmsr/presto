@@ -13,7 +13,7 @@
  */
 package com.wrmsr.presto.launcher.server.daemon;
 
-import com.wrmsr.presto.launcher.AbstractServerCommand;
+import com.wrmsr.presto.launcher.server.AbstractServerCommand;
 import io.airlift.airline.Command;
 
 @Command(name = "daemon", description = "Runs presto server daemon")

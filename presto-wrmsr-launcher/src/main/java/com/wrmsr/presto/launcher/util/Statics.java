@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher;
+package com.wrmsr.presto.launcher.util;
 
 import com.google.common.base.Throwables;
 
@@ -21,7 +21,7 @@ import java.net.URLClassLoader;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class LauncherUtils
+public class Statics
 {
     public static void runStaticMethod(String className, String methodName, Class<?>[] parameterTypes, Object[] args)
     {

@@ -25,7 +25,7 @@ could just hijack org.apache.hadoop.fs.FileSystem
 
 
 
-java src ffi
+java src ffi < - yes do this for youknowwhat
 jar native ffi (+ cfgable classpath)
 .. native native ffi via jnr/jffi
 

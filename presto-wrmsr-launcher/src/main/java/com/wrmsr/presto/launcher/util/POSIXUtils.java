@@ -21,74 +21,88 @@ import jnr.posix.POSIXHandler;
 import java.io.File;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
-public class POSIXUtils {
-
+public class POSIXUtils
+{
     private static final Logger logger = Logger.getLogger(POSIXUtils.class.getName());
 
-    private POSIXUtils() {
+    private POSIXUtils()
+    {
     }
 
-    public static final POSIXHandler DEFAULT_HANDLER = new POSIXHandler() {
+    public static final POSIXHandler DEFAULT_HANDLER = new POSIXHandler()
+    {
 
         @Override
-        public void error(Errno errno, String s) {
+        public void error(Errno errno, String s)
+        {
         }
 
         @Override
-        public void unimplementedError(String s) {
+        public void unimplementedError(String s)
+        {
         }
 
         @Override
-        public void warn(POSIXHandler.WARNING_ID warning_id, String s, Object... objects) {
+        public void warn(POSIXHandler.WARNING_ID warning_id, String s, Object... objects)
+        {
         }
 
         @Override
-        public boolean isVerbose() {
+        public boolean isVerbose()
+        {
             return false;
         }
 
         @Override
-        public File getCurrentWorkingDirectory() {
+        public File getCurrentWorkingDirectory()
+        {
             return new File(".");
         }
 
         @Override
-        public String[] getEnv() {
+        public String[] getEnv()
+        {
             return new String[0];
         }
 
         @Override
-        public InputStream getInputStream() {
+        public InputStream getInputStream()
+        {
             return System.in;
         }
 
         @Override
-        public PrintStream getOutputStream() {
+        public PrintStream getOutputStream()
+        {
             return System.out;
         }
 
         @Override
-        public int getPID() {
+        public int getPID()
+        {
             return 0;
         }
 
         @Override
-        public void error(Errno errno, String s, String s2) {
+        public void error(Errno errno, String s, String s2)
+        {
             logger.log(Level.SEVERE, errno + " : " + s + " : " + s2);
         }
 
         @Override
-        public PrintStream getErrorStream() {
+        public PrintStream getErrorStream()
+        {
             return System.err;
         }
     };
 
     private static POSIX posix;
 
-    public static synchronized POSIX getPOSIX() {
+    public static synchronized POSIX getPOSIX()
+    {
         if (posix == null) {
             posix = POSIXFactory.getPOSIX(DEFAULT_HANDLER, true);
         }

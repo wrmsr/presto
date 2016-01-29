@@ -13,18 +13,35 @@
  */
 package com.wrmsr.presto.launcher;
 
+import com.google.inject.Binder;
+import com.google.inject.Scopes;
 import com.wrmsr.presto.launcher.cluster.ClusterModule;
+import com.wrmsr.presto.launcher.config.ConfigContainer;
+import com.wrmsr.presto.launcher.leadership.LeadershipModule;
+import com.wrmsr.presto.launcher.logging.LoggingModule;
 import com.wrmsr.presto.launcher.passthrough.PassthroughModule;
 import com.wrmsr.presto.launcher.server.ServerModule;
+import com.wrmsr.presto.launcher.util.POSIXUtils;
+import com.wrmsr.presto.launcher.zookeeper.ZookeeperModule;
+import jnr.posix.POSIX;
 
 public class MainLauncherModule
-    extends LauncherModule.Composite
+        extends LauncherModule.Composite
 {
     public MainLauncherModule()
     {
         super(
                 new ClusterModule(),
+                new LeadershipModule(),
+                new LoggingModule(),
                 new PassthroughModule(),
-                new ServerModule());
+                new ServerModule(),
+                new ZookeeperModule());
+    }
+
+    @Override
+    public void configureLauncherParent(ConfigContainer config, Binder binder)
+    {
+        binder.bind(POSIX.class).toProvider(POSIXUtils::getPOSIX).in(Scopes.SINGLETON);
     }
 }

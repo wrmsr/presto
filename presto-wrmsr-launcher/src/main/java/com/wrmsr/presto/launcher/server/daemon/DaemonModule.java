@@ -14,8 +14,11 @@
 package com.wrmsr.presto.launcher.server.daemon;
 
 import com.google.common.collect.ImmutableList;
-import com.wrmsr.presto.launcher.LauncherModule;
+import com.google.inject.Binder;
+import com.google.inject.Scopes;
 import com.wrmsr.presto.launcher.LauncherCommand;
+import com.wrmsr.presto.launcher.LauncherModule;
+import com.wrmsr.presto.launcher.config.ConfigContainer;
 
 import java.util.List;
 
@@ -31,5 +34,11 @@ public class DaemonModule
                 StartCommand.class,
                 StatusCommand.class,
                 StopCommand.class);
+    }
+
+    @Override
+    public void configureServer(ConfigContainer config, Binder binder)
+    {
+        binder.bind(DaemonManager.class).in(Scopes.SINGLETON);
     }
 }

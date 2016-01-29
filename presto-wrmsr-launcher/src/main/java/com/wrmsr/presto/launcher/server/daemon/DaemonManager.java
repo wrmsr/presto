@@ -13,17 +13,6 @@
  */
 package com.wrmsr.presto.launcher.server.daemon;
 
-import com.wrmsr.presto.launcher.server.AbstractServerCommand;
-import io.airlift.airline.Command;
-
-@Command(name = "start", description = "Starts presto server")
-public final class StartCommand
-        extends AbstractServerCommand
+public class DaemonManager
 {
-    @Override
-    public void serverRun()
-            throws Throwable
-    {
-        launchDaemon(false);
-    }
 }

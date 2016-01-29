@@ -13,7 +13,7 @@
  */
 package com.wrmsr.presto.launcher.passthrough;
 
-import com.wrmsr.presto.launcher.LauncherUtils;
+import com.wrmsr.presto.launcher.util.Statics;
 import com.wrmsr.presto.launcher.AbstractLauncherCommand;
 import com.wrmsr.presto.util.Artifacts;
 import io.airlift.airline.Arguments;
@@ -40,10 +40,10 @@ public abstract class AbstractPassthroughCommand
         Class<?>[] parameterTypes = new Class<?>[] {String[].class};
         Object[] args = new Object[] {this.args.toArray(new String[this.args.size()])};
         if (moduleName == null) {
-            LauncherUtils.runStaticMethod(getClassName(), "main", parameterTypes, args);
+            Statics.runStaticMethod(getClassName(), "main", parameterTypes, args);
         }
         else {
-            LauncherUtils.runStaticMethod(Artifacts.resolveModuleClassloaderUrls(moduleName), getClassName(), "main", parameterTypes, args);
+            Statics.runStaticMethod(Artifacts.resolveModuleClassloaderUrls(moduleName), getClassName(), "main", parameterTypes, args);
         }
     }
 }

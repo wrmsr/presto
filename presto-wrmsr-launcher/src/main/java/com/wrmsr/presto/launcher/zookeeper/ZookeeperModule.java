@@ -13,15 +13,9 @@
  */
 package com.wrmsr.presto.launcher.zookeeper;
 
-import com.google.inject.Binder;
-import com.google.inject.Module;
+import com.wrmsr.presto.launcher.LauncherModule;
 
 public class ZookeeperModule
-    implements Module
+        extends LauncherModule
 {
-    @Override
-    public void configure(Binder binder)
-    {
-
-    }
 }

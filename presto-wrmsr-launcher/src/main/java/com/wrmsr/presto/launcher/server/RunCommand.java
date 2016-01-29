@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.launcher.server;
 
-import com.wrmsr.presto.launcher.AbstractServerCommand;
 import io.airlift.airline.Command;
 
 @Command(name = "run", description = "Runs presto server")
