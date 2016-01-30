@@ -14,25 +14,13 @@
 package com.wrmsr.presto;
 
 import com.facebook.presto.connector.ConnectorManager;
-import com.facebook.presto.execution.QueryIdGenerator;
-import com.facebook.presto.execution.QueryManager;
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.SqlFunction;
-import com.facebook.presto.metadata.ViewDefinition;
-import com.facebook.presto.security.AccessControl;
 import com.facebook.presto.server.PluginManager;
-import com.facebook.presto.server.TaskUpdateRequest;
-import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.Plugin;
-import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.spi.type.TypeManager;
-import com.facebook.presto.sql.analyzer.FeaturesConfig;
-import com.facebook.presto.sql.parser.SqlParser;
-import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
 import com.facebook.presto.type.ParametricType;
 import com.facebook.presto.type.TypeRegistry;
 import com.google.common.base.Strings;
@@ -44,7 +32,6 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.TypeLiteral;
-import com.google.inject.util.Modules;
 import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.config.ConnectorsConfig;
 import com.wrmsr.presto.config.MetaconnectorsConfig;
@@ -61,8 +48,6 @@ import com.wrmsr.presto.util.config.Configs;
 import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.bootstrap.Bootstrap;
 import io.airlift.bootstrap.LifeCycleManager;
-import io.airlift.http.client.HttpClient;
-import io.airlift.json.JsonCodec;
 import io.airlift.log.Logger;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.w3c.dom.Document;
@@ -95,7 +80,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
-import static io.airlift.json.JsonCodecBinder.jsonCodecBinder;
+import static java.util.Objects.requireNonNull;
 
 public class MainPlugin
         implements Plugin, ServerEvent.Listener
@@ -164,27 +149,24 @@ public class MainPlugin
         this.serverEventManager = serverEventManager;
     }
 
-    private Module buildInjectedModule()
-    {
-        return new Module()
-        {
-            @Override
-            public void configure(Binder binder)
-            {
-                binder.bind(MainOptionalConfig.class).toInstance(checkNotNull(optionalConfig));
-                binder.bind(MainInjector.class).toInstance(new MainInjector(mainInjector));
-            }
-        };
-    }
-
-    private Module buildModule()
-    {
-        return Modules.combine(new MainPluginModule(config), buildInjectedModule());
-    }
-
     private Injector buildInjector()
     {
-        Bootstrap app = new Bootstrap(buildModule());
+        Bootstrap app = new Bootstrap(
+                new Module()
+                {
+                    @Override
+                    public void configure(Binder binder)
+                    {
+                        binder.bind(MainOptionalConfig.class).toInstance(checkNotNull(optionalConfig));
+                        binder.bind(MainInjector.class).toInstance(new MainInjector(mainInjector));
+
+                        for (Key key : module.getInjectorForwardings(config)) {
+                            binder.bind(key).toInstance(requireNonNull(mainInjector.getInstance(key)));
+                        }
+
+                        module.configurePlugin(config, binder);
+                    }
+                });
 
         try {
             return app
@@ -332,7 +314,7 @@ public class MainPlugin
 
     private Module processModule(Module module)
     {
-        return GuiceUtils.combine(ImmutableList.of(module, new Module()
+        module = GuiceUtils.combine(ImmutableList.of(module, new Module()
         {
             @Override
             public void configure(Binder binder)
@@ -343,6 +325,7 @@ public class MainPlugin
                 // jaxrsBinder(binder).bind(ShutdownResource.class);
             }
         }));
+        return this.module.processServerModule(config, module);
     }
 
     public static String getPomVersion(InputStream pomIn)

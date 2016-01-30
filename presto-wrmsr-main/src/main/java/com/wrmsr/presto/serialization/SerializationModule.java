@@ -22,21 +22,28 @@ import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.MainModule;
 import com.wrmsr.presto.config.ConfigContainer;
+import com.wrmsr.presto.serialization.boxing.BoxingModule;
 
 import java.util.Set;
 
 public class SerializationModule
-    extends MainModule
+    extends MainModule.Composite
 {
+    public SerializationModule()
+    {
+        super(
+                new BoxingModule());
+    }
+
     @Override
-    public Set<Key> getInjectorForwardings(ConfigContainer config)
+    protected Set<Key> getInjectorForwardingsParent(ConfigContainer config)
     {
         return ImmutableSet.of(
                 Key.get(TypeManager.class));
     }
 
     @Override
-    public void configurePlugin(ConfigContainer config, Binder binder)
+    protected void configurePluginParent(ConfigContainer config, Binder binder)
     {
         Multibinder<SqlFunction> functionBinder = Multibinder.newSetBinder(binder, SqlFunction.class);
 

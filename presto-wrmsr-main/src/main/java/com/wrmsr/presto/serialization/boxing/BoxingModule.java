@@ -14,17 +14,18 @@
 package com.wrmsr.presto.serialization.boxing;
 
 import com.google.inject.Binder;
-import com.google.inject.Module;
+import com.wrmsr.presto.MainModule;
+import com.wrmsr.presto.config.ConfigContainer;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class BoxingModule
-    extends MainModule
+        extends MainModule
 {
     @Override
-    public void configure(Binder binder)
+    public void configurePlugin(ConfigContainer config, Binder binder)
     {
-       newSetBinder(binder, BoxerProvider.class);
+        newSetBinder(binder, BoxerProvider.class);
 
         binder.bind(BoxingManager.class).asEagerSingleton();
         binder.bind(BoxerProvider.class).to(BoxingManager.class);

@@ -14,13 +14,14 @@
 package com.wrmsr.presto.signal;
 
 import com.google.inject.Binder;
-import com.google.inject.Module;
+import com.wrmsr.presto.MainModule;
+import com.wrmsr.presto.config.ConfigContainer;
 
 public class SignalModule
-    extends MainModule
+        extends MainModule
 {
     @Override
-    public void configure(Binder binder)
+    public void configurePlugin(ConfigContainer config, Binder binder)
     {
         binder.bind(SunSignalHandling.class).asEagerSingleton();
         binder.bind(SignalHandling.class).to(SunSignalHandling.class);
