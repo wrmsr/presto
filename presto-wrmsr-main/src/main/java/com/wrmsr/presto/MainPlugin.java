@@ -164,20 +164,6 @@ public class MainPlugin
         this.serverEventManager = serverEventManager;
     }
 
-    public static final List<Key> FORWARDED_INJECTIONS = ImmutableList.<Key>of(
-            Key.get(NodeManager.class),
-            Key.get(new TypeLiteral<JsonCodec<ViewDefinition>>() {}),
-            Key.get(SqlParser.class),
-            Key.get(new TypeLiteral<List<PlanOptimizer>>() {}),
-            Key.get(FeaturesConfig.class),
-            Key.get(AccessControl.class),
-            Key.get(BlockEncodingSerde.class),
-            Key.get(QueryManager.class),
-            Key.get(SessionPropertyManager.class),
-            Key.get(QueryIdGenerator.class)
-            // Key.get(HttpClient.class)
-    );
-
     private Module buildInjectedModule()
     {
         return new Module()
@@ -186,17 +172,7 @@ public class MainPlugin
             public void configure(Binder binder)
             {
                 binder.bind(MainOptionalConfig.class).toInstance(checkNotNull(optionalConfig));
-                binder.bind(ConnectorManager.class).toInstance(checkNotNull(connectorManager));
-                binder.bind(TypeRegistry.class).toInstance(checkNotNull(typeRegistry));
-                binder.bind(TypeManager.class).toInstance(checkNotNull(typeRegistry));
-                binder.bind(PluginManager.class).toInstance(checkNotNull(pluginManager));
-                binder.bind(Metadata.class).toInstance(checkNotNull(metadata));
-                binder.bind(ServerEventManager.class).toInstance(checkNotNull(serverEventManager));
-
                 binder.bind(MainInjector.class).toInstance(new MainInjector(mainInjector));
-                for (Key key : FORWARDED_INJECTIONS) {
-                    binder.bind(key).toInstance(mainInjector.getInstance(key));
-                }
             }
         };
     }

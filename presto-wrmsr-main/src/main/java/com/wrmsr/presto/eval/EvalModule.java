@@ -13,17 +13,29 @@
  */
 package com.wrmsr.presto.eval;
 
+import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.metadata.SqlFunction;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
-import com.google.inject.Module;
+import com.google.inject.Key;
 import com.wrmsr.presto.MainModule;
 import com.wrmsr.presto.config.ConfigContainer;
+
+import java.util.Set;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class EvalModule
         extends MainModule
 {
+
+    @Override
+    public Set<Key> getInjectorForwardings(ConfigContainer config)
+    {
+        return ImmutableSet.of(
+                Key.get(ConnectorManager.class));
+    }
+
     @Override
     public void configurePlugin(ConfigContainer config, Binder binder)
     {

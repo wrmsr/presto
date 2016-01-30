@@ -13,19 +13,51 @@
  */
 package com.wrmsr.presto.struct;
 
+import com.facebook.presto.connector.ConnectorManager;
+import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.SqlFunction;
+import com.facebook.presto.security.AccessControl;
+import com.facebook.presto.spi.block.BlockEncodingSerde;
+import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.sql.analyzer.FeaturesConfig;
+import com.facebook.presto.sql.parser.SqlParser;
+import com.facebook.presto.sql.planner.optimizations.PlanOptimizer;
+import com.facebook.presto.type.TypeRegistry;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
-import com.google.inject.Module;
+import com.google.inject.Key;
+import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.MainModule;
 import com.wrmsr.presto.codec.TypeCodec;
 import com.wrmsr.presto.config.ConfigContainer;
+
+import java.util.List;
+import java.util.Set;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class StructModule
         extends MainModule
 {
+    @Override
+    public Set<Key> getInjectorForwardings(ConfigContainer config)
+    {
+        return ImmutableSet.of(
+                Key.get(SqlParser.class),
+                Key.get(new TypeLiteral<List<PlanOptimizer>>() {}),
+                Key.get(FeaturesConfig.class),
+                Key.get(AccessControl.class),
+                Key.get(BlockEncodingSerde.class),
+                Key.get(SessionPropertyManager.class),
+                Key.get(ConnectorManager.class),
+                Key.get(TypeRegistry.class),
+                Key.get(TypeManager.class),
+                Key.get(Metadata.class));
+    }
+
+
     @Override
     public void configurePlugin(ConfigContainer config, Binder binder)
     {

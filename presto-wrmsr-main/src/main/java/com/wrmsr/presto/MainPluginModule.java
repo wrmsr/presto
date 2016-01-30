@@ -17,7 +17,9 @@ import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.server.PluginManager;
 import com.facebook.presto.spi.Plugin;
 import com.facebook.presto.spi.connector.Connector;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
+import com.google.inject.Key;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.wrmsr.presto.codec.CodecModule;
@@ -36,6 +38,7 @@ import com.wrmsr.presto.util.GuiceUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
@@ -55,6 +58,13 @@ public class MainPluginModule
                 new SerializationModule(),
                 new StructModule(),
                 new TypeModule());
+    }
+
+    @Override
+    protected Set<Key> getInjectorForwardingsParent(ConfigContainer config)
+    {
+        return ImmutableSet.of(
+                Key.get(ConnectorManager.class));
     }
 
     @Override

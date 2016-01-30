@@ -66,7 +66,7 @@ public abstract class MainModule
         }
 
         @Override
-        public Set<Key> getInjectorForwardings(ConfigContainer config)
+        public final Set<Key> getInjectorForwardings(ConfigContainer config)
         {
             Set<Key> tmp = new HashSet<>();
             tmp.addAll(getInjectorForwardingsParent(config));

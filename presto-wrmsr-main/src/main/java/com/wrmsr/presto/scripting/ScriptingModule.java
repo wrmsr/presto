@@ -17,10 +17,13 @@ import com.facebook.presto.spi.type.BigintType;
 import com.facebook.presto.spi.type.BooleanType;
 import com.facebook.presto.spi.type.DoubleType;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.spi.type.VarcharType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
+import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryProvider;
 import com.wrmsr.presto.MainModule;
@@ -30,12 +33,20 @@ import com.wrmsr.presto.spi.ServerEvent;
 import com.wrmsr.presto.spi.scripting.ScriptEngineProvider;
 
 import java.util.List;
+import java.util.Set;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class ScriptingModule
         extends MainModule
 {
+    @Override
+    public Set<Key> getInjectorForwardings(ConfigContainer config)
+    {
+        return ImmutableSet.of(
+                Key.get(TypeManager.class));
+    }
+
     @Override
     public void configurePlugin(ConfigContainer config, Binder binder)
     {

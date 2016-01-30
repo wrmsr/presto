@@ -14,15 +14,27 @@
 package com.wrmsr.presto.serialization;
 
 import com.facebook.presto.metadata.SqlFunction;
+import com.facebook.presto.spi.type.TypeManager;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
+import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.MainModule;
 import com.wrmsr.presto.config.ConfigContainer;
 
+import java.util.Set;
+
 public class SerializationModule
     extends MainModule
 {
+    @Override
+    public Set<Key> getInjectorForwardings(ConfigContainer config)
+    {
+        return ImmutableSet.of(
+                Key.get(TypeManager.class));
+    }
+
     @Override
     public void configurePlugin(ConfigContainer config, Binder binder)
     {

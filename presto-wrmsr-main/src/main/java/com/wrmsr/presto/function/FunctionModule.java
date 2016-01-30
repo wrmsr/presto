@@ -14,11 +14,16 @@
 package com.wrmsr.presto.function;
 
 import com.facebook.presto.metadata.SqlFunction;
+import com.facebook.presto.spi.type.TypeManager;
+import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
+import com.google.inject.Key;
 import com.google.inject.Module;
 import com.wrmsr.presto.MainModule;
 import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.function.bitwise.BitwiseModule;
+
+import java.util.Set;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
@@ -28,6 +33,13 @@ public class FunctionModule
     public FunctionModule()
     {
         super(new BitwiseModule());
+    }
+
+    @Override
+    protected Set<Key> getInjectorForwardingsParent(ConfigContainer config)
+    {
+        return ImmutableSet.of(
+                Key.get(TypeManager.class));
     }
 
     @Override
