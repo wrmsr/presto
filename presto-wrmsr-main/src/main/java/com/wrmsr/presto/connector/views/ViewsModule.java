@@ -36,7 +36,7 @@ public class ViewsModule
         configBinder(binder).bindConfig(ViewsConfig.class);
 
         binder.bind(ViewsConnector.class).asEagerSingleton();
-        binder.bind(ViewsConnectorMetadata.class).asEagerSingleton();
+        binder.bind(ViewsMetadata.class).asEagerSingleton();
 
         binder.bind(ViewStorage.class).to(storageCls);
     }

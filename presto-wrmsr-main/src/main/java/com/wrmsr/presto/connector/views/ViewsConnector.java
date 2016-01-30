@@ -25,10 +25,10 @@ import javax.inject.Inject;
 public class ViewsConnector
     implements Connector
 {
-    private final ViewsConnectorMetadata metadata;
+    private final ViewsMetadata metadata;
 
     @Inject
-    public ViewsConnector(ViewsConnectorMetadata metadata)
+    public ViewsConnector(ViewsMetadata metadata)
     {
         this.metadata = metadata;
     }

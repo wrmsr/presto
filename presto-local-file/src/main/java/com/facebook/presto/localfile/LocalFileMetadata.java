@@ -128,6 +128,7 @@ public class LocalFileMetadata
                 TupleDomain.<ColumnHandle>all(),
                 Optional.empty(),
                 Optional.empty(),
+                Optional.empty(),
                 ImmutableList.of());
         return ImmutableList.of(new ConnectorTableLayoutResult(layout, constraint.getSummary()));
     }
@@ -136,7 +137,14 @@ public class LocalFileMetadata
     public ConnectorTableLayout getTableLayout(ConnectorSession session, ConnectorTableLayoutHandle handle)
     {
         LocalFileTableLayoutHandle layout = checkType(handle, LocalFileTableLayoutHandle.class, "layout");
-        return new ConnectorTableLayout(layout, Optional.empty(), TupleDomain.<ColumnHandle>all(), Optional.empty(), Optional.empty(), ImmutableList.of());
+        return new ConnectorTableLayout(
+                layout,
+                Optional.empty(),
+                TupleDomain.<ColumnHandle>all(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                ImmutableList.of());
     }
 
     @Override

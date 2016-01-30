@@ -51,14 +51,14 @@ import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
-public class ViewsConnectorMetadata
+public class ViewsMetadata
     implements ConnectorMetadata
 {
     private final ViewStorage viewStorage;
     private final ViewAnalyzer viewAnalyzer;
 
     @Inject
-    public ViewsConnectorMetadata(ViewStorage viewStorage, ViewAnalyzer viewAnalyzer)
+    public ViewsMetadata(ViewStorage viewStorage, ViewAnalyzer viewAnalyzer)
     {
         this.viewStorage = viewStorage;
         this.viewAnalyzer = viewAnalyzer;
