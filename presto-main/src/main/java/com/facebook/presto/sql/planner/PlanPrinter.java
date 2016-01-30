@@ -26,7 +26,6 @@ import com.facebook.presto.spi.predicate.Marker;
 import com.facebook.presto.spi.predicate.Range;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.sql.planner.PlanFragment.PlanDistribution;
 import com.facebook.presto.sql.planner.plan.AggregationNode;
 import com.facebook.presto.sql.planner.plan.DeleteNode;
 import com.facebook.presto.sql.planner.plan.DistinctLimitNode;
@@ -77,13 +76,13 @@ import java.lang.invoke.MethodHandle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.sql.planner.DomainUtils.simplifyDomain;
+import static com.facebook.presto.sql.planner.SystemPartitioningHandle.SINGLE_DISTRIBUTION;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
@@ -133,28 +132,25 @@ public class PlanPrinter
         for (PlanFragment fragment : plan.getAllFragments()) {
             builder.append(format("Fragment %s [%s]\n",
                     fragment.getId(),
-                    fragment.getDistribution()));
+                    fragment.getPartitioning()));
 
+            PartitionFunctionBinding partitionFunction = fragment.getPartitionFunction();
             builder.append(indentString(1))
                     .append(format("Output layout: [%s]\n",
-                            Joiner.on(", ").join(fragment.getOutputLayout())));
+                            Joiner.on(", ").join(partitionFunction.getOutputLayout())));
 
-            if (fragment.getPartitionFunction().isPresent()) {
-                PartitionFunctionBinding partitionFunction = fragment.getPartitionFunction().get();
-                PartitionFunctionHandle outputPartitioning = partitionFunction.getFunctionHandle();
-                boolean replicateNulls = partitionFunction.isReplicateNulls();
-                List<Symbol> symbols = partitionFunction.getPartitioningColumns();
-                builder.append(indentString(1));
-                if (replicateNulls) {
-                    builder.append(format("Output partitioning: %s (replicate nulls) [%s]\n",
-                            outputPartitioning,
-                            Joiner.on(", ").join(symbols)));
-                }
-                else {
-                    builder.append(format("Output partitioning: %s [%s]\n",
-                            outputPartitioning,
-                            Joiner.on(", ").join(symbols)));
-                }
+            boolean replicateNulls = partitionFunction.isReplicateNulls();
+            List<Symbol> symbols = partitionFunction.getPartitioningColumns();
+            builder.append(indentString(1));
+            if (replicateNulls) {
+                builder.append(format("Output partitioning: %s (replicate nulls) [%s]\n",
+                        partitionFunction.getPartitioningHandle(),
+                        Joiner.on(", ").join(symbols)));
+            }
+            else {
+                builder.append(format("Output partitioning: %s [%s]\n",
+                        partitionFunction.getPartitioningHandle(),
+                        Joiner.on(", ").join(symbols)));
             }
 
             builder.append(textLogicalPlan(fragment.getRoot(), fragment.getSymbols(), metadata, session, 1))
@@ -170,10 +166,9 @@ public class PlanPrinter
                 new PlanFragmentId("graphviz_plan"),
                 plan,
                 types,
-                plan.getOutputSymbols(),
-                PlanDistribution.SINGLE,
+                SINGLE_DISTRIBUTION,
                 plan.getId(),
-                Optional.empty());
+                new PartitionFunctionBinding(SINGLE_DISTRIBUTION, plan.getOutputSymbols(), ImmutableList.of()));
         return GraphvizPrinter.printLogical(ImmutableList.of(fragment));
     }
 
