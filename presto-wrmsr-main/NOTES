@@ -18,6 +18,9 @@ TODO do what LauncherModule does if only to expose presto module instrumentation
 
  enums, instancemthods? $?
 
+ https://en.wikipedia.org/wiki/Eiffel_(programming_language)
+  -> https://en.wikipedia.org/wiki/Design_by_contract
+
 
 ***
  zipkin integration via TraceTokenModule - through to subordinate cpy's
@@ -101,6 +104,12 @@ class ReactorState {
 
 http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
 
+
+<dependency>
+    <groupId>com.facebook.jcommon</groupId>
+    <artifactId>stats</artifactId>
+    <version>0.1.23</version>
+</dependency>
 
 periodic status emails :D
  - just fuckin do this via a log w an SMTPAppender
