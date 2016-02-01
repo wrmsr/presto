@@ -51,7 +51,12 @@ Event sources are symbolAllocated with Type Table<Row<....
 import com.facebook.presto.ScheduledSplit;
 import com.facebook.presto.Session;
 import com.facebook.presto.TaskSource;
+import com.facebook.presto.execution.NodeTaskMap;
 import com.facebook.presto.execution.TaskManagerConfig;
+import com.facebook.presto.execution.scheduler.LegacyNetworkTopology;
+import com.facebook.presto.execution.scheduler.NodeScheduler;
+import com.facebook.presto.execution.scheduler.NodeSchedulerConfig;
+import com.facebook.presto.metadata.InMemoryNodeManager;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.Split;
@@ -81,6 +86,7 @@ import com.facebook.presto.spi.type.VarcharType;
 import com.facebook.presto.split.SplitSource;
 import com.facebook.presto.sql.planner.CompilerConfig;
 import com.facebook.presto.sql.planner.LocalExecutionPlanner;
+import com.facebook.presto.sql.planner.NodePartitioningManager;
 import com.facebook.presto.sql.planner.Plan;
 import com.facebook.presto.sql.planner.PlanFragmenter;
 import com.facebook.presto.sql.planner.PlanNodeIdAllocator;
@@ -108,6 +114,7 @@ import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.facebook.presto.type.ArrayType;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.TypeRegistry;
+import com.facebook.presto.util.FinalizerService;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -786,11 +793,21 @@ public class TestPkThreader
             throw new AssertionError("Expected subplan to have no children");
         }
 
+        FinalizerService finalizerService = new FinalizerService();
+
+        NodeScheduler nodeScheduler = new NodeScheduler(
+                new LegacyNetworkTopology(),
+                new InMemoryNodeManager(),
+                new NodeSchedulerConfig().setIncludeCoordinator(true),
+                new NodeTaskMap(finalizerService));
+        NodePartitioningManager nodePartitioningManager = new NodePartitioningManager(nodeScheduler);
+
         LocalExecutionPlanner executionPlanner = new LocalExecutionPlanner(
                 pq.lqr.getMetadata(),
                 pq.lqr.getSqlParser(),
                 pq.lqr.getPageSourceManager(),
                 pq.lqr.getIndexManager(),
+                nodePartitioningManager,
                 pq.lqr.getPageSinkManager(),
                 null,
                 pq.lqr.getCompiler(),
@@ -803,7 +820,7 @@ public class TestPkThreader
         LocalExecutionPlanner.LocalExecutionPlan localExecutionPlan = executionPlanner.plan(
                 pq.session,
                 subplan.getFragment().getRoot(),
-                subplan.getFragment().getOutputLayout(),
+                subplan.getFragment().getPartitionFunction().getOutputLayout(),
                 plan.getTypes(),
                 //subplan.getFragment().getDistribution(),
                 outputFactory,
