@@ -37,7 +37,7 @@ could just hijack org.apache.hadoop.fs.FileSystem
 java src ffi < - yes do this for youknowwhat
 jar native ffi (+ cfgable classpath)
 .. native native ffi via jnr/jffi
-
+https://www.py4j.org/
 
 
 graphql connector binding:
@@ -1943,3 +1943,4 @@ https://corner.squareup.com/2016/01/query-sniper.html
 
 https://cwiki.apache.org/confluence/display/Hive/LanguageManual+SortBy
 
+http://neo4j.com/blog/graph-database-ecommerce-fraud/
