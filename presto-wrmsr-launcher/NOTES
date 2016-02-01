@@ -17,6 +17,15 @@ https://en.wikipedia.org/wiki/Deb_(file_format)
 data.tar shits already compressed
 
 
+control.tar.gz
+data.tar.xz
+debian-binary
+
+control.tar.gz:
+control
+md5sums
+
+
 https://www.debian.org/doc/manuals/maint-guide/dreq.en.html#control
 
 
