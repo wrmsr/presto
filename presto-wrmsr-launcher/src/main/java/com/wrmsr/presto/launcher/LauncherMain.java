@@ -59,7 +59,6 @@ public class LauncherMain
     {
         List<String> newArgs = rewriteArgs(Arrays.asList(args));
         args = newArgs.toArray(new String[newArgs.size()]);
-        AbstractLauncherCommand.ORIGINAL_ARGS.set(args);
 
         LauncherModule module = new MainLauncherModule();
 
@@ -71,7 +70,7 @@ public class LauncherMain
         Cli<Runnable> cliParser = builder.build();
         Runnable cmd = cliParser.parse(args);
         if (cmd instanceof LauncherCommand) {
-            ((LauncherCommand) cmd).configure(module);
+            ((LauncherCommand) cmd).configure(module, new LauncherCommand.OriginalArgs(args));
         }
         try {
             cmd.run();

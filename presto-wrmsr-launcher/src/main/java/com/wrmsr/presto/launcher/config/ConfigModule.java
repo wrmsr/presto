@@ -32,6 +32,8 @@ public class ConfigModule
     @Override
     public void configureLauncher(ConfigContainer config, Binder binder)
     {
+        binder.bind(ConfigContainer.class).toInstance(config);
+
         for (Class cls : Serialization.getJsonSubtypeMap(OBJECT_MAPPER.get(), Config.class).values()) {
             binder.bind(cls).toInstance(config.getMergedNode(cls));
         }

@@ -20,6 +20,7 @@ import com.google.inject.Inject;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.AbstractLauncherCommand;
 import com.wrmsr.presto.launcher.LauncherFailureException;
+import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.config.JvmConfig;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
@@ -64,9 +65,12 @@ public abstract class AbstractServerCommand
         return jvm;
     }
 
+    @Inject
+    private ConfigContainer config;
+
     private void autoConfigure()
     {
-        LauncherConfig lc = getConfig().getMergedNode(LauncherConfig.class);
+        LauncherConfig lc = config.getMergedNode(LauncherConfig.class);
         if (isNullOrEmpty(System.getProperty("http-server.log.path"))) {
             if (!isNullOrEmpty(lc.getHttpLogFile())) {
                 System.setProperty("http-server.log.path", lc.getHttpLogFile());
@@ -88,6 +92,9 @@ public abstract class AbstractServerCommand
 
     @Inject
     protected POSIX posix;
+
+    @Inject
+    protected OriginalArgs originalArgs;
 
     protected void maybeRexec()
     {
@@ -115,7 +122,7 @@ public abstract class AbstractServerCommand
         builder
                 .add("-jar")
                 .add(jar.getAbsolutePath())
-                .addAll(Arrays.asList(ORIGINAL_ARGS.get()));
+                .addAll(originalArgs.value);
 
         List<String> newArgs = builder.build();
         requireNonNull(posix).libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
@@ -124,7 +131,7 @@ public abstract class AbstractServerCommand
 
     private List<String> getJvmOptions()
     {
-        return getJvmOptions(getConfig().getMergedNode(JvmConfig.class));
+        return getJvmOptions(config.getMergedNode(JvmConfig.class));
     }
 
     private List<String> getJvmOptions(JvmConfig jvmConfig)
@@ -208,14 +215,14 @@ public abstract class AbstractServerCommand
 
     private String pidFile()
     {
-        return getConfig().getMergedNode(LauncherConfig.class).getPidFile();
+        return config.getMergedNode(LauncherConfig.class).getPidFile();
     }
 
     public synchronized DaemonProcess getDaemonProcess()
     {
         if (daemonProcess == null) {
             checkArgument(!isNullOrEmpty(pidFile()), "must set pidfile");
-            daemonProcess = new DaemonProcess(new File(pidFile()), getConfig().getMergedNode(LauncherConfig.class).getPidFileFd());
+            daemonProcess = new DaemonProcess(new File(pidFile()), config.getMergedNode(LauncherConfig.class).getPidFileFd());
         }
         return daemonProcess;
     }
@@ -236,7 +243,7 @@ public abstract class AbstractServerCommand
             int i = s.indexOf('=');
             System.setProperty(s.substring(0, i), s.substring(i + 1));
         }
-        long delay = getConfig().getMergedNode(LauncherConfig.class).getDelay();
+        long delay = config.getMergedNode(LauncherConfig.class).getDelay();
         if (delay > 0) {
             log.info(String.format("Delaying launch for %d ms", delay));
             try {
@@ -281,7 +288,7 @@ public abstract class AbstractServerCommand
             }
         }
 
-        List<String> args = ImmutableList.copyOf(ORIGINAL_ARGS.get());
+        List<String> args = originalArgs.getValue();
         String lastArg = args.get(args.size() - 1);
         checkArgument(lastArg.equals("start") || lastArg.equals("restart"));
 
@@ -296,7 +303,7 @@ public abstract class AbstractServerCommand
 
         builder.add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "launcher." + LauncherConfig.PID_FILE_FD_KEY + "=" + getDaemonProcess().pidFile);
 
-        LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
+        LauncherConfig config = this.config.getMergedNode(LauncherConfig.class);
 
         if (!isNullOrEmpty(config.getLogFile())) {
             builder.add("-Dlog.output-file=" + config.getLogFile());

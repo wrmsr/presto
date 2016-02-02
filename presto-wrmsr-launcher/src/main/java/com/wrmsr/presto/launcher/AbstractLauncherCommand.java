@@ -15,6 +15,7 @@ package com.wrmsr.presto.launcher;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
+import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
@@ -32,6 +33,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -44,9 +46,6 @@ public abstract class AbstractLauncherCommand
         implements LauncherCommand
 {
     private static final Logger log = Logger.get(AbstractLauncherCommand.class);
-
-    // TODO bootstrap in run, member inject
-    public static final ThreadLocal<String[]> ORIGINAL_ARGS = new ThreadLocal<>();
 
     @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
     public List<String> configFiles = new ArrayList<>();
@@ -61,76 +60,68 @@ public abstract class AbstractLauncherCommand
     {
     }
 
-    private void setArgSystemProperties()
+    private final AtomicBoolean isConfigured = new AtomicBoolean();
+
+    @Override
+    public synchronized void configure(LauncherModule module, LauncherCommand.OriginalArgs originalArgs)
+            throws Exception
     {
+        requireNonNull(module);
+        checkState(!isConfigured.get());
+
         for (String prop : systemProperties) {
             String[] parts = splitProperty(prop);
             System.setProperty(parts[0], parts[1]);
         }
-    }
-
-    @GuardedBy("this")
-    private Optional<LauncherModule> module = Optional.empty();
-
-    @GuardedBy("this")
-    private Optional<Injector> injector = Optional.empty();
-
-    private volatile Optional<ConfigContainer> config = Optional.empty();
-
-    @Override
-    public synchronized void configure(LauncherModule module)
-            throws Exception
-    {
-        requireNonNull(module);
-        checkState(!this.module.isPresent());
-        checkState(!this.injector.isPresent());
-        checkState(!this.config.isPresent());
-        this.module = Optional.of(module);
 
         for (String prop : configItems) {
             String[] parts = splitProperty(prop);
             PrestoConfigs.setConfigItem(parts[0], parts[1]);
         }
-        ConfigContainer config = PrestoConfigs.loadConfig(getClass(), ConfigContainer.class, configFiles);
-        config = module.postprocessConfig(config);
-        config = module.rewriteConfig(config, module::postprocessConfig);
+
+        final ConfigContainer config;
+        {
+            ConfigContainer config_ = PrestoConfigs.loadConfig(getClass(), ConfigContainer.class, configFiles);
+            config_ = module.postprocessConfig(config_);
+            config_ = module.rewriteConfig(config_, module::postprocessConfig);
+            config = config_;
+        }
+
         PrestoConfigs.writeConfigProperties(PrestoConfigs.configToProperties(config));
-        this.config = Optional.of(config);
 
         Bootstrap app = new Bootstrap(new Module()
         {
             @Override
             public void configure(Binder binder)
             {
-                AbstractLauncherCommand.this.module.get().configureLauncher(AbstractLauncherCommand.this.config.get(), binder);
+                binder.bind(LauncherCommand.OriginalArgs.class).toInstance(originalArgs);
+                module.configureLauncher(config, binder);
             }
         });
+
         Injector injector = app
                 .doNotInitializeLogging()
                 .strictConfig()
                 .initialize();
-        try {
-            for (String dir : firstNonNull(config.getMergedNode(LauncherConfig.class).getEnsureDirs(), ImmutableList.<String>of())) {
-                makeDirsAndCheck(new File(dir));
-            }
 
-            injector.injectMembers(this);
+        for (String dir : firstNonNull(config.getMergedNode(LauncherConfig.class).getEnsureDirs(), ImmutableList.<String>of())) {
+            makeDirsAndCheck(new File(dir));
         }
-        finally {
-            injector.getInstance(LifeCycleManager.class).stop();
-        }
+
+        injector.injectMembers(this);
+        isConfigured.compareAndSet(false, true);
     }
+
+    @Inject
+    private LifeCycleManager lifeCycleManager;
 
     @Override
     public synchronized void close()
             throws Exception
     {
-        checkState(this.injector.isPresent());
-        injector.get().getInstance(LifeCycleManager.class).stop();
-    }
-
-    public ConfigContainer getConfig()
-    {
-        return config.get();
+        if (isConfigured.get()) {
+            requireNonNull(lifeCycleManager);
+            lifeCycleManager.stop();
+        }
     }
 }

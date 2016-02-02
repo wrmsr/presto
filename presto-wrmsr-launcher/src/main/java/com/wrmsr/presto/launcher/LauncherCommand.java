@@ -13,10 +13,28 @@
  */
 package com.wrmsr.presto.launcher;
 
+import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.util.Box;
+
+import java.util.List;
+
 public interface LauncherCommand
         extends Runnable, AutoCloseable
 {
-    default void configure(LauncherModule module)
+    final class OriginalArgs extends Box<List<String>>
+    {
+        public OriginalArgs(List<String> value)
+        {
+            super(ImmutableList.copyOf(value));
+        }
+
+        public OriginalArgs(String... value)
+        {
+            this(ImmutableList.copyOf(value));
+        }
+    }
+
+    default void configure(LauncherModule module, OriginalArgs originalArgs)
             throws Exception
     {
     }
