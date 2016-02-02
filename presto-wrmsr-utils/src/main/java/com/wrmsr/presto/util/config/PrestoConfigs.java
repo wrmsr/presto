@@ -96,13 +96,31 @@ public class PrestoConfigs
         return config;
     }
 
-    public static void writeConfigProperties(Object config, Function<String, String> rewriter)
+    public static Map<String, String> configToProperties(Object config)
     {
         Object objectConfig = Serialization.roundTrip(OBJECT_MAPPER.get(), config, Object.class);
         HierarchicalConfiguration hierarchicalConfig = Configs.OBJECT_CONFIG_CODEC.encode(objectConfig);
         Map<String, String> flatConfig = Configs.CONFIG_PROPERTIES_CODEC.encode(hierarchicalConfig);
         flatConfig.keySet().stream().map(k -> k.split("\\.")).map(a -> ImmutablePair.of(a[0], a[1].split("\\(")[0])).collect(toImmutableSet()).stream().collect(toImmutableMap());
         Map<String, String> configMap = transformKeys(flatConfig, k -> CONFIG_PROPERTIES_PREFIX + k);
+        return configMap;
+    }
+
+    public static <T extends MergeableConfigContainer<?>> T rewriteConfig(Map<String, String> configMap, Function<String, String> rewriter)
+    {
+        return configMap.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), rewriter.apply(e.getValue()))).collect(toImmutableMap());
+    }
+
+    public static <T extends MergeableConfigContainer<?>> T rewriteConfig(Object config, Function<String, String> rewriter, Class<T> cls)
+    {
+        Map<String, String> configMap = configToProperties(config);
+        Map<String, String> rewrittenConfigMap = configMap.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), rewriter.apply(e.getValue()))).collect(toImmutableMap());
+        return 
+    }
+
+    public static void writeConfigProperties(Object config, Function<String, String> rewriter)
+    {
+        Map<String, String> configMap = configToProperties(config);
         Map<String, String> rewrittenConfigMap = configMap.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), rewriter.apply(e.getValue()))).collect(toImmutableMap());
         rewrittenConfigMap.entrySet().stream().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
         System.setProperty(CONFIG_CONFIGURED_PROPERTY, "true");

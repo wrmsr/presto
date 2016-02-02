@@ -40,7 +40,7 @@ public class ConfigModule
     {
         setConfigEnv(config);
         setConfigSystemProperties(config);
-        return config;
+
     }
 
     private volatile POSIX posix;
@@ -66,7 +66,6 @@ public class ConfigModule
     {
         return replaceStringVars(text, this::getEnvOrSystemProperty);
     }
-
 
     private void setConfigEnv(ConfigContainer config)
     {
