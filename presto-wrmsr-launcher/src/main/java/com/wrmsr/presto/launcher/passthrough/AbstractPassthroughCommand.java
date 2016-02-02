@@ -33,8 +33,7 @@ public abstract class AbstractPassthroughCommand
     private List<String> args = newArrayList();
 
     @Override
-    public void launcherRun()
-            throws Throwable
+    public void run()
     {
         String moduleName = getModuleName();
         Class<?>[] parameterTypes = new Class<?>[] {String[].class};

@@ -29,8 +29,7 @@ public final class KillCommand
     private List<String> args = newArrayList();
 
     @Override
-    public void serverRun()
-            throws Throwable
+    public void run()
     {
         if (args.isEmpty()) {
             getDaemonProcess().kill();

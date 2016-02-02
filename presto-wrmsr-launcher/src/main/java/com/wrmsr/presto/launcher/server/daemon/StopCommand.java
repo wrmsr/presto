@@ -21,8 +21,7 @@ public final class StopCommand
         extends AbstractServerCommand
 {
     @Override
-    public void serverRun()
-            throws Throwable
+    public void run()
     {
         getDaemonProcess().stop();
     }

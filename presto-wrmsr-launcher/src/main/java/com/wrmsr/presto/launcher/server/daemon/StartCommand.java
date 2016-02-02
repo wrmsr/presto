@@ -21,8 +21,7 @@ public final class StartCommand
         extends AbstractServerCommand
 {
     @Override
-    public void serverRun()
-            throws Throwable
+    public void run()
     {
         launchDaemon(false);
     }

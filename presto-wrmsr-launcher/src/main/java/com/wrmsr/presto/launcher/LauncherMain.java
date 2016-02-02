@@ -65,8 +65,8 @@ public class LauncherMain
 
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)
-                .withCommands(Help.class)
-                .withCommands((List) module.getLauncherCommands());
+                .withCommands(Help.class);
+        module.configureCli(builder);
 
         Cli<Runnable> cliParser = builder.build();
         Runnable cmd = cliParser.parse(args);

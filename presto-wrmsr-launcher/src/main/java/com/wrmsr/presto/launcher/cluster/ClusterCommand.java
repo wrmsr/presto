@@ -29,10 +29,9 @@ public final class ClusterCommand
     private List<String> args = newArrayList();
 
     @Override
-    public void launcherRun()
-            throws Throwable
+    public void run()
     {
         String[] args = this.args.toArray(new String[this.args.size()]);
-        ClusterCommands.main(this, args);
+        // ClusterCommands.main(this, args);
     }
 }

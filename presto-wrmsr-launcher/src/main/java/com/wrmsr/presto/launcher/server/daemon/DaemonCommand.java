@@ -21,8 +21,7 @@ public final class DaemonCommand
         extends AbstractServerCommand
 {
     @Override
-    public void serverRun()
-            throws Throwable
+    public void run()
     {
         maybeRexec();
         getDaemonProcess().writePid();

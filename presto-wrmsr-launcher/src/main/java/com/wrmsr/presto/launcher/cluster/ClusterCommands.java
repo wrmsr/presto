@@ -13,51 +13,41 @@
  */
 package com.wrmsr.presto.launcher.cluster;
 
-import com.wrmsr.presto.launcher.LauncherSupport;
-import io.airlift.airline.Arguments;
-import io.airlift.airline.Cli;
-import io.airlift.airline.Command;
-import io.airlift.airline.Help;
-
-import java.util.List;
-
-import static com.google.common.base.Preconditions.checkArgument;
-
 public class ClusterCommands
 {
     private ClusterCommands()
     {
     }
 
-    private static LauncherSupport launcherSupport;
-
-    public static void main(LauncherSupport launcherSupport, String[] args)
-    {
-        ClusterCommands.launcherSupport = launcherSupport;
-
-        Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
-                .withDefaultCommand(Help.class)
-                .withCommands(
-                        Help.class,
-                        Push.class
-                );
-
-        Cli<Runnable> cliParser = builder.build();
-        cliParser.parse(args).run();
-    }
-
-    @Command(name = "push", description = "Pushes local home to cluster")
-    public static class Push
-        implements Runnable
-    {
-        @Arguments(description = "cluster to push to")
-        private List<String> args;
-
-        @Override
-        public void run()
-        {
-            checkArgument(args.size() == 1);
-            launcherSupport.getConfig();
-        }
-    }
+//    private static LauncherSupport launcherSupport;
+//
+//    public static void main(LauncherSupport launcherSupport, String[] args)
+//    {
+//        ClusterCommands.launcherSupport = launcherSupport;
+//
+//        Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
+//                .withDefaultCommand(Help.class)
+//                .withCommands(
+//                        Help.class,
+//                        Push.class
+//                );
+//
+//        Cli<Runnable> cliParser = builder.build();
+//        cliParser.parse(args).run();
+//    }
+//
+//    @Command(name = "push", description = "Pushes local home to cluster")
+//    public static class Push
+//        implements Runnable
+//    {
+//        @Arguments(description = "cluster to push to")
+//        private List<String> args;
+//
+//        @Override
+//        public void run()
+//        {
+//            checkArgument(args.size() == 1);
+//            launcherSupport.getConfig();
+//        }
+//    }
 }

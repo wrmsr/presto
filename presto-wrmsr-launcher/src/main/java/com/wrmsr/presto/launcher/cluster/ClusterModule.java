@@ -35,8 +35,8 @@ public class ClusterModule
     @Override
     public void configureCli(Cli.CliBuilder<Runnable> builder)
     {
-        builder.withGroup("cluster")
-                .withCommands()
+//        builder.withGroup("cluster")
+//                .withCommands()
     }
 
     @Override

@@ -20,8 +20,7 @@ public final class RunCommand
         extends AbstractServerCommand
 {
     @Override
-    public void serverRun()
-            throws Throwable
+    public void run()
     {
         maybeRexec();
         launch();

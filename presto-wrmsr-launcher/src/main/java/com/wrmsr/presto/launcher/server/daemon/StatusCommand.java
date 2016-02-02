@@ -24,8 +24,7 @@ public final class StatusCommand
     // TODO optional wait time
 
     @Override
-    public void serverRun()
-            throws Throwable
+    public void run()
     {
         if (!getDaemonProcess().alive()) {
             System.exit(DaemonProcess.LSB_NOT_RUNNING);
