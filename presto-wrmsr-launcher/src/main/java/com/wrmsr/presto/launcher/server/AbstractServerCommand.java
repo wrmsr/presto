@@ -16,6 +16,7 @@ package com.wrmsr.presto.launcher.server;
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.AbstractLauncherCommand;
 import com.wrmsr.presto.launcher.LauncherFailureException;
@@ -49,6 +50,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.wrmsr.presto.util.Jvm.getJarFile;
 import static com.wrmsr.presto.util.ShellUtils.shellEscape;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
+import static java.util.Objects.requireNonNull;
 
 public abstract class AbstractServerCommand
         extends AbstractLauncherCommand
@@ -67,7 +69,7 @@ public abstract class AbstractServerCommand
         LauncherConfig lc = getConfig().getMergedNode(LauncherConfig.class);
         if (isNullOrEmpty(System.getProperty("http-server.log.path"))) {
             if (!isNullOrEmpty(lc.getHttpLogFile())) {
-                System.setProperty("http-server.log.path", replaceVars(lc.getHttpLogFile()));
+                System.setProperty("http-server.log.path", lc.getHttpLogFile());
             }
         }
     }
@@ -83,6 +85,9 @@ public abstract class AbstractServerCommand
         }
         System.setProperty("presto.do-not-initialize-logging", "true");
     }
+
+    @Inject
+    protected POSIX posix;
 
     protected void maybeRexec()
     {
@@ -113,7 +118,7 @@ public abstract class AbstractServerCommand
                 .addAll(Arrays.asList(ORIGINAL_ARGS.get()));
 
         List<String> newArgs = builder.build();
-        getPosix().libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
+        requireNonNull(posix).libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
         throw new IllegalStateException("Unreachable");
     }
 
@@ -210,7 +215,7 @@ public abstract class AbstractServerCommand
     {
         if (daemonProcess == null) {
             checkArgument(!isNullOrEmpty(pidFile()), "must set pidfile");
-            daemonProcess = new DaemonProcess(new File(replaceVars(pidFile())), getConfig().getMergedNode(LauncherConfig.class).getPidFileFd());
+            daemonProcess = new DaemonProcess(new File(pidFile()), getConfig().getMergedNode(LauncherConfig.class).getPidFileFd());
         }
         return daemonProcess;
     }
@@ -294,7 +299,7 @@ public abstract class AbstractServerCommand
         LauncherConfig config = getConfig().getMergedNode(LauncherConfig.class);
 
         if (!isNullOrEmpty(config.getLogFile())) {
-            builder.add("-Dlog.output-file=" + replaceVars(config.getLogFile()));
+            builder.add("-Dlog.output-file=" + config.getLogFile());
             builder.add("-Dlog.enable-console=false");
         }
 
@@ -313,14 +318,14 @@ public abstract class AbstractServerCommand
         shBuilder.add("</dev/null");
 
         if (!isNullOrEmpty(config.getStdoutFile())) {
-            shBuilder.add(">>" + shellEscape(replaceVars(config.getStdoutFile())));
+            shBuilder.add(">>" + shellEscape(config.getStdoutFile()));
         }
         else {
             shBuilder.add(">/dev/null");
         }
 
         if (!isNullOrEmpty(config.getStderrFile())) {
-            shBuilder.add("2>>" + shellEscape(replaceVars(config.getStderrFile())));
+            shBuilder.add("2>>" + shellEscape(config.getStderrFile()));
         }
         else {
             shBuilder.add(">/dev/null");
@@ -330,20 +335,10 @@ public abstract class AbstractServerCommand
 
         String cmd = Joiner.on(" ").join(shBuilder.build());
 
-        POSIX posix = POSIXUtils.getPOSIX();
+        POSIX posix = requireNonNull(this.posix);
         File sh = new File("/bin/sh");
         checkState(sh.exists() && sh.isFile());
         posix.libc().execv(sh.getAbsolutePath(), sh.getAbsolutePath(), "-c", cmd);
         throw new IllegalStateException("Unreachable");
     }
-
-    @Override
-    public final void launcherRun()
-            throws Throwable
-    {
-        serverRun();
-    }
-
-    public abstract void serverRun()
-            throws Throwable;
 }

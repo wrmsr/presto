@@ -102,7 +102,7 @@ public abstract class AbstractLauncherCommand
             @Override
             public void configure(Binder binder)
             {
-                module.configureLauncher(config, binder);
+                AbstractLauncherCommand.this.module.get().configureLauncher(AbstractLauncherCommand.this.config.get(), binder);
             }
         });
         Injector injector = app
@@ -113,6 +113,8 @@ public abstract class AbstractLauncherCommand
             for (String dir : firstNonNull(config.getMergedNode(LauncherConfig.class).getEnsureDirs(), ImmutableList.<String>of())) {
                 makeDirsAndCheck(new File(dir));
             }
+
+            injector.injectMembers(this);
         }
         finally {
             injector.getInstance(LifeCycleManager.class).stop();
@@ -131,22 +133,4 @@ public abstract class AbstractLauncherCommand
     {
         return config.get();
     }
-
-    @Override
-    public final void run()
-    {
-        setArgSystemProperties();
-        getConfig();
-        ensureConfigDirs();
-
-        try {
-            launcherRun();
-        }
-        catch (Throwable e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
-    public abstract void launcherRun()
-            throws Throwable;
 }
