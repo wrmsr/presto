@@ -13,19 +13,16 @@
  */
 package com.wrmsr.presto.launcher.passthrough;
 
-import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.launcher.LauncherModule;
-import com.wrmsr.presto.launcher.LauncherCommand;
-
-import java.util.List;
+import io.airlift.airline.Cli;
 
 public class PassthroughModule
-    extends LauncherModule
+        extends LauncherModule
 {
     @Override
-    public List<Class<? extends LauncherCommand>> getLauncherCommands()
+    public void configureCli(Cli.CliBuilder<Runnable> builder)
     {
-        return ImmutableList.of(
+        builder.withCommands(
                 CliCommand.class,
                 H2Command.class,
                 HdfsCommand.class,

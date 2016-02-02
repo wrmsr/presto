@@ -19,6 +19,7 @@ import com.wrmsr.presto.launcher.LauncherModule;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.util.Serialization;
+import io.airlift.airline.Cli;
 
 import java.io.File;
 import java.util.List;
@@ -31,6 +32,13 @@ import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 public class ClusterModule
         extends LauncherModule
 {
+    @Override
+    public void configureCli(Cli.CliBuilder<Runnable> builder)
+    {
+        builder.withGroup("cluster")
+                .withCommands()
+    }
+
     @Override
     public ConfigContainer rewriteConfig(ConfigContainer config, Function<ConfigContainer, ConfigContainer> postprocess)
     {

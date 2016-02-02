@@ -13,29 +13,19 @@
  */
 package com.wrmsr.presto.launcher.server.daemon;
 
-import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Scopes;
-import com.wrmsr.presto.launcher.LauncherCommand;
 import com.wrmsr.presto.launcher.LauncherModule;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
-import com.wrmsr.presto.launcher.config.LauncherConfig;
-import com.wrmsr.presto.launcher.util.DaemonProcess;
-import com.wrmsr.presto.util.GuiceUtils;
-
-import java.io.File;
-import java.util.List;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Strings.isNullOrEmpty;
+import io.airlift.airline.Cli;
 
 public class DaemonModule
         extends LauncherModule
 {
     @Override
-    public List<Class<? extends LauncherCommand>> getLauncherCommands()
+    public void configureCli(Cli.CliBuilder<Runnable> builder)
     {
-        return ImmutableList.<Class<? extends LauncherCommand>>of(
+        builder.withCommands(
                 KillCommand.class,
                 RestartCommand.class,
                 StartCommand.class,

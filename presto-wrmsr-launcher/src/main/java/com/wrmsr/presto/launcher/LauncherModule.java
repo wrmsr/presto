@@ -16,15 +16,15 @@ package com.wrmsr.presto.launcher;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
+import io.airlift.airline.Cli;
 
 import java.util.List;
 import java.util.function.Function;
 
 public abstract class LauncherModule
 {
-    public List<Class<? extends LauncherCommand>> getLauncherCommands()
+    public void configureCli(Cli.CliBuilder<Runnable> builder)
     {
-        return ImmutableList.of();
     }
 
     public ConfigContainer postprocessConfig(ConfigContainer config)
@@ -65,14 +65,12 @@ public abstract class LauncherModule
         }
 
         @Override
-        public final List<Class<? extends LauncherCommand>> getLauncherCommands()
+        public void configureCli(Cli.CliBuilder<Runnable> builder)
         {
-            ImmutableList.Builder<Class<? extends LauncherCommand>> builder = ImmutableList.builder();
-            builder.addAll(getLauncherCommandsParent());
+            configureCliParent(builder);
             for (LauncherModule child : children) {
-                builder.addAll(child.getLauncherCommands());
+                child.configureCli(builder);
             }
-            return builder.build();
         }
 
         @Override
@@ -122,9 +120,8 @@ public abstract class LauncherModule
             }
         }
 
-        protected List<Class<? extends LauncherCommand>> getLauncherCommandsParent()
+        protected void configureCliParent(Cli.CliBuilder<Runnable> builder)
         {
-            return ImmutableList.of();
         }
 
         protected ConfigContainer postprocessConfigParent(ConfigContainer config)
