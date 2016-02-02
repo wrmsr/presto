@@ -14,6 +14,17 @@
 package com.wrmsr.presto.launcher;
 
 public interface LauncherCommand
-        extends Runnable, LauncherSupport
+        extends Runnable, AutoCloseable
 {
+    default void configure(LauncherModule module)
+            throws Exception
+    {
+    }
+
+    default void close()
+            throws Exception
+    {
+    }
 }
+
+

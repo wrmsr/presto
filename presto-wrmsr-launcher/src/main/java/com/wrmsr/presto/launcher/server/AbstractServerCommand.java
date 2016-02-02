@@ -55,6 +55,13 @@ public abstract class AbstractServerCommand
 {
     private static final Logger log = Logger.get(AbstractServerCommand.class);
 
+    public static File getJvm()
+    {
+        File jvm = new File(System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : ""));
+        checkState(jvm.exists() && jvm.isFile());
+        return jvm;
+    }
+
     private void autoConfigure()
     {
         LauncherConfig lc = getConfig().getMergedNode(LauncherConfig.class);

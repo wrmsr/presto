@@ -69,6 +69,17 @@ public class LauncherMain
                 .withCommands((List) module.getLauncherCommands());
 
         Cli<Runnable> cliParser = builder.build();
-        cliParser.parse(args).run();
+        Runnable cmd = cliParser.parse(args);
+        if (cmd instanceof LauncherCommand) {
+            ((LauncherCommand) cmd).configure(module);
+        }
+        try {
+            cmd.run();
+        }
+        finally {
+            if (cmd instanceof AutoCloseable) {
+                ((AutoCloseable) cmd).close();
+            }
+        }
     }
 }
