@@ -76,16 +76,16 @@ public final class LoggingConfig
         this.appenders = ImmutableList.copyOf(appenders);
     }
 
-    private Map<String, String> levels = ImmutableMap.of();
+    private Map levels = ImmutableMap.of();
 
     @JsonProperty("levels")
-    public Map<String, String> getLevels()
+    public Map getLevels()
     {
         return levels;
     }
 
     @JsonProperty("levels")
-    public void setLevels(Map<String, String> levels)
+    public void setLevels(Map levels)
     {
         this.levels = ImmutableMap.copyOf(levels);
     }

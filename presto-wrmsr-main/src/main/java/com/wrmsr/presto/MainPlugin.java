@@ -103,7 +103,7 @@ public class MainPlugin
 
     public MainPlugin()
     {
-        config = PrestoConfigs.loadConfigFromProperties(ConfigContainer.class);
+        config = PrestoConfigs.readConfigProperties(ConfigContainer.class);
         module = new MainPluginModule();
     }
 

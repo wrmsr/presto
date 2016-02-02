@@ -17,12 +17,14 @@ import com.google.inject.Binder;
 import com.wrmsr.presto.launcher.LauncherModule;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
 import com.wrmsr.presto.util.Serialization;
+import com.wrmsr.presto.util.config.PrestoConfigs;
 import jnr.posix.POSIX;
 
 import java.util.Map;
 
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Strings.replaceStringVars;
+import static com.wrmsr.presto.util.collect.Maps.transformValues;
 
 public class ConfigModule
         extends LauncherModule
@@ -40,7 +42,7 @@ public class ConfigModule
     {
         setConfigEnv(config);
         setConfigSystemProperties(config);
-
+        return PrestoConfigs.configFromProperties(transformValues(PrestoConfigs.configToProperties(config), this::replaceVars), ConfigContainer.class);
     }
 
     private volatile POSIX posix;

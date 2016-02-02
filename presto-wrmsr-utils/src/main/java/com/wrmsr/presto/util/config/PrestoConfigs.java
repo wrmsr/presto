@@ -21,12 +21,15 @@ import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import static com.wrmsr.presto.util.Jvm.getJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
+import static com.wrmsr.presto.util.Strings.getSystemProperties;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMultimap;
@@ -96,52 +99,23 @@ public class PrestoConfigs
         return config;
     }
 
-    public static Map<String, String> configToProperties(Object config)
+    public static <T extends MergeableConfigContainer<?>> Map<String, String> configToProperties(T config)
     {
         Object objectConfig = Serialization.roundTrip(OBJECT_MAPPER.get(), config, Object.class);
         HierarchicalConfiguration hierarchicalConfig = Configs.OBJECT_CONFIG_CODEC.encode(objectConfig);
         Map<String, String> flatConfig = Configs.CONFIG_PROPERTIES_CODEC.encode(hierarchicalConfig);
         flatConfig.keySet().stream().map(k -> k.split("\\.")).map(a -> ImmutablePair.of(a[0], a[1].split("\\(")[0])).collect(toImmutableSet()).stream().collect(toImmutableMap());
-        Map<String, String> configMap = transformKeys(flatConfig, k -> CONFIG_PROPERTIES_PREFIX + k);
-        return configMap;
+        Map<String, String> ret = new HashMap<>(transformKeys(flatConfig, k -> CONFIG_PROPERTIES_PREFIX + k));
+        ret.put(CONFIG_CONFIGURED_PROPERTY, "true");
+        return Collections.unmodifiableMap(ret);
     }
 
-    public static <T extends MergeableConfigContainer<?>> T rewriteConfig(Map<String, String> configMap, Function<String, String> rewriter)
+    public static <T extends MergeableConfigContainer<?>> T configFromProperties(Map<String, String> configProperties, Class<T> cls)
     {
-        return configMap.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), rewriter.apply(e.getValue()))).collect(toImmutableMap());
-    }
-
-    public static <T extends MergeableConfigContainer<?>> T rewriteConfig(Object config, Function<String, String> rewriter, Class<T> cls)
-    {
-        Map<String, String> configMap = configToProperties(config);
-        Map<String, String> rewrittenConfigMap = configMap.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), rewriter.apply(e.getValue()))).collect(toImmutableMap());
-        return 
-    }
-
-    public static void writeConfigProperties(Object config, Function<String, String> rewriter)
-    {
-        Map<String, String> configMap = configToProperties(config);
-        Map<String, String> rewrittenConfigMap = configMap.entrySet().stream().map(e -> ImmutablePair.of(e.getKey(), rewriter.apply(e.getValue()))).collect(toImmutableMap());
-        rewrittenConfigMap.entrySet().stream().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
-        System.setProperty(CONFIG_CONFIGURED_PROPERTY, "true");
-    }
-
-    public static void writeConfigProperties(Object config)
-    {
-        writeConfigProperties(config, s -> s);
-    }
-
-    public static <T extends MergeableConfigContainer<?>> T loadConfigFromProperties(Class<T> cls)
-    {
-        return loadConfigFromProperties(cls, System.getProperties());
-    }
-
-    public static <T extends MergeableConfigContainer<?>> T loadConfigFromProperties(Class<T> cls, Map<Object, Object> properties)
-    {
-        if (!Boolean.valueOf((String) properties.get(CONFIG_CONFIGURED_PROPERTY))) {
+        if (!Boolean.valueOf((String) configProperties.get(CONFIG_CONFIGURED_PROPERTY))) {
             throw new IllegalStateException("Properties not configured");
         }
-        Map<String, String> configMap = properties.entrySet().stream()
+        Map<String, String> configMap = configProperties.entrySet().stream()
                 .filter(e -> e.getKey() instanceof String && ((String) e.getKey()).startsWith(CONFIG_PROPERTIES_PREFIX) && e.getValue() instanceof String)
                 .map(e -> ImmutablePair.of(((String) e.getKey()).substring(CONFIG_PROPERTIES_PREFIX.length()), (String) e.getValue()))
                 .collect(toImmutableMap());
@@ -149,6 +123,19 @@ public class PrestoConfigs
             return (T) Mergeable.unit(cls);
         }
         HierarchicalConfiguration hierarchicalConfig = Configs.CONFIG_PROPERTIES_CODEC.decode(configMap);
-        return Configs.OBJECT_CONFIG_CODEC.decode(hierarchicalConfig, cls);
+        return (T) Configs.OBJECT_CONFIG_CODEC.decode(hierarchicalConfig, cls);
+    }
+
+    public static void writeConfigProperties(Map<String, String> configProperties)
+    {
+        if (!Boolean.valueOf((String) configProperties.get(CONFIG_CONFIGURED_PROPERTY))) {
+            throw new IllegalStateException("Properties not configured");
+        }
+        configProperties.entrySet().stream().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
+    }
+
+    public static <T extends MergeableConfigContainer<?>> T readConfigProperties(Class<T> cls)
+    {
+        return (T) configFromProperties(getSystemProperties(), cls);
     }
 }

@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.launcher;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Injector;
@@ -95,10 +94,11 @@ public abstract class AbstractLauncherCommand
         ConfigContainer config = PrestoConfigs.loadConfig(getClass(), ConfigContainer.class, configFiles);
         config = module.postprocessConfig(config);
         config = module.rewriteConfig(config, module::postprocessConfig);
-        PrestoConfigs.writeConfigProperties(config);
+        PrestoConfigs.writeConfigProperties(PrestoConfigs.configToProperties(config));
         this.config = Optional.of(config);
 
-        Bootstrap app = new Bootstrap(new Module() {
+        Bootstrap app = new Bootstrap(new Module()
+        {
             @Override
             public void configure(Binder binder)
             {

@@ -437,8 +437,4 @@ public class Strings
         throw new IllegalArgumentException(foa);
     }
 
-    private static final void say(String what)
-    {
-        System.out.println(what);
-    }
 }

@@ -28,13 +28,14 @@ public class LoggingModule
     {
         LoggingConfig loggingConfig = config.getMergedNode(LoggingConfig.class);
 
-        for (Map.Entry<String, String> e : loggingConfig.getLevels().entrySet()) {
-            java.util.logging.Logger log = java.util.logging.Logger.getLogger(e.getKey());
-            if (log != null) {
-                Level level = Level.parse(e.getValue().toUpperCase());
-                log.setLevel(level);
-            }
-        }
+        // fixme fuck my life
+//        for (Map.Entry<String, String> e : loggingConfig.getLevels().entrySet()) {
+//            java.util.logging.Logger log = java.util.logging.Logger.getLogger(e.getKey());
+//            if (log != null) {
+//                Level level = Level.parse(e.getValue().toUpperCase());
+//                log.setLevel(level);
+//            }
+//        }
 
         for (LoggingConfig.AppenderConfig ac : loggingConfig.getAppenders()) {
             if (ac instanceof LoggingConfig.SubprocessAppenderConfig) {

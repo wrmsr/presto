@@ -40,7 +40,7 @@ public class HadoopPlugin
 
     public HadoopPlugin()
     {
-        config = PrestoConfigs.loadConfigFromProperties(ConfigContainer.class);
+        config = PrestoConfigs.readConfigProperties(ConfigContainer.class);
     }
 
     @Override
