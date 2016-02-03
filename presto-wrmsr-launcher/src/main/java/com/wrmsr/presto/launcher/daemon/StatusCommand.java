@@ -11,35 +11,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.server.daemon;
+package com.wrmsr.presto.launcher.daemon;
 
 import com.wrmsr.presto.launcher.server.AbstractServerCommand;
-import io.airlift.airline.Arguments;
+import com.wrmsr.presto.launcher.util.DaemonProcess;
 import io.airlift.airline.Command;
 
-import java.util.List;
-
-import static com.google.common.collect.Lists.newArrayList;
-
-@Command(name = "kill", description = "Kills presto server")
-public final class KillCommand
+@Command(name = "status", description = "Gets status of presto server")
+public final class StatusCommand
         extends AbstractServerCommand
 {
-    @Arguments(description = "arguments")
-    private List<String> args = newArrayList();
+    // TODO optional wait time
 
     @Override
     public void run()
     {
-        if (args.isEmpty()) {
-            getDaemonProcess().kill();
+        if (!getDaemonProcess().alive()) {
+            System.exit(DaemonProcess.LSB_NOT_RUNNING);
         }
-        else if (args.size() == 1) {
-            int signal = Integer.valueOf(args.get(0));
-            getDaemonProcess().kill(signal);
-        }
-        else {
-            throw new IllegalArgumentException();
-        }
+        System.out.println(getDaemonProcess().readPid());
     }
 }

@@ -11,12 +11,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.config;
+package com.wrmsr.presto.launcher.jvm;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.launcher.config.Config;
 import io.airlift.units.DataSize;
 
 import java.util.List;
@@ -31,22 +32,6 @@ public final class JvmConfig
     }
 
     // TODO oomkill (include linbin?)
-
-    public static final String ALREADY_CONFIGURED_KEY = "already-configured";
-
-    private boolean alreadyConfigured;
-
-    @JsonProperty(ALREADY_CONFIGURED_KEY)
-    public boolean isAlreadyConfigured()
-    {
-        return alreadyConfigured;
-    }
-
-    @JsonProperty(ALREADY_CONFIGURED_KEY)
-    public void setAlreadyConfigured(boolean alreadyConfigured)
-    {
-        this.alreadyConfigured = alreadyConfigured;
-    }
 
     public static final class DebugConfig
     {

@@ -11,20 +11,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.server.daemon;
+package com.wrmsr.presto.launcher.daemon;
 
 import com.wrmsr.presto.launcher.server.AbstractServerCommand;
+import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
 
-@Command(name = "daemon", description = "Runs presto server daemon")
-public final class DaemonCommand
+import java.util.List;
+
+import static com.google.common.collect.Lists.newArrayList;
+
+@Command(name = "kill", description = "Kills presto server")
+public final class KillCommand
         extends AbstractServerCommand
 {
+    @Arguments(description = "arguments")
+    private List<String> args = newArrayList();
+
     @Override
     public void run()
     {
-        maybeRexec();
-        getDaemonProcess().writePid();
-        launch();
+        if (args.isEmpty()) {
+            getDaemonProcess().kill();
+        }
+        else if (args.size() == 1) {
+            int signal = Integer.valueOf(args.get(0));
+            getDaemonProcess().kill(signal);
+        }
+        else {
+            throw new IllegalArgumentException();
+        }
     }
 }

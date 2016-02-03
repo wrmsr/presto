@@ -11,18 +11,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.server.daemon;
+package com.wrmsr.presto.launcher.jvm;
 
-import com.wrmsr.presto.launcher.server.AbstractServerCommand;
-import io.airlift.airline.Command;
+import com.wrmsr.presto.util.Box;
 
-@Command(name = "stop", description = "Stops presto server")
-public final class StopCommand
-        extends AbstractServerCommand
+import java.io.File;
+
+public class Jvm extends Box<File>
 {
-    @Override
-    public void run()
+    public Jvm(File value)
     {
-        getDaemonProcess().stop();
+        super(value);
     }
 }

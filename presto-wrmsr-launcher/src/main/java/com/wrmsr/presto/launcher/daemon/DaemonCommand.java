@@ -11,18 +11,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.server.daemon;
+package com.wrmsr.presto.launcher.daemon;
 
 import com.wrmsr.presto.launcher.server.AbstractServerCommand;
 import io.airlift.airline.Command;
 
-@Command(name = "start", description = "Starts presto server")
-public final class StartCommand
+@Command(name = "daemon", description = "Runs presto server daemon")
+public final class DaemonCommand
         extends AbstractServerCommand
 {
     @Override
     public void run()
     {
-        launchDaemon(false);
+        maybeRexec();
+        getDaemonProcess().writePid();
+        launch();
     }
 }

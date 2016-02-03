@@ -11,14 +11,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.server;
+package com.wrmsr.presto.launcher.daemon;
 
-import com.google.inject.Inject;
-import com.wrmsr.presto.launcher.AbstractLauncherCommand;
+import com.wrmsr.presto.launcher.server.AbstractServerCommand;
+import io.airlift.airline.Command;
 
-public abstract class AbstractServerCommand
-        extends AbstractLauncherCommand
+@Command(name = "stop", description = "Stops presto server")
+public final class StopCommand
+        extends AbstractServerCommand
 {
-    @Inject
-    private ServerManager serverManager;
+    @Override
+    public void run()
+    {
+        getDaemonProcess().stop();
+    }
 }

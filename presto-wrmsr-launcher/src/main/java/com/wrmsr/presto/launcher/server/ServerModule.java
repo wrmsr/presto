@@ -17,21 +17,15 @@ import com.google.inject.Binder;
 import com.google.inject.Scopes;
 import com.wrmsr.presto.launcher.LauncherModule;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
-import com.wrmsr.presto.launcher.server.daemon.DaemonModule;
 import io.airlift.airline.Cli;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 
 public class ServerModule
-        extends LauncherModule.Composite
+        extends LauncherModule
 {
-    public ServerModule()
-    {
-        super(new DaemonModule());
-    }
-
     @Override
-    protected void configureCliParent(Cli.CliBuilder<Runnable> builder)
+    public void configureCli(Cli.CliBuilder<Runnable> builder)
     {
         builder.withCommands(
                 LaunchCommand.class,
@@ -39,7 +33,7 @@ public class ServerModule
     }
 
     @Override
-    protected void configureServerParent(ConfigContainer config, Binder binder)
+    public void configureServer(ConfigContainer config, Binder binder)
     {
         binder.bind(ServerManager.class).in(Scopes.SINGLETON);
 
