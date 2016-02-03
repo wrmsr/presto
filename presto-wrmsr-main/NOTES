@@ -1957,3 +1957,5 @@ https://github.com/LWJGL/lwjgl3-generated/tree/master/java/org/lwjgl/system/jema
 http://www.java-gaming.org/index.php?topic=36524.0
 https://github.com/thinkaurelius/titan/blob/titan10/titan-core/src/main/java/com/thinkaurelius/titan/diskstorage/keycolumnvalue/KeyColumnValueStore.java
 https://dev.mysql.com/doc/refman/5.7/en/innodb-multi-versioning.html
+https://stackoverflow.com/questions/30511616/concurrency-in-embedded-in-proces-databases-h2-hsqldb-apache-derby-sqlite
+https://github.com/jankotek/mapdb/blob/master/src/main/java/org/mapdb/StoreDirect.java
