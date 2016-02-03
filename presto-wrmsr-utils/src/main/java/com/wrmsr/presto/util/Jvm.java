@@ -48,7 +48,7 @@ public class Jvm
         addClasspathUrl((URLClassLoader) classLoader, url);
     }
 
-    public static File getJarFile(Class cls)
+    public static File getThisJarFile(Class cls)
     {
         File jar;
         try {

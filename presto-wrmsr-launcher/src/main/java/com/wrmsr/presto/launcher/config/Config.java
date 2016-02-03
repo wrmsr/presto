@@ -19,6 +19,7 @@ import com.wrmsr.presto.launcher.cluster.ClustersConfig;
 import com.wrmsr.presto.launcher.jvm.JvmConfig;
 import com.wrmsr.presto.launcher.logging.LoggingConfig;
 import com.wrmsr.presto.launcher.zookeeper.ZookeeperConfig;
+// import com.wrmsr.presto.launcher.daemon.DaemonConfig;
 import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 
 @JsonTypeInfo(
@@ -27,6 +28,7 @@ import com.wrmsr.presto.util.config.mergeable.MergeableConfig;
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = ClustersConfig.class, name = "clusters"),
+        // @JsonSubTypes.Type(value = DaemonConfig.class, name = "daemon"),
         @JsonSubTypes.Type(value = EnvConfig.class, name = "env"),
         @JsonSubTypes.Type(value = JvmConfig.class, name = "jvm"),
         @JsonSubTypes.Type(value = LauncherConfig.class, name = "launcher"),

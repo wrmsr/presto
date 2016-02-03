@@ -26,10 +26,13 @@ import javax.inject.Inject;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 public class JvmManager
@@ -48,7 +51,7 @@ public class JvmManager
         this.posix = posix;
     }
 
-    public List<String> getJvmOptions()
+    public List<String> getConfigJvmOptions()
     {
         ImmutableList.Builder<String> builder = ImmutableList.builder();
 
@@ -121,21 +124,37 @@ public class JvmManager
         return builder.build();
     }
 
+    public List<String> getOverridenJvmOptions()
+    {
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        return runtimeMxBean.getInputArguments();
+    }
+
+    public String formatSystemPropertyOption(String key, String value)
+    {
+        return "-D" + requireNonNull(key) + "=" + requireNonNull(value);
+    }
+
+    public List<String> formatSystemPropertyOptions(Map<String, String>... propertyMaps)
+    {
+        ImmutableList.Builder<String> builder = ImmutableList.builder();
+        for (Map<String, String> properties : Arrays.asList(propertyMaps)) {
+            builder.addAll(properties.entrySet().stream().map(e -> formatSystemPropertyOption(e.getKey(), e.getValue())).collect(toImmutableList()));
+        }
+        return builder.build();
+    }
+
     public void exec(List<String> args)
     {
         File jvm = this.jvm.getValue();
 
-        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
         ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
                 .add(jvm.getAbsolutePath())
-                .addAll(getJvmOptions())
-                .addAll(runtimeMxBean.getInputArguments());
+                .addAll(getConfigJvmOptions());
 
         List<String> newArgs = builder.build();
         posix.libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
         log.error("Exec failed");
         System.exit(1);
     }
-
-    public void exec(List<String> jvmOptions, )
 }

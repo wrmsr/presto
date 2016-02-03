@@ -15,6 +15,7 @@ package com.wrmsr.presto.launcher.daemon;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.util.Repositories;
@@ -32,7 +33,7 @@ import java.util.stream.IntStream;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.wrmsr.presto.util.Jvm.getJarFile;
+import static com.wrmsr.presto.util.Jvm.getThisJarFile;
 import static com.wrmsr.presto.util.ShellUtils.shellEscape;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.util.Objects.requireNonNull;
@@ -41,18 +42,23 @@ public class DaemonManager
 {
     private static final Logger log = Logger.get(DaemonManager.class);
 
-    private DaemonProcess daemonProcess;
+    private final DaemonConfig daemonConfig;
+    private final POSIX posix;
 
-    private String pidFile()
+    @Inject
+    public DaemonManager(DaemonConfig daemonConfig, POSIX posix)
     {
-        return config.getMergedNode(LauncherConfig.class).getPidFile();
+        this.daemonConfig = daemonConfig;
+        this.posix = posix;
     }
+
+    private volatile DaemonProcess daemonProcess;
 
     public synchronized DaemonProcess getDaemonProcess()
     {
         if (daemonProcess == null) {
-            checkArgument(!isNullOrEmpty(pidFile()), "must set pidfile");
-            daemonProcess = new DaemonProcess(new File(pidFile()), config.getMergedNode(LauncherConfig.class).getPidFileFd());
+            checkArgument(!isNullOrEmpty(daemonConfig.getPidFile()), "must set pidfile");
+            daemonProcess = new DaemonProcess(new File(daemonConfig.getPidFile()), daemonConfig.getPidFileFd());
         }
         return daemonProcess;
     }
@@ -90,7 +96,7 @@ public class DaemonManager
             builder.add("-Dlog.enable-console=false");
         }
 
-        File jar = getJarFile(getClass());
+        File jar = getThisJarFile(getClass());
         checkState(jar.isFile());
 
         builder
@@ -127,6 +133,13 @@ public class DaemonManager
         checkState(sh.exists() && sh.isFile());
         posix.libc().execv(sh.getAbsolutePath(), sh.getAbsolutePath(), "-c", cmd);
         throw new IllegalStateException("Unreachable");
+    }
+
+    public void run()
+    {
+        maybeRexec();
+        getDaemonProcess().writePid();
+        launch();
     }
 
     public void kill(int signal)

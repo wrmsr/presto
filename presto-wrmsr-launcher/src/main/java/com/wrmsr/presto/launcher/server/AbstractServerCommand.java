@@ -17,8 +17,8 @@ import com.google.inject.Inject;
 import com.wrmsr.presto.launcher.AbstractLauncherCommand;
 
 public abstract class AbstractServerCommand
-        extends AbstractLauncherCommand
+    extends AbstractLauncherCommand
 {
     @Inject
-    private ServerManager serverManager;
+    protected ServerManager serverManager;
 }

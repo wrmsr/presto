@@ -22,7 +22,6 @@ public final class RunCommand
     @Override
     public void run()
     {
-        maybeRexec();
-        launch();
+        serverManager.run();
     }
 }

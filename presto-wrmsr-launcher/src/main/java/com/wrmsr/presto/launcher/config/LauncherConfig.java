@@ -38,36 +38,6 @@ public class LauncherConfig
         this.ensureDirs = ensureDirs;
     }
 
-    private String pidFile;
-
-    @JsonProperty("pid-file")
-    public String getPidFile()
-    {
-        return pidFile;
-    }
-
-    @JsonProperty("pid-file")
-    public void setPidFile(String pidFile)
-    {
-        this.pidFile = pidFile;
-    }
-
-    public static final String PID_FILE_FD_KEY = "pid-file-fd";
-
-    private Integer pidFileFd;
-
-    @JsonProperty(PID_FILE_FD_KEY)
-    public Integer getPidFileFd()
-    {
-        return pidFileFd;
-    }
-
-    @JsonProperty(PID_FILE_FD_KEY)
-    public void setPidFileFd(Integer pidFileFd)
-    {
-        this.pidFileFd = pidFileFd;
-    }
-
     private String logFile;
 
     @JsonProperty("log-file")
@@ -80,34 +50,6 @@ public class LauncherConfig
     public void setLogFile(String logFile)
     {
         this.logFile = logFile;
-    }
-
-    private String stdoutFile;
-
-    @JsonProperty("stdout-file")
-    public String getStdoutFile()
-    {
-        return stdoutFile;
-    }
-
-    @JsonProperty("stdout-file")
-    public void setStdoutFile(String stdoutFile)
-    {
-        this.stdoutFile = stdoutFile;
-    }
-
-    private String stderrFile;
-
-    @JsonProperty("stderr-file")
-    public String getStderrFile()
-    {
-        return stderrFile;
-    }
-
-    @JsonProperty("stderr-file")
-    public void setStderrFile(String stderrFile)
-    {
-        this.stderrFile = stderrFile;
     }
 
     private String httpLogFile;

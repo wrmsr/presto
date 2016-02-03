@@ -26,7 +26,7 @@ import java.nio.file.Files;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.wrmsr.presto.util.Files.makeDirsAndCheck;
-import static com.wrmsr.presto.util.Jvm.getJarFile;
+import static com.wrmsr.presto.util.Jvm.getThisJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
 public class JarSyncMain
@@ -56,7 +56,7 @@ public class JarSyncMain
         @Override
         public void run()
         {
-            File jar = getJarFile(getClass());
+            File jar = getThisJarFile(getClass());
 
             File src = isNullOrEmpty(this.src) ? jar : new File(this.src);
             checkState(src.isFile());
@@ -84,7 +84,7 @@ public class JarSyncMain
         @Override
         public void run()
         {
-            File jar = getJarFile(getClass());
+            File jar = getThisJarFile(getClass());
 
             File src = isNullOrEmpty(this.src) ? jar : new File(this.src);
             checkState(src.isFile());

@@ -11,19 +11,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.daemon;
+package com.wrmsr.presto.launcher;
 
-import com.google.inject.Inject;
-import com.wrmsr.presto.launcher.AbstractLauncherCommand;
+import com.wrmsr.presto.launcher.passthrough.AbstractPassthroughCommand;
 import io.airlift.airline.Command;
 
-@Command(name = "run", description = "Runs presto server daemon")
-public final class DaemonCommand
-        extends AbstractDaemonCommand
+@Command(name = "launch", description = "Launches presto server (argless)")
+public final class LaunchCommand
+        extends AbstractPassthroughCommand
 {
     @Override
-    public void run()
+    public String getClassName()
     {
-        daemonManager.run();
+        return "com.facebook.presto.server.PrestoServer";
+    }
+
+    @Override
+    public String getModuleName()
+    {
+        return "presto-main";
     }
 }

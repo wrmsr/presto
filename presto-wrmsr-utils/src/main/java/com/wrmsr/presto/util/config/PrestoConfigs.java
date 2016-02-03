@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static com.wrmsr.presto.util.Jvm.getJarFile;
+import static com.wrmsr.presto.util.Jvm.getThisJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Strings.getSystemProperties;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
@@ -77,7 +77,7 @@ public class PrestoConfigs
                 files = ImmutableList.of(DEFAULT_CONFIG_FILE);
             }
             else {
-                File jarFile = getJarFile(caller);
+                File jarFile = getThisJarFile(caller);
                 File file = new File(jarFile.getParentFile(), DEFAULT_CONFIG_FILE.getPath());
                 if (file.exists()) {
                     files = ImmutableList.of(file);

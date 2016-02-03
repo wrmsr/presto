@@ -13,12 +13,11 @@
  */
 package com.wrmsr.presto.launcher.daemon;
 
-import com.wrmsr.presto.launcher.server.AbstractServerCommand;
 import io.airlift.airline.Command;
 
 @Command(name = "stop", description = "Stops presto server")
 public final class StopCommand
-        extends AbstractServerCommand
+        extends AbstractDaemonCommand
 {
     @Override
     public void run()

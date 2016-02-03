@@ -18,6 +18,7 @@ import com.google.inject.Scopes;
 import com.wrmsr.presto.launcher.cluster.ClusterModule;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 import com.wrmsr.presto.launcher.config.ConfigModule;
+import com.wrmsr.presto.launcher.daemon.DaemonModule;
 import com.wrmsr.presto.launcher.leadership.LeadershipModule;
 import com.wrmsr.presto.launcher.logging.LoggingModule;
 import com.wrmsr.presto.launcher.passthrough.PassthroughModule;
@@ -26,14 +27,15 @@ import com.wrmsr.presto.launcher.util.POSIXUtils;
 import com.wrmsr.presto.launcher.zookeeper.ZookeeperModule;
 import jnr.posix.POSIX;
 
-public class MainLauncherModule
+public class LauncherMainModule
         extends LauncherModule.Composite
 {
-    public MainLauncherModule()
+    public LauncherMainModule()
     {
         super(
                 new ClusterModule(),
                 new ConfigModule(),
+                new DaemonModule(),
                 new LeadershipModule(),
                 new LoggingModule(),
                 new PassthroughModule(),

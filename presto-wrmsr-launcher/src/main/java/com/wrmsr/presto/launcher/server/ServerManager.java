@@ -41,7 +41,7 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.wrmsr.presto.util.Jvm.getJarFile;
+import static com.wrmsr.presto.util.Jvm.getThisJarFile;
 import static java.util.Objects.requireNonNull;
 
 public class ServerManager
@@ -87,7 +87,7 @@ public class ServerManager
             return;
         }
 
-        File jar = getJarFile(getClass());
+        File jar = getThisJarFile(getClass());
         if (!jar.isFile()) {
             log.warn("Jvm options specified but not running with a jar file, ignoring");
             return;
@@ -161,5 +161,11 @@ public class ServerManager
             }
             System.exit(1);
         }
+    }
+
+    public void run()
+    {
+        maybeRexec();
+        launch();
     }
 }

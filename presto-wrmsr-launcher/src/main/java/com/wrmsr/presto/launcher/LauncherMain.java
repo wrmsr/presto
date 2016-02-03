@@ -60,7 +60,7 @@ public class LauncherMain
         List<String> newArgs = rewriteArgs(Arrays.asList(args));
         args = newArgs.toArray(new String[newArgs.size()]);
 
-        LauncherModule module = new MainLauncherModule();
+        LauncherModule module = new LauncherMainModule();
 
         Cli.CliBuilder<Runnable> builder = Cli.<Runnable>builder("presto")
                 .withDefaultCommand(Help.class)

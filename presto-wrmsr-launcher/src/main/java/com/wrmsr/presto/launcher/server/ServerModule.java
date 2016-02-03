@@ -15,6 +15,7 @@ package com.wrmsr.presto.launcher.server;
 
 import com.google.inject.Binder;
 import com.google.inject.Scopes;
+import com.wrmsr.presto.launcher.LaunchCommand;
 import com.wrmsr.presto.launcher.LauncherModule;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 import io.airlift.airline.Cli;
