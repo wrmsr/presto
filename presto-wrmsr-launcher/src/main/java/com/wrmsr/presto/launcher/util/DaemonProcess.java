@@ -34,7 +34,8 @@ public class DaemonProcess
     public final int pidFile;
     public final POSIX posix;
 
-    public boolean locked;
+    private boolean locked;
+    private boolean closed;
 
     public final int EWOULDBLOCK;
     public final int SIGTERM;
@@ -111,8 +112,16 @@ public class DaemonProcess
     public static final int LOCK_EX = 2;
     public static final int LOCK_NB = 4;
 
+    public synchronized void close()
+    {
+        checkState(!closed);
+        posix.close(pidFile);
+        closed = true;
+    }
+
     public synchronized void refresh()
     {
+        checkState(!closed);
         int ret = posix.flock(pidFile, LOCK_EX | LOCK_NB);
         if (ret == 0) {
             locked = true;
@@ -133,6 +142,7 @@ public class DaemonProcess
 
     public synchronized int clearPid()
     {
+        checkState(!closed);
         refresh();
         checkState(locked, "pid file not locked by us");
         // FIXME err check
@@ -143,6 +153,7 @@ public class DaemonProcess
 
     public synchronized void writePid(int pid)
     {
+        checkState(!closed);
         clearPid();
         byte[] bytes = String.format("%d\n", pid).getBytes();
         posix.write(pidFile, bytes, bytes.length);
@@ -151,6 +162,7 @@ public class DaemonProcess
 
     public synchronized void writePid()
     {
+        checkState(!closed);
         int pid = POSIXUtils.getPOSIX().getpid();
         checkState(pid > 0);
         writePid(pid);
@@ -158,6 +170,7 @@ public class DaemonProcess
 
     public synchronized boolean alive()
     {
+        checkState(!closed);
         refresh();
         if (locked) {
             return false;
@@ -174,6 +187,7 @@ public class DaemonProcess
 
     public synchronized int readPid()
     {
+        checkState(!closed);
         refresh();
         checkState(!locked, "pid file is locked by us");
         posix.lseek(pidFile, 0, 0);
@@ -187,6 +201,7 @@ public class DaemonProcess
 
     public synchronized int kill(int signal)
     {
+        checkState(!closed);
         int pid = readPid();
         return posix.kill(pid, signal);
     }

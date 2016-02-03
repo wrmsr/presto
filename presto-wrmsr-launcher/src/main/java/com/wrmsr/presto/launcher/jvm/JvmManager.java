@@ -147,13 +147,7 @@ public class JvmManager
     public void exec(List<String> args)
     {
         File jvm = this.jvm.getValue();
-
-        ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
-                .add(jvm.getAbsolutePath())
-                .addAll(getConfigJvmOptions());
-
-        List<String> newArgs = builder.build();
-        posix.libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
+        posix.libc().execv(jvm.getAbsolutePath(), args.toArray(new String[args.size()]));
         log.error("Exec failed");
         System.exit(1);
     }

@@ -21,20 +21,16 @@ import java.util.List;
 public interface LauncherCommand
         extends Runnable, AutoCloseable
 {
-    final class OriginalArgs extends Box<List<String>>
+    final class PreArgs
+            extends Box<List<String>>
     {
-        public OriginalArgs(List<String> value)
+        public PreArgs(List<String> value)
         {
             super(ImmutableList.copyOf(value));
         }
-
-        public OriginalArgs(String... value)
-        {
-            this(ImmutableList.copyOf(value));
-        }
     }
 
-    default void configure(LauncherModule module, OriginalArgs originalArgs)
+    default void configure(LauncherModule module)
             throws Exception
     {
     }

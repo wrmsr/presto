@@ -13,17 +13,15 @@
  */
 package com.wrmsr.presto.launcher.daemon;
 
-import com.wrmsr.presto.launcher.server.AbstractServerCommand;
 import io.airlift.airline.Command;
 
 @Command(name = "restart", description = "Restarts presto server")
 public final class RestartCommand
-        extends AbstractServerCommand
+        extends AbstractDaemonCommand
 {
     @Override
     public void run()
     {
-        getDaemonProcess().stop();
-        launchDaemon(true);
+        daemonManager.restart();
     }
 }

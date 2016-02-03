@@ -13,19 +13,24 @@
  */
 package com.wrmsr.presto.launcher.daemon;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
+import com.wrmsr.presto.launcher.jvm.Jvm;
+import com.wrmsr.presto.launcher.jvm.JvmManager;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.util.Repositories;
 import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.log.Logger;
 import jnr.posix.POSIX;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.annotation.concurrent.GuardedBy;
+
 import java.io.File;
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.stream.IntStream;
@@ -43,58 +48,55 @@ public class DaemonManager
     private static final Logger log = Logger.get(DaemonManager.class);
 
     private final DaemonConfig daemonConfig;
+    private final JvmManager jvmManager;
+    private final Jvm jvm;
     private final POSIX posix;
 
-    @Inject
-    public DaemonManager(DaemonConfig daemonConfig, POSIX posix)
-    {
-        this.daemonConfig = daemonConfig;
-        this.posix = posix;
-    }
-
+    @GuardedBy("this")
     private volatile DaemonProcess daemonProcess;
 
-    public synchronized DaemonProcess getDaemonProcess()
+    @Inject
+    public DaemonManager(DaemonConfig daemonConfig, JvmManager jvmManager, Jvm jvm, POSIX posix)
     {
-        if (daemonProcess == null) {
-            checkArgument(!isNullOrEmpty(daemonConfig.getPidFile()), "must set pidfile");
-            daemonProcess = new DaemonProcess(new File(daemonConfig.getPidFile()), daemonConfig.getPidFileFd());
-        }
-        return daemonProcess;
+        this.daemonConfig = requireNonNull(daemonConfig);
+        this.jvmManager = requireNonNull(jvmManager);
+        this.jvm = requireNonNull(jvm);
+        this.posix = requireNonNull(posix);
     }
 
-    public void launchDaemon(boolean restart)
+    @PostConstruct
+    @VisibleForTesting
+    public synchronized void setupDaemonProcess()
     {
-        if (getDaemonProcess().alive()) {
-            if (restart) {
-                getDaemonProcess().stop();
-            }
-            else {
-                return;
-            }
-        }
+        checkState(daemonProcess == null);
+        checkArgument(!isNullOrEmpty(daemonConfig.getPidFile()), "must set pidfile");
+        daemonProcess = new DaemonProcess(new File(daemonConfig.getPidFile()), daemonConfig.getPidFileFd());
+    }
+
+    @PreDestroy
+    @VisibleForTesting
+    public synchronized void teardownDaemonProcess()
+    {
+        requireNonNull(daemonProcess).close();
+    }
+
+    @GuardedBy("this")
+    private void launch()
+    {
+        requireNonNull(daemonProcess);
 
         List<String> args = originalArgs.getValue();
         String lastArg = args.get(args.size() - 1);
         checkArgument(lastArg.equals("start") || lastArg.equals("restart"));
 
-        File jvm = getJvm();
+        File jvm = this.jvm.getValue();
         ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
                 .add(jvm.getAbsolutePath());
-        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-        // builder.addAll(runtimeMxBean.getInputArguments());
         if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
             builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
         }
 
-        builder.add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "launcher." + LauncherConfig.PID_FILE_FD_KEY + "=" + getDaemonProcess().pidFile);
-
-        LauncherConfig config = this.config.getMergedNode(LauncherConfig.class);
-
-        if (!isNullOrEmpty(config.getLogFile())) {
-            builder.add("-Dlog.output-file=" + config.getLogFile());
-            builder.add("-Dlog.enable-console=false");
-        }
+        builder.add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "launcher." + LauncherConfig.PID_FILE_FD_KEY + "=" + daemonProcess.pidFile);
 
         File jar = getThisJarFile(getClass());
         checkState(jar.isFile());
@@ -110,15 +112,15 @@ public class DaemonManager
                 .addAll(builder.build().stream().map(s -> shellEscape(s)).collect(toImmutableList()));
         shBuilder.add("</dev/null");
 
-        if (!isNullOrEmpty(config.getStdoutFile())) {
-            shBuilder.add(">>" + shellEscape(config.getStdoutFile()));
+        if (!isNullOrEmpty(daemonConfig.getStdoutFile())) {
+            shBuilder.add(">>" + shellEscape(daemonConfig.getStdoutFile()));
         }
         else {
             shBuilder.add(">/dev/null");
         }
 
-        if (!isNullOrEmpty(config.getStderrFile())) {
-            shBuilder.add("2>>" + shellEscape(config.getStderrFile()));
+        if (!isNullOrEmpty(daemonConfig.getStderrFile())) {
+            shBuilder.add("2>>" + shellEscape(daemonConfig.getStderrFile()));
         }
         else {
             shBuilder.add(">/dev/null");
@@ -135,31 +137,47 @@ public class DaemonManager
         throw new IllegalStateException("Unreachable");
     }
 
-    public void run()
+    public synchronized void run()
     {
-        maybeRexec();
-        getDaemonProcess().writePid();
+        daemonProcess.writePid();
         launch();
     }
 
-    public void kill(int signal)
+    public synchronized void kill()
     {
+        requireNonNull(daemonProcess).kill();
     }
 
-    public void restart()
+    public synchronized void kill(int signal)
     {
+        requireNonNull(daemonProcess).kill(signal);
     }
 
-    public void start()
+    public synchronized void restart()
     {
+        if (daemonProcess.alive()) {
+            daemonProcess.stop();
+        }
+        launch();
     }
 
-    public OptionalInt status()
+    public synchronized void start()
     {
-        return OptionalInt.empty();
+        launch();
     }
 
-    public void stop()
+    public synchronized OptionalInt status()
     {
+        if (!daemonProcess.alive()) {
+            return OptionalInt.empty();
+        }
+        else {
+            return OptionalInt.of(daemonProcess.readPid());
+        }
+    }
+
+    public synchronized void stop()
+    {
+        daemonProcess.stop();
     }
 }

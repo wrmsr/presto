@@ -70,7 +70,7 @@ public class LauncherMain
         Cli<Runnable> cliParser = builder.build();
         Runnable cmd = cliParser.parse(args);
         if (cmd instanceof LauncherCommand) {
-            ((LauncherCommand) cmd).configure(module, new LauncherCommand.OriginalArgs(args));
+            ((LauncherCommand) cmd).configure(module);
         }
         try {
             cmd.run();

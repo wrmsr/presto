@@ -22,6 +22,6 @@ public final class StopCommand
     @Override
     public void run()
     {
-        getDaemonProcess().stop();
+        daemonManager.stop();
     }
 }

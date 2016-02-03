@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.inject.Binder;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -27,12 +28,9 @@ import io.airlift.bootstrap.Bootstrap;
 import io.airlift.bootstrap.LifeCycleManager;
 import io.airlift.log.Logger;
 
-import javax.annotation.concurrent.GuardedBy;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
@@ -47,14 +45,14 @@ public abstract class AbstractLauncherCommand
 {
     private static final Logger log = Logger.get(AbstractLauncherCommand.class);
 
-    @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
-    public List<String> configFiles = new ArrayList<>();
+    @Option(type = OptionType.GLOBAL, name = {"-D"}, description = "Sets system property")
+    public List<String> systemProperties = newArrayList();
 
     @Option(type = OptionType.GLOBAL, name = {"-C"}, description = "Set config item")
     public List<String> configItems = new ArrayList<>();
 
-    @Option(type = OptionType.GLOBAL, name = {"-D"}, description = "Sets system property")
-    public List<String> systemProperties = newArrayList();
+    @Option(type = OptionType.GLOBAL, name = {"-c", "--config-file"}, description = "Specify config file path")
+    public List<String> configFiles = new ArrayList<>();
 
     public AbstractLauncherCommand()
     {
@@ -63,50 +61,51 @@ public abstract class AbstractLauncherCommand
     private final AtomicBoolean isConfigured = new AtomicBoolean();
 
     @Override
-    public synchronized void configure(LauncherModule module, LauncherCommand.OriginalArgs originalArgs)
+    public synchronized void configure(LauncherModule module)
             throws Exception
     {
         requireNonNull(module);
         checkState(!isConfigured.get());
 
+        ImmutableList.Builder<String> preArgsBuilder = ImmutableList.builder();
         for (String prop : systemProperties) {
+            preArgsBuilder.add("-D" + prop);
             String[] parts = splitProperty(prop);
             System.setProperty(parts[0], parts[1]);
         }
-
         for (String prop : configItems) {
+            preArgsBuilder.add("-C" + prop);
             String[] parts = splitProperty(prop);
             PrestoConfigs.setConfigItem(parts[0], parts[1]);
         }
-
+        final PreArgs preArgs = new PreArgs(preArgsBuilder.build());
         final ConfigContainer config;
         {
+            preArgsBuilder.addAll(Lists.transform(configFiles, (s) -> "-c" + s));
             ConfigContainer config_ = PrestoConfigs.loadConfig(getClass(), ConfigContainer.class, configFiles);
             config_ = module.postprocessConfig(config_);
             config_ = module.rewriteConfig(config_, module::postprocessConfig);
             config = config_;
         }
-
         PrestoConfigs.writeConfigProperties(PrestoConfigs.configToProperties(config));
+
+        for (String dir : firstNonNull(config.getMergedNode(LauncherConfig.class).getEnsureDirs(), ImmutableList.<String>of())) {
+            makeDirsAndCheck(new File(dir));
+        }
 
         Bootstrap app = new Bootstrap(new Module()
         {
             @Override
             public void configure(Binder binder)
             {
-                binder.bind(LauncherCommand.OriginalArgs.class).toInstance(originalArgs);
+                binder.bind(LauncherCommand.PreArgs.class).toInstance(preArgs);
                 module.configureLauncher(config, binder);
             }
         });
-
         Injector injector = app
                 .doNotInitializeLogging()
                 .strictConfig()
                 .initialize();
-
-        for (String dir : firstNonNull(config.getMergedNode(LauncherConfig.class).getEnsureDirs(), ImmutableList.<String>of())) {
-            makeDirsAndCheck(new File(dir));
-        }
 
         injector.injectMembers(this);
         isConfigured.compareAndSet(false, true);

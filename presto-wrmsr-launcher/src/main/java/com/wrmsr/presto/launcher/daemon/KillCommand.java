@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.launcher.daemon;
 
-import com.wrmsr.presto.launcher.server.AbstractServerCommand;
 import io.airlift.airline.Arguments;
 import io.airlift.airline.Command;
 
@@ -23,7 +22,7 @@ import static com.google.common.collect.Lists.newArrayList;
 
 @Command(name = "kill", description = "Kills presto server")
 public final class KillCommand
-        extends AbstractServerCommand
+        extends AbstractDaemonCommand
 {
     @Arguments(description = "arguments")
     private List<String> args = newArrayList();
@@ -32,11 +31,11 @@ public final class KillCommand
     public void run()
     {
         if (args.isEmpty()) {
-            getDaemonProcess().kill();
+            daemonManager.kill();
         }
         else if (args.size() == 1) {
             int signal = Integer.valueOf(args.get(0));
-            getDaemonProcess().kill(signal);
+            daemonManager.kill(signal);
         }
         else {
             throw new IllegalArgumentException();

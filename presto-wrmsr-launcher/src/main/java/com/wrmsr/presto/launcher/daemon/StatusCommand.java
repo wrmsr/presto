@@ -17,18 +17,21 @@ import com.wrmsr.presto.launcher.server.AbstractServerCommand;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import io.airlift.airline.Command;
 
+import java.util.OptionalInt;
+
 @Command(name = "status", description = "Gets status of presto server")
 public final class StatusCommand
-        extends AbstractServerCommand
+        extends AbstractDaemonCommand
 {
     // TODO optional wait time
 
     @Override
     public void run()
     {
-        if (!getDaemonProcess().alive()) {
+        OptionalInt status = daemonManager.status();
+        if (!status.isPresent()) {
             System.exit(DaemonProcess.LSB_NOT_RUNNING);
         }
-        System.out.println(getDaemonProcess().readPid());
+        System.out.println(status.getAsInt());
     }
 }

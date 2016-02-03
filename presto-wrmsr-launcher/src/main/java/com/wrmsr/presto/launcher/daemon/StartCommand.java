@@ -18,11 +18,11 @@ import io.airlift.airline.Command;
 
 @Command(name = "start", description = "Starts presto server")
 public final class StartCommand
-        extends AbstractServerCommand
+        extends AbstractDaemonCommand
 {
     @Override
     public void run()
     {
-        launchDaemon(false);
+        daemonManager.start();
     }
 }
