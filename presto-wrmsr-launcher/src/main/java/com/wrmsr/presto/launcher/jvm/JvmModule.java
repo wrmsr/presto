@@ -18,26 +18,12 @@ import com.google.inject.Scopes;
 import com.wrmsr.presto.launcher.LauncherModule;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 
-import java.io.File;
-
-import static com.google.common.base.Preconditions.checkState;
-
 public class JvmModule
-    extends LauncherModule
+        extends LauncherModule
 {
     @Override
     public void configureLauncher(ConfigContainer config, Binder binder)
     {
-        binder.bind(Jvm.class).toProvider(JvmModule::getJvm).in(Scopes.SINGLETON);
-
         binder.bind(JvmManager.class).in(Scopes.SINGLETON);
     }
-
-    private static Jvm getJvm()
-    {
-        File jvm = new File(System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : ""));
-        checkState(jvm.exists() && jvm.isFile());
-        return new Jvm(jvm);
-    }
-
 }

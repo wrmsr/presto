@@ -18,7 +18,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
-import com.wrmsr.presto.launcher.jvm.Jvm;
 import com.wrmsr.presto.launcher.jvm.JvmManager;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
 import com.wrmsr.presto.util.Repositories;
@@ -49,18 +48,16 @@ public class DaemonManager
 
     private final DaemonConfig daemonConfig;
     private final JvmManager jvmManager;
-    private final Jvm jvm;
     private final POSIX posix;
 
     @GuardedBy("this")
     private volatile DaemonProcess daemonProcess;
 
     @Inject
-    public DaemonManager(DaemonConfig daemonConfig, JvmManager jvmManager, Jvm jvm, POSIX posix)
+    public DaemonManager(DaemonConfig daemonConfig, JvmManager jvmManager, POSIX posix)
     {
         this.daemonConfig = requireNonNull(daemonConfig);
         this.jvmManager = requireNonNull(jvmManager);
-        this.jvm = requireNonNull(jvm);
         this.posix = requireNonNull(posix);
     }
 
@@ -78,6 +75,25 @@ public class DaemonManager
     public synchronized void teardownDaemonProcess()
     {
         requireNonNull(daemonProcess).close();
+    }
+
+    private void redirctStdio()
+    {
+
+        if (!isNullOrEmpty(daemonConfig.getStdoutFile())) {
+            shBuilder.add(">>" + shellEscape(daemonConfig.getStdoutFile()));
+        }
+        else {
+            shBuilder.add(">/dev/null");
+        }
+
+        if (!isNullOrEmpty(daemonConfig.getStderrFile())) {
+            shBuilder.add("2>>" + shellEscape(daemonConfig.getStderrFile()));
+        }
+        else {
+            shBuilder.add(">/dev/null");
+        }
+
     }
 
     @GuardedBy("this")
@@ -125,6 +141,8 @@ public class DaemonManager
         else {
             shBuilder.add(">/dev/null");
         }
+
+        // TODO subprocess stderr to scribe for gc + vmflags
 
         shBuilder.add("&");
 

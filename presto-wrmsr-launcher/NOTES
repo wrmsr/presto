@@ -356,3 +356,45 @@ FIXME set external port to $PORT_8888
                           unexpandedWildcardClasspath.toString()};
         return jarCp;
     }
+
+
+
+
+#include <string.h>
+#include <stdlib.h>
+#include <fcntl.h>
+
+#ifndef FALLOC_FL_COLLAPSE_RANGE
+#define FALLOC_FL_COLLAPSE_RANGE        0x08
+#endif
+
+int main(int argc, const char * argv[])
+{
+    int ret;
+    char * page = malloc(4096);
+    int fd = open("test.txt", O_CREAT | O_TRUNC | O_RDWR, 0644);
+
+    if (fd == -1) {
+        free(page);
+        return (-1);
+    }
+
+    // Page A
+    printf("Write page A\n");
+    memset(page, 'A', 4096);
+    write(fd, page, 4096);
+
+    // Page B
+    printf("Write page B\n");
+    memset(page, 'B', 4096);
+    write(fd, page, 4096);
+
+    // Remove page A
+    ret = fallocate(fd, FALLOC_FL_COLLAPSE_RANGE, 0, 4096);
+    printf("Page A should be removed, ret = %d\n", ret);
+
+    close(fd);
+    free(page);
+
+    return (0);
+}

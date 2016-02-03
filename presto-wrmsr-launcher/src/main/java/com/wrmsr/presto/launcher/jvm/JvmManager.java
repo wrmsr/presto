@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.launcher.jvm;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.LauncherFailureException;
@@ -21,6 +22,8 @@ import io.airlift.log.Logger;
 import io.airlift.units.DataSize;
 import jnr.posix.POSIX;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.concurrent.GuardedBy;
 import javax.inject.Inject;
 
 import java.io.File;
@@ -31,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.util.Objects.requireNonNull;
@@ -40,15 +44,31 @@ public class JvmManager
     private static final Logger log = Logger.get(JvmManager.class);
 
     private final JvmConfig jvmConfig;
-    private final Jvm jvm;
     private final POSIX posix;
 
+    @GuardedBy("this")
+    private File jvm;
+
     @Inject
-    public JvmManager(JvmConfig jvmConfig, Jvm jvm, POSIX posix)
+    public JvmManager(JvmConfig jvmConfig, POSIX posix)
     {
         this.jvmConfig = requireNonNull(jvmConfig);
-        this.jvm = jvm;
         this.posix = posix;
+    }
+
+    @PostConstruct
+    @VisibleForTesting
+    public synchronized void setupJvm()
+    {
+        checkState(this.jvm == null);
+        File jvm = new File(System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : ""));
+        checkState(jvm.exists() && jvm.isFile());
+        this.jvm = jvm;
+    }
+
+    public File getJvm()
+    {
+        return jvm;
     }
 
     public List<String> getConfigJvmOptions()
@@ -146,7 +166,6 @@ public class JvmManager
 
     public void exec(List<String> args)
     {
-        File jvm = this.jvm.getValue();
         posix.libc().execv(jvm.getAbsolutePath(), args.toArray(new String[args.size()]));
         log.error("Exec failed");
         System.exit(1);

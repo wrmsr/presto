@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher.daemon;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.wrmsr.presto.launcher.config.Config;
 
 public class DaemonConfig
@@ -44,6 +45,7 @@ public class DaemonConfig
     }
 
     @JsonProperty(PID_FILE_FD_KEY)
+    @JsonPropertyDescription("INTERNAL")
     public void setPidFileFd(Integer pidFileFd)
     {
         this.pidFileFd = pidFileFd;

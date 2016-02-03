@@ -37,14 +37,5 @@ public class DaemonModule
     public void configureServer(ConfigContainer config, Binder binder)
     {
         binder.bind(DaemonManager.class).in(Scopes.SINGLETON);
-
-//        binder.install(new GuiceUtils.EmptyModule()
-//        {
-//            public DaemonProcess get()
-//            {
-//                checkArgument(!isNullOrEmpty(pidFile()), "must set pidfile");
-//                return new DaemonProcess(new File(replaceVars(pidFile())), getConfig().getMergedNode(LauncherConfig.class).getPidFileFd());
-//            }
-//        });
     }
 }
