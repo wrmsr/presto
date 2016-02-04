@@ -1972,9 +1972,15 @@ https://github.com/SnappyDataInc/snappydata oh this is gonna go great...
  > https://github.com/gemxd/gemfirexd-oss
  https://pivotal.io/big-data/white-paper/a-true-sql-engine-for-hadoop-pivotal-hd-hawq
 https://cloud.google.com/dataflow/blog/dataflow-beam-and-spark-comparison
-
+https://wiki.apache.org/incubator/BeamProposal
+https://github.com/GoogleCloudPlatform/DataflowJavaSDK
+https://github.com/dataArtisans/flink-dataflow
+https://github.com/cloudera/spark-dataflow
+http://research.google.com/pubs/pub41378.html
 
 https://github.com/linkedin/databus/wiki/Databus-for-MySQL
 https://github.com/mardambey/mypipe
 https://github.com/zendesk/maxwell
 https://github.com/wushujames/mysql-cdc-projects/wiki
+
+

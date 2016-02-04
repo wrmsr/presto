@@ -52,6 +52,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
@@ -134,19 +135,19 @@ public class RawStorageManager
     }
 
     @Override
-    public ConnectorPageSource getPageSource(UUID shardUuid, List<Long> columnIds, List<Type> columnTypes, TupleDomain<RaptorColumnHandle> effectivePredicate, ReaderAttributes readerAttributes)
+    public ConnectorPageSource getPageSource(UUID shardUuid, OptionalInt bucketNumber, List<Long> columnIds, List<Type> columnTypes, TupleDomain<RaptorColumnHandle> effectivePredicate, ReaderAttributes readerAttributes)
     {
         return null;
     }
 
     @Override
-    public ConnectorPageSource getPageSource(UUID shardUuid, List<Long> columnIds, List<Type> columnTypes, TupleDomain<RaptorColumnHandle> effectivePredicate, ReaderAttributes readerAttributes, OptionalLong transactionId)
+    public ConnectorPageSource getPageSource(UUID shardUuid, OptionalInt bucketNumber, List<Long> columnIds, List<Type> columnTypes, TupleDomain<RaptorColumnHandle> effectivePredicate, ReaderAttributes readerAttributes, OptionalLong transactionId)
     {
         return null;
     }
 
     @Override
-    public StoragePageSink createStoragePageSink(long transactionId, List<Long> columnIds, List<Type> columnTypes)
+    public StoragePageSink createStoragePageSink(long transactionId, OptionalInt bucketNumber, List<Long> columnIds, List<Type> columnTypes)
     {
         checkArgument(columnTypes.size() == 1 && columnTypes.get(0) instanceof VarbinaryType);
         return new RawStoragePageSink(columnIds.get(0), columnTypes.get(0));
@@ -179,7 +180,7 @@ public class RawStorageManager
 
     private ShardInfo createShardInfo(UUID shardUuid, File file, Set<String> nodes, long rowCount, Long columnId)
     {
-        return new ShardInfo(shardUuid, nodes, ImmutableList.of(), rowCount, file.length(), file.length());
+        return new ShardInfo(shardUuid, OptionalInt.empty(), nodes, ImmutableList.of(), rowCount, file.length(), file.length());
     }
 
     private class RawStoragePageSink
