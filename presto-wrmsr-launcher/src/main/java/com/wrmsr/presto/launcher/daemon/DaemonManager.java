@@ -88,58 +88,59 @@ public class DaemonManager
     {
         requireNonNull(daemonProcess);
 
-        List<String> args = originalArgs.getValue();
-        String lastArg = args.get(args.size() - 1);
-        checkArgument(lastArg.equals("start") || lastArg.equals("restart"));
-
-        File jvm = this.jvm.getValue();
-        ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
-                .add(jvm.getAbsolutePath());
-        if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
-            builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
-        }
-
-        builder.add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "launcher." + LauncherConfig.PID_FILE_FD_KEY + "=" + daemonProcess.pidFile);
-
-        File jar = getThisJarFile(getClass());
-        checkState(jar.isFile());
-
-        builder
-                .add("-jar")
-                .add(jar.getAbsolutePath())
-                .addAll(IntStream.range(0, args.size() - 1).boxed().map(args::get).collect(toImmutableList()))
-                .add("daemon");
-
-        ImmutableList.Builder<String> shBuilder = ImmutableList.<String>builder()
-                // .add("setsid")
-                .addAll(builder.build().stream().map(s -> shellEscape(s)).collect(toImmutableList()));
-        shBuilder.add("</dev/null");
-
-        if (!isNullOrEmpty(daemonConfig.getStdoutFile())) {
-            shBuilder.add(">>" + shellEscape(daemonConfig.getStdoutFile()));
-        }
-        else {
-            shBuilder.add(">/dev/null");
-        }
-
-        if (!isNullOrEmpty(daemonConfig.getStderrFile())) {
-            shBuilder.add("2>>" + shellEscape(daemonConfig.getStderrFile()));
-        }
-        else {
-            shBuilder.add(">/dev/null");
-        }
-
-        // TODO subprocess stderr to scribe for gc + vmflags
-
-        shBuilder.add("&");
-
-        String cmd = Joiner.on(" ").join(shBuilder.build());
-
-        POSIX posix = requireNonNull(this.posix);
-        File sh = new File("/bin/sh");
-        checkState(sh.exists() && sh.isFile());
-        posix.libc().execv(sh.getAbsolutePath(), sh.getAbsolutePath(), "-c", cmd);
-        throw new IllegalStateException("Unreachable");
+//        List<String> args = originalArgs.getValue();
+//        String lastArg = args.get(args.size() - 1);
+//        checkArgument(lastArg.equals("start") || lastArg.equals("restart"));
+//
+//        File jvm = this.jvm.getValue();
+//        ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
+//                .add(jvm.getAbsolutePath());
+//        if (!isNullOrEmpty(Repositories.getRepositoryPath())) {
+//            builder.add("-D" + Repositories.REPOSITORY_PATH_PROPERTY_KEY + "=" + Repositories.getRepositoryPath());
+//        }
+//
+//        builder.add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "launcher." + LauncherConfig.PID_FILE_FD_KEY + "=" + daemonProcess.pidFile);
+//
+//        File jar = getThisJarFile(getClass());
+//        checkState(jar.isFile());
+//
+//        builder
+//                .add("-jar")
+//                .add(jar.getAbsolutePath())
+//                .addAll(IntStream.range(0, args.size() - 1).boxed().map(args::get).collect(toImmutableList()))
+//                .add("daemon");
+//
+//        ImmutableList.Builder<String> shBuilder = ImmutableList.<String>builder()
+//                // .add("setsid")
+//                .addAll(builder.build().stream().map(s -> shellEscape(s)).collect(toImmutableList()));
+//        shBuilder.add("</dev/null");
+//
+//        if (!isNullOrEmpty(daemonConfig.getStdoutFile())) {
+//            shBuilder.add(">>" + shellEscape(daemonConfig.getStdoutFile()));
+//        }
+//        else {
+//            shBuilder.add(">/dev/null");
+//        }
+//
+//        if (!isNullOrEmpty(daemonConfig.getStderrFile())) {
+//            shBuilder.add("2>>" + shellEscape(daemonConfig.getStderrFile()));
+//        }
+//        else {
+//            shBuilder.add(">/dev/null");
+//        }
+//
+//        // TODO subprocess stderr to scribe for gc + vmflags
+//
+//        shBuilder.add("&");
+//
+//        String cmd = Joiner.on(" ").join(shBuilder.build());
+//
+//        POSIX posix = requireNonNull(this.posix);
+//        File sh = new File("/bin/sh");
+//        checkState(sh.exists() && sh.isFile());
+//        posix.libc().execv(sh.getAbsolutePath(), sh.getAbsolutePath(), "-c", cmd);
+//        throw new IllegalStateException("Unreachable");
+        throw new IllegalStateException();
     }
 
     public synchronized void run()
