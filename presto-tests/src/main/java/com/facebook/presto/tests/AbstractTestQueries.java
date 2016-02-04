@@ -634,26 +634,14 @@ public abstract class AbstractTestQueries
     public void testApproximateCountDistinct()
             throws Exception
     {
-        MaterializedResult actual = computeActual("SELECT approx_distinct(custkey) FROM orders");
-
-        MaterializedResult expected = resultBuilder(getSession(), BIGINT)
-                .row(996)
-                .build();
-
-        assertEqualsIgnoreOrder(actual.getMaterializedRows(), expected.getMaterializedRows());
-    }
-
-    @Test
-    public void testApproximateCountDistinctWithStandardError()
-            throws Exception
-    {
-        MaterializedResult actual = computeActual("SELECT approx_distinct(custkey, 0.023) FROM orders");
-
-        MaterializedResult expected = resultBuilder(getSession(), BIGINT)
-                .row(996)
-                .build();
-
-        assertEqualsIgnoreOrder(actual.getMaterializedRows(), expected.getMaterializedRows());
+        assertQuery("SELECT approx_distinct(custkey) FROM orders", "SELECT 996");
+        assertQuery("SELECT approx_distinct(custkey, 0.023) FROM orders", "SELECT 996");
+        assertQuery("SELECT approx_distinct(CAST(custkey AS DOUBLE)) FROM orders", "SELECT 1031");
+        assertQuery("SELECT approx_distinct(CAST(custkey AS DOUBLE), 0.023) FROM orders", "SELECT 1031");
+        assertQuery("SELECT approx_distinct(CAST(custkey AS VARCHAR)) FROM orders", "SELECT 1011");
+        assertQuery("SELECT approx_distinct(CAST(custkey AS VARCHAR), 0.023) FROM orders", "SELECT 1011");
+        assertQuery("SELECT approx_distinct(to_utf8(CAST(custkey AS VARCHAR))) FROM orders", "SELECT 1011");
+        assertQuery("SELECT approx_distinct(to_utf8(CAST(custkey AS VARCHAR)), 0.023) FROM orders", "SELECT 1011");
     }
 
     @Test
