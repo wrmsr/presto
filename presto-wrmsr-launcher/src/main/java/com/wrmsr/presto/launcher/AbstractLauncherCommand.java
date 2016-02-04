@@ -30,6 +30,7 @@ import io.airlift.log.Logger;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -61,27 +62,22 @@ public abstract class AbstractLauncherCommand
     private final AtomicBoolean isConfigured = new AtomicBoolean();
 
     @Override
-    public synchronized void configure(LauncherModule module)
+    public synchronized void configure(LauncherModule module, List<String> args)
             throws Exception
     {
         requireNonNull(module);
         checkState(!isConfigured.get());
 
-        ImmutableList.Builder<String> preArgsBuilder = ImmutableList.builder();
         for (String prop : systemProperties) {
-            preArgsBuilder.add("-D" + prop);
             String[] parts = splitProperty(prop);
             System.setProperty(parts[0], parts[1]);
         }
         for (String prop : configItems) {
-            preArgsBuilder.add("-C" + prop);
             String[] parts = splitProperty(prop);
             PrestoConfigs.setConfigItem(parts[0], parts[1]);
         }
-        final PreArgs preArgs = new PreArgs(preArgsBuilder.build());
         final ConfigContainer config;
         {
-            preArgsBuilder.addAll(Lists.transform(configFiles, (s) -> "-c" + s));
             ConfigContainer config_ = PrestoConfigs.loadConfig(getClass(), ConfigContainer.class, configFiles);
             config_ = module.postprocessConfig(config_);
             config_ = module.rewriteConfig(config_, module::postprocessConfig);
@@ -98,7 +94,7 @@ public abstract class AbstractLauncherCommand
             @Override
             public void configure(Binder binder)
             {
-                binder.bind(LauncherCommand.PreArgs.class).toInstance(preArgs);
+                binder.bind(LauncherCommand.Args.class).toInstance(new Args(args));
                 module.configureLauncher(config, binder);
             }
         });

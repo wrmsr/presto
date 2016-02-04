@@ -13,15 +13,19 @@
  */
 package com.wrmsr.presto.launcher.server;
 
+import com.google.inject.Inject;
 import io.airlift.airline.Command;
 
 @Command(name = "run", description = "Runs presto server")
 public final class RunCommand
         extends AbstractServerCommand
 {
+    @Inject
+    private Args args;
+
     @Override
     public void run()
     {
-        serverManager.run();
+        serverManager.run(args.getValue());
     }
 }

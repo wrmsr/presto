@@ -30,6 +30,10 @@ https://www.debian.org/doc/manuals/maint-guide/dreq.en.html#control
 
 
 http://palletops.com/pallet/doc/reference-0.8/
+https://github.com/pallet/pallet
+https://github.com/palletops/clj-docker
+http://palletops.com/pallet/doc/reference-0.8/
+http://palletops.com/pallet/doc/how-tos/using-pallet-with-existing-servers/
 
 
 smartstack self-ping port discovery
