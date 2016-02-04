@@ -68,6 +68,8 @@ public class LauncherConfig
 
     private String clusterName;
 
+    // TODO MOVE TO CLUSTERCONFIG
+
     @JsonProperty("cluster-name")
     public String getClusterName()
     {
@@ -134,5 +136,21 @@ public class LauncherConfig
     public void setDelay(long delay)
     {
         this.delay = delay;
+    }
+
+    public static final String DO_NOT_REEXEC_KEY = "do-not-reexec";
+
+    private boolean doNotReexec;
+
+    @JsonProperty(DO_NOT_REEXEC_KEY)
+    public boolean isDoNotReexec()
+    {
+        return doNotReexec;
+    }
+
+    @JsonProperty(DO_NOT_REEXEC_KEY)
+    public void setDoNotReexec(boolean doNotReexec)
+    {
+        this.doNotReexec = doNotReexec;
     }
 }
