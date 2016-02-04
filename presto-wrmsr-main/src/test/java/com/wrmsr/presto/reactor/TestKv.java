@@ -44,6 +44,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
@@ -129,11 +130,14 @@ public class TestKv
             // connection.createStatement().execute("CREATE TABLE example.foo (id integer primary key)");
         }
 
-        ConnectorOutputTableHandle oth = metadata.beginCreateTable(session, new ConnectorTableMetadata(
-                new SchemaTableName("example", "foo"),
-                ImmutableList.of(new ColumnMetadata("text", VARCHAR, false)),
-                ImmutableMap.of(),
-                "bob"));
+        ConnectorOutputTableHandle oth = metadata.beginCreateTable(
+                session,
+                new ConnectorTableMetadata(
+                        new SchemaTableName("example", "foo"),
+                        ImmutableList.of(new ColumnMetadata("text", VARCHAR, false)),
+                        ImmutableMap.of(),
+                        "bob"),
+                Optional.empty());
         //metadata.commitCreateTable(session, oth, ImmutableList.of());
 
         try (Connection connection = jdbcClient.getConnection()) {

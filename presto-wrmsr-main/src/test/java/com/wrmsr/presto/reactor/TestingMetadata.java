@@ -184,12 +184,6 @@ public class TestingMetadata
     }
 
     @Override
-    public ConnectorOutputTableHandle beginCreateTable(ConnectorSession session, ConnectorTableMetadata tableMetadata)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public ConnectorInsertTableHandle beginInsert(ConnectorSession session, ConnectorTableHandle tableHandle)
     {
         throw new UnsupportedOperationException();
