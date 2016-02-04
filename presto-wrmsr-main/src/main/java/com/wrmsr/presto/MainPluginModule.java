@@ -64,7 +64,8 @@ public class MainPluginModule
     protected Set<Key> getInjectorForwardingsParent(ConfigContainer config)
     {
         return ImmutableSet.of(
-                Key.get(ConnectorManager.class));
+                Key.get(ConnectorManager.class),
+                Key.get(PluginManager.class));
     }
 
     @Override
