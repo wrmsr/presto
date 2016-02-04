@@ -29,6 +29,9 @@ md5sums
 https://www.debian.org/doc/manuals/maint-guide/dreq.en.html#control
 
 
+http://palletops.com/pallet/doc/reference-0.8/
+
+
 smartstack self-ping port discovery
 
 wait for nodes barrier function w timeout
@@ -398,3 +401,5 @@ int main(int argc, const char * argv[])
 
     return (0);
 }
+
+
