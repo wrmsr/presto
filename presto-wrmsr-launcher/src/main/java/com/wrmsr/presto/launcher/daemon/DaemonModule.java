@@ -34,7 +34,7 @@ public class DaemonModule
     }
 
     @Override
-    public void configureServer(ConfigContainer config, Binder binder)
+    public void configureLauncher(ConfigContainer config, Binder binder)
     {
         binder.bind(DaemonManager.class).in(Scopes.SINGLETON);
     }

@@ -45,10 +45,6 @@ public abstract class LauncherModule
     {
     }
 
-    public void configureServer(ConfigContainer config, Binder binder)
-    {
-    }
-
     public static class Composite
             extends LauncherModule
     {
@@ -111,15 +107,6 @@ public abstract class LauncherModule
             }
         }
 
-        @Override
-        public final void configureServer(ConfigContainer config, Binder binder)
-        {
-            configureServerParent(config, binder);
-            for (LauncherModule child : children) {
-                child.configureServer(config, binder);
-            }
-        }
-
         protected void configureCliParent(Cli.CliBuilder<Runnable> builder)
         {
         }
@@ -139,10 +126,6 @@ public abstract class LauncherModule
         }
 
         protected void configureServerLoggingParent(ConfigContainer config)
-        {
-        }
-
-        protected void configureServerParent(ConfigContainer config, Binder binder)
         {
         }
     }

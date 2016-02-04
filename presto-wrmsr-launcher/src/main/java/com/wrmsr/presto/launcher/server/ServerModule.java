@@ -34,7 +34,7 @@ public class ServerModule
     }
 
     @Override
-    public void configureServer(ConfigContainer config, Binder binder)
+    public void configureLauncher(ConfigContainer config, Binder binder)
     {
         binder.bind(ServerManager.class).in(Scopes.SINGLETON);
 
