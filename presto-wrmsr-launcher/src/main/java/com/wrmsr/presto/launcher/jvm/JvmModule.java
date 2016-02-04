@@ -18,6 +18,8 @@ import com.google.inject.Scopes;
 import com.wrmsr.presto.launcher.LauncherModule;
 import com.wrmsr.presto.launcher.config.ConfigContainer;
 
+import static com.google.inject.multibindings.Multibinder.newSetBinder;
+
 public class JvmModule
         extends LauncherModule
 {
@@ -25,5 +27,12 @@ public class JvmModule
     public void configureLauncher(ConfigContainer config, Binder binder)
     {
         binder.bind(JvmManager.class).in(Scopes.SINGLETON);
+
+        newSetBinder(binder, JvmOptionProvider.class);
+
+        newSetBinder(binder, JvmOptionProvider.class).addBinding().to(DebugJvmOptionProvider.class).asEagerSingleton();
+        newSetBinder(binder, JvmOptionProvider.class).addBinding().to(GcJvmOptionProvider.class).asEagerSingleton();
+        newSetBinder(binder, JvmOptionProvider.class).addBinding().to(HeapJvmOptionProvider.class).asEagerSingleton();
+        newSetBinder(binder, JvmOptionProvider.class).addBinding().to(RepositoryJvmOptionProvider.class).asEagerSingleton();
     }
 }

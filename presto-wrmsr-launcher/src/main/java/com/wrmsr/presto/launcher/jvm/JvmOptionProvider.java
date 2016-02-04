@@ -11,12 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.server;
+package com.wrmsr.presto.launcher.jvm;
 
 import java.util.List;
 
 @FunctionalInterface
-public interface ServerJvmArgumentProvider
+public interface JvmOptionProvider
 {
     List<String> getServerJvmArguments();
 }

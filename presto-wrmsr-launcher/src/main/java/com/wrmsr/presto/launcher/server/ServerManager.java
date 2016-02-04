@@ -15,10 +15,12 @@ package com.wrmsr.presto.launcher.server;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.LauncherFailureException;
 import com.wrmsr.presto.launcher.jvm.JvmConfig;
 import com.wrmsr.presto.launcher.config.LauncherConfig;
+import com.wrmsr.presto.launcher.jvm.JvmManager;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
 import com.wrmsr.presto.launcher.util.POSIXUtils;
 import com.wrmsr.presto.launcher.util.Statics;
@@ -49,14 +51,13 @@ public class ServerManager
     private static final Logger log = Logger.get(ServerManager.class);
 
     private final LauncherConfig launcherConfig;
-    private final JvmConfig jvmConfig;
-    private final POSIX posix;
+    private final JvmManager jvmManager;
 
-    private static File getJvm()
+    @Inject
+    public ServerManager(LauncherConfig launcherConfig, JvmManager jvmManager)
     {
-        File jvm = new File(System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : ""));
-        checkState(jvm.exists() && jvm.isFile());
-        return jvm;
+        this.launcherConfig = launcherConfig;
+        this.jvmManager = jvmManager;
     }
 
     private void autoConfigure()
@@ -93,10 +94,7 @@ public class ServerManager
             return;
         }
 
-        File jvm = getJvm();
-        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
         ImmutableList.Builder<String> builder = ImmutableList.<String>builder()
-                .add(jvm.getAbsolutePath())
                 .addAll(jvmOptions)
                 .addAll(runtimeMxBean.getInputArguments())
                 .add("-D" + PrestoConfigs.CONFIG_PROPERTIES_PREFIX + "jvm." + JvmConfig.ALREADY_CONFIGURED_KEY + "=true");
@@ -109,6 +107,7 @@ public class ServerManager
                 .addAll(originalArgs.value);
 
         List<String> newArgs = builder.build();
+        j
         requireNonNull(posix).libc().execv(jvm.getAbsolutePath(), newArgs.toArray(new String[newArgs.size()]));
         throw new IllegalStateException("Unreachable");
     }

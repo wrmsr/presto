@@ -11,12 +11,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.server;
+package com.wrmsr.presto.launcher.jvm;
 
-import java.util.Map;
+import com.google.inject.Inject;
+import com.wrmsr.presto.util.Repositories;
 
-@FunctionalInterface
-public interface ServerSystemPropertyProvider
+import java.util.List;
+
+import static com.wrmsr.presto.util.Jvm.formatSystemPropertyJvmOptions;
+
+public class RepositoryJvmOptionProvider
+    implements JvmOptionProvider
 {
-    Map<String, String> getServerProperties();
+    @Inject
+    public RepositoryJvmOptionProvider()
+    {
+    }
+
+    @Override
+    public List<String> getServerJvmArguments()
+    {
+        return formatSystemPropertyJvmOptions(Repositories.getProperties());
+    }
 }

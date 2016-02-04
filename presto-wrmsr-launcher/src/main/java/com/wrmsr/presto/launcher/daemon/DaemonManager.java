@@ -79,21 +79,8 @@ public class DaemonManager
 
     private void redirctStdio()
     {
-
-        if (!isNullOrEmpty(daemonConfig.getStdoutFile())) {
-            shBuilder.add(">>" + shellEscape(daemonConfig.getStdoutFile()));
-        }
-        else {
-            shBuilder.add(">/dev/null");
-        }
-
-        if (!isNullOrEmpty(daemonConfig.getStderrFile())) {
-            shBuilder.add("2>>" + shellEscape(daemonConfig.getStderrFile()));
-        }
-        else {
-            shBuilder.add(">/dev/null");
-        }
-
+        // TODO redirect stdio + setsid inproc
+        // but also sh cuz vmflags
     }
 
     @GuardedBy("this")

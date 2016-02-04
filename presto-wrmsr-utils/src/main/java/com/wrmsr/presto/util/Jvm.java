@@ -14,6 +14,7 @@
 package com.wrmsr.presto.util;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,8 +22,13 @@ import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
+import static java.util.Objects.requireNonNull;
 
 public class Jvm
 {
@@ -59,5 +65,19 @@ public class Jvm
         }
         checkState(jar.exists());
         return jar;
+    }
+
+    public static String formatSystemPropertyJvmOption(String key, String value)
+    {
+        return "-D" + requireNonNull(key) + "=" + requireNonNull(value);
+    }
+
+    public static List<String> formatSystemPropertyJvmOptions(Map<String, String>... propertyMaps)
+    {
+        ImmutableList.Builder<String> builder = ImmutableList.builder();
+        for (Map<String, String> properties : Arrays.asList(propertyMaps)) {
+            builder.addAll(properties.entrySet().stream().map(e -> formatSystemPropertyJvmOption(e.getKey(), e.getValue())).collect(toImmutableList()));
+        }
+        return builder.build();
     }
 }

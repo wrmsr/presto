@@ -38,10 +38,6 @@ public class ServerModule
     {
         binder.bind(ServerManager.class).in(Scopes.SINGLETON);
 
-        newSetBinder(binder, ServerSystemPropertyProvider.class);
-        newSetBinder(binder, ServerJvmArgumentProvider.class);
-
-        binder.bind(SystemPropertyJvmArgumentForwarder.class).asEagerSingleton();
-        newSetBinder(binder, ServerJvmArgumentProvider.class).addBinding().to(SystemPropertyJvmArgumentForwarder.class);
+        newSetBinder(binder, ServerPropertyProvider.class);
     }
 }

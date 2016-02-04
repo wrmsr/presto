@@ -15,6 +15,7 @@ package com.wrmsr.presto.launcher.jvm;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.sun.management.OperatingSystemMXBean;
 import com.wrmsr.presto.launcher.LauncherFailureException;
 import com.wrmsr.presto.launcher.util.JvmConfiguration;
@@ -29,9 +30,11 @@ import javax.inject.Inject;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -44,16 +47,18 @@ public class JvmManager
     private static final Logger log = Logger.get(JvmManager.class);
 
     private final JvmConfig jvmConfig;
+    private final Set<JvmOptionProvider> jvmOptionProviders;
     private final POSIX posix;
 
     @GuardedBy("this")
     private File jvm;
 
     @Inject
-    public JvmManager(JvmConfig jvmConfig, POSIX posix)
+    public JvmManager(JvmConfig jvmConfig, Set<JvmOptionProvider> jvmOptionProviders, POSIX posix)
     {
         this.jvmConfig = requireNonNull(jvmConfig);
-        this.posix = posix;
+        this.jvmOptionProviders = ImmutableSet.copyOf(jvmOptionProviders);
+        this.posix = requireNonNull(posix);
     }
 
     @PostConstruct
@@ -61,8 +66,14 @@ public class JvmManager
     public synchronized void setupJvm()
     {
         checkState(this.jvm == null);
-        File jvm = new File(System.getProperties().getProperty("java.home") + File.separator + "bin" + File.separator + "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : ""));
-        checkState(jvm.exists() && jvm.isFile());
+        File jvm = Paths.get(
+                System.getProperty("java.home"),
+                "bin",
+                "java" + (System.getProperty("os.name").startsWith("Win") ? ".exe" : "")
+        ).toFile();
+        checkState(jvm.exists(), "cannot find jvm: " + jvm.getAbsolutePath());
+        checkState(jvm.isFile(), "jvm is not a file: " + jvm.getAbsolutePath());
+        checkState(jvm.canExecute(), "jvm is not executable: " + jvm.getAbsolutePath());
         this.jvm = jvm;
     }
 
@@ -74,73 +85,10 @@ public class JvmManager
     public List<String> getConfigJvmOptions()
     {
         ImmutableList.Builder<String> builder = ImmutableList.builder();
-
-        JvmConfig.DebugConfig debug = jvmConfig.getDebug();
-        if (debug != null && debug.getPort() != null) {
-            builder.add(JvmConfiguration.DEBUG.valueOf().toString());
-            builder.add(JvmConfiguration.REMOTE_DEBUG.valueOf(debug.getPort(), debug.isSuspend()).toString());
+        for (JvmOptionProvider p : jvmOptionProviders) {
+            builder.addAll(p.getServerJvmArguments());
         }
-
-        if (jvmConfig.getHeap() != null) {
-            JvmConfig.HeapConfig heap = jvmConfig.getHeap();
-            checkArgument(!isNullOrEmpty(heap.getSize()));
-            OperatingSystemMXBean os = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-            long base;
-            if (heap.isFree()) {
-                base = os.getFreePhysicalMemorySize();
-            }
-            else {
-                base = os.getTotalPhysicalMemorySize();
-            }
-
-            long sz;
-            if (heap.getSize().endsWith("%")) {
-                sz = ((base * 100) / Integer.parseInt(heap.getSize())) / 100;
-            }
-            else {
-                boolean negative = heap.getSize().startsWith("-");
-                sz = (long) DataSize.valueOf(heap.getSize().substring(negative ? 1 : 0)).getValue(DataSize.Unit.BYTE);
-                if (negative) {
-                    sz = base - sz;
-                }
-            }
-
-            if (heap.getMax() != null) {
-                long max = (long) heap.getMax().getValue(DataSize.Unit.BYTE);
-                if (sz > max) {
-                    sz = max;
-                }
-            }
-            if (heap.getMin() != null) {
-                long min = (long) heap.getMin().getValue(DataSize.Unit.BYTE);
-                if (sz < min) {
-                    if (heap.isAttempt()) {
-                        sz = min;
-                    }
-                    else {
-                        throw new LauncherFailureException(String.format("Insufficient memory: got %d, need %d", sz, min));
-                    }
-                }
-            }
-            checkArgument(sz > 0);
-            builder.add(JvmConfiguration.MAX_HEAP_SIZE.valueOf(new DataSize(sz, DataSize.Unit.BYTE)).toString());
-        }
-
-        if (jvmConfig.getGc() != null) {
-            JvmConfig.GcConfig gc = jvmConfig.getGc();
-            if (gc instanceof JvmConfig.G1GcConfig) {
-                builder.add("-XX:+UseG1GC");
-            }
-            else if (gc instanceof JvmConfig.CmsGcConfig) {
-                builder.add("-XX:+UseConcMarkSweepGC");
-            }
-            else {
-                throw new IllegalArgumentException(gc.toString());
-            }
-        }
-
         builder.addAll(jvmConfig.getOptions());
-
         return builder.build();
     }
 
@@ -150,24 +98,18 @@ public class JvmManager
         return runtimeMxBean.getInputArguments();
     }
 
-    public String formatSystemPropertyOption(String key, String value)
+    public List<String> getJvmOptions()
     {
-        return "-D" + requireNonNull(key) + "=" + requireNonNull(value);
-    }
-
-    public List<String> formatSystemPropertyOptions(Map<String, String>... propertyMaps)
-    {
-        ImmutableList.Builder<String> builder = ImmutableList.builder();
-        for (Map<String, String> properties : Arrays.asList(propertyMaps)) {
-            builder.addAll(properties.entrySet().stream().map(e -> formatSystemPropertyOption(e.getKey(), e.getValue())).collect(toImmutableList()));
-        }
-        return builder.build();
+        return ImmutableList.<String>builder()
+                .addAll(getConfigJvmOptions())
+                .addAll(getOverridenJvmOptions())
+                .build();
     }
 
     public void exec(List<String> args)
     {
         posix.libc().execv(jvm.getAbsolutePath(), args.toArray(new String[args.size()]));
-        log.error("Exec failed");
+        log.error("JVM Exec failed");
         System.exit(1);
     }
 }

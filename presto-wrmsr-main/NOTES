@@ -1959,3 +1959,22 @@ https://github.com/thinkaurelius/titan/blob/titan10/titan-core/src/main/java/com
 https://dev.mysql.com/doc/refman/5.7/en/innodb-multi-versioning.html
 https://stackoverflow.com/questions/30511616/concurrency-in-embedded-in-proces-databases-h2-hsqldb-apache-derby-sqlite
 https://github.com/jankotek/mapdb/blob/master/src/main/java/org/mapdb/StoreDirect.java
+
+
+https://www.percona.com/blog/wp-content/uploads/2010/04/InnoDB_int.png
+http://cfile22.uf.tistory.com/image/2107F44D5279F0C11C5E0B
+https://domasmituzas.files.wordpress.com/2011/07/innodb-internals.png
+https://blogs.oracle.com/mysqlinnodb/entry/data_organization_in_innodb
+https://wiki.postgresql.org/wiki/Postgres-XC
+file:///Users/spinlock/Downloads/20120515_PGXC_Tutorial_global.pdf
+
+https://github.com/SnappyDataInc/snappydata oh this is gonna go great...
+ > https://github.com/gemxd/gemfirexd-oss
+ https://pivotal.io/big-data/white-paper/a-true-sql-engine-for-hadoop-pivotal-hd-hawq
+https://cloud.google.com/dataflow/blog/dataflow-beam-and-spark-comparison
+
+
+https://github.com/linkedin/databus/wiki/Databus-for-MySQL
+https://github.com/mardambey/mypipe
+https://github.com/zendesk/maxwell
+https://github.com/wushujames/mysql-cdc-projects/wiki
