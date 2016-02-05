@@ -252,6 +252,10 @@ public class TestStruct
         }
     }
 
+    public static abstract class Type
+    {
+    }
+
     @Test
     public void test()
             throws Throwable

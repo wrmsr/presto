@@ -1,5 +1,13 @@
 !!! presto tag 0.45 -> apache licensed TupleInfo layout
 
+Constructor
+Validator
+Serializer
+Deserializer
+
+MetaSerializer
+MetaDeserializer
+
 /*
 arbitrary imperative validation
 inheritance (sealing?)
@@ -23,6 +31,8 @@ sorting?
 ... are these properties of Collections (tables) of these structs?
 
 https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html
+
+BigInteger / BigDecimal
 */
 
 /*
@@ -41,6 +51,7 @@ map          object  {"a": 1}
 fixed        string  "\u00ff"
 
 union - interface UnionDisambiguator?
+ - @JsonTypeInfo
 
 logicalType:
 decimal
