@@ -33,6 +33,15 @@ sorting?
 https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html
 
 BigInteger / BigDecimal
+camel / snake casing
+
+equality / ordering / Comparable
+
+C++ish name mangling for shoving into typesigs? :|
+ scala style manifests?
+
+Serialized parameterized type, json-in-json, avro-in-avro, ...
+Compressed? :/
 */
 
 /*
