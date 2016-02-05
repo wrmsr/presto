@@ -38,6 +38,21 @@ import static java.util.Objects.requireNonNull;
 
 public class TestStruct
 {
+
+/*
+null         null    null
+boolean      boolean true
+int,long     integer 1
+float,double number  1.1
+bytes        string  "\u00FF"
+string       string  "foo"
+record       object  {"a": 1}
+enum         string  "FOO"
+array        array   [1]
+map          object  {"a": 1}
+fixed        string  "\u00ff"
+*/
+
     public static class AliasedName
             implements Iterable<String>
     {
@@ -100,20 +115,69 @@ public class TestStruct
         }
     }
 
+    public static class AliasedNameMap<V>
+        implements Iterable<AliasedName>
+    {
+        private Set<AliasedName> keys;
+        private Map<String, V> valuesByLowerCase;
+
+        public AliasedNameMap()
+        {
+            keys = ImmutableSet.of();
+            valuesByLowerCase = ImmutableMap.of();
+        }
+
+        public void put(AliasedName key, V value)
+        {
+            requireNonNull(key);
+            requireNonNull(value);
+            key.getLowerCase().forEach(n -> checkArgument(!valuesByLowerCase.containsKey(n)));
+            key.getLowerCase().forEach(n -> valuesByLowerCase.put(n, value));
+        }
+
+        public Optional<V> get(String name)
+        {
+            return Optional.ofNullable(valuesByLowerCase.get(name.toLowerCase()));
+        }
+
+        public boolean containsKey(String name)
+        {
+            return !get(name).isPresent();
+        }
+
+        @Override
+        public Iterator<AliasedName> iterator()
+        {
+            return keys.iterator();
+        }
+
+        public Spliterator<AliasedName> spliterator()
+        {
+            return Spliterators.spliterator(iterator(), keys.size(), Spliterator.DISTINCT | Spliterator.IMMUTABLE | Spliterator.NONNULL | Spliterator.SIZED);
+        }
+
+        public Stream<AliasedName> stream()
+        {
+            return StreamSupport.stream(spliterator(), false);
+        }
+    }
+
     public static class Struct
             implements Iterable<Field>
     {
         private final AliasedName aliasedName;
 
+        private final AliasedNameMap<Field> fieldMap;
+
         private List<Field> fields;
-        private Map<String, Field> fieldsByLowerCase;
 
         public Struct(AliasedName aliasedName)
         {
             this.aliasedName = requireNonNull(aliasedName);
 
+            fieldMap = new AliasedNameMap<>();
+
             fields = ImmutableList.of();
-            fieldsByLowerCase = ImmutableMap.of();
         }
 
         public AliasedName getAliasedName()
@@ -126,15 +190,22 @@ public class TestStruct
             return fields;
         }
 
+        public AliasedNameMap<Field> getFieldMap()
+        {
+            return fieldMap;
+        }
+
         public Optional<Field> getField(String name)
         {
-            return Optional.ofNullable(fieldsByLowerCase.get(name.toLowerCase()));
+            return fieldMap.get(name);
         }
 
         public Struct addField(Field field)
         {
             requireNonNull(field);
-            field.getAliasedName().getLowerCase().forEach(n -> checkArgument(!fieldsByLowerCase.containsKey(n)));
+            field.setStruct(this, fields.size());
+            fieldMap.put(field.getAliasedName(), field);
+            fields = ImmutableList.<Field>builder().addAll(fields).add(field).build();
             return this;
         }
 
