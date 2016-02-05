@@ -20,7 +20,10 @@ TODO do what LauncherModule does if only to expose presto module instrumentation
 
  https://en.wikipedia.org/wiki/Eiffel_(programming_language)
   -> https://en.wikipedia.org/wiki/Design_by_contract
-
+ https://avro.apache.org/docs/1.7.5/spec.html#schema_record
+ http://swagger.io/getting-started/ wow this page sucks
+ https://github.com/rzwitserloot/lombok
+ https://github.com/swagger-api/swagger-parser
 
 ***
  zipkin integration via TraceTokenModule - through to subordinate cpy's
@@ -1986,3 +1989,5 @@ https://github.com/wushujames/mysql-cdc-projects/wiki
 https://influxdata.com/blog/new-storage-engine-time-structured-merge-tree/
 http://www.vldb.org/pvldb/vol8/p1816-teller.pdf
 http://eatcodeplay.com/installing-gpu-enabled-tensorflow-with-python-3-4-in-ec2/
+
+https://github.com/rzwitserloot/lombok.patcher/blob/master/src/injector/lombok/patcher/inject/LiveInjector.java omg
