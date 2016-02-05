@@ -54,11 +54,17 @@ array        array   [1]
 map          object  {"a": 1}
 fixed        string  "\u00ff"
 
-** derived
+logicalType:
+decimal
+date
+time-millis
+time-micros
+timestamp-millis
+timestamp-micros
 */
 
 /*
-swagger | oapi | jsonschema | what the fuck ever:
+swagger | oapi:
 
 integer  integer int32     signed 32 bits
 long     integer int64     signed 64 bits
@@ -71,6 +77,28 @@ boolean  boolean
 date     string  date      As defined by full-date - RFC3339
 dateTime string  date-time As defined by date-time - RFC3339
 password string  password  Used to hint UIs the input needs to be obscured.
+
+?:
+array
+
+email
+file
+map
+object
+ref
+uuid
+*/
+
+/*
+jsonschema:
+
+array   A JSON array.
+boolean A JSON boolean.
+integer A JSON number without a fraction or exponent part.
+number  Any JSON number. Number includes integer.
+null    The JSON null value.
+object  A JSON object.
+string  A JSON string.
 */
 
     public static class AliasedName
