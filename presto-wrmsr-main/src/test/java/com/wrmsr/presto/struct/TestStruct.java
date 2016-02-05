@@ -40,6 +40,8 @@ public class TestStruct
 {
 
 /*
+avro:
+
 null         null    null
 boolean      boolean true
 int,long     integer 1
@@ -51,6 +53,24 @@ enum         string  "FOO"
 array        array   [1]
 map          object  {"a": 1}
 fixed        string  "\u00ff"
+
+** derived
+*/
+
+/*
+swagger | oapi | jsonschema | what the fuck ever:
+
+integer  integer int32     signed 32 bits
+long     integer int64     signed 64 bits
+float    number  float
+double   number  double
+string   string
+byte     string  byte      base64 encoded characters
+binary   string  binary    any sequence of octets
+boolean  boolean
+date     string  date      As defined by full-date - RFC3339
+dateTime string  date-time As defined by date-time - RFC3339
+password string  password  Used to hint UIs the input needs to be obscured.
 */
 
     public static class AliasedName
@@ -262,7 +282,6 @@ fixed        string  "\u00ff"
             checkArgument(position >= 0);
             checkState(!this.struct.isPresent());
             checkState(!this.position.isPresent());
-
             this.struct = Optional.of(struct);
             this.position = OptionalInt.of(position);
         }
