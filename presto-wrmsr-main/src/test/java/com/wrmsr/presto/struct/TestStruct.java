@@ -40,6 +40,13 @@ public class TestStruct
 {
 
 /*
+arbitrary imperative validation
+inheritance (sealing?)
+AnySetter
+defaults
+*/
+
+/*
 avro:
 
 null         null    null
