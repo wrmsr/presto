@@ -1,0 +1,105 @@
+/*
+arbitrary imperative validation
+inheritance (sealing?)
+AnySetter
+defaults
+populators
+coercions
+
+Codec classes:
+configurable failure, defaults? mixins?
+
+Validator classes?
+
+primary keys
+secondary keys
+clustering keys?
+partition keys?
+skewed by / on (hive)
+sorting?
+
+... are these properties of Collections (tables) of these structs?
+
+https://docs.aws.amazon.com/redshift/latest/dg/r_CREATE_TABLE_NEW.html
+*/
+
+/*
+avro:
+
+null         null    null
+boolean      boolean true
+int,long     integer 1
+float,double number  1.1
+bytes        string  "\u00FF"
+string       string  "foo"
+record       object  {"a": 1}
+enum         string  "FOO"
+array        array   [1]
+map          object  {"a": 1}
+fixed        string  "\u00ff"
+
+union - interface UnionDisambiguator?
+
+logicalType:
+decimal
+date
+time-millis
+time-micros
+timestamp-millis
+timestamp-micros
+*/
+
+/*
+swagger | oapi:
+
+integer  integer int32     signed 32 bits
+long     integer int64     signed 64 bits
+float    number  float
+double   number  double
+string   string
+byte     string  byte      base64 encoded characters
+binary   string  binary    any sequence of octets
+boolean  boolean
+date     string  date      As defined by full-date - RFC3339
+dateTime string  date-time As defined by date-time - RFC3339
+password string  password  Used to hint UIs the input needs to be obscured.
+
+?:
+array
+email
+file
+map
+object
+ref
+uuid
+*/
+
+/*
+jsonschema:
+
+array   A JSON array.
+boolean A JSON boolean.
+integer A JSON number without a fraction or exponent part.
+number  Any JSON number. Number includes integer.
+null    The JSON null value.
+object  A JSON object.
+string  A JSON string.
+*/
+
+***
+ @record() equiv... validations, defaults, ... coercions?
+
+ !!! possible antipattern: can you project through?
+  - if not then need to enhance inline validation
+
+ take kwargs? in parser for call as k => v
+
+ enums, instancemthods? $?
+
+ https://en.wikipedia.org/wiki/Eiffel_(programming_language)
+  -> https://en.wikipedia.org/wiki/Design_by_contract
+ https://avro.apache.org/docs/1.7.5/spec.html#schema_record
+ http://swagger.io/getting-started/ wow this page sucks
+ https://github.com/rzwitserloot/lombok
+ https://github.com/swagger-api/swagger-parser
+

@@ -9,23 +9,6 @@ TODO do what LauncherModule does if only to expose presto module instrumentation
 
 
 ***
- @record() equiv... validations, defaults, ... coercions?
-
- !!! possible antipattern: can you project through?
-  - if not then need to enhance inline validation
-
- take kwargs? in parser for call as k => v
-
- enums, instancemthods? $?
-
- https://en.wikipedia.org/wiki/Eiffel_(programming_language)
-  -> https://en.wikipedia.org/wiki/Design_by_contract
- https://avro.apache.org/docs/1.7.5/spec.html#schema_record
- http://swagger.io/getting-started/ wow this page sucks
- https://github.com/rzwitserloot/lombok
- https://github.com/swagger-api/swagger-parser
-
-***
  zipkin integration via TraceTokenModule - through to subordinate cpy's
 
 https://github.com/klbostee/feathers/blob/master/src/output/RawFileOutputFormat.java
