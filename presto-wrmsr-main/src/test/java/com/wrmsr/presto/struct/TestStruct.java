@@ -134,7 +134,7 @@ public class TestStruct
         public Struct addField(Field field)
         {
             requireNonNull(field);
-            field.getName().getLowerCase().forEach(n -> checkArgument(!fieldsByLowerCase.containsKey(n)));
+            field.getAliasedName().getLowerCase().forEach(n -> checkArgument(!fieldsByLowerCase.containsKey(n)));
             return this;
         }
 
@@ -157,22 +157,22 @@ public class TestStruct
 
     public static abstract class Field
     {
-        private final AliasedName name;
+        private final AliasedName aliasedName;
 
         private Optional<Struct> struct;
         private OptionalInt position;
 
-        public Field(AliasedName name)
+        public Field(AliasedName aliasedName)
         {
-            this.name = requireNonNull(name);
+            this.aliasedName = requireNonNull(aliasedName);
 
             struct = Optional.empty();
             position = OptionalInt.empty();
         }
 
-        public AliasedName getName()
+        public AliasedName getAliasedName()
         {
-            return name;
+            return aliasedName;
         }
 
         public int getPosition()
