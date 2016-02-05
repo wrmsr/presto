@@ -38,7 +38,6 @@ import static java.util.Objects.requireNonNull;
 
 public class TestStruct
 {
-
     public static class AliasedName
             implements Iterable<String>
     {

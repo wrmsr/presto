@@ -39,6 +39,13 @@ http://blog.startifact.com/posts/graphql-and-rest.html
 https://github.com/graphql-python/graphene > sqlalch
 
 
+
+https://github.com/druid-io/druid/tree/master/extensions/datasketches
+https://github.com/druid-io/druid/tree/master/extensions/graphite-emitter
+https://github.com/druid-io/druid/tree/master/extensions/histogram
+
+
+
 https://github.com/linkedin/gobblin
 
 
@@ -1974,3 +1981,4 @@ http://www.vldb.org/pvldb/vol8/p1816-teller.pdf
 http://eatcodeplay.com/installing-gpu-enabled-tensorflow-with-python-3-4-in-ec2/
 
 https://github.com/rzwitserloot/lombok.patcher/blob/master/src/injector/lombok/patcher/inject/LiveInjector.java omg
+
