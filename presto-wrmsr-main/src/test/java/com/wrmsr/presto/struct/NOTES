@@ -190,3 +190,8 @@ interface Struct
 final class BaseStruct
 final class ExtensionStruct
 final class OverridenStruct
+
+
+
+
+select mutate(point, :description => (x, y) -> format('(%s, %s)', x, y))
