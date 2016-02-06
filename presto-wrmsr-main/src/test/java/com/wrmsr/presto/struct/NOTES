@@ -163,6 +163,8 @@ clustered key
 
 
 
+interface Attribute
+
 
 FieldAttribute
 TypeAttribute
@@ -179,3 +181,12 @@ kwarg-mutators
 extensions - add Validation
 overrides - change default
 
+
+defaults are ConstructorAttributes
+Deserializers are Constructors
+
+
+interface Struct
+final class BaseStruct
+final class ExtensionStruct
+final class OverridenStruct
