@@ -1,5 +1,17 @@
 !!! presto tag 0.45 -> apache licensed TupleInfo layout
 
+:%s/Struct/Schema/g
+Store
+ AliasedName name
+ Schema schema
+
+FieldAttribute
+
+SchemaAttribute?
+
+constraints
+
+
 Constructor
 Validator
 Serializer
@@ -125,3 +137,24 @@ string  A JSON string.
  https://github.com/rzwitserloot/lombok
  https://github.com/swagger-api/swagger-parser
 
+
+TypeAttrinbutes?
+???
+
+FieldAttribtues:
+size
+precision
+accuracy
+locale
+not null
+validation
+default
+
+SchemaAttributes:
+validation
+population
+
+StoreAttributes:
+primary key
+secondary key
+clustered key
