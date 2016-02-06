@@ -26,6 +26,7 @@ inheritance (sealing?)
 AnySetter
 defaults
 populators
+ - determinism
 coercions
 
 Codec classes:
@@ -141,7 +142,7 @@ string  A JSON string.
 TypeAttrinbutes?
 ???
 
-FieldAttribtues:
+FieldAttributes:
 size
 precision
 accuracy
