@@ -24,6 +24,7 @@ java src ffi < - yes do this for youknowwhat
 jar native ffi (+ cfgable classpath)
 .. native native ffi via jnr/jffi
 https://www.py4j.org/
+https://blogs.oracle.com/sundararajan/entry/nashorn_javascript_access_to_python
 
 
 graphql connector binding:
@@ -44,7 +45,7 @@ https://github.com/druid-io/druid/tree/master/extensions/datasketches
 https://github.com/druid-io/druid/tree/master/extensions/graphite-emitter
 https://github.com/druid-io/druid/tree/master/extensions/histogram
 
-
+https://github.com/eiiches/jackson-jq
 
 https://github.com/linkedin/gobblin
 
@@ -1982,3 +1983,6 @@ http://eatcodeplay.com/installing-gpu-enabled-tensorflow-with-python-3-4-in-ec2/
 
 https://github.com/rzwitserloot/lombok.patcher/blob/master/src/injector/lombok/patcher/inject/LiveInjector.java omg
 
+http://www.databaseanswers.org/data_models/
+
+http://gitxiv.com/posts/tfkjEgw9x4KSi2GnH/long-short-term-memory-networks-for-machine-reading
