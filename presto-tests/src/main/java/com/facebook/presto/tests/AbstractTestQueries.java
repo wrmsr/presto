@@ -1519,6 +1519,26 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testJoinWithConstantPredicatePushDown()
+            throws Exception
+    {
+        assertQuery("" +
+                "SELECT\n" +
+                "  a.orderstatus\n" +
+                "  , a.clerk\n" +
+                "FROM (\n" +
+                "  SELECT DISTINCT orderstatus, clerk FROM orders\n" +
+                ") a\n" +
+                "INNER JOIN (\n" +
+                "  SELECT DISTINCT orderstatus, clerk FROM orders\n" +
+                ") b\n" +
+                "ON\n" +
+                "  a.orderstatus = b.orderstatus\n" +
+                "  and a.clerk = b.clerk\n" +
+                "where a.orderstatus = 'F'\n");
+    }
+
+    @Test
     public void testJoinUsing()
             throws Exception
     {
@@ -2381,6 +2401,19 @@ public abstract class AbstractTestQueries
 
         // argument in group by
         assertQuery("SELECT EXTRACT(YEAR FROM now()), count(*) FROM orders GROUP BY now()");
+    }
+
+    @Test
+    public void testGroupByNullConstant()
+            throws Exception
+    {
+        assertQuery("" +
+                "SELECT count(*)\n" +
+                "FROM (\n" +
+                "  SELECT cast(null as VARCHAR) constant, orderdate\n" +
+                "  FROM orders\n" +
+                ") a\n" +
+                "group by constant, orderdate\n");
     }
 
     @Test
@@ -4656,6 +4689,21 @@ public abstract class AbstractTestQueries
                 "WHERE orders.orderkey = orders.orderkey\n" +
                 "  AND lineitem.orderkey % 4 = 0\n" +
                 "  AND (lineitem.suppkey % 2 = orders.orderkey % 2 OR orders.orderkey IS NULL)");
+    }
+
+    @Test
+    public void testLeftJoinPredicatePushdownWithNullConstant()
+            throws Exception
+    {
+        assertQuery("" +
+                "SELECT count(*)\n" +
+                "FROM orders a\n" +
+                "LEFT OUTER JOIN orders b\n" +
+                "  ON a.clerk = b.clerk\n" +
+                "WHERE a.orderpriority='5-LOW'\n" +
+                "  AND b.orderpriority='1-URGENT'\n" +
+                "  AND b.clerk is null\n" +
+                "  AND a.orderkey % 4 = 0\n");
     }
 
     @Test
