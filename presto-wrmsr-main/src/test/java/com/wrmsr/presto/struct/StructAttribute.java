@@ -13,13 +13,11 @@
  */
 package com.wrmsr.presto.struct;
 
-import org.testng.annotations.Test;
-
-public class TestStruct
+public abstract class StructAttribute<A>
+        extends Attribute<A, Struct>
 {
-    @Test
-    public void test()
-            throws Throwable
+    public StructAttribute()
     {
+        super(Struct.class);
     }
 }

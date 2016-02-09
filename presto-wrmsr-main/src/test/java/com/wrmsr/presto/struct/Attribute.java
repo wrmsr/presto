@@ -13,13 +13,19 @@
  */
 package com.wrmsr.presto.struct;
 
-import org.testng.annotations.Test;
-
-public class TestStruct
+public abstract class Attribute<A extends Attribute<A, T>, T>
 {
-    @Test
-    public void test()
-            throws Throwable
+    protected final Class<T> targetClass;
+
+    public Attribute(Class<T> targetClass)
     {
+        this.targetClass = targetClass;
     }
+
+    public Class<T> getTargetClass()
+    {
+        return targetClass;
+    }
+
+    public abstract A merge(A other);
 }

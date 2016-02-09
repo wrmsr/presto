@@ -13,13 +13,16 @@
  */
 package com.wrmsr.presto.struct;
 
-import org.testng.annotations.Test;
-
-public class TestStruct
+public abstract class AttributeMap<M extends AttributeMap<M, A>, A extends Attribute>
+        extends ClassInstanceMap<A>
 {
-    @Test
-    public void test()
-            throws Throwable
+    public AttributeMap(Class<? extends A> cls)
     {
+        super(cls);
+    }
+
+    public M merge(M other)
+    {
+        throw new IllegalStateException(); // FIXME
     }
 }

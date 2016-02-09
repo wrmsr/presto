@@ -13,13 +13,26 @@
  */
 package com.wrmsr.presto.struct;
 
-import org.testng.annotations.Test;
+import static java.util.Objects.requireNonNull;
 
-public class TestStruct
+public abstract class Field
 {
-    @Test
-    public void test()
-            throws Throwable
+    private final AliasedName aliasedName;
+    private final Type type;
+
+    public Field(AliasedName aliasedName, Type type)
     {
+        this.aliasedName = requireNonNull(aliasedName);
+        this.type = requireNonNull(type);
+    }
+
+    public AliasedName getAliasedName()
+    {
+        return aliasedName;
+    }
+
+    public Type getType()
+    {
+        return type;
     }
 }

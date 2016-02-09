@@ -13,13 +13,12 @@
  */
 package com.wrmsr.presto.struct;
 
-import org.testng.annotations.Test;
-
-public class TestStruct
+public final class NotNullAttribute
+        extends FieldAttribute<NotNullAttribute>
 {
-    @Test
-    public void test()
-            throws Throwable
+    @Override
+    public NotNullAttribute merge(NotNullAttribute other)
     {
+        return this;
     }
 }

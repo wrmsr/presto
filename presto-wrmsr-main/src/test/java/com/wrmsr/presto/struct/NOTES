@@ -1,3 +1,4 @@
+Table<
 !!! presto tag 0.45 -> apache licensed TupleInfo layout
 
 :%s/Struct/Schema/g
@@ -148,8 +149,8 @@ precision
 accuracy
 locale
 not null
-validation
-default - exclusive
+(check) validation
+default - exclusive? c3?
 
 SchemaAttributes:
 validation

@@ -13,13 +13,24 @@
  */
 package com.wrmsr.presto.struct;
 
-import org.testng.annotations.Test;
-
-public class TestStruct
+public final class FieldContext
 {
-    @Test
-    public void test()
-            throws Throwable
+    private final Struct struct;
+    private final int position;
+
+    public FieldContext(int position, Struct struct)
     {
+        this.position = position;
+        this.struct = struct;
+    }
+
+    public Struct getStruct()
+    {
+        return struct;
+    }
+
+    public int getPosition()
+    {
+        return position;
     }
 }

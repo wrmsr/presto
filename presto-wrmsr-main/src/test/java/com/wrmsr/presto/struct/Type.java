@@ -13,13 +13,6 @@
  */
 package com.wrmsr.presto.struct;
 
-import org.testng.annotations.Test;
-
-public class TestStruct
+public abstract class Type
 {
-    @Test
-    public void test()
-            throws Throwable
-    {
-    }
 }
