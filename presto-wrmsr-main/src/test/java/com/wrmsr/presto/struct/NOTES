@@ -199,3 +199,23 @@ final class OverridenStruct
 
 
 select mutate(point, :description => (x, y) -> format('(%s, %s)', x, y))
+
+
+
+
+structs immut -> lenses
+Overrides are nonsense? Cant change types or fields, only ctor stuff
+type Ann (nullability) v field Ann (validation)
+
+
+atts interfaces, visit fn compile safe by erasure?
+StructCheckA extends CheckA
+Min/Max are Checks? no, convey additional info, checks are blackboxes
+ fqcn static methods
+ parameterized scalar sql
+ …. named?
+Stats are atts
+att merge mro, defaults? c3?
+ensure min/max on numeric
+ visit + validate?
+
