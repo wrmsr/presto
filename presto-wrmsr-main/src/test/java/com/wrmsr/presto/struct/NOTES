@@ -187,6 +187,8 @@ overrides - change default
 
 
 defaults are ConstructorAttributes
+ - nullary vs parameterized
+ - oh parameterized are sql2003 GENERATED
 Deserializers are Constructors
 
 
