@@ -1,3 +1,6 @@
+http://www.wiscorp.com/sql_2003_standard.zip
+
+
 com.facebook.presto.operator.PagesIndex
 
 http://druid.io/docs/0.8.3/design/index.html
@@ -49,7 +52,6 @@ https://github.com/eiiches/jackson-jq
 also look at sql2003 xml shit
 
 https://github.com/linkedin/gobblin
-
 
 https://github.com/apache/bookkeeper
 
@@ -2009,4 +2011,20 @@ http://swagger.io/specification/
 https://github.com/swagger-api/swagger-parser
 https://hamidreza-s.github.io/erlang/scheduling/real-time/preemptive/migration/2016/02/09/erlang-scheduler-details.html
 https://cloud.google.com/dataflow/blog/dataflow-beam-and-spark-comparison
+
+
+
+http://www.sigmod.org/publications/sigmod-record/0209/jimmelton.pdf dude what
+
+Example 5 — Creating a routine mapping
+CREATE ROUTINE MAPPING FN1_AT_FS1
+ FOR SCH.FUN1(VARCHAR, INTEGER)
+ SERVER FS1
+ OPTIONS (REMOTE_NAME 'FN1',
+ REMOTE_SCHEMA 'TEST')
+Example 6 illustrates the use of a mapped function:
+Example 6 — Using routine mappings
+SELECT resume
+FROM EMP
+WHERE fun1(name, city_id) = 100;
 
