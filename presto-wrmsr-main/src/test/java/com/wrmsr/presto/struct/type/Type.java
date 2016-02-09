@@ -11,13 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.struct;
+package com.wrmsr.presto.struct.type;
 
-public abstract class StructAttribute<A extends StructAttribute<A>>
-        extends Attribute<A, Struct>
+public class Type
 {
-    public StructAttribute()
-    {
-        super(Struct.class);
-    }
 }

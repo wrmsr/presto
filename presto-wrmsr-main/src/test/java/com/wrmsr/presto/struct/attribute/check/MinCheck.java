@@ -11,13 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.struct;
+package com.wrmsr.presto.struct.attribute.check;
 
-public final class StructAttributeMap
-        extends AttributeMap<StructAttributeMap, StructAttribute>
+public class MinCheck
 {
-    public StructAttributeMap()
-    {
-        super(StructAttribute.class);
-    }
 }

@@ -11,8 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.struct;
+package com.wrmsr.presto.struct.attribute.check;
 
-public abstract class Type
+public class MethodCheck
 {
 }

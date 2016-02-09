@@ -11,13 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.struct;
+package com.wrmsr.presto.struct.attribute;
 
-public final class FieldAttributeMap
-        extends AttributeMap<FieldAttributeMap, FieldAttribute>
+public class CoerceAttribute
 {
-    public FieldAttributeMap()
-    {
-        super(FieldAttribute.class);
-    }
 }

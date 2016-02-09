@@ -193,7 +193,7 @@ Deserializers are Constructors
 interface Struct
 final class BaseStruct
 final class ExtensionStruct
-final class OverridenStruct
+final class OverriddenStruct
 
 
 
@@ -222,3 +222,40 @@ ensure min/max on numeric
 
 https://docs.oracle.com/javaee/6/api/javax/validation/constraints/package-summary.html
 https://github.com/dropwizard/dropwizard/tree/master/dropwizard-validation/src/main/java/io/dropwizard/validation
+
+
+multi-field defaults?
+
+
+check vs coerce?
+ TruncateCoercion
+
+
+valuehandling
+BaseValidator.java
+ConstraintViolations.java
+DurationRange.java
+MaxDuration.java
+MaxDurationValidator.java
+MaxSize.java
+MaxSizeValidator.java
+MethodValidator.java
+MinDuration.java
+MinDurationValidator.java
+MinSize.java
+MinSizeValidator.java
+OneOf.java
+OneOfValidator.java
+PortRange.java
+PortRangeValidator.java
+SizeRange.java
+Validated.java
+ValidationMethod.java
+
+regex check
+must be null check
+
+
+interface Attribute {
+    Optional<Field> getField();
+}

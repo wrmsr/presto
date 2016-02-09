@@ -11,13 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.struct;
+package com.wrmsr.presto.struct.type;
 
-public abstract class FieldAttribute<A extends FieldAttribute<A>>
-        extends Attribute<A, Field>
+public class ArrayType
 {
-    public FieldAttribute()
-    {
-        super(Field.class);
-    }
 }

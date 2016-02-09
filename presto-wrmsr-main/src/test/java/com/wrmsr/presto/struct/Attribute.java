@@ -13,19 +13,14 @@
  */
 package com.wrmsr.presto.struct;
 
-public abstract class Attribute<A extends Attribute<A, T>, T>
+import com.wrmsr.presto.util.Mergeable;
+
+import java.util.Optional;
+
+public interface Attribute<A extends Attribute<A>>
+        extends Mergeable<A>
 {
-    protected final Class<T> targetClass;
+    Optional<Field> getField();
 
-    public Attribute(Class<T> targetClass)
-    {
-        this.targetClass = targetClass;
-    }
-
-    public Class<T> getTargetClass()
-    {
-        return targetClass;
-    }
-
-    public abstract A merge(A other);
+    void validate(Struct struct);
 }

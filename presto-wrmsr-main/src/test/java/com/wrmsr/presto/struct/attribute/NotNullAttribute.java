@@ -11,21 +11,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.struct;
+package com.wrmsr.presto.struct.attribute;
 
-import com.wrmsr.presto.util.Mergeable;
+import com.wrmsr.presto.struct.FieldAttribute;
 
-public abstract class AttributeMap<M extends AttributeMap<M, A>, A extends Attribute>
-        extends ClassInstanceMap<A>
-        implements Mergeable<M>
+public final class NotNullAttribute
+        extends FieldAttribute<NotNullAttribute>
 {
-    public AttributeMap(Class<? extends A> cls)
+    @Override
+    public NotNullAttribute merge(NotNullAttribute other)
     {
-        super(cls);
-    }
-
-    public M merge(M other)
-    {
-        throw new IllegalStateException(); // FIXME
+        return this;
     }
 }
