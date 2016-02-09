@@ -1,4 +1,7 @@
-Table<
+Table<> ?
+see lucene analysis atts
+scalar ctors = deserialization (from shitty dicts or whatever)
+
 !!! presto tag 0.45 -> apache licensed TupleInfo layout
 
 :%s/Struct/Schema/g
