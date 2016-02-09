@@ -219,3 +219,6 @@ att merge mro, defaults? c3?
 ensure min/max on numeric
  visit + validate?
 
+
+https://docs.oracle.com/javaee/6/api/javax/validation/constraints/package-summary.html
+https://github.com/dropwizard/dropwizard/tree/master/dropwizard-validation/src/main/java/io/dropwizard/validation
