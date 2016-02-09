@@ -13,7 +13,7 @@
  */
 package com.wrmsr.presto.struct;
 
-public abstract class StructAttribute<A>
+public abstract class StructAttribute<A extends StructAttribute<A>>
         extends Attribute<A, Struct>
 {
     public StructAttribute()

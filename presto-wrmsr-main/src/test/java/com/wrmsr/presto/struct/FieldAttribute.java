@@ -13,7 +13,7 @@
  */
 package com.wrmsr.presto.struct;
 
-public abstract class FieldAttribute<A>
+public abstract class FieldAttribute<A extends FieldAttribute<A>>
         extends Attribute<A, Field>
 {
     public FieldAttribute()
