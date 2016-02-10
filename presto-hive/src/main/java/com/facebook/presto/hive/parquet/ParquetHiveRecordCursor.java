@@ -717,7 +717,11 @@ public class ParquetHiveRecordCursor
             checkArgument(ROW.equals(prestoType.getTypeSignature().getBase()));
             List<Type> prestoTypeParameters = prestoType.getTypeParameters();
             List<parquet.schema.Type> fieldTypes = entryType.getFields();
-            checkArgument(prestoTypeParameters.size() == fieldTypes.size());
+            checkArgument(prestoTypeParameters.size() == fieldTypes.size(),
+                            "Schema mismatch, metastore schema for row column %s has %s fields but parquet schema has %s fields",
+                            columnName,
+                            prestoTypeParameters.size(),
+                            fieldTypes.size());
 
             this.rowType = prestoType;
             this.fieldIndex = fieldIndex;
@@ -1137,6 +1141,11 @@ public class ParquetHiveRecordCursor
         {
             keyConverter.afterValue();
             valueConverter.afterValue();
+            // handle the case where we have a key, but the value is null
+            // null keys are not supported anyway, so we can ignore that case here
+            if (builder.getPositionCount() < 2) {
+                builder.appendNull();
+            }
         }
 
         @Override
