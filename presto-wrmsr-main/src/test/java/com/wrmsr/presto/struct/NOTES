@@ -261,3 +261,17 @@ must be null check
 interface Attribute {
     Optional<Field> getField();
 }
+
+
+
+@NonNull vs @Nullable vs union<T, null> :|
+type-specific checks>
+
+http://whiley.org/
+http://whiley.org/guide/data-types/
+http://whiley.org/download/WhileyCheatSheet.pdf
+
+https://docs.oracle.com/cd/E26161_02/html/GettingStartedGuide/schemaevolution.html
+https://blog.twitter.com/2013/dremel-made-simple-with-parquet
+https://github.com/Parquet/parquet-mr/wiki/The-striping-and-assembly-algorithms-from-the-Dremel-paper
+https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/36632.pdf
