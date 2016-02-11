@@ -29,6 +29,8 @@ jar native ffi (+ cfgable classpath)
 https://www.py4j.org/
 https://blogs.oracle.com/sundararajan/entry/nashorn_javascript_access_to_python
 lololol pickled funcs like ibis
+ibis -> "unified columnar interchange" -> batched sharedmem ffi
+http://www.slideshare.net/wesm/ibis-scaling-python-analytics-on-hadoop-and-impala
 
 
 graphql connector binding:
