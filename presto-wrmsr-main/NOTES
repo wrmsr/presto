@@ -28,6 +28,7 @@ jar native ffi (+ cfgable classpath)
 .. native native ffi via jnr/jffi
 https://www.py4j.org/
 https://blogs.oracle.com/sundararajan/entry/nashorn_javascript_access_to_python
+lololol pickled funcs like ibis
 
 
 graphql connector binding:
