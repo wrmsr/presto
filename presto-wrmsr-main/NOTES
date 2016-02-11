@@ -2117,6 +2117,8 @@ http://www.jamesserra.com/archive/2012/03/data-warehouse-architecture-kimball-an
 
 
 https://github.com/clojure/tools.nrepl
+https://github.com/clojure/tools.nrepl#embedding-nrepl-starting-a-server
+
 https://github.com/clojure/core.typed
 https://github.com/clojure/core.typed/wiki
 https://github.com/clojure/core.typed/wiki/Types#type-grammar
