@@ -13,6 +13,8 @@
  */
 package com.wrmsr.presto.struct;
 
+import com.wrmsr.presto.struct.type.Type;
+
 import static java.util.Objects.requireNonNull;
 
 public abstract class Field

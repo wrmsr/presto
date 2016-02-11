@@ -2028,3 +2028,63 @@ SELECT resume
 FROM EMP
 WHERE fun1(name, city_id) = 100;
 
+
+
+https://www.youtube.com/watch?v=ybGrm73dXow
+https://www.socallinuxexpo.org/sites/default/files/presentations/SCALE%2014x-%20Swagger.pdf
+https://docs.oracle.com/cd/E26161_02/html/GettingStartedGuide/schemaevolution.html
+http://blog.jooq.org/tag/union-types/
+
+http://docs.scala-lang.org/tutorials/tour/variances.html
+http://www.scala-lang.org/files/archive/spec/2.11/03-types.html
+https://www.cs.cornell.edu/~ross/publications/mixedsite/mixedsite-tate-fool13.pdf
+https://stackoverflow.com/questions/8736164/what-are-type-lambdas-in-scala-and-what-are-their-benefits
+https://stackoverflow.com/questions/4069840/lambda-for-type-expressions-in-haskell
+https://hackage.haskell.org/package/TypeCompose-0.6.3/docs/Control-Compose.html#t:Flip
+https://hackage.haskell.org/package/category-extras-0.53.5/docs/Control-Functor.html#t:Bifunctor
+https://stackoverflow.com/questions/21649512/coerce-phantom-type?lq=1
+https://wiki.haskell.org/Tying_the_Knot
+http://eed3si9n.com/learning-scalaz/Lens.html
+https://wiki.haskell.org/Phantom_type
+https://wiki.haskell.org/Type_SK
+https://github.com/Frege/frege https://github.com/Frege/frege
+https://haskell-distributed.github.io/ :[
+https://www.quora.com/Automatic-Parallelization-What-are-the-latest-developments-in-the-field-of-compilers-to-automatically-parallelize-sequential-programs
+http://chimera.labs.oreilly.com/books/1230000000929/pt01.html
+https://stackoverflow.com/questions/4701207/current-status-of-automatic-parallelism-in-haskell
+http://research.microsoft.com/en-us/um/people/simonpj/papers/parallel/multicore-ghc.pdf
+ - ALL EFFECTS ARE IO.
+http://haskell.cs.yale.edu/wp-content/uploads/2013/08/hask035-voellmy.pdf
+http://doc.pypy.org/en/latest/stm.html
+https://www.haskell.org/definition/haskell2010.pdf
+https://wiki.haskell.org/Syntactic_sugar/Cons
+https://mth.github.io/yeti/
+https://github.com/avsm/ocaml-lens
+https://github.com/m4dc4p/haskelldb/blob/master/src/Database/HaskellDB.hs
+https://code.facebook.com/posts/302060973291128/open-sourcing-haxl-a-library-for-haskell/
+https://www.schoolofhaskell.com/user/konn/prove-your-haskell-for-great-safety/dependent-types-in-haskell
+https://wiki.haskell.org/Dependent_type
+https://ghc.haskell.org/trac/ghc/wiki/DependentHaskell
+https://github.com/jgm/pandoc/blob/master/src/Text/Pandoc/Writers/Markdown.hs
+https://www.youtube.com/watch?v=r_Enynu_TV0
+https://www.quora.com/If-Raft-is-as-good-as-the-papers-claim-why-do-Zookeeper-and-others-implement-other-consensus-algorithms-Why-not-use-Raft
+https://wiki.haskell.org/GHC/Using_the_FFI
+http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.13.8726&rep=rep1&type=pdf
+
+http://aosabook.org/en/posa/working-with-big-data-in-bioinformatics.html
+http://aosabook.org/en/ghc.html
+http://aosabook.org/en/yesod.html
+http://aosabook.org/en/llvm.html
+http://aosabook.org/en/cmake.html
+http://aosabook.org/en/hdfs.html
+http://aosabook.org/en/riak.html
+http://c2.com/cgi/wiki?HaskellDb
+http://thoughts.davisjeff.com/2011/09/25/sql-the-successful-cousin-of-haskell/
+https://hackage.haskell.org/package/relational-query
+http://llvm.org/pubs/2010-03-GPGPU-ModelingGPGPU.pdf
+http://muldis.com/Muldis_D.html
+https://github.com/muldis/Muldis-D
+https://msdn.microsoft.com/en-us/library/w2kae45k(v=vs.90).aspx
+https://www.cs.cornell.edu/~ross/publications/mixedsite/mixedsite-tate-fool13.pdf
+
+

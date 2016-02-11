@@ -13,11 +13,27 @@
  */
 package com.wrmsr.presto.struct.attribute;
 
-import com.wrmsr.presto.struct.FieldAttribute;
+import com.wrmsr.presto.struct.Attribute;
+import com.wrmsr.presto.struct.Field;
+import com.wrmsr.presto.struct.Struct;
+
+import java.util.Optional;
 
 public final class NotNullAttribute
-        extends FieldAttribute<NotNullAttribute>
+        implements Attribute<NotNullAttribute>
 {
+    @Override
+    public Optional<Field> getField()
+    {
+        return null;
+    }
+
+    @Override
+    public void validate(Struct struct)
+    {
+
+    }
+
     @Override
     public NotNullAttribute merge(NotNullAttribute other)
     {
