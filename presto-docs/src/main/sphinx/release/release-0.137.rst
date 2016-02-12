@@ -8,7 +8,11 @@ General Changes
 * Add :func:`bit_count`, :func:`bitwise_not`, :func:`bitwise_and`,
   :func:`bitwise_or`, and :func:`bitwise_xor` functions.
 * Add :func:`approx_distinct` aggregation support for ``VARBINARY`` input.
+* Fix ``current_date`` to return correct results for all time zones.
 * Improve expression optimizer to remove some redundant operations.
+* Allow using double input for :func:`approx_percentile` with an array of
+  percentiles.
+* Do not allow creating views with a column type of ``UNKNOWN``.
 
 Hive Changes
 ------------
