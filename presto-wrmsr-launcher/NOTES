@@ -408,3 +408,8 @@ int main(int argc, const char * argv[])
 }
 
 
+
+
+http://juel.sourceforge.net/guide/start.html
+ - add env vars
+http://juel.sourceforge.net/guide/advanced/index.html
