@@ -290,3 +290,4 @@ https://github.com/reynir/Verified
 https://github.com/idris-hackers/idris-lens/blob/master/Lens.idr
 oh man. scalar udfs declare lensed fields as param / return types (cuz black boxes -> cant deduce accesses).
 http://blog.ezyang.com/2013/09/if-youre-using-lift-youre-doing-it-wrong-probably/
+oh fuck higher order udfs
