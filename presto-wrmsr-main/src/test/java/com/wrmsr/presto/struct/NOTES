@@ -283,3 +283,9 @@ https://github.com/ziman/lightyear
 https://github.com/david-christiansen/idris-type-providers
 https://github.com/david-christiansen/IdrisSqlite
 https://github.com/reynir/Verified
+
+
+
+
+https://github.com/idris-hackers/idris-lens/blob/master/Lens.idr
+oh man. scalar udfs declare lensed fields as param / return types (cuz black boxes -> cant deduce accesses).
