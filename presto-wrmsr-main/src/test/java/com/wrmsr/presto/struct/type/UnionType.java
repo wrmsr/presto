@@ -13,6 +13,22 @@
  */
 package com.wrmsr.presto.struct.type;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
+
 public class UnionType
+    extends Type
 {
+    private final List<Type> types;
+
+    public UnionType(List<Type> types)
+    {
+        this.types = ImmutableList.copyOf(types);
+    }
+
+    public List<Type> getTypes()
+    {
+        return types;
+    }
 }

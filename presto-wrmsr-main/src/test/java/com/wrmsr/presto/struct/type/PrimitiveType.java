@@ -14,5 +14,6 @@
 package com.wrmsr.presto.struct.type;
 
 public class PrimitiveType
+    extends Type
 {
 }

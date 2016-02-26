@@ -13,6 +13,27 @@
  */
 package com.wrmsr.presto.struct.type;
 
+import static java.util.Objects.requireNonNull;
+
 public class MapType
+    extends Type
 {
+    private final Type keyType;
+    private final Type valueType;
+
+    public MapType(Type keyType, Type valueType)
+    {
+        this.keyType = requireNonNull(keyType);
+        this.valueType = requireNonNull(valueType);
+    }
+
+    public Type getKeyType()
+    {
+        return keyType;
+    }
+
+    public Type getValueType()
+    {
+        return valueType;
+    }
 }

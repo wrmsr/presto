@@ -53,6 +53,16 @@ public final class AliasedName
         this(name, ImmutableSet.copyOf(Arrays.asList(aliases)));
     }
 
+    public static AliasedName of(String name, String... aliases)
+    {
+        return new AliasedName(name, aliases);
+    }
+
+    public static AliasedName of(String name, Set<String> aliases)
+    {
+        return new AliasedName(name, aliases);
+    }
+
     public String getName()
     {
         return name;

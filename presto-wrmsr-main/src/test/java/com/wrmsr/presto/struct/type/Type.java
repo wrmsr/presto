@@ -13,6 +13,6 @@
  */
 package com.wrmsr.presto.struct.type;
 
-public class Type
+public abstract class Type
 {
 }

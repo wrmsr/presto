@@ -13,6 +13,20 @@
  */
 package com.wrmsr.presto.struct.type;
 
+import static java.util.Objects.requireNonNull;
+
 public class StructType
+    extends Type
 {
+    private final String name;
+
+    public StructType(String name)
+    {
+        this.name = requireNonNull(name);
+    }
+
+    public String getName()
+    {
+        return name;
+    }
 }

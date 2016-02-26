@@ -13,19 +13,22 @@
  */
 package com.wrmsr.presto.struct.type;
 
-import static java.util.Objects.requireNonNull;
+import com.google.common.collect.ImmutableList;
 
-public class ArrayType
+import java.util.List;
+
+public class EnumType
+    extends Type
 {
-    private final Type elementType;
+    private final List<Object> values;
 
-    public ArrayType(Type elementType)
+    public EnumType(List<Object> values)
     {
-        this.elementType = requireNonNull(elementType);
+        this.values = ImmutableList.copyOf(values);
     }
 
-    public Type getElementType()
+    public List<Object> getValues()
     {
-        return elementType;
+        return values;
     }
 }
