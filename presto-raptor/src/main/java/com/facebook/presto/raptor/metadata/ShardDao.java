@@ -127,6 +127,9 @@ public interface ShardDao
             @Bind("transactionId") long transactionId,
             @Bind("successful") boolean successful);
 
+    @SqlQuery("SELECT successful FROM transactions WHERE transaction_id = :transactionId")
+    Boolean transactionSuccessful(@Bind("transactionId") long transactionId);
+
     @SqlUpdate("UPDATE transactions SET\n" +
             "  successful = FALSE\n" +
             ", end_time = CURRENT_TIMESTAMP\n" +
@@ -206,10 +209,9 @@ public interface ShardDao
 
     @SqlQuery("SELECT shard_uuid\n" +
             "FROM deleted_shards\n" +
-            "WHERE delete_time < :maxDeleteTime\n" +
-            "  AND purge_time IS NULL\n" +
+            "WHERE clean_time < :maxCleanTime\n" +
             "LIMIT 1000")
-    List<UUID> getPurgableShardsBatch(@Bind("maxDeleteTime") Timestamp maxDeleteTime);
+    List<UUID> getPurgableShardsBatch(@Bind("maxCleanTime") Timestamp maxCleanTime);
 
     @SqlQuery("SELECT shard_uuid\n" +
             "FROM deleted_shard_nodes d\n" +
@@ -226,22 +228,20 @@ public interface ShardDao
             "FROM deleted_shard_nodes d\n" +
             "JOIN nodes n ON (d.node_id = n.node_id)\n" +
             "WHERE n.node_identifier = :nodeIdentifier\n" +
-            "  AND d.delete_time < :maxDeleteTime\n" +
-            "  AND d.purge_time IS NULL\n" +
+            "  AND d.clean_time < :maxCleanTime\n" +
             "LIMIT 1000")
     List<UUID> getPurgableShardNodesBatch(
             @Bind("nodeIdentifier") String nodeIdentifier,
-            @Bind("maxDeleteTime") Timestamp maxDeleteTime);
+            @Bind("maxCleanTime") Timestamp maxCleanTime);
 
     @SqlBatch("UPDATE deleted_shards SET clean_time = CURRENT_TIMESTAMP\n" +
             "WHERE shard_uuid = :shardUuid\n" +
             "  AND clean_time IS NULL\n")
     void updateCleanedShards(@Bind("shardUuid") Iterable<UUID> shardUuids);
 
-    @SqlBatch("UPDATE deleted_shards SET purge_time = CURRENT_TIMESTAMP\n" +
-            "WHERE shard_uuid = :shardUuid\n" +
-            "  AND purge_time IS NULL\n")
-    void updatePurgedShards(@Bind("shardUuid") Iterable<UUID> shardUuids);
+    @SqlBatch("DELETE FROM deleted_shards\n" +
+            "WHERE shard_uuid = :shardUuid")
+    void deletePurgedShards(@Bind("shardUuid") Iterable<UUID> shardUuids);
 
     @SqlBatch("UPDATE deleted_shard_nodes SET clean_time = CURRENT_TIMESTAMP\n" +
             "WHERE shard_uuid = :shardUuid\n" +
@@ -251,11 +251,10 @@ public interface ShardDao
             @Bind("shardUuid") Iterable<UUID> shardUuids,
             @Bind("nodeId") int nodeId);
 
-    @SqlBatch("UPDATE deleted_shard_nodes SET purge_time = CURRENT_TIMESTAMP\n" +
+    @SqlBatch("DELETE FROM deleted_shard_nodes\n" +
             "WHERE shard_uuid = :shardUuid\n" +
-            "  AND node_id = :nodeId\n" +
-            "  AND purge_time IS NULL\n")
-    void updatePurgedShardNodes(
+            "  AND node_id = :nodeId")
+    void deletePurgedShardNodes(
             @Bind("shardUuid") Iterable<UUID> shardUuids,
             @Bind("nodeId") int nodeId);
 
