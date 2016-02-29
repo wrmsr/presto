@@ -53,7 +53,7 @@ public class LocalFileMetadata
         implements ConnectorMetadata
 {
     public static final String PRESTO_LOGS_SCHEMA = "logs";
-    public static final ColumnMetadata SERVER_ADDRESS_COLUMN = new ColumnMetadata("server_address", VarcharType.VARCHAR, false);
+    public static final ColumnMetadata SERVER_ADDRESS_COLUMN = new ColumnMetadata("server_address", VarcharType.VARCHAR, null, false);
     private static final List<String> SCHEMA_NAMES = ImmutableList.of(PRESTO_LOGS_SCHEMA);
 
     private final LocalFileConnectorId connectorId;

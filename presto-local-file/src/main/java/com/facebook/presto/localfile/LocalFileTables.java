@@ -31,17 +31,17 @@ public class LocalFileTables
     {
         private static final List<ColumnMetadata> COLUMNS = ImmutableList.of(
                 SERVER_ADDRESS_COLUMN,
-                new ColumnMetadata("timestamp", TIMESTAMP, false),
-                new ColumnMetadata("client_address", VARCHAR, false),
-                new ColumnMetadata("method", VARCHAR, false),
-                new ColumnMetadata("request_uri", VARCHAR, false),
-                new ColumnMetadata("user", VARCHAR, false),
-                new ColumnMetadata("agent", VARCHAR, false),
-                new ColumnMetadata("response_code", BIGINT, false),
-                new ColumnMetadata("request_size", BIGINT, false),
-                new ColumnMetadata("response_size", BIGINT, false),
-                new ColumnMetadata("time_to_last_byte", BIGINT, false),
-                new ColumnMetadata("trace_token", VARCHAR, false));
+                new ColumnMetadata("timestamp", TIMESTAMP),
+                new ColumnMetadata("client_address", VARCHAR),
+                new ColumnMetadata("method", VARCHAR),
+                new ColumnMetadata("request_uri", VARCHAR),
+                new ColumnMetadata("user", VARCHAR),
+                new ColumnMetadata("agent", VARCHAR),
+                new ColumnMetadata("response_code", BIGINT),
+                new ColumnMetadata("request_size", BIGINT),
+                new ColumnMetadata("response_size", BIGINT),
+                new ColumnMetadata("time_to_last_byte", BIGINT),
+                new ColumnMetadata("trace_token", VARCHAR));
 
         private static final String TABLE_NAME = "http_request_log";
 

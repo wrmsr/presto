@@ -71,7 +71,7 @@ public class LocalFileColumnHandle
 
     public ColumnMetadata getColumnMetadata()
     {
-        return new ColumnMetadata(columnName, columnType, false);
+        return new ColumnMetadata(columnName, columnType);
     }
 
     @Override
