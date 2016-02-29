@@ -134,7 +134,7 @@ public class TestKv
                 session,
                 new ConnectorTableMetadata(
                         new SchemaTableName("example", "foo"),
-                        ImmutableList.of(new ColumnMetadata("text", VARCHAR, false)),
+                        ImmutableList.of(new ColumnMetadata("text", VARCHAR)),
                         ImmutableMap.of(),
                         "bob"),
                 Optional.empty());

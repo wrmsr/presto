@@ -64,7 +64,6 @@ public class PartitionerMetadata
         return new ColumnMetadata(
                 metadata.getName(),
                 metadata.getType(),
-                true,
                 metadata.getComment(),
                 metadata.isHidden()
         );
