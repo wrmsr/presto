@@ -23,12 +23,12 @@ import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.spi.type.VarcharType;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import io.airlift.log.Logger;
 import io.airlift.slice.Slice;
 import org.joda.time.chrono.ISOChronology;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -58,7 +58,7 @@ public class JdbcRecordCursor
     protected final JdbcClient jdbcClient;
     protected final JdbcSplit split;
     protected Connection connection;
-    protected Statement statement;
+    protected PreparedStatement statement;
     protected ResultSet resultSet;
     protected boolean closed;
 
@@ -67,8 +67,6 @@ public class JdbcRecordCursor
         this.jdbcClient = jdbcClient;
         this.split = split;
         this.columnHandles = new ArrayList<>(requireNonNull(columnHandles, "columnHandles is null"));
-
-        String sql = jdbcClient.buildSql(split, columnHandles);
 
         try {
             connection = jdbcClient.getConnection(split);
@@ -82,12 +80,11 @@ public class JdbcRecordCursor
     protected void begin()
     {
         try {
-            String sql = jdbcClient.buildSql(split, columnHandles);
-            statement = jdbcClient.getStatement(connection);
+            statement = jdbcClient.buildSql(split, columnHandles);
             statement.setFetchSize(1000);
 
-            log.debug("Executing: %s", sql);
-            resultSet = statement.executeQuery(sql);
+            log.debug("Executing: %s", statement.toString());
+            resultSet = statement.executeQuery();
         }
         catch (SQLException e) {
             throw handleSqlException(e);
