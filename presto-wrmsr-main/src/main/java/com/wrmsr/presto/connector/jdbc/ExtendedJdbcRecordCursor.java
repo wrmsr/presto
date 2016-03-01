@@ -136,7 +136,7 @@ public class ExtendedJdbcRecordCursor
                     split.getConnectionProperties(),
                     chunkTupleDomain);
 
-            StringBuilder sql = new StringBuilder(jdbcClient.buildSql(chunkSplit, columnHandles));
+            StringBuilder sql = new StringBuilder(jdbcClient.buildSql(chunkSplit, columnHandles).toString());
             sql.append(" ORDER BY ");
             Joiner.on(", ").appendTo(sql, clusteredColumnNames.stream().map(c -> quote(c) + " ASC").collect(Collectors.toList()));
             sql.append(" LIMIT ");

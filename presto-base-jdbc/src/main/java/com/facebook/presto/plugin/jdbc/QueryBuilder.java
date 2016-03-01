@@ -29,6 +29,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -68,7 +70,25 @@ public class QueryBuilder
         this.quote = requireNonNull(quote, "quote is null");
     }
 
+    public static final class Ordering
+    {
+        private final JdbcColumnHandle column;
+        private final boolean asc;
+
+        public Ordering(JdbcColumnHandle column, boolean asc)
+        {
+            this.column = column;
+            this.asc = asc;
+        }
+    }
+
     public PreparedStatement buildSql(Connection connection, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain)
+            throws SQLException
+    {
+        return buildSql(connection, catalog, schema, table, columns, tupleDomain, ImmutableList.of(), Optional.empty());
+    }
+
+    public PreparedStatement buildSql(Connection connection, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain, List<Ordering> ordering, Optional<Long> limit)
             throws SQLException
     {
         StringBuilder sql = new StringBuilder();
@@ -94,6 +114,16 @@ public class QueryBuilder
         if (!clauses.isEmpty()) {
             sql.append(" WHERE ")
                     .append(Joiner.on(" AND ").join(clauses));
+        }
+
+        if (!ordering.isEmpty()) {
+            sql.append(" ORDER BY ");
+            Joiner.on(", ").appendTo(sql, ordering.stream().map(o -> quote(o.column.getColumnName()) + " " + (o.asc ? "ASC" : "DESC")).collect(Collectors.toList()));
+        }
+
+        if (limit.isPresent()) {
+            sql.append(" LIMIT ");
+            sql.append(limit.get());
         }
 
         PreparedStatement statement = connection.prepareStatement(sql.toString());

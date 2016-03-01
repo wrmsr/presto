@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -274,7 +275,7 @@ public class BaseJdbcClient
     }
 
     @Override
-    public PreparedStatement buildSql(JdbcSplit split, List<JdbcColumnHandle> columnHandles)
+    public PreparedStatement buildSql(JdbcSplit split, List<JdbcColumnHandle> columnHandles, List<QueryBuilder.Ordering> ordering, Optional<Long> limit)
             throws SQLException
     {
         return new QueryBuilder(identifierQuote).buildSql(
@@ -283,7 +284,8 @@ public class BaseJdbcClient
                 split.getSchemaName(),
                 split.getTableName(),
                 columnHandles,
-                split.getTupleDomain());
+                split.getTupleDomain(),
+                ordering.stream().map(o -> new QueryBuilder.Ordering()));
     }
 
     @Override
