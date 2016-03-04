@@ -70,25 +70,13 @@ public class QueryBuilder
         this.quote = requireNonNull(quote, "quote is null");
     }
 
-    public static final class Ordering
-    {
-        private final JdbcColumnHandle column;
-        private final boolean asc;
-
-        public Ordering(JdbcColumnHandle column, boolean asc)
-        {
-            this.column = column;
-            this.asc = asc;
-        }
-    }
-
     public PreparedStatement buildSql(Connection connection, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain)
             throws SQLException
     {
         return buildSql(connection, catalog, schema, table, columns, tupleDomain, ImmutableList.of(), Optional.empty());
     }
 
-    public PreparedStatement buildSql(Connection connection, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain, List<Ordering> ordering, Optional<Long> limit)
+    public PreparedStatement buildSql(Connection connection, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain, List<JdbcClient.Ordering> ordering, Optional<Long> limit)
             throws SQLException
     {
         StringBuilder sql = new StringBuilder();
@@ -118,7 +106,7 @@ public class QueryBuilder
 
         if (!ordering.isEmpty()) {
             sql.append(" ORDER BY ");
-            Joiner.on(", ").appendTo(sql, ordering.stream().map(o -> quote(o.column.getColumnName()) + " " + (o.asc ? "ASC" : "DESC")).collect(Collectors.toList()));
+            Joiner.on(", ").appendTo(sql, ordering.stream().map(o -> quote(o.getColumn().getColumnName()) + " " + (o.isAsc() ? "ASC" : "DESC")).collect(Collectors.toList()));
         }
 
         if (limit.isPresent()) {

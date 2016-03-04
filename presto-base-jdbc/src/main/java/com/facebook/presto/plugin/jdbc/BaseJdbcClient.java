@@ -275,7 +275,7 @@ public class BaseJdbcClient
     }
 
     @Override
-    public PreparedStatement buildSql(JdbcSplit split, List<JdbcColumnHandle> columnHandles, List<QueryBuilder.Ordering> ordering, Optional<Long> limit)
+    public PreparedStatement buildSql(JdbcSplit split, List<JdbcColumnHandle> columnHandles, List<Ordering> ordering, Optional<Long> limit)
             throws SQLException
     {
         return new QueryBuilder(identifierQuote).buildSql(
@@ -285,7 +285,8 @@ public class BaseJdbcClient
                 split.getTableName(),
                 columnHandles,
                 split.getTupleDomain(),
-                ordering.stream().map(o -> new QueryBuilder.Ordering()));
+                ordering,
+                limit);
     }
 
     @Override

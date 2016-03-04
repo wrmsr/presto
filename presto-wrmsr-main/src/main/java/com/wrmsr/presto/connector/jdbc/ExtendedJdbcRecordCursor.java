@@ -40,6 +40,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -47,6 +48,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 
 public class ExtendedJdbcRecordCursor
         extends JdbcRecordCursor
@@ -79,7 +81,7 @@ public class ExtendedJdbcRecordCursor
             Map<String, JdbcColumnHandle> allColumns = jdbcClient.getColumns(table).stream().map(c -> ImmutablePair.of(c.getColumnName(), c)).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
             Map<String, Integer> cursorColumnIndexMap = IntStream.range(0, columnHandles.size()).boxed().map( // FIXME: helper
                     i -> ImmutablePair.of(columnHandles.get(i).getColumnName(), i)).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-            clusteredColumnHandles = clusteredColumnNames.stream().map(s -> allColumns.get(s)).collect(ImmutableCollectors.toImmutableList());
+            clusteredColumnHandles = clusteredColumnNames.stream().map(s -> allColumns.get(s)).collect(toImmutableList());
 
             chunkPositionIndices = newArrayList();
             for (String clusteredColumnName : clusteredColumnNames) {
@@ -136,17 +138,16 @@ public class ExtendedJdbcRecordCursor
                     split.getConnectionProperties(),
                     chunkTupleDomain);
 
-            StringBuilder sql = new StringBuilder(jdbcClient.buildSql(chunkSplit, columnHandles).toString());
-            sql.append(" ORDER BY ");
-            Joiner.on(", ").appendTo(sql, clusteredColumnNames.stream().map(c -> quote(c) + " ASC").collect(Collectors.toList()));
-            sql.append(" LIMIT ");
-            sql.append(1000);
+            statement = jdbcClient.buildSql(
+                    chunkSplit,
+                    columnHandles,
+                    clusteredColumnHandles.stream().map(c -> new JdbcClient.Ordering(c, true)).collect(toImmutableList()),
+                    Optional.of(1000L));
 
-            statement = connection.createStatement();
             statement.setFetchSize(1000);
 
-            log.debug("Executing: %s", sql);
-            resultSet = statement.executeQuery(sql.toString());
+            log.debug(String.format("Executing: %s", statement.toString()));
+            resultSet = statement.executeQuery();
         }
         catch (SQLException e) {
             throw handleSqlException(e);

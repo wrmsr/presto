@@ -52,7 +52,29 @@ public interface JdbcClient
         return buildSql(split, columnHandles, ImmutableList.of(), Optional.empty());
     }
 
-    PreparedStatement buildSql(JdbcSplit split, List<JdbcColumnHandle> columnHandles, List<QueryBuilder.Ordering> ordering, Optional<Long> limit)
+    final class Ordering
+    {
+        private final JdbcColumnHandle column;
+        private final boolean asc;
+
+        public Ordering(JdbcColumnHandle column, boolean asc)
+        {
+            this.column = column;
+            this.asc = asc;
+        }
+
+        public JdbcColumnHandle getColumn()
+        {
+            return column;
+        }
+
+        public boolean isAsc()
+        {
+            return asc;
+        }
+    }
+
+    PreparedStatement buildSql(JdbcSplit split, List<JdbcColumnHandle> columnHandles, List<Ordering> ordering, Optional<Long> limit)
             throws SQLException;
 
     JdbcOutputTableHandle beginCreateTable(ConnectorTableMetadata tableMetadata);
