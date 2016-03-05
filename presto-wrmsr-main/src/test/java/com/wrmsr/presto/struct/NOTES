@@ -283,7 +283,7 @@ https://github.com/ziman/lightyear
 https://github.com/david-christiansen/idris-type-providers
 https://github.com/david-christiansen/IdrisSqlite
 https://github.com/reynir/Verified
-
+https://github.com/SimonJF/IdrisNet2/blob/master/examples/echo/EchoClient.idr
 
 
 
@@ -327,3 +327,7 @@ http://research.microsoft.com/en-us/um/people/simonpj/papers/ext-f/fc-tldi.pdf
 https://github.com/facebook/flow
 http://www.parsonsmatt.org/2016/02/18/dependent-hardware-i.html
 https://simonmar.github.io/posts/2016-02-12-Stack-traces-in-GHCi.html
+
+https://pwparchive.wordpress.com/2012/03/29/dependent-typing-in-c/
+
+
