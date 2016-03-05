@@ -2119,6 +2119,8 @@ http://www.jamesserra.com/archive/2012/03/data-warehouse-architecture-kimball-an
 https://github.com/clojure/tools.nrepl
 https://github.com/clojure/tools.nrepl#embedding-nrepl-starting-a-server
 
+http://juel.sourceforge.net/guide/advanced/index.html <-- add to config
+
 https://github.com/clojure/core.typed
 https://github.com/clojure/core.typed/wiki
 https://github.com/clojure/core.typed/wiki/Types#type-grammar
@@ -2175,3 +2177,10 @@ http://www.slideshare.net/deview/263-s2graph-largescalegraphdatabasewithhbase2
 
 
 http://www.dbtoaster.org/index.php?page=home&subpage=people
+
+
+
+https://github.com/xedin/windmill
+http://llvm.org/docs/LangRef.html
+http://www.aosabook.org/en/llvm.html
+http://llvm.org/docs/TableGen/
