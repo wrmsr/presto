@@ -78,7 +78,7 @@ public class HivePlugin
             return ImmutableList.of(type.cast(new HiveConnectorFactory(name, optionalConfig, getClassLoader(), metastore, typeManager, pageIndexerFactory)));
         }
         else if (type == ConnectorSupportFactory.class) {
-            return ImmutableList.of(type.cast(new ConnectorSupportFactory.LegacyDefault(HiveConnectorSupport.class, HiveConnector.class, HiveConnectorSupport::new)));
+            return ImmutableList.of(type.cast(new ConnectorSupportFactory.Default(HiveConnectorSupport.class, HiveConnector.class, HiveConnectorSupport::new)));
         }
         return ImmutableList.of();
     }
