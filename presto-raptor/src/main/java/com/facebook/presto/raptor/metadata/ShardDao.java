@@ -148,9 +148,7 @@ public interface ShardDao
     @SqlBatch("DELETE FROM created_shards WHERE shard_uuid = :shardUuid")
     void deleteCreatedShards(@Bind("shardUuid") Iterable<UUID> shardUuids);
 
-    @SqlBatch("INSERT INTO deleted_shards (shard_uuid, delete_time)\n" +
-            "VALUES (:shardUuid, CURRENT_TIMESTAMP)")
-    void insertDeletedShards(@Bind("shardUuid") Iterable<UUID> shardUuids);
+    void insertDeletedShards(Iterable<UUID> shardUuids);
 
     @SqlUpdate("INSERT INTO deleted_shards (shard_uuid, delete_time)\n" +
             "SELECT shard_uuid, CURRENT_TIMESTAMP\n" +
@@ -168,24 +166,11 @@ public interface ShardDao
     @SqlQuery("SELECT shard_uuid\n" +
             "FROM deleted_shards\n" +
             "WHERE delete_time < :maxDeleteTime\n" +
-            "  AND clean_time IS NULL\n" +
             "LIMIT 1000")
     List<UUID> getCleanableShardsBatch(@Bind("maxDeleteTime") Timestamp maxDeleteTime);
 
-    @SqlQuery("SELECT shard_uuid\n" +
-            "FROM deleted_shards\n" +
-            "WHERE clean_time < :maxCleanTime\n" +
-            "LIMIT 1000")
-    List<UUID> getPurgableShardsBatch(@Bind("maxCleanTime") Timestamp maxCleanTime);
-
-    @SqlBatch("UPDATE deleted_shards SET clean_time = CURRENT_TIMESTAMP\n" +
-            "WHERE shard_uuid = :shardUuid\n" +
-            "  AND clean_time IS NULL\n")
-    void updateCleanedShards(@Bind("shardUuid") Iterable<UUID> shardUuids);
-
-    @SqlBatch("DELETE FROM deleted_shards\n" +
-            "WHERE shard_uuid = :shardUuid")
-    void deletePurgedShards(@Bind("shardUuid") Iterable<UUID> shardUuids);
+    @SqlBatch("DELETE FROM deleted_shards WHERE shard_uuid = :shardUuid")
+    void deleteCleanedShards(@Bind("shardUuid") Iterable<UUID> shardUuids);
 
     @SqlBatch("INSERT INTO buckets (distribution_id, bucket_number, node_id)\n" +
             "VALUES (:distributionId, :bucketNumber, :nodeId)\n")

@@ -18,7 +18,9 @@ import com.facebook.presto.raptor.storage.StorageService;
 import com.facebook.presto.raptor.util.DaoSupplier;
 import com.facebook.presto.spi.NodeManager;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Throwables;
 import com.google.common.base.Ticker;
+import io.airlift.concurrent.MoreFutures;
 import io.airlift.log.Logger;
 import io.airlift.stats.CounterStat;
 import io.airlift.units.Duration;
@@ -40,9 +42,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -74,7 +74,6 @@ public class ShardCleaner
     private final Duration localCleanTime;
     private final Duration backupCleanerInterval;
     private final Duration backupCleanTime;
-    private final Duration backupPurgeTime;
     private final ScheduledExecutorService scheduler;
     private final ExecutorService backupExecutor;
 
@@ -85,7 +84,6 @@ public class ShardCleaner
     private final CounterStat localJobErrors = new CounterStat();
     private final CounterStat backupShardsQueued = new CounterStat();
     private final CounterStat backupShardsCleaned = new CounterStat();
-    private final CounterStat backupShardsPurged = new CounterStat();
     private final CounterStat localShardsCleaned = new CounterStat();
 
     @GuardedBy("this")
@@ -113,7 +111,6 @@ public class ShardCleaner
                 config.getLocalCleanTime(),
                 config.getBackupCleanerInterval(),
                 config.getBackupCleanTime(),
-                config.getBackupPurgeTime(),
                 config.getBackupDeletionThreads());
     }
 
@@ -130,7 +127,6 @@ public class ShardCleaner
             Duration localCleanTime,
             Duration backupCleanerInterval,
             Duration backupCleanTime,
-            Duration backupPurgeTime,
             int backupDeletionThreads)
     {
         this.dao = shardDaoSupplier.onDemand();
@@ -145,7 +141,6 @@ public class ShardCleaner
         this.localCleanTime = requireNonNull(localCleanTime, "localCleanTime is null");
         this.backupCleanerInterval = requireNonNull(backupCleanerInterval, "backupCleanerInterval is null");
         this.backupCleanTime = requireNonNull(backupCleanTime, "backupCleanTime is null");
-        this.backupPurgeTime = requireNonNull(backupPurgeTime, "backupPurgeTime is null");
         this.scheduler = newScheduledThreadPool(2, daemonThreadsNamed("shard-cleaner-%s"));
         this.backupExecutor = newFixedThreadPool(backupDeletionThreads, daemonThreadsNamed("shard-cleaner-backup-%s"));
     }
@@ -202,13 +197,6 @@ public class ShardCleaner
 
     @Managed
     @Nested
-    public CounterStat getBackupShardsPurged()
-    {
-        return backupShardsPurged;
-    }
-
-    @Managed
-    @Nested
     public CounterStat getLocalShardsCleaned()
     {
         return localShardsCleaned;
@@ -250,7 +238,6 @@ public class ShardCleaner
         scheduler.scheduleWithFixedDelay(() -> {
             try {
                 cleanBackupShards();
-                purgeBackupShards();
             }
             catch (Throwable t) {
                 log.error(t, "Error cleaning backup shards");
@@ -348,26 +335,9 @@ public class ShardCleaner
 
             long start = System.nanoTime();
             executeDeletes(uuids);
-            dao.updateCleanedShards(uuids);
+            dao.deleteCleanedShards(uuids);
             backupShardsCleaned.update(uuids.size());
             log.info("Cleaned %s backup shards in %s", uuids.size(), nanosSince(start));
-        }
-    }
-
-    @VisibleForTesting
-    void purgeBackupShards()
-    {
-        while (!Thread.currentThread().isInterrupted()) {
-            List<UUID> uuids = dao.getPurgableShardsBatch(maxTimestamp(backupPurgeTime));
-            if (uuids.isEmpty()) {
-                break;
-            }
-
-            long start = System.nanoTime();
-            executeDeletes(uuids);
-            dao.deletePurgedShards(uuids);
-            backupShardsPurged.update(uuids.size());
-            log.info("Purged %s backup shards in %s", uuids.size(), nanosSince(start));
         }
     }
 
@@ -380,30 +350,12 @@ public class ShardCleaner
             }));
         }
 
-        List<Future<Object>> futures;
         try {
-            futures = backupExecutor.invokeAll(tasks);
+            backupExecutor.invokeAll(tasks).forEach(MoreFutures::getFutureValue);
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return;
-        }
-
-        boolean logged = false;
-        for (Future<?> future : futures) {
-            try {
-                future.get();
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-            catch (ExecutionException e) {
-                if (!logged) {
-                    logged = true;
-                    log.error(e.getCause(), "Error deleting backup shard");
-                }
-            }
+            throw Throwables.propagate(e);
         }
     }
 

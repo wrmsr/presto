@@ -23,6 +23,7 @@ import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -122,7 +123,6 @@ public class HivePageSink
 
     private final Table table;
     private final boolean immutablePartitions;
-    private final boolean respectTableFormat;
     private final boolean compress;
 
     private HiveRecordWriter[] writers = new HiveRecordWriter[0];
@@ -140,7 +140,6 @@ public class HivePageSink
             PageIndexerFactory pageIndexerFactory,
             TypeManager typeManager,
             HdfsEnvironment hdfsEnvironment,
-            boolean respectTableFormat,
             int maxOpenPartitions,
             boolean immutablePartitions,
             boolean compress,
@@ -163,7 +162,6 @@ public class HivePageSink
         this.typeManager = requireNonNull(typeManager, "typeManager is null");
 
         this.hdfsEnvironment = requireNonNull(hdfsEnvironment, "hdfsEnvironment is null");
-        this.respectTableFormat = respectTableFormat;
         this.maxOpenPartitions = maxOpenPartitions;
         this.immutablePartitions = immutablePartitions;
         this.compress = compress;
@@ -365,13 +363,8 @@ public class HivePageSink
                         table.getPartitionKeys());
                 target = locationService.targetPath(locationHandle, partitionName);
                 write = locationService.writePath(locationHandle, partitionName).orElse(target);
-                if (respectTableFormat) {
-                    outputFormat = table.getSd().getOutputFormat();
-                }
-                else {
-                    outputFormat = tableStorageFormat.getOutputFormat();
-                }
-                serDe = table.getSd().getSerdeInfo().getSerializationLib();
+                outputFormat = tableStorageFormat.getOutputFormat();
+                serDe = tableStorageFormat.getSerDe();
             }
         }
         else {
@@ -457,7 +450,8 @@ public class HivePageSink
         return blocks;
     }
 
-    private static class HiveRecordWriter
+    @VisibleForTesting
+    public static class HiveRecordWriter
     {
         private final String partitionName;
         private final boolean isNew;
@@ -636,7 +630,8 @@ public class HivePageSink
         }
     }
 
-    private class DataColumn
+    @VisibleForTesting
+    public static class DataColumn
     {
         private final String name;
         private final Type type;

@@ -66,6 +66,7 @@ import java.io.EOFException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -278,15 +279,22 @@ public final class HttpRemoteTask
     }
 
     @Override
-    public synchronized void addSplits(PlanNodeId sourceId, Iterable<Split> splits)
+    public void addSplits(Multimap<PlanNodeId, Split> splitsBySource)
     {
         try (SetThreadName ignored = new SetThreadName("HttpRemoteTask-%s", taskId)) {
-            requireNonNull(sourceId, "sourceId is null");
-            requireNonNull(splits, "splits is null");
-            checkState(!noMoreSplits.contains(sourceId), "noMoreSplits has already been set for %s", sourceId);
+            requireNonNull(splitsBySource, "splitsBySource is null");
 
             // only add pending split if not done
-            if (!getTaskInfo().getState().isDone()) {
+            if (getTaskInfo().getState().isDone()) {
+                return;
+            }
+
+            for (Entry<PlanNodeId, Collection<Split>> entry : splitsBySource.asMap().entrySet()) {
+                PlanNodeId sourceId = entry.getKey();
+                Collection<Split> splits = entry.getValue();
+
+                checkState(!noMoreSplits.contains(sourceId), "noMoreSplits has already been set for %s", sourceId);
+                checkState(!noMoreSplits.contains(sourceId), "noMoreSplits has already been set for %s", sourceId);
                 int added = 0;
                 for (Split split : splits) {
                     if (pendingSplits.put(sourceId, new ScheduledSplit(nextSplitId.getAndIncrement(), split))) {
@@ -416,7 +424,12 @@ public final class HttpRemoteTask
         partitionedSplitCountTracker.setPartitionedSplitCount(getPartitionedSplitCount());
     }
 
-    private synchronized void scheduleUpdate()
+    private void scheduleUpdate()
+    {
+        executor.execute(this::sendUpdate);
+    }
+
+    private synchronized void sendUpdate()
     {
         // don't update if the task hasn't been started yet or if it is already finished
         if (!needsUpdate.get() || taskInfo.get().getState().isDone()) {
@@ -439,7 +452,7 @@ public final class HttpRemoteTask
         // if throttled due to error, asynchronously wait for timeout and try again
         ListenableFuture<?> errorRateLimit = updateErrorTracker.acquireRequestPermit();
         if (!errorRateLimit.isDone()) {
-            errorRateLimit.addListener(this::scheduleUpdate, executor);
+            errorRateLimit.addListener(this::sendUpdate, executor);
             return;
         }
 
@@ -645,7 +658,7 @@ public final class HttpRemoteTask
                     updateErrorTracker.requestSucceeded();
                 }
                 finally {
-                    scheduleUpdate();
+                    sendUpdate();
                 }
             }
         }
@@ -678,7 +691,7 @@ public final class HttpRemoteTask
                     abort();
                 }
                 finally {
-                    scheduleUpdate();
+                    sendUpdate();
                 }
             }
         }
