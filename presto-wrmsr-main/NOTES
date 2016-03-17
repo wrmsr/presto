@@ -3,11 +3,6 @@ http://www.wiscorp.com/sql_2003_standard.zip
 
 com.facebook.presto.operator.PagesIndex
 
-http://druid.io/docs/0.8.3/design/index.html
-http://static.druid.io/docs/druid.pdf
-https://github.com/druid-io/druid
-https://drill.apache.org/docs/architecture-introduction/
-
 TODO do what LauncherModule does if only to expose presto module instrumentation
 
 
@@ -34,24 +29,10 @@ http://www.slideshare.net/wesm/ibis-scaling-python-analytics-on-hadoop-and-impal
 
 
 graphql connector binding:
-http://graphql.org/
-https://code.facebook.com/posts/1691455094417024
-https://www.reindex.io/blog/building-a-graphql-server-with-node-js-and-sql/
-https://github.com/solidsnack/GraphpostgresQL
-http://graphql.org/docs/introspection/
-https://facebook.github.io/react/blog/2015/05/01/graphql-introduction.html
-https://github.com/andimarek/graphql-java <<<
-http://blog.startifact.com/posts/graphql-and-rest.html
-> https://www.w3.org/TR/json-ld/
-https://github.com/graphql-python/graphene > sqlalch
 
 
 
-https://github.com/druid-io/druid/tree/master/extensions/datasketches
-https://github.com/druid-io/druid/tree/master/extensions/graphite-emitter
-https://github.com/druid-io/druid/tree/master/extensions/histogram
-
-https://github.com/eiiches/jackson-jq
+jackson-jq
 also look at sql2003 xml shit
 
 https://github.com/linkedin/gobblin
@@ -130,7 +111,6 @@ may well need commit log:
   - source merging = ?
 
 
-https://www.reddit.com/r/bigquery/comments/3cej2b/17_billion_reddit_comments_loaded_on_bigquery/
 
 
 
@@ -140,37 +120,11 @@ need to store serialized intermediate types -> separate initial and current stat
 
 
 
-!! https://cwiki.apache.org/confluence/display/solr/Parallel+SQL+Interface uh what
- https://issues.apache.org/jira/browse/SOLR-7560
- https://mail-archives.apache.org/mod_mbox/lucene-dev/201510.mbox/%3CJIRA.12903949.1444452736000.7097.1444492145007@Atlassian.JIRA%3E
-
-http://www.slideshare.net/frsyuki/presto-hadoop-conference-japan-2014
-http://www.slideshare.net/treasure-data/2015-0311td-techtalkinternalsofprestoservice
-http://labs.gree.jp/blog/2014/12/12838/
-https://github.com/alibaba/fastjson
-
-https://github.com/treasure-data/prestogres
-https://github.com/easydatawarehousing/prestoclient
-https://github.com/prestodb/presto-admin
-https://github.com/dropbox/PyHive
-https://github.com/qubole/presto-udfs
-
-
-https://github.com/qubole/quark
-
-https://github.com/ajermakovics/presto-hazelcast
-
-
 
 watchdog SUBPROCESS
 healthchecks
 infinitely sized mr mode?
 would be barrier'd multiple queries to s3
-
-
-http://www.postgresql.org/docs/9.0/static/plpython-funcs.html
-http://www.postgresql.org/docs/9.0/static/plpython.html
-https://github.com/tada/pljava/wiki wat
 
 
 
@@ -267,13 +221,6 @@ http://qubole-eng.quora.com/Caching-in-Presto
 
 ** make wrapper hierarchical poms like hadoop does, one per shaded subdep
 
-https://github.com/apache/hadoop-common/tree/trunk/hadoop-yarn-project/hadoop-yarn/hadoop-yarn-applications/hadoop-yarn-applications-distributedshell/src/main/java/org/apache/hadoop/yarn/applications/distributedshell
-
-https://github.com/shyiko/mysql-binlog-connector-java
-https://github.com/addthis/stream-lib
-
-http://blog.sonatype.com/2008/04/how-to-share-resources-across-projects-in-maven/
-
 <dependency>
     <groupId>org.rocksdb</groupId>
     <artifactId>rocksdbjni</artifactId>
@@ -283,16 +230,6 @@ http://blog.sonatype.com/2008/04/how-to-share-resources-across-projects-in-maven
 REDSHIFT
 
 eek need on-board views
-
-https://github.com/rcongiu/Hive-JSON-Serde
-https://github.com/FasterXML/jackson-dataformat-avro
-https://github.com/FasterXML/jackson-datatype-hppc
-https://github.com/FasterXML/jackson-dataformat-yaml
-
-https://github.com/facebook/presto/pull/2896
-
-https://cwiki.apache.org/confluence/display/Hive/Tutorial
-https://cwiki.apache.org/confluence/display/Hive/Home
 
 
 * dumb flat json file output
@@ -326,45 +263,11 @@ https://github.com/johnewart/gearman-java
 lucene analysis scalars
 
 
-https://github.com/elastic/elasticsearch-hadoop
-https://github.com/elastic/stream2es
-https://github.com/elastic/elasticsearch-aws
-
-
 es bulk by length
-https://github.com/elastic/elasticsearch-hadoop/tree/master/mr/src/main/java/org/elasticsearch/hadoop
-https://github.com/elastic/elasticsearch-hadoop/tree/master/hive/src/main/java/org/elasticsearch/hadoop/hive
-https://github.com/elastic/elasticsearch-hadoop/tree/master/yarn
-
-https://github.com/elastic/elasticsearch-cloud-gce
-
-
-https://github.com/searchbox-io/Jest/tree/master/jest
-
-
-https://developer.salesforce.com/page/Streaming_API
-http://www.salesforce.com/us/developer/docs/api_rest/index_Left.htm#StartTopic=Content/quickstart.htm
 
 
 parameterized views [indexer generators]
 
-
-
-https://mariadb.com/kb/en/mariadb/optimization-and-tuning/
-http://phoenix.apache.org/
-
-
-
-
-
-https://github.com/facebook/presto/pull/2896
-
-https://commons.apache.org/proper/commons-configuration/userguide/howto_utilities.html
-
-
-
-
-https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF#LanguageManualUDF-Built-inTable-GeneratingFunctions(UDTF)
 
 
 decoder predicate pushdown to capable stores lols
@@ -398,12 +301,6 @@ src / sink for line files, one text column
 
 scalar calc parallelization (for cpu-heavy ffi's)
  - special case of batch scalar execution?
-
-
-http://dev.mysql.com/doc/connector-j/en/connector-j-usagenotes-j2ee-concepts-managing-load-balanced-connections.html
-
-https://github.com/facebook/mysql-5.6/commit/f8e361952612d00979f7cf744f487e48b15cb5a6#diff-1b7266575f084a759d5bee343efe91d0
-http://www.oracle.com/technetwork/articles/database-performance/geist-parallel-execution-1-1872400.html
 
 
 flat:
@@ -480,7 +377,6 @@ cfg'd in-mem | master thrift port'd hive metastore
 autoexec's
 
 
-http://stackoverflow.com/questions/10929369/how-to-execute-multiple-sql-statements-from-java
 
 try to get a hierarchical subconfig, then try to get a str
 
@@ -523,14 +419,6 @@ lines
 datetimes
 deep
 
-http://basho.com/why-vector-clocks-are-hard/
-http://basho.com/why-vector-clocks-are-easy/
-http://phoenix.apache.org/update_statistics.html
-http://en.wikipedia.org/wiki/Behavior_Trees
-http://www.cs.man.ac.uk/~norm/papers/surveys.pdf
-
-http://game.itu.dk/cig2010/proceedings/papers/cig10_015_075.pdf
-
 
 exception handling for bad data :|
  - shit that wont decompress, bad json, etc
@@ -554,8 +442,6 @@ CAN REPRESENT TYPE-LEVEL CONSTS AS DATALESS TYPES
 
 need eager wrapper on lazy defaults for compression streams
 
-https://prestodb.io/docs/current/connector/kafka-tutorial.html
-https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-core-types.html
 
 
 
@@ -574,10 +460,6 @@ set type?
     <version>4.6</version>
 </dependency>
 
-
-
-https://github.com/RGBz/aws-s3-class-loader
-https://github.com/sampov2/onejar-maven-plugin
 
 
     // setFetchSize(Integer.MIN_VALUE) is a mysql driver specific way to force streaming results,
@@ -599,7 +481,6 @@ multijvm support to bypass heap size limits
 just implement a flat raptor StorageEngine, wrap with encoder
 
 
-http://stackoverflow.com/questions/15524995/adding-another-projects-jar-as-a-resource-using-maven
 
 
 immediate priorities: codecs, raw raptor storage, spilling, join ordering, bitwise scalar funcs (or, and, xor)
@@ -612,12 +493,6 @@ http://www.adellera.it/blog/2013/04/22/fast-refresh-of-outer-join-only-materiali
 HLists? HNode + HNil?
 
 gson?
- http://www.doublecloud.org/2015/03/gson-vs-jackson-which-to-use-for-json-in-java/
-
-
-https://github.com/facebook/presto/pull/3016 :D
-https://github.com/facebook/presto/pull/1937
-https://github.com/facebook/presto/pull/3021
 
 
 <dependency>
@@ -654,99 +529,80 @@ on rows:
   - just a special case of array/map?
    - row_array? :p
 
-http://www.datastax.com/dev/blog/advanced-time-series-with-cassandra
-https://academy.datastax.com/demos/getting-started-time-series-data-modeling
-http://www.tpc.org/tpc_documents_current_versions/pdf/tpch2.17.1.pdf
 riak crdt's
-https://github.com/FasterXML/jackson-module-swagger
-https://github.com/swagger-api/swagger-core/blob/master/pom.xml
-http://mesos.apache.org/api/latest/java/
-http://docs.oracle.com/cd/B19306_01/server.102/b14220/transact.htm
-http://docs.oracle.com/cd/B28359_01/server.111/b28310/onlineredo001.htm#ADMIN11302
-http://ss64.com/ora/syntax-redo.html
-http://www.pgcon.org/2012/schedule/attachments/258_212_Internals%20Of%20PostgreSQL%20Wal.pdf
-https://hackage.haskell.org/package/HList
-https://wiki.haskell.org/Heterogenous_collections
-http://okmij.org/ftp/Haskell/HList-ext.pdf
-http://www.csee.umbc.edu/courses/undergraduate/202/spring07/Lectures/ChangSynopses/modules/m25-hlist/HList.cpp
-https://en.wikipedia.org/wiki/Java_bytecode_instruction_listings
-https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html
-https://www.elastic.co/blog/es-hadoop-2-1-rc1-released
 
 user defined type aliases? parser type literal limitation bypass?
 
-http://mesos.apache.org/api/latest/java/org/apache/mesos/Scheduler.html
-https://github.com/apache/mesos/blob/master/src/examples/java/TestFramework.java
 
 
 find java 8 shebang, exec with minimal heap, spawn child w flock and die
 
 create type atom_state as enum (
-	'committing',
-	'committed',
-	'compensating',
-	'compensated'
+    'committing',
+    'committed',
+    'compensating',
+    'compensated'
 );
 
 create sequence atom_id;
 
 create table atom (
-	id int unique not null,
+    id int unique not null,
 
-	root_id int not null references atom (id) on delete restrict,
-	parent_id int references atom (id) on delete restrict,
-	prev_sibling_id int references atom (id) on delete restrict,
-	active_child_id int references atom (id) on delete restrict,
+    root_id int not null references atom (id) on delete restrict,
+    parent_id int references atom (id) on delete restrict,
+    prev_sibling_id int references atom (id) on delete restrict,
+    active_child_id int references atom (id) on delete restrict,
 
-	primary key (root_id, id),
+    primary key (root_id, id),
 
-	time_created timestamp not null default now(),
-	user_created name not null default current_user,
-	time_updated timestamp not null default now(),
-	user_updated name not null default current_user,
+    time_created timestamp not null default now(),
+    user_created name not null default current_user,
+    time_updated timestamp not null default now(),
+    user_updated name not null default current_user,
 
-	ttl_absolute interval,
-	deadline_absolute timestamp,
-	ttl_relative interval,
-	deadline_relative timestamp,
+    ttl_absolute interval,
+    deadline_absolute timestamp,
+    ttl_relative interval,
+    deadline_relative timestamp,
 
-	is_faulted boolean not null default false,
-	fault_info text,
+    is_faulted boolean not null default false,
+    fault_info text,
 
-	state atom_state not null default 'committing',
-	compensation_attempts int not null default 0,
+    state atom_state not null default 'committing',
+    compensation_attempts int not null default 0,
 
-	input text,
-	context text,
-	output text,
+    input text,
+    context text,
+    output text,
 
-	constraint self_root_no_parent_check check ((id = root_id) = (parent_id is null)),
-	constraint no_output_without_input_check check (not (output is not null and input is null)),
-	constraint no_children_with_input_check check
-		(not (active_child_id is not null and input is not null)),
+    constraint self_root_no_parent_check check ((id = root_id) = (parent_id is null)),
+    constraint no_output_without_input_check check (not (output is not null and input is null)),
+    constraint no_children_with_input_check check
+        (not (active_child_id is not null and input is not null)),
 
-	constraint no_absolute_deadline_if_not_committing_check check
-		(not (deadline_absolute is not null and state != 'committing')),
-	constraint no_relative_deadline_if_not_committing_check check
-		(not (deadline_relative is not null and state != 'committing'))
+    constraint no_absolute_deadline_if_not_committing_check check
+        (not (deadline_absolute is not null and state != 'committing')),
+    constraint no_relative_deadline_if_not_committing_check check
+        (not (deadline_relative is not null and state != 'committing'))
 );
 
 create type atom_log_action as enum (
-	'insert',
-	'update'
+    'insert',
+    'update'
 );
 
 create sequence atom_log_id;
 
 create table atom_log (
-	log_id int unique,
-	log_action atom_log_action not null,
+    log_id int unique,
+    log_action atom_log_action not null,
 
-	like atom,
+    like atom,
 
-	primary key (root_id, log_id),
+    primary key (root_id, log_id),
 
-	constraint root_id_fk foreign key (root_id) references atom (id) match full on delete cascade
+    constraint root_id_fk foreign key (root_id) references atom (id) match full on delete cascade
 );
 
 
@@ -910,7 +766,6 @@ public static Hasher<String> FNV_32_STRING_HASHER = new Hasher<String>() {
 memcached cachedump
 
 
-http://stackoverflow.com/a/2946402 > http://docs.oracle.com/javase/8/docs/api/javax/tools/JavaCompiler.html
 
 msgpack
 bson
@@ -923,7 +778,6 @@ chronicle !
 serialize, serialize_raw
 
 
-https://en.wikipedia.org/wiki/EAR_(file_format)
 
 
 raptor > https://github.com/mpetazzoni/ttorrent
@@ -936,19 +790,12 @@ https://github.com/JorenSix/TarsosLSH well hello.
 ** switch to autoexec-ing void sql functions style for cfg setup
 defstruct cmd, connect cmd, ...
 
-http://codefutures.com/mesos-docker-tutorial-how-to-build-your-own-framework/
 
 <dependency>
     <groupId>org.apache.derby</groupId>
     <artifactId>derby</artifactId>
     <version>10.11.1.1</version>
 </dependency>
-
-https://cwiki.apache.org/confluence/display/Hive/HiveDerbyServerMode
-https://svn.apache.org/repos/asf/hive/branches/branch-0.6/conf/hive-default.xml
-http://www.cloudera.com/content/cloudera/en/documentation/archives/cdh3/v3u6/CDH3-Installation-Guide/cdh3ig_topic_16_3.html
-http://www.cloudera.com/content/cloudera/en/documentation/cdh4/v4-2-0/CDH4-Installation-Guide/cdh4ig_topic_18_4.html
-https://www.elastic.co/blog/elasticsearch-for-apache-hadoop-2-1-spark-storm-and-more
 
 start stop run status mesos yarn cli
 
@@ -959,49 +806,6 @@ docker aware, find oracle j8 Dockerfile
 wrapper config aware, yelpify dockerism in there
 
 
-
-http://ruedigermoeller.github.io/kontraktor/
-https://blog.twitter.com/2015/flying-faster-with-twitter-heron
-
-https://crate.io/overview/
-
-https://github.com/sheepkiller/presto-marathon-docker
-
-https://code.facebook.com/posts/745068642270222/fighting-spam-with-haskell/
-
-http://rayli.net/blog/data/top-10-data-mining-algorithms-in-plain-english/
-http://www.infoq.com/articles/The-OpenJDK9-Revised-Java-Memory-Model
-https://medium.com/@mustwin/cassandra-from-a-relational-world-7bbdb0a9f1d
-http://json-schema.org/latest/json-schema-core.html#anchor8
-http://lasp-lang.org/
-http://basho.com/posts/technical/where-to-start-with-riak-core/
-http://www.slideshare.net/denshikarasu/all-your-iops-are-belong-to-us-a-pinteresting-case-study-in-mysql-performance-optimization
-
-
-http://www.bailis.org/blog/when-is-acid-acid-rarely/
-http://research.microsoft.com/en-us/people/philbe/ccontrol.aspx
-http://www.cse.iitb.ac.in/dbms/Data/Courses/CS632/2009/Papers/p492-fekete.pdf
-http://shivaram.org/publications/presto-eurosys13.pdf
-http://shivaram.org/publications/presto-hotcloud12.pdf
-http://research.microsoft.com/pubs/201100/naiad_sosp2013.pdf
-http://www.cs.cornell.edu/courses/cs6452/2012sp/papers/psi-sosp11.pdf
-http://www.bailis.org/blog/understanding-weak-isolation-is-a-serious-problem/
-http://www.bailis.org/papers/ca-vldb2015.pdf
-http://www.bailis.org/ in general
-
-http://www.qubole.com/blog/product/caching-presto/
-
-http://voltdb.com/products/featuresbenefits/reasons-behind-voltdb-architecture
-
-
-http://spark.apache.org/docs/latest/mllib-guide.html
-http://spark.apache.org/docs/latest/graphx-programming-guide.html
-
-http://www.h2database.com/html/advanced.html
-
-https://wiki.postgresql.org/wiki/Serializable
-
-https://github.com/JCTools/JCTools
 
 gon need curator / zk for state storage
 
@@ -1060,16 +864,9 @@ make sure node dont take queries till cfg'd
 
 fuck it raw lucene connector
 
-https://github.com/eirslett/frontend-maven-plugin
 
-
-https://registry.hub.docker.com/u/cloudesire/java/tags/manage/
-https://registry.hub.docker.com/u/isuper/java-oracle/dockerfile/
-https://github.com/docker/docker/issues/3778#issuecomment-88208709
 
 postgres brin
-
-https://github.com/twitter/scrooge
 
 acidy materialization by honoring gtid alignment of events and propagating to final store only when at a txn boundary
  .. where possible ofc
@@ -1161,17 +958,6 @@ CRUD by pk
 
 
 es connector
-https://github.com/facebook/presto/pull/3240/commits
-
-https://github.com/facebook/presto/pull/2896
-
-
-https://gist.github.com/wrmsr/c2f8a91499da3b4b2cf2
-https://github.com/garnaat/missingcloud
-https://github.com/powdahound/ec2instances.info/blob/master/www/instances.json
-https://a0.awsstatic.com/pricing/1/deprecated/ec2/linux-od.json
-http://www.ec2instances.info/
-
 
 
 
@@ -1189,9 +975,6 @@ base jdbc commit batch size hardcoded 1k ruh roh
 
 
 
-https://github.com/softwarevidal/mysql-connector-mxj-gpl haaaaaay
-
-https://bugs.openjdk.java.net/browse/JDK-8017777
 
 Is this another case where the application is re-writing a zip file that is in use? This can be worked around by running with the system property sun.zip.disableMemoryMapping set to true.
 
@@ -1215,9 +998,6 @@ stupid simple fs connector for interactive shit, select name from s3 where path 
 
 ** when reexecing set proc title with args, unavailable to ps at launch
 
-https://www.percona.com/blog/2012/01/25/how-to-recover-a-single-innodb-table-from-a-full-backup/
-
-https://www.percona.com/doc/percona-server/5.5/management/innodb_expand_import.html
 
 
 
@@ -1306,29 +1086,6 @@ class S3(BasicCommand):
 
 
 
-http://java-performance.info/oracle-java-mission-control-overview/
-https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html#Main_Attributes
-http://www.bittorrent.org/beps/bep_0005.html
-
-
-https://zookeeper.apache.org/doc/trunk/zookeeperReconfig.html
-
-
-
-https://stackoverflow.com/questions/6851461/java-why-does-ssl-handshake-give-could-not-generate-dh-keypair-exception#comment51748700_18254095
-
-
-https://dzone.com/articles/peter-lawrey-on-varhandle-in-jdk9-making-data-in-j :D
-http://vanillajava.blogspot.com/
-https://github.com/OpenHFT/Chronicle-Engine
-
-
-https://svn.apache.org/viewvc/lucene/dev/trunk/lucene/sandbox/src/java/org/apache/lucene/rangetree/RangeTreeWriter.java?view=markup
-well hellooo
-
-https://hdrhistogram.github.io/HdrHistogram/ wat
-
-
 
 aws: profiles: {}
 hadoop: ...
@@ -1379,57 +1136,12 @@ un fixme dont fucking provided dep launcher from hadoop and mesos and aws holy f
 
 todo its still fucking pathetic to bundle all of hive just for metastore maint... jackson -> thrift pls :[
 
-https://github.com/facebook/presto/issues/3441 fuq
-https://github.com/facebook/presto/issues/2960
-
-
-https://bitbucket.org/atlassian/jgit-flow/wiki/Home sup
-
-
-https://github.com/zendesk/open-replicator
-https://github.com/zendesk/maxwell lolol
-
     <dependency>
-    	<groupId>net.snaq</groupId>
-    	<artifactId>dbpool</artifactId>
-    	<version>7.0-jdk7</version>
+        <groupId>net.snaq</groupId>
+        <artifactId>dbpool</artifactId>
+        <version>7.0-jdk7</version>
     </dependency>
 
-
-http://javaskeleton.blogspot.com/2010/07/avoiding-peer-not-authenticated-with.html bluhhh
-
-https://developer.zendesk.com/blog/introducing-maxwell-a-mysql-to-kafka-binlog-processor
-http://ruby-doc.org/stdlib-1.9.3/libdoc/drb/rdoc/DRb.html
-
-https://www.elastic.co/guide/en/logstash/current/plugins-filters-grok.html
-
-http://danlinstedt.com/allposts/datavaultcat/bigdata-nosql-and-datavault-2-0/ meh
-https://engineering.pinterest.com/blog/sharding-pinterest-how-we-scaled-our-mysql-fleet/
-
-
-https://github.com/logstash-plugins/logstash-patterns-core/tree/master/patterns
-https://github.com/logstash-plugins/logstash-filter-useragent/blob/master/lib/logstash/filters/useragent.rb
-https://github.com/logstash-plugins/logstash-filter-urldecode/blob/master/lib/logstash/filters/urldecode.rb
-https://github.com/logstash-plugins/logstash-filter-tld/blob/master/lib/logstash/filters/tld.rb lols nice docstring
-https://github.com/logstash-plugins/logstash-filter-syslog_pri/blob/master/lib/logstash/filters/syslog_pri.rb
-https://github.com/zipizap/ouilookup/blob/master/ouilookup.rb
-https://github.com/logstash-plugins/logstash-filter-geoip/blob/master/lib/logstash/filters/geoip.rb
-date/time/span parsing
-https://github.com/logstash-plugins/logstash-filter-dns/blob/master/lib/logstash/filters/dns.rb
-https://github.com/logstash-plugins/logstash-filter-cidr/blob/master/lib/logstash/filters/cidr.rb
-
-
-http://www.jayway.com/2014/05/28/using-rxjava-to-monitor-hystrix-streams/
-https://dtai.cs.kuleuven.be/CP4IM/miningzinc
-
-https://commons.apache.org/proper/commons-math/apidocs/org/apache/commons/math3/transform/FastFourierTransformer.html sup
-
-
-https://stackoverflow.com/questions/13734646/how-to-connect-to-java-instances-running-on-ec2-using-jmx ughhh
-http://rkuzmik.blogspot.com/2006/08/local-managed-dns-java_11.html fml
-
-
-https://docs.oracle.com/javase/7/docs/technotes/guides/net/properties.html
 -Dsun.net.spi.nameservice.provider.1=dns,local
 
 
@@ -1481,15 +1193,6 @@ d2.8xl = 70 MB/s (cross region)
 
 
 
-https://github.com/logstash-plugins/logstash-patterns-core
-
-http://antisp.in/2014/04/01/useful-logstash-grok-patterns/
-
-
-http://stratosphere.eu/assets/papers/TopologyInferenceEnd2End_11.pdf
-http://stratosphere.eu/assets/papers/CloudTopology_11.pdf
-
-
 
 m4's + c4's ebs-only, future = i2's + d2's only non-ebs - options:
  - spin up mix of i's for storage and c's / m's for compute
@@ -1501,20 +1204,6 @@ m4's + c4's ebs-only, future = i2's + d2's only non-ebs - options:
    - yes.
    - does raptor do replication for datasets significantly smaller than cluster ram?
 
-omg https://docs.oracle.com/javase/7/docs/technotes/guides/io/fsp/filesystemprovider.html
-https://github.com/google/jimfs https://github.com/google/jimfs https://github.com/google/jimfs https://github.com/google/jimfs
-https://s-media-cache-ak0.pinimg.com/originals/b2/8a/3a/b28a3a52ee99399a5389e758f7de87b6.gif
-https://commons.apache.org/proper/commons-vfs/
-http://www.rationaljava.com/2015/03/chroniclemap-java-architecture-with-off.html
-https://github.com/marschall/memoryfilesystem
-http://mechanical-sympathy.blogspot.com/2012/10/compact-off-heap-structurestuples-in.html
-https://terracotta.org/generated/4.3.0/html/bmg-all/index.html#page/BigMemory_Go_Documentation_Set/co-tiers_configuring_offheap_store.html
-https://en.wikipedia.org/wiki/Ehcache eh (lol)
-
-https://github.com/damiencarol/jsr203-hadoop
-
-http://insights.wired.com/profiles/blogs/hadoop-100x-faster-how-we-did-it-2#axzz3k3aNMeca meh?
-
 
 **** setting a file to read-only will compact it, after which ByteBuffers are untranslated
  - use slices obv
@@ -1522,31 +1211,6 @@ http://insights.wired.com/profiles/blogs/hadoop-100x-faster-how-we-did-it-2#axzz
  - since dealing with variable size blocks just use malloc, huge page alignment is irrelevant given no disk
  - mlock ofc
 
-
-
-http://www.infoq.com/news/2007/11/oniguruma-joni-jruby
-https://github.com/google/re2j
-
-
-https://en.wikipedia.org/wiki/CUDA_Pinned_memory
-https://lightsighter.github.io/CudaDMA/
-https://developer.nvidia.com/gpudirect
-
-
-
-https://github.com/torvalds/linux/blob/master/Documentation/networking/ixgbevf.txt haaaay
-https://github.com/torvalds/linux/blob/de182468d1bb726198abaab315820542425270b7/drivers/net/ethernet/intel/ixgbevf/ixgbevf_main.c
-
-
-
-https://stackoverflow.com/questions/3333959/mapping-dma-buffers-to-userspace
-http://forums.xilinx.com/xlnx/attachments/xlnx/ELINUX/10693/1/Linux%20DMA%20from%20User%20Space-public.pdf
-
-
-https://www-ssl.intel.com/content/dam/www/public/us/en/documents/datasheets/82599-10-gbe-controller-datasheet.pdf
-https://www.phoronix.com/scan.php?page=news_item&px=NVIDIA-Nouveau-CUDA-Support
-what happens when i just pretend to be tcp but am actually very much not
-https://en.wikipedia.org/wiki/IEEE_802.1Q
 
 
 just fucking embed antlr fuck it
@@ -1563,59 +1227,10 @@ http://yusufonlinux.blogspot.com/2010/11/data-link-access-and-zero-copy.html
 include/linux/dma-mapping.h
 Documentation/DMA-API.txt
 
-
-https://blog.bramp.net/post/2015/08/27/unsafe-part-3-benchmarking-a-java-unsafearraylist/
-http://antirez.com/news/92
-https://github.com/jnode/jnode/tree/master/net
-http://linuxgazette.net/156/jangir.html
-http://www.jopdesign.com/ejip/
-
-
-
-http://www.thoughts-on-java.org/weekly/
-http://zeroturnaround.com/rebellabs/java-memory-model-pragmatics-by-aleksey-shipilev/
-https://github.com/dell-oss/Doradus
-http://strataconf.com/big-data-conference-ca-2015/public/schedule/detail/38276
-http://blog.aquameta.com/2015/08/28/introducing-aquameta/
-
 .... jcache
-https://jcp.org/en/jsr/detail?id=107
-https://github.com/ehcache/ehcache3
-https://github.com/ehcache/ehcache-jcaGche
-https://github.com/ehcache/sizeof
-https://github.com/Terracotta-OSS/offheap-store
-https://github.com/Terracotta-OSS/statistics
-https://github.com/Terracotta-OSS/cache-load-tester
-https://github.com/Terracotta-OSS/geocache
-
-https://github.com/toelen/spymemcached-jcache
-
-
-
-https://github.com/nayuki/Arithmetic-Coding
-http://www.data-compression.info/Algorithms/AC/
  - loooooooool
-https://github.com/ramenhut/abac
-
-https://github.com/jsr107/RI
-
-http://www.infoq.com/news/2011/10/java-data-grid hm sup
-
-https://aturon.github.io/blog/2015/08/27/epoch/
-
 
 The big difference between ORC and DWRF is DWRF has a encoding called “row-group dictionary”.  This adds a second dictionary to a column that only applies to the current row group (10k rows).  This can reduce the compressed size of a column when the column has too many unique values for a global dictionary, but not so many unique values that a dictionary is useless.  There are some places where this is a big win.  The downside is complexity in the encoder and decoder.
-
-
-https://github.com/facebook/presto/issues/3435
-http://docs.treasuredata.com/articles/presto-udfs
-
-https://github.com/wyukawa/yanagishima
-
-https://groups.google.com/forum/#!topic/presto-users/jzRa_fDIwKE
-
-http://www.meetup.com/hadoopsf/events/223638704/
-http://www.meetup.com/AWS-SANFRANCISCO/events/224902500/
 
 
 
@@ -1642,12 +1257,6 @@ existing machinery wo last trier ordering?
 
 
 
-https://github.com/qubole/presto-udfs/tree/master/src
-https://github.com/qubole/presto-kinesis
-
-
-https://github.com/mauricio/postgresql-async
-
 
 ok fuck jcache - 1.0.0 v 0.5 v cache-ri-common fuck off get your shit together
 
@@ -1664,50 +1273,11 @@ ok fuck jcache - 1.0.0 v 0.5 v cache-ri-common fuck off get your shit together
         </dependency>
 
 ughhhh
-https://github.com/ehcache/ehcache-jcache
-https://github.com/dbrimley/jcache-examples
 
 
 jenkins Java/JNR ssh-agent
-
-https://archive.org/details/db2000-07-12
-https://archive.org/details/db2000-06-27.flac16
-https://archive.org/details/db1999-05-15.shnf
-:3333
-
-
-https://github.com/frankmcsherry/differential-dataflow
 xlat piles to pure j via props
-http://arxiv.org/abs/1508.06791
 oh yeah cli tabular presentation
-https://github.com/RaphaelJ/master-thesis/raw/master/thesis.pdf
-Boosting Java performance using GPGPU [pdf]
-http://arxiv.org/abs/1508.06791
-https://web.archive.org/web/20070709194542/http://www.codeproject.com/system/soviet_kernel_hack.asp memries
-https://github.com/mirror/reactos/blob/c6d2b35ffc91e09f50dfb214ea58237509329d6b/reactos/hal/halx86/apic/apic.c#L8 hahaha
-
-http://falsinsoft.blogspot.com/2013/10/access-physical-memory-in-linux.html BAHAHAHAHAHAHAAHAHAHAH
-so raptor = http://tinyurl.com/raptorrrr
-https://stackoverflow.com/questions/1629605/getting-user-inside-shell-script-when-running-with-sudo
-https://wiki.postgresql.org/wiki/PGStrom
-https://bitbucket.org/nikratio/s3ql
-https://www.cs.virginia.edu/kim/publicity/pldi09tutorials/memory-efficient-java-tutorial.pdf
-https://manishearth.github.io/blog/2015/09/01/designing-a-gc-in-rust/
-http://ctrl-c.club/~ksikka/articles/01-berkeley-db/
-http://blog.nobugware.com/post/2015/leveldb_geohash_golang/
-http://newsroom.intel.com/community/intel_newsroom/blog/2015/06/12/chip-shot-custom-intel-xeon-sever-chip-boost-cloud-processing-power-for-amazon-web-services-customers?wapkw=e5-2676
-https://www-ssl.intel.com/content/www/us/en/processors/xeon/xeon-e5-brief.html
-
-https://github.com/jcjohnson/neural-style
-http://www.infoq.com/articles/Tuning-Java-Servers
-https://github.com/jemalloc/jemalloc/releases/tag/4.0.0
-https://github.com/simongog/sdsl-lite
-
-
-
-https://github.com/krka/kahlua2
-https://github.com/dell-oss/Doradus
-
 
 
 
@@ -1774,63 +1344,6 @@ uuid, master
 
 
 
-http://obogason.com/fundamental-frequency-estimation-and-machine-learning/
-http://www.stephendiehl.com/posts/haskell_2016.html
-http://yahooeng.tumblr.com/post/135390948446/data-sketches
-http://probcomp.csail.mit.edu/bayesdb/
-http://ieeexplore.ieee.org/xpl/login.jsp?tp=&arnumber=5334664&url=http%3A%2F%2Fieeexplore.ieee.org%2Fxpls%2Fabs_all.jsp%3Farnumber%3D5334664
-http://psy-lob-saw.blogspot.sg/2013/05/know-thy-java-object-memory-layout.html?m=1
-http://danluu.com/file-consistency/
-https://github.com/danijar/layered
-https://github.com/kairosdb/kairosdb
-
-https://github.com/spotify/napalm
-https://github.com/spotify/heroic
-https://github.com/spotify/ffwd-java
-https://github.com/spotify/docker-client
-https://github.com/spotify/helios
-https://github.com/spotify/apollo
-https://github.com/spotify/spawn
-https://github.com/spotify/ssh-agent-proxy
-https://github.com/spotify/pyschema
-https://github.com/spotify/pyeos
-https://github.com/spotify/netty-zmtp
-https://github.com/spotify/annoy-java
-https://github.com/spotify/elasticsearch-index-window
-https://github.com/spotify/kairosdb
-https://github.com/spotify/daemon-java
-https://github.com/spotify/spire-server
-
-https://github.com/thinkaurelius/titan
-http://s3.thinkaurelius.com/docs/titan/1.0.0/indexes.html#vertex-indexes
-http://s3.thinkaurelius.com/docs/titan/1.0.0/data-model.html
-http://s3.thinkaurelius.com/docs/titan/1.0.0/hbase.html
-
-
-https://github.com/neo4j
-
-
-https://github.com/jOOQ/jOOL
-http://www.functionaljava.org/
-https://github.com/aol/cyclops
-http://pcollections.org/
-
-
-http://www.datasciencecentral.com/profiles/blogs/10-popular-java-machine-learning-tools-libraries
-
-http://www.cs.waikato.ac.nz/ml/weka/
-http://mallet.cs.umass.edu/
-https://github.com/apache/mahout
-http://machinelearningmastery.com/java-machine-learning/
-https://code.google.com/p/kmeansclustering/source/browse/#svn%2Ftrunk%2Fkmeansclustering%2Fsrc%2Fcom%2Fstromberglabs%2Fcluster
-
-
-http://artint.info/html/ArtInt.html
-
-
-https://github.com/probcomp
-
-
 
 christ.
 Merge
@@ -1851,12 +1364,10 @@ properties['log.enable-console'] = 'false'
 
 
 
-https://avro.apache.org/docs/current/spec.html#json_encoding
 
 
 
 HiveSplitManager.getPartitions()
-https://groups.google.com/forum/#!topic/presto-users/8FewSOe7sOU
 
 
 
@@ -1865,159 +1376,12 @@ TODO: 2-layer repositories - dump / read shared to ~/.m2, dump blacklisted (all 
 
 
 apache oryx tejo kylin
-http://www.programcreek.com/2012/11/top-100-java-developers-blogs/
-http://jcip.net/
-
-
-http://blog.acolyer.org/2015/12/14/a-year-in-papers/
-
-
-https://github.com/FasterXML/java-classmate
-https://github.com/FasterXML/jackson-module-afterburner
-https://github.com/FasterXML/jackson-module-guice wat
-https://github.com/FasterXML/jackson-dataformat-protobuf
-https://github.com/FasterXML/jackson-dataformat-csv
-
-
-
-https://spark.apache.org/mllib/
-https://spark.apache.org/docs/latest/mllib-statistics.html
-https://spark.apache.org/docs/latest/streaming-programming-guide.html
-https://spark.apache.org/docs/latest/graphx-programming-guide.html
-
-
-
-
-
-https://cloudonaut.io/5-aws-mistakes-you-should-avoid/
 ok so use asg's i guess
 
 
-https://github.com/FasterXML/jackson-databind/wiki/Deserialization-Features
-https://github.com/FasterXML/jackson-databind/wiki/Serialization-features
-http://wiki.fasterxml.com/JacksonMixInAnnotations
-
-
-
-http://blog.acolyer.org/2015/03/06/viewstamped-replication-revisited/
-http://blog.acolyer.org/2015/09/04/feral-concurrency-control-an-empirical-investigation-of-modern-application-integrity/
-http://blog.acolyer.org/2015/10/16/holistic-configuration-management-at-facebook/
-http://blog.acolyer.org/2015/03/26/lineage-driven-fault-injection/
-
-
-https://news.ycombinator.com/item?id=10798265
-
-
-https://github.com/awslabs/aws-shell
-
-https://github.com/eiiches/jackson-jq !!
-
-
-https://github.com/krukow/clj-ds
-https://github.com/andrewoma/dexx
-https://github.com/cornim/ClojureCollections
-https://github.com/bodar/totallylazy
-
-
-https://github.com/GlenKPeterson/UncleJim
-http://javaslang.com/ ugh
-
-!! winners !!
-
-https://github.com/GlenKPeterson/UncleJim
-https://github.com/aol/cyclops
-
-https://github.com/kevoree-modeling/framework
 
 ConnectorKv, RxBatchedKv
  - its all in wrmsr-main so muh
-
-http://www.oracle.com/technetwork/java/javase/community/jlssessions-2015-2633029.html
-http://www.slideshare.net/InfoQ/zen-pinterests-graph-storage-service
-https://pkghosh.wordpress.com/2010/10/19/recommendation-engine-powered-by-hadoop-part-1/
-https://github.com/Microsoft/PowerBI-visuals
-http://hg.openjdk.java.net/jdk9/dev/jdk/file/tip/src/java.base/share/classes/java/util/concurrent/Flow.java
-https://github.com/facebook/react-native
-https://github.com/dangdangdotcom/sharding-jdbc
-https://corner.squareup.com/2016/01/query-sniper.html
-
-https://cwiki.apache.org/confluence/display/Hive/LanguageManual+SortBy
-
-http://neo4j.com/blog/graph-database-ecommerce-fraud/
-
-https://cwiki.apache.org/confluence/display/BOOKKEEPER/Fencing
-
-https://code.facebook.com/posts/302060973291128/open-sourcing-haxl-a-library-for-haskell/
-https://github.com/facebook/Haxl
-http://chadaustin.me/2016/02/dropbox-hack-week-graphql-server-in-haskell/
-https://github.com/dropbox/datagraph
-
-
-https://github.com/LWJGL/lwjgl3-generated/tree/master/java/org/lwjgl/system/jemalloc
-http://www.java-gaming.org/index.php?topic=36524.0
-https://github.com/thinkaurelius/titan/blob/titan10/titan-core/src/main/java/com/thinkaurelius/titan/diskstorage/keycolumnvalue/KeyColumnValueStore.java
-https://dev.mysql.com/doc/refman/5.7/en/innodb-multi-versioning.html
-https://stackoverflow.com/questions/30511616/concurrency-in-embedded-in-proces-databases-h2-hsqldb-apache-derby-sqlite
-https://github.com/jankotek/mapdb/blob/master/src/main/java/org/mapdb/StoreDirect.java
-
-
-https://www.percona.com/blog/wp-content/uploads/2010/04/InnoDB_int.png
-http://cfile22.uf.tistory.com/image/2107F44D5279F0C11C5E0B
-https://domasmituzas.files.wordpress.com/2011/07/innodb-internals.png
-https://blogs.oracle.com/mysqlinnodb/entry/data_organization_in_innodb
-https://wiki.postgresql.org/wiki/Postgres-XC
-file:///Users/spinlock/Downloads/20120515_PGXC_Tutorial_global.pdf
-
-https://github.com/SnappyDataInc/snappydata oh this is gonna go great...
- > https://github.com/gemxd/gemfirexd-oss
- https://pivotal.io/big-data/white-paper/a-true-sql-engine-for-hadoop-pivotal-hd-hawq
-https://cloud.google.com/dataflow/blog/dataflow-beam-and-spark-comparison
-https://wiki.apache.org/incubator/BeamProposal
-https://github.com/GoogleCloudPlatform/DataflowJavaSDK
-https://github.com/dataArtisans/flink-dataflow
-https://github.com/cloudera/spark-dataflow
-http://research.google.com/pubs/pub41378.html
-
-https://github.com/linkedin/databus/wiki/Databus-for-MySQL
-https://github.com/mardambey/mypipe
-https://github.com/zendesk/maxwell
-https://github.com/wushujames/mysql-cdc-projects/wiki
-
-https://influxdata.com/blog/new-storage-engine-time-structured-merge-tree/
-http://www.vldb.org/pvldb/vol8/p1816-teller.pdf
-http://eatcodeplay.com/installing-gpu-enabled-tensorflow-with-python-3-4-in-ec2/
-
-https://github.com/rzwitserloot/lombok.patcher/blob/master/src/injector/lombok/patcher/inject/LiveInjector.java omg
-
-http://www.databaseanswers.org/data_models/
-
-http://gitxiv.com/posts/tfkjEgw9x4KSi2GnH/long-short-term-memory-networks-for-machine-reading
-
-
-
-http://blog.yhat.com/posts/summarizing-data-in-SQL.html
-https://wiki.haskell.org/GADTs_for_dummies
-http://palletops.com/create-hadoop-clusters-the-easy-peasy-way-wit/
-https://github.com/mesos/chronos/blob/master/src/main/scala/org/apache/mesos/chronos/scheduler/mesos/MesosDriverFactory.scala
-https://blogs.oracle.com/sundararajan/resource/JythonLinkerExporter.java
-https://blogs.oracle.com/sundararajan/resource/jython_linker.js.txt
-https://blogs.oracle.com/sundararajan/resource/jython_sample.js.txt
-http://palletops.com/pallet/doc/reference/node-types/
-http://palletops.com/pallet/doc/reference/phases/
-http://palletops.com/pallet/doc/reference/operations/
-http://palletops.com/pallet/doc/how-tos/using-pallet-with-existing-servers/
-https://www.py4j.org
-https://github.com/fge/json-schema-avro/tree/master/src/main/java/com/github/fge/jsonschema2avro/
-https://github.com/pallet/pallet-hadoop/blob/master/src/pallet_hadoop/node.clj
-https://avro.apache.org/docs/1.7.5/spec.html#schema_record
-http://swagger.io/specification/
-https://github.com/swagger-api/swagger-parser
-https://hamidreza-s.github.io/erlang/scheduling/real-time/preemptive/migration/2016/02/09/erlang-scheduler-details.html
-https://cloud.google.com/dataflow/blog/dataflow-beam-and-spark-comparison
-
-
-
-http://www.sigmod.org/publications/sigmod-record/0209/jimmelton.pdf dude what
 
 Example 5 — Creating a routine mapping
 CREATE ROUTINE MAPPING FN1_AT_FS1
@@ -2033,151 +1397,4 @@ WHERE fun1(name, city_id) = 100;
 
 
 
-https://www.youtube.com/watch?v=ybGrm73dXow
-https://www.socallinuxexpo.org/sites/default/files/presentations/SCALE%2014x-%20Swagger.pdf
-https://docs.oracle.com/cd/E26161_02/html/GettingStartedGuide/schemaevolution.html
-http://blog.jooq.org/tag/union-types/
-
-http://docs.scala-lang.org/tutorials/tour/variances.html
-http://www.scala-lang.org/files/archive/spec/2.11/03-types.html
-https://www.cs.cornell.edu/~ross/publications/mixedsite/mixedsite-tate-fool13.pdf
-https://stackoverflow.com/questions/8736164/what-are-type-lambdas-in-scala-and-what-are-their-benefits
-https://stackoverflow.com/questions/4069840/lambda-for-type-expressions-in-haskell
-https://hackage.haskell.org/package/TypeCompose-0.6.3/docs/Control-Compose.html#t:Flip
-https://hackage.haskell.org/package/category-extras-0.53.5/docs/Control-Functor.html#t:Bifunctor
-https://stackoverflow.com/questions/21649512/coerce-phantom-type?lq=1
-https://wiki.haskell.org/Tying_the_Knot
-http://eed3si9n.com/learning-scalaz/Lens.html
-https://wiki.haskell.org/Phantom_type
-https://wiki.haskell.org/Type_SK
-https://github.com/Frege/frege https://github.com/Frege/frege
-https://haskell-distributed.github.io/ :[
-https://www.quora.com/Automatic-Parallelization-What-are-the-latest-developments-in-the-field-of-compilers-to-automatically-parallelize-sequential-programs
-http://chimera.labs.oreilly.com/books/1230000000929/pt01.html
-https://stackoverflow.com/questions/4701207/current-status-of-automatic-parallelism-in-haskell
-http://research.microsoft.com/en-us/um/people/simonpj/papers/parallel/multicore-ghc.pdf
- - ALL EFFECTS ARE IO.
-http://haskell.cs.yale.edu/wp-content/uploads/2013/08/hask035-voellmy.pdf
-http://doc.pypy.org/en/latest/stm.html
-https://www.haskell.org/definition/haskell2010.pdf
-https://wiki.haskell.org/Syntactic_sugar/Cons
-https://mth.github.io/yeti/
-https://github.com/avsm/ocaml-lens
-https://github.com/m4dc4p/haskelldb/blob/master/src/Database/HaskellDB.hs
-https://code.facebook.com/posts/302060973291128/open-sourcing-haxl-a-library-for-haskell/
-https://www.schoolofhaskell.com/user/konn/prove-your-haskell-for-great-safety/dependent-types-in-haskell
-https://wiki.haskell.org/Dependent_type
-https://ghc.haskell.org/trac/ghc/wiki/DependentHaskell
-https://github.com/jgm/pandoc/blob/master/src/Text/Pandoc/Writers/Markdown.hs
-https://www.youtube.com/watch?v=r_Enynu_TV0
-https://www.quora.com/If-Raft-is-as-good-as-the-papers-claim-why-do-Zookeeper-and-others-implement-other-consensus-algorithms-Why-not-use-Raft
-https://wiki.haskell.org/GHC/Using_the_FFI
-http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.13.8726&rep=rep1&type=pdf
-
-http://aosabook.org/en/posa/working-with-big-data-in-bioinformatics.html
-http://aosabook.org/en/ghc.html
-http://aosabook.org/en/yesod.html
-http://aosabook.org/en/llvm.html
-http://aosabook.org/en/cmake.html
-http://aosabook.org/en/hdfs.html
-http://aosabook.org/en/riak.html
-http://c2.com/cgi/wiki?HaskellDb
-http://thoughts.davisjeff.com/2011/09/25/sql-the-successful-cousin-of-haskell/
-https://hackage.haskell.org/package/relational-query
-http://llvm.org/pubs/2010-03-GPGPU-ModelingGPGPU.pdf
-http://muldis.com/Muldis_D.html
-https://github.com/muldis/Muldis-D
-https://msdn.microsoft.com/en-us/library/w2kae45k(v=vs.90).aspx
-https://www.cs.cornell.edu/~ross/publications/mixedsite/mixedsite-tate-fool13.pdf
-
-
-https://personal.cis.strath.ac.uk/conor.mcbride/pub/hasochism.pdf
-http://deepdive.stanford.edu/
-https://github.com/hazyresearch/deepdive
-https://github.com/HazyResearch/ddlog
-http://www.pps.univ-paris-diderot.fr/~letouzey/download/letouzey_extr_cie08.pdf
-https://www.cis.upenn.edu/~bcpierce/sf/current/Extraction.html
-https://personal.cis.strath.ac.uk/conor.mcbride/pub/she/
-https://github.com/slindley/dependent-haskell/blob/master/Hasochism/MergeSort.lhs
-
-https://github.com/cloudera/ibis
-
-https://issues.apache.org/jira/browse/HBASE-12476 :|
-http://getkudu.io/overview.html
-
-layering btree on cass ugh
- - could preshard roots
-http://www.slideshare.net/davidemauri/temporal-snapshot-fact-tables
- - oo interval trees
-https://en.wikipedia.org/wiki/MultiDimensional_eXpressions
-https://docs.oracle.com/cd/B10501_01/server.920/a96520/schemas.htm
-http://kejser.org/tpc-h-schema-and-indexes/
-http://www.tpc.org/tpcds/spec/tpcds_1.1.0.pdf
-http://www.jamesserra.com/archive/2012/03/data-warehouse-architecture-kimball-and-inmon-methodologies/
-
-
-https://github.com/clojure/tools.nrepl
-https://github.com/clojure/tools.nrepl#embedding-nrepl-starting-a-server
-
-http://juel.sourceforge.net/guide/advanced/index.html <-- add to config
-
-https://github.com/clojure/core.typed
-https://github.com/clojure/core.typed/wiki
-https://github.com/clojure/core.typed/wiki/Types#type-grammar
-
-https://www.youtube.com/watch?v=ngM2N98ppQE
-
-http://www.dataorienteddesign.com/dodmain/
-https://wiki.haskell.org/Performance/Data_types
-https://ghc.haskell.org/trac/ghc/wiki/Annotations
-
-https://wiki.postgresql.org/images/4/44/Pgxc_HA_20121024.pdf
-http://www.postgres-xl.org/overview/
-https://en.wikipedia.org/wiki/Oracle_RAC
-
-https://www.reddit.com/r/haskell/comments/22x2zy/haskell_wheres_the_linq/
-https://hackage.haskell.org/package/opaleye
-https://stackoverflow.com/questions/4683506/are-there-any-connections-between-haskell-and-linq
-http://www.sparxeng.com/blog/software/higher-kinded-fun-in-haskell
-https://hackage.haskell.org/package/haskelldb
-http://chrisdone.com/posts/haskelldb-tutorial
-https://github.com/rails/arel
-https://www.haskell.org/hugs/pages/hugsman/exts.html#sect7.2 ... sup
-
-
-
-https://www.cs.princeton.edu/~dpw/papers/DTDT-tr.pdf
-http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.42.6692&rep=rep1&type=pdf
-https://books.google.com/books?id=_xjnBwAAQBAJ&pg=PA445&lpg=PA445&dq=dependent+type+coercion&source=bl&ots=pYBuLwrCG8&sig=EDbnfUMaqhOQllJujh36cZQjVPc&hl=en&sa=X&ved=0ahUKEwj8y5Oj7_DKAhVBU2MKHY55BOkQ6AEINTAD#v=onepage&q=dependent%20type%20coercion&f=false :|
-
-
-
-https://news.ycombinator.com/item?id=11118274
-https://code.sahebmotiani.com/patterns-in-scala-101-5d0fa70aaf3f#.d9gcwwiiz
-https://blogs.oracle.com/dev2dev/entry/oracle_maven_repository_instructions_for
-http://blog.javaslang.io/pattern-matching-starter/
-http://muratbuffalo.blogspot.com/2016/02/holistic-configuration-management-at.html
-https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/43287.pdf
-https://simonmar.github.io/posts/2016-02-12-Stack-traces-in-GHCi.html
-https://github.com/clojure/clojure/blob/master/src/jvm/clojure/lang/DynamicClassLoader.java
-http://blog.ndk.io/clojure-compilation2.html
-http://250bpm.com/blog:71
-https://github.com/clojure/core.typed/wiki/Types#type-grammar
-
-
-
-http://www.slideshare.net/deview/245-presto
-http://www.slideshare.net/deview/262-netflix
-http://www.slideshare.net/deview/253-apache-ni-fi
-http://www.slideshare.net/deview/263-s2graph-largescalegraphdatabasewithhbase2
-
-
 ** kv broadcast to replicated clusters (2 az's)
-
-
-
-http://www.dbtoaster.org/index.php?page=home&subpage=people
-
-
-http://forums.somethingawful.com/showthread.php?threadid=2672629
-https://bitcoincore.org/en/2016/02/26/zero-knowledge-contingent-payments-announcement/

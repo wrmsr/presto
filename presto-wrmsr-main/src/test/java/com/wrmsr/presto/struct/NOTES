@@ -222,10 +222,6 @@ ensure min/max on numeric
  visit + validate?
 
 
-https://docs.oracle.com/javaee/6/api/javax/validation/constraints/package-summary.html
-https://github.com/dropwizard/dropwizard/tree/master/dropwizard-validation/src/main/java/io/dropwizard/validation
-
-
 multi-field defaults?
 
 
@@ -267,67 +263,8 @@ interface Attribute {
 @NonNull vs @Nullable vs union<T, null> :|
 type-specific checks>
 
-http://whiley.org/
-http://whiley.org/guide/data-types/
-http://whiley.org/download/WhileyCheatSheet.pdf
-
-https://docs.oracle.com/cd/E26161_02/html/GettingStartedGuide/schemaevolution.html
-https://blog.twitter.com/2013/dremel-made-simple-with-parquet
-https://github.com/Parquet/parquet-mr/wiki/The-striping-and-assembly-algorithms-from-the-Dremel-paper
-https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/36632.pdf
-
-
-
-https://github.com/timjb/quantities
-https://github.com/ziman/lightyear
-https://github.com/david-christiansen/idris-type-providers
-https://github.com/david-christiansen/IdrisSqlite
-https://github.com/reynir/Verified
-https://github.com/SimonJF/IdrisNet2/blob/master/examples/echo/EchoClient.idr
-
-
-
 https://github.com/idris-hackers/idris-lens/blob/master/Lens.idr
 oh man. scalar udfs declare lensed fields as param / return types (cuz black boxes -> cant deduce accesses).
 http://blog.ezyang.com/2013/09/if-youre-using-lift-youre-doing-it-wrong-probably/
 oh fuck higher order udfs
-
-
-
-
-https://www.cis.upenn.edu/~eir/papers/2013/fckinds/fckinds.pdf
-https://www.cis.upenn.edu/~eir/papers/2012/singletons/paper.pdf
-https://personal.cis.strath.ac.uk/conor.mcbride/pub/hasochism.pdf
-https://www.cis.upenn.edu/~eir/papers/2014/promotion/promotion.pdf
-https://personal.cis.strath.ac.uk/conor.mcbride/pub/she/
-https://www.cs.princeton.edu/~dpw/papers/DTDT-tr.pdf
-http://www.dcc.fc.up.pt/~pbv/aulas/linguagens/peytonjones92implementing.pdf
-http://pfultz2.com/blog/2015/01/24/dependent-typing/
-http://research.microsoft.com/en-us/um/people/simonpj/papers/hmap/gmap3.pdf yeyuh
-
-
-
-
-https://en.wikipedia.org/wiki/Lambda_cube
-http://web.cs.ucla.edu/~palsberg/tba/papers/wright-jagannathan-ungureanu-hertzmann-tic98.pdf
-
-
-
-
-http://www.aosabook.org/en/ghc.html
-http://foswiki.cs.uu.nl/foswiki/pub/Afp/CourseSchedule/GHC-talk.pdf
-http://www.scs.stanford.edu/11au-cs240h/notes/ghc-slides.html#(8)
-https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/FC
-http://research.microsoft.com/en-us/um/people/simonpj/papers/ext-f/
-http://ezyang.tumblr.com/
-http://research.microsoft.com/en-us/um/people/simonpj/papers/ext-f/fc-tldi.pdf
-
-
-
-https://github.com/facebook/flow
-http://www.parsonsmatt.org/2016/02/18/dependent-hardware-i.html
-https://simonmar.github.io/posts/2016-02-12-Stack-traces-in-GHCi.html
-
-https://pwparchive.wordpress.com/2012/03/29/dependent-typing-in-c/
-
 
