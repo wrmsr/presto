@@ -26,10 +26,10 @@ public class HiveConnectorSupport
     private final ConnectorSession session;
     private final HiveConnector connector;
 
-    public HiveConnectorSupport(ConnectorSession session, Connector connector, com.facebook.presto.spi.Connector legacyConnector)
+    public HiveConnectorSupport(ConnectorSession session, Connector connector)
     {
         this.session = session;
-        this.connector = (HiveConnector) legacyConnector;
+        this.connector = (HiveConnector) connector;
     }
 
     @Override

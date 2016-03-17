@@ -14,9 +14,9 @@
 package com.facebook.presto.hive;
 
 import com.facebook.presto.hive.metastore.HiveMetastore;
-import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.PageIndexerFactory;
 import com.facebook.presto.spi.Plugin;
+import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -78,7 +78,7 @@ public class HivePlugin
             return ImmutableList.of(type.cast(new HiveConnectorFactory(name, optionalConfig, getClassLoader(), metastore, typeManager, pageIndexerFactory)));
         }
         else if (type == ConnectorSupportFactory.class) {
-            return ImmutableList.of(type.cast(new ConnectorSupportFactory.LegacyDefault(HiveConnectorSupport.class, HiveConnector.class, HiveConnectorSupport::new)));
+            return ImmutableList.of(type.cast(new ConnectorSupportFactory.Default(HiveConnectorSupport.class, HiveConnector.class, HiveConnectorSupport::new)));
         }
         return ImmutableList.of();
     }

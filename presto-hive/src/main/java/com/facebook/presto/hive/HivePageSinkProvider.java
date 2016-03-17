@@ -17,9 +17,10 @@ import com.facebook.presto.hive.metastore.HiveMetastore;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
 import com.facebook.presto.spi.ConnectorOutputTableHandle;
 import com.facebook.presto.spi.ConnectorPageSink;
-import com.facebook.presto.spi.ConnectorPageSinkProvider;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PageIndexerFactory;
+import com.facebook.presto.spi.connector.ConnectorPageSinkProvider;
+import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.type.TypeManager;
 import io.airlift.json.JsonCodec;
 
@@ -38,6 +39,7 @@ public class HivePageSinkProvider
     private final boolean respectTableFormat;
     private final int maxOpenPartitions;
     private final boolean immutablePartitions;
+    private final boolean compressed;
     private final LocationService locationService;
     private final JsonCodec<PartitionUpdate> partitionUpdateCodec;
 
@@ -58,19 +60,20 @@ public class HivePageSinkProvider
         this.respectTableFormat = config.isRespectTableFormat();
         this.maxOpenPartitions = config.getMaxPartitionsPerWriter();
         this.immutablePartitions = config.isImmutablePartitions();
+        this.compressed = config.getHiveCompressionCodec() != HiveCompressionCodec.NONE;
         this.locationService = requireNonNull(locationService, "locationService is null");
         this.partitionUpdateCodec = requireNonNull(partitionUpdateCodec, "partitionUpdateCodec is null");
     }
 
     @Override
-    public ConnectorPageSink createPageSink(ConnectorSession session, ConnectorOutputTableHandle tableHandle)
+    public ConnectorPageSink createPageSink(ConnectorTransactionHandle transaction, ConnectorSession session, ConnectorOutputTableHandle tableHandle)
     {
         HiveWritableTableHandle handle = checkType(tableHandle, HiveOutputTableHandle.class, "tableHandle");
         return createPageSink(handle, true);
     }
 
     @Override
-    public ConnectorPageSink createPageSink(ConnectorSession session, ConnectorInsertTableHandle tableHandle)
+    public ConnectorPageSink createPageSink(ConnectorTransactionHandle transaction, ConnectorSession session, ConnectorInsertTableHandle tableHandle)
     {
         HiveInsertTableHandle handle = checkType(tableHandle, HiveInsertTableHandle.class, "tableHandle");
         return createPageSink(handle, false);
@@ -94,6 +97,7 @@ public class HivePageSinkProvider
                 respectTableFormat,
                 maxOpenPartitions,
                 immutablePartitions,
+                compressed,
                 partitionUpdateCodec);
     }
 }
