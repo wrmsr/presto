@@ -21,8 +21,8 @@ public class TestStruct
     public void test()
             throws Throwable
     {
-        Struct thing = new Struct(AliasedName.of("thing"))
-                .addField(new Field)
-                .seal();
+//        Struct thing = new Struct(AliasedName.of("thing"))
+//                .addField(new Field)
+//                .seal();
     }
 }

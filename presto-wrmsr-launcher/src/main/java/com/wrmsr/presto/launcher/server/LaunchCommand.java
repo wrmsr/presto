@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher;
+package com.wrmsr.presto.launcher.server;
 
 import com.wrmsr.presto.launcher.passthrough.AbstractPassthroughCommand;
 import io.airlift.airline.Command;

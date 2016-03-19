@@ -59,6 +59,8 @@ import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toMap;
 
+// FIXME this is a pile of shit.
+
 public class LauncherBuilder
 {
     private static final Logger log = Logger.get(LauncherBuilder.class);

@@ -61,20 +61,21 @@ public class DaemonManager
         this.posix = requireNonNull(posix);
     }
 
-    @PostConstruct
-    @VisibleForTesting
-    public synchronized void setupDaemonProcess()
+    protected synchronized DaemonProcess getDaemonProcess()
     {
-        checkState(daemonProcess == null);
-        checkArgument(!isNullOrEmpty(daemonConfig.getPidFile()), "must set pidfile");
-        daemonProcess = new DaemonProcess(new File(daemonConfig.getPidFile()), daemonConfig.getPidFileFd());
+        if (daemonProcess == null) {
+            checkArgument(!isNullOrEmpty(daemonConfig.getPidFile()), "must set pidfile");
+            daemonProcess = new DaemonProcess(new File(daemonConfig.getPidFile()), daemonConfig.getPidFileFd());
+        }
+        return daemonProcess;
     }
 
     @PreDestroy
-    @VisibleForTesting
     public synchronized void teardownDaemonProcess()
     {
-        requireNonNull(daemonProcess).close();
+        if (daemonProcess != null) {
+            daemonProcess.close();
+        }
     }
 
     private void redirctStdio()
@@ -145,24 +146,24 @@ public class DaemonManager
 
     public synchronized void run()
     {
-        daemonProcess.writePid();
+        getDaemonProcess().writePid();
         launch();
     }
 
     public synchronized void kill()
     {
-        requireNonNull(daemonProcess).kill();
+        getDaemonProcess().kill();
     }
 
     public synchronized void kill(int signal)
     {
-        requireNonNull(daemonProcess).kill(signal);
+        getDaemonProcess().kill(signal);
     }
 
     public synchronized void restart()
     {
-        if (daemonProcess.alive()) {
-            daemonProcess.stop();
+        if (getDaemonProcess().alive()) {
+            getDaemonProcess().stop();
         }
         launch();
     }
@@ -174,16 +175,16 @@ public class DaemonManager
 
     public synchronized OptionalInt status()
     {
-        if (!daemonProcess.alive()) {
+        if (!getDaemonProcess().alive()) {
             return OptionalInt.empty();
         }
         else {
-            return OptionalInt.of(daemonProcess.readPid());
+            return OptionalInt.of(getDaemonProcess().readPid());
         }
     }
 
     public synchronized void stop()
     {
-        daemonProcess.stop();
+        getDaemonProcess().stop();
     }
 }

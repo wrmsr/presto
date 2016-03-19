@@ -50,8 +50,6 @@ public class ScriptingModule
     @Override
     public void configurePlugin(ConfigContainer config, Binder binder)
     {
-        binder.bind(ScriptingConfig.class).toInstance(config.getMergedNode(ScriptingConfig.class));
-
         newSetBinder(binder, ScriptEngineProvider.class);
         for (String name : ImmutableList.of("nashorn")) {
             newSetBinder(binder, ScriptEngineProvider.class).addBinding().toInstance(new BuiltinScriptEngineProvider(name));
