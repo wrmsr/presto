@@ -20,10 +20,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import io.airlift.resolver.ArtifactResolver;
 import io.airlift.resolver.DefaultArtifact;
+import org.apache.maven.repository.internal.MavenRepositorySystemSession;
 import org.sonatype.aether.artifact.Artifact;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,6 +57,19 @@ public class Artifacts
         return list;
     }
 
+    private static void shutTheFuckUpAirlift(ArtifactResolver resolver)
+    {
+        try {
+            Field field = resolver.getClass().getDeclaredField("repositorySystemSession");
+            field.setAccessible(true);
+            MavenRepositorySystemSession session = (MavenRepositorySystemSession) field.get(resolver);
+            session.setRepositoryListener(null);
+        }
+        catch (ReflectiveOperationException e) {
+            return;
+        }
+    }
+
     public static List<URL> resolveModuleClassloaderUrls(String name)
     {
         try {
@@ -65,6 +80,7 @@ public class Artifacts
                 ArtifactResolver resolver = new ArtifactResolver(
                         ArtifactResolver.USER_LOCAL_REPO,
                         ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
+                shutTheFuckUpAirlift(resolver);
                 File pom = null;
                 for (String prefix : ImmutableList.of("", "../")) {
                     File f = new File(prefix + name + "/pom.xml");

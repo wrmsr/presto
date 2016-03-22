@@ -15,7 +15,9 @@ package com.wrmsr.presto.launcher;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
+import io.airlift.log.Level;
 import io.airlift.log.Logger;
+import io.airlift.log.Logging;
 
 import java.util.Arrays;
 import java.util.List;
@@ -30,7 +32,7 @@ public class LauncherMain
     {
     }
 
-    public static List<String> rewriteArgs(List<String> args)
+    private static List<String> rewriteArgs(List<String> args)
     {
         List<String> ret = newArrayList();
         int i = 0;
@@ -53,10 +55,17 @@ public class LauncherMain
         return ret;
     }
 
+    private static void configureLogging()
+    {
+        Logging.initialize();
+    }
+
     @SuppressWarnings({"unchecked"})
     public static void main(String[] args)
             throws Throwable
     {
+        configureLogging();
+
         List<String> newArgs = rewriteArgs(Arrays.asList(args));
         args = newArgs.toArray(new String[newArgs.size()]);
 
