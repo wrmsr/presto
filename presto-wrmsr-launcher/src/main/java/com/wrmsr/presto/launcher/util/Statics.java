@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher.util;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -23,6 +24,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Statics
 {
+    private static final List<String> HIDDEN_CLASSES = ImmutableList.<String>builder()
+            .add("org.slf4j")
+            .build();
+
+    private static final ImmutableList<String> PARENT_FIRST_CLASSES = ImmutableList.<String>builder()
+            .add("io.airlift.log.Logging")
+            .build();
+
     public static void runStaticMethod(String className, String methodName, Class<?>[] parameterTypes, Object[] args)
     {
         try {
@@ -45,7 +54,10 @@ public class Statics
             public void run()
             {
                 try {
+                    // ClassLoader pcl = getContextClassLoader();
+                    // ClassLoader cl = new ParentFirstClassLoader(urls, pcl, HIDDEN_CLASSES, PARENT_FIRST_CLASSES);
                     ClassLoader cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), getContextClassLoader().getParent());
+
                     Thread.currentThread().setContextClassLoader(cl);
                     runStaticMethod(className, methodName, parameterTypes, args);
                 }

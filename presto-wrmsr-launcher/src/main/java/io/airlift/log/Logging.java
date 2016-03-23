@@ -92,7 +92,7 @@ public class Logging
     }
 
     @SuppressWarnings("IOResourceOpenedButNotSafelyClosed")
-    private void rewireStdStreams()
+    public void rewireStdStreams()
     {
         logConsole(new NonCloseableOutputStream(System.err));
         try {
@@ -106,13 +106,13 @@ public class Logging
     }
 
     @SuppressWarnings("IOResourceOpenedButNotSafelyClosed")
-    private static void redirectStdStreams()
+    public static void redirectStdStreams()
     {
         System.setOut(new PrintStream(new LoggingOutputStream(Logger.get("stdout")), true));
         System.setErr(new PrintStream(new LoggingOutputStream(Logger.get("stderr")), true));
     }
 
-    private synchronized void logConsole(OutputStream stream)
+    public synchronized void logConsole(OutputStream stream)
     {
         consoleHandler = new OutputStreamHandler(stream);
         ROOT.addHandler(consoleHandler);

@@ -15,12 +15,12 @@ package com.wrmsr.presto.launcher;
 
 import io.airlift.airline.Cli;
 import io.airlift.airline.Help;
-import io.airlift.log.Level;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Handler;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -57,7 +57,14 @@ public class LauncherMain
 
     private static void configureLogging()
     {
-        Logging.initialize();
+        Logging logging = Logging.doNotInitialize();
+
+        java.util.logging.Logger root = java.util.logging.Logger.getLogger("");
+        root.setLevel(java.util.logging.Level.INFO);
+        for (Handler handler : root.getHandlers()) {
+            root.removeHandler(handler);
+        }
+        logging.logConsole(System.err);
     }
 
     @SuppressWarnings({"unchecked"})

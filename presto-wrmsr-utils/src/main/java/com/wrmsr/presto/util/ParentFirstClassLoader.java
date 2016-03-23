@@ -27,7 +27,7 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
-class ParentFirstClassLoader
+public class ParentFirstClassLoader
         extends URLClassLoader
 {
     private final List<String> hiddenClasses;
