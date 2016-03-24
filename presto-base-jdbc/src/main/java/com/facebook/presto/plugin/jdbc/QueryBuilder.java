@@ -74,10 +74,10 @@ public class QueryBuilder
     public PreparedStatement buildSql(JdbcClient client, Connection connection, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain)
             throws SQLException
     {
-        return buildSql(connection, catalog, schema, table, columns, tupleDomain, ImmutableList.of(), Optional.empty());
+        return buildSql(client, connection, catalog, schema, table, columns, tupleDomain, ImmutableList.of(), Optional.empty());
     }
 
-    public PreparedStatement buildSql(Connection connection, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain, List<JdbcClient.Ordering> ordering, Optional<Long> limit)
+    public PreparedStatement buildSql(JdbcClient client, Connection connection, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain, List<JdbcClient.Ordering> ordering, Optional<Long> limit)
             throws SQLException
     {
         StringBuilder sql = new StringBuilder();
