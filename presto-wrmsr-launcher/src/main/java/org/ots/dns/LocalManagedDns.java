@@ -14,26 +14,25 @@
 // http://rkuzmik.blogspot.com/2006/08/local-managed-dns-java_11.html
 package org.ots.dns;
 
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.google.common.base.Throwables;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import sun.net.spi.nameservice.NameService;
-import sun.net.spi.nameservice.dns.DNSNameService;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.regex.Pattern;
+
+;
 
 /**
- *
- * @version $Id$
  * @author Roman Kuzmik
+ * @version $Id$
  */
-public class LocalManagedDns implements NameService {
+public class LocalManagedDns
+        implements NameService
+{
     private static final Log log = LogFactory.getLog(LocalManagedDns.class);
 
     private final NameService defaultDnsImpl;
@@ -42,7 +41,8 @@ public class LocalManagedDns implements NameService {
     public LocalManagedDns()
     {
         try {
-            this.defaultDnsImpl = new DNSNameService();
+            Class<? extends NameService> clazz = (Class<? extends NameService>) Class.forName("sun.net.spi.nameservice.dns.DNSNameService");
+            this.defaultDnsImpl = clazz.getConstructor().newInstance();
         }
         catch (Exception e) {
             throw Throwables.propagate(e);
@@ -50,7 +50,9 @@ public class LocalManagedDns implements NameService {
     }
 
     @Override
-    public String getHostByAddr(byte[] ip) throws UnknownHostException {
+    public String getHostByAddr(byte[] ip)
+            throws UnknownHostException
+    {
         log.debug("");
 
         return defaultDnsImpl.getHostByAddr(ip);
@@ -65,10 +67,11 @@ public class LocalManagedDns implements NameService {
             return InetAddress.getAllByName(ip);
         }
         String ipAddress = NameStore.getInstance().get(s);
-        if (!StringUtils.isEmpty(ipAddress)){
+        if (!StringUtils.isEmpty(ipAddress)) {
             log.debug("\tmatch");
             return InetAddress.getAllByName(ipAddress);
-        } else {
+        }
+        else {
             log.debug("\tmiss");
             return defaultDnsImpl.lookupAllHostAddr(s);
         }

@@ -27,7 +27,12 @@ import com.wrmsr.presto.util.GuiceUtils;
 import io.airlift.bootstrap.Bootstrap;
 import io.airlift.log.Logger;
 import io.airlift.resolver.ArtifactResolver;
+import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.JavaVersion;
+import org.apache.commons.lang3.SystemUtils;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Optional;
 import java.util.ServiceLoader;
@@ -43,8 +48,25 @@ public class PreloadedPlugins
     {
     }
 
+//    private static void patchJavaVersion()
+//    {
+//        try {
+//            Field field = SystemUtils.class.getDeclaredField("JAVA_SPECIFICATION_VERSION_AS_ENUM");
+//            field.setAccessible(true);
+//            Field modifiersField = Field.class.getDeclaredField("modifiers");
+//            modifiersField.setAccessible(true);
+//            modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+//            field.set(null, JavaVersion.JAVA_1_8);
+//        }
+//        catch (ReflectiveOperationException e) {
+//            throw Throwables.propagate(e);
+//        }
+//    }
+
     public static Iterable<Module> processServerModules(Iterable<Module> modules)
     {
+//        patchJavaVersion();
+
         Bootstrap app = new Bootstrap(ImmutableList.of(new Module()
         {
             @Override

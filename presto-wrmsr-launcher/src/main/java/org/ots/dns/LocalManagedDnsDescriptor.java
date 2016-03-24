@@ -15,7 +15,6 @@ package org.ots.dns;
 
 import sun.net.spi.nameservice.NameService;
 import sun.net.spi.nameservice.NameServiceDescriptor;
-import sun.net.spi.nameservice.dns.DNSNameServiceDescriptor;
 
 public class LocalManagedDnsDescriptor
     implements NameServiceDescriptor
