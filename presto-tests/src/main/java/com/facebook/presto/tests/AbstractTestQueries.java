@@ -2361,6 +2361,14 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testJoinWithDuplicateRelations()
+            throws Exception
+    {
+        assertQuery("SELECT * FROM orders JOIN orders USING (orderkey)", "SELECT * FROM orders o1 JOIN orders o2 ON o1.orderkey = o2.orderkey");
+        assertQuery("SELECT * FROM lineitem x JOIN orders x USING (orderkey)", "SELECT * FROM lineitem l JOIN orders o ON l.orderkey = o.orderkey");
+    }
+
+    @Test
     public void testOrderBy()
             throws Exception
     {
@@ -3890,6 +3898,13 @@ public abstract class AbstractTestQueries
             throws Exception
     {
         assertQuery("SELECT A.* FROM orders a");
+    }
+
+    @Test
+    public void testCaseInsensitiveRowFieldReference()
+            throws Exception
+    {
+        assertQuery("SELECT a.Col0 FROM (VALUES ROW (test_non_lowercase_row(1))) AS t (a)", "SELECT 1");
     }
 
     @Test

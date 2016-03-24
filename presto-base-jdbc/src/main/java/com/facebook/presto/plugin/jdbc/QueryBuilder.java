@@ -71,7 +71,7 @@ public class QueryBuilder
         this.quote = requireNonNull(quote, "quote is null");
     }
 
-    public PreparedStatement buildSql(Connection connection, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain)
+    public PreparedStatement buildSql(JdbcClient client, Connection connection, String catalog, String schema, String table, List<JdbcColumnHandle> columns, TupleDomain<ColumnHandle> tupleDomain)
             throws SQLException
     {
         return buildSql(connection, catalog, schema, table, columns, tupleDomain, ImmutableList.of(), Optional.empty());
@@ -120,7 +120,7 @@ public class QueryBuilder
             sql.append(limit.get());
         }
 
-        PreparedStatement statement = connection.prepareStatement(sql.toString());
+        PreparedStatement statement = client.getPreparedStatement(connection, sql.toString());
 
         for (int i = 0; i < accumulator.size(); i++) {
             TypeAndValue typeAndValue = accumulator.get(i);
