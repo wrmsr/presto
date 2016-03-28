@@ -40,4 +40,17 @@ public class CodeCacheGcConfig
         this.codeCacheCheckInterval = codeCacheCheckInterval;
         return this;
     }
+
+    private boolean enabled;
+
+    public boolean isEnabled()
+    {
+        return enabled;
+    }
+
+    @Config("code-cache-check-enabled")
+    public void setEnabled(boolean enabled)
+    {
+        this.enabled = enabled;
+    }
 }

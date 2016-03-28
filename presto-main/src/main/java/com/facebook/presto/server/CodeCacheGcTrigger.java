@@ -29,12 +29,14 @@ final class CodeCacheGcTrigger
     private static final Logger log = Logger.get(CodeCacheGcTrigger.class);
     private static final AtomicBoolean installed = new AtomicBoolean();
 
+    private final boolean enabled;
     private final Duration interval;
 
     @Inject
     public CodeCacheGcTrigger(CodeCacheGcConfig config)
     {
         this.interval = config.getCodeCacheCheckInterval();
+        this.enabled = config.isEnabled();
     }
 
     @PostConstruct
@@ -46,6 +48,10 @@ final class CodeCacheGcTrigger
     public void installCodeCacheGcTrigger()
     {
         if (installed.getAndSet(true)) {
+            return;
+        }
+
+        if (!enabled) {
             return;
         }
 
