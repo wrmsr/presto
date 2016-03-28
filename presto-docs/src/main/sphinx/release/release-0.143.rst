@@ -5,7 +5,10 @@ Release 0.143
 General Changes
 ---------------
 
+* Fix race condition in output buffer that can cause a page to be lost.
 * Fix case-sensitivity issue when de-referencing row fields.
+* Fix :doc:`/sql/delete` for predicates that optimize to false.
+* Add support for scalar subqueries in :doc:`/sql/delete` queries.
 * Add config option ``query.max-cpu-time`` to limit CPU time used by a query.
 * Add loading indicator and error message to query detail page in UI.
 * Add query teardown to query timeline visualizer.

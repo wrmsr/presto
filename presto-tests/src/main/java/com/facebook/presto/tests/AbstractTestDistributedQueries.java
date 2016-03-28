@@ -339,9 +339,9 @@ public abstract class AbstractTestDistributedQueries
         // of how they are declared in the table schema
         assertUpdate(
                 "INSERT INTO test_insert (orderkey, orderdate) " +
-                "SELECT orderkey, orderdate FROM orders " +
-                "UNION ALL " +
-                "SELECT orderkey, orderdate FROM orders",
+                        "SELECT orderkey, orderdate FROM orders " +
+                        "UNION ALL " +
+                        "SELECT orderkey, orderdate FROM orders",
                 "SELECT 2 * count(*) FROM orders");
 
         assertUpdate("DROP TABLE test_insert");
@@ -393,6 +393,12 @@ public abstract class AbstractTestDistributedQueries
         assertUpdate("DELETE FROM test_delete WHERE rand() < 0", 0);
         assertUpdate("DROP TABLE test_delete");
 
+        // delete with a predicate that optimizes to false
+
+        assertUpdate("CREATE TABLE test_delete AS SELECT * FROM orders", "SELECT count(*) FROM orders");
+        assertUpdate("DELETE FROM test_delete WHERE orderkey > 5 AND orderkey < 4", 0);
+        assertUpdate("DROP TABLE test_delete");
+
         // delete using a subquery
 
         assertUpdate("CREATE TABLE test_delete AS SELECT * FROM lineitem", "SELECT count(*) FROM lineitem");
@@ -439,6 +445,14 @@ public abstract class AbstractTestDistributedQueries
                 "SELECT * FROM orders\n" +
                         "WHERE (orderkey IN (SELECT CASE WHEN orderkey % 3 = 0 THEN NULL ELSE orderkey END FROM lineitem)) IS NOT NULL\n");
 
+        assertUpdate("DROP TABLE test_delete");
+
+        // delete using a scalar subquery
+
+        assertUpdate("CREATE TABLE test_delete AS SELECT * FROM orders", "SELECT count(*) FROM orders");
+        assertUpdate("DELETE FROM test_delete WHERE orderkey = (SELECT orderkey FROM orders ORDER BY orderkey LIMIT 1)", 1);
+        assertUpdate("DELETE FROM test_delete WHERE orderkey = (SELECT orderkey FROM orders WHERE false)", 0);
+        assertUpdate("DELETE FROM test_delete WHERE (SELECT true)", "SELECT count(*) - 1 FROM orders");
         assertUpdate("DROP TABLE test_delete");
     }
 
@@ -624,8 +638,8 @@ public abstract class AbstractTestDistributedQueries
         MaterializedResult result = computeActual("DESCRIBE " + tableName);
         List<String> expected = ImmutableList.copyOf(columnNames);
         List<String> actual = result.getMaterializedRows().stream()
-            .map(row -> (String) row.getField(0))
-            .collect(toImmutableList());
+                .map(row -> (String) row.getField(0))
+                .collect(toImmutableList());
         assertEquals(actual, expected);
     }
 }
