@@ -39,6 +39,7 @@ public class TpchConnectorSupport
         implements HandleDetailsConnectorSupport, KeyConnectorSupport
 {
     private final ConnectorSession session;
+    private final Connector connector;
 
     private final String defaultSchema;
 
@@ -58,24 +59,21 @@ public class TpchConnectorSupport
 
     public TpchConnectorSupport(ConnectorSession session, Connector connector)
     {
-        this(session);
+        this(session, connector, "tiny");
     }
 
-    public TpchConnectorSupport(ConnectorSession session, Connector connector, com.facebook.presto.spi.Connector legacyConnector)
-    {
-        this(session);
-    }
-
-    public TpchConnectorSupport(ConnectorSession session)
-    {
-        this(session, "tiny");
-    }
-
-    public TpchConnectorSupport(ConnectorSession session, String defaultSchema)
+    public TpchConnectorSupport(ConnectorSession session, Connector connector, String defaultSchema)
     {
         checkArgument(schemas.contains(defaultSchema));
         this.session = session;
+        this.connector = connector;
         this.defaultSchema = defaultSchema;
+    }
+
+    @Override
+    public Connector getConnector()
+    {
+        return connector;
     }
 
     @Override

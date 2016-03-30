@@ -195,8 +195,8 @@ public class TestHelper
             connectors = lqr.getConnectorManager().getConnectors();
 
             connectorSupport = ImmutableMap.<String, ConnectorSupport>builder()
-                   .put("tpch", new TpchConnectorSupport(session.toConnectorSession())) // , connectors.get("tpch"), "tiny"))
-                   .put("test", new ExtendedJdbcConnectorSupport(session.toConnectorSession(), (LegacyTransactionConnector) connectors.get("test"), ((LegacyTransactionConnector) connectors.get("test")).getConnector()))
+                   .put("tpch", new TpchConnectorSupport(session.toConnectorSession(), connectors.get("tpch"))) // , connectors.get("tpch"), "tiny"))
+                   .put("test", new ExtendedJdbcConnectorSupport(session.toConnectorSession(), connectors.get("test"), ((LegacyTransactionConnector) connectors.get("test")).getConnector()))
                    .build();
         }
     }
