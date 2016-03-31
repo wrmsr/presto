@@ -11,16 +11,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.tests;
+package com.facebook.presto.execution.resourceGroups;
 
-import static com.facebook.presto.tests.tpch.TpchQueryRunner.createQueryRunner;
+import com.facebook.presto.SessionRepresentation;
+import com.facebook.presto.execution.QueryQueueDefinition;
+import com.facebook.presto.sql.tree.Statement;
 
-public class TestTpchDistributedQueries
-        extends AbstractTestQueries
+import java.util.List;
+import java.util.Optional;
+
+public interface ResourceGroupSelector
 {
-    public TestTpchDistributedQueries()
-            throws Exception
-    {
-        super(createQueryRunner());
-    }
+    Optional<List<QueryQueueDefinition>> match(Statement statement, SessionRepresentation session);
 }

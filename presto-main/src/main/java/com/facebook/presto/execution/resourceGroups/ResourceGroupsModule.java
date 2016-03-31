@@ -11,16 +11,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.tests;
+package com.facebook.presto.execution.resourceGroups;
 
-import static com.facebook.presto.tests.tpch.TpchQueryRunner.createQueryRunner;
+import com.facebook.presto.execution.QueryQueueRuleFactory;
+import com.google.inject.Binder;
+import com.google.inject.Module;
+import com.google.inject.Scopes;
+import com.google.inject.TypeLiteral;
 
-public class TestTpchDistributedQueries
-        extends AbstractTestQueries
+import java.util.List;
+
+public class ResourceGroupsModule
+        implements Module
 {
-    public TestTpchDistributedQueries()
-            throws Exception
+    @Override
+    public void configure(Binder binder)
     {
-        super(createQueryRunner());
+        binder.bind(new TypeLiteral<List<? extends ResourceGroupSelector>>() {}).toProvider(QueryQueueRuleFactory.class).in(Scopes.SINGLETON);
     }
 }

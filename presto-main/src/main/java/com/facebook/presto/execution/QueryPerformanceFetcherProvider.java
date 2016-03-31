@@ -13,18 +13,27 @@
  */
 package com.facebook.presto.execution;
 
-import com.facebook.presto.sql.tree.Statement;
+import javax.inject.Inject;
+import javax.inject.Provider;
 
-import javax.annotation.concurrent.ThreadSafe;
+import java.util.Optional;
 
-import java.util.concurrent.Executor;
+import static java.util.Objects.requireNonNull;
 
-/**
- * Classes implementing this interface must be thread safe. That is, all the methods listed below
- * may be called concurrently from any thread.
- */
-@ThreadSafe
-public interface QueryQueueManager
+public class QueryPerformanceFetcherProvider
+        implements Provider<Optional<QueryPerformanceFetcher>>
 {
-    boolean submit(Statement statement, QueryExecution queryExecution, Executor executor, SqlQueryManagerStats stats);
+    private final QueryManager queryManager;
+
+    @Inject
+    public QueryPerformanceFetcherProvider(QueryManager queryManager)
+    {
+        this.queryManager = requireNonNull(queryManager, "queryManager is null");
+    }
+
+    @Override
+    public Optional<QueryPerformanceFetcher> get()
+    {
+        return Optional.of(queryManager::getQueryInfo);
+    }
 }
