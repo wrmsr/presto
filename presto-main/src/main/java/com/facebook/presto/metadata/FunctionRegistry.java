@@ -60,7 +60,12 @@ import com.facebook.presto.operator.scalar.FailureFunction;
 import com.facebook.presto.operator.scalar.HyperLogLogFunctions;
 import com.facebook.presto.operator.scalar.JsonFunctions;
 import com.facebook.presto.operator.scalar.JsonOperators;
+import com.facebook.presto.operator.scalar.MapCardinalityFunction;
+import com.facebook.presto.operator.scalar.MapConcatFunction;
 import com.facebook.presto.operator.scalar.MapEqualOperator;
+import com.facebook.presto.operator.scalar.MapKeys;
+import com.facebook.presto.operator.scalar.MapNotEqualOperator;
+import com.facebook.presto.operator.scalar.MapValues;
 import com.facebook.presto.operator.scalar.MathFunctions;
 import com.facebook.presto.operator.scalar.RegexpFunctions;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
@@ -96,6 +101,7 @@ import com.facebook.presto.type.DateTimeOperators;
 import com.facebook.presto.type.DecimalOperators;
 import com.facebook.presto.type.DoubleOperators;
 import com.facebook.presto.type.HyperLogLogOperators;
+import com.facebook.presto.type.IntegerOperators;
 import com.facebook.presto.type.IntervalDayTimeOperators;
 import com.facebook.presto.type.IntervalYearMonthOperators;
 import com.facebook.presto.type.LikeFunctions;
@@ -180,15 +186,10 @@ import static com.facebook.presto.operator.scalar.IdentityCast.IDENTITY_CAST;
 import static com.facebook.presto.operator.scalar.JsonToArrayCast.JSON_TO_ARRAY;
 import static com.facebook.presto.operator.scalar.JsonToMapCast.JSON_TO_MAP;
 import static com.facebook.presto.operator.scalar.Least.LEAST;
-import static com.facebook.presto.operator.scalar.MapCardinalityFunction.MAP_CARDINALITY;
-import static com.facebook.presto.operator.scalar.MapConcatFunction.MAP_CONCAT_FUNCTION;
 import static com.facebook.presto.operator.scalar.MapConstructor.MAP_CONSTRUCTOR;
 import static com.facebook.presto.operator.scalar.MapHashCodeOperator.MAP_HASH_CODE;
-import static com.facebook.presto.operator.scalar.MapKeys.MAP_KEYS;
-import static com.facebook.presto.operator.scalar.MapNotEqualOperator.MAP_NOT_EQUAL;
 import static com.facebook.presto.operator.scalar.MapSubscriptOperator.MAP_SUBSCRIPT;
 import static com.facebook.presto.operator.scalar.MapToJsonCast.MAP_TO_JSON;
-import static com.facebook.presto.operator.scalar.MapValues.MAP_VALUES;
 import static com.facebook.presto.operator.scalar.RowEqualOperator.ROW_EQUAL;
 import static com.facebook.presto.operator.scalar.RowHashCodeOperator.ROW_HASH_CODE;
 import static com.facebook.presto.operator.scalar.RowNotEqualOperator.ROW_NOT_EQUAL;
@@ -201,6 +202,7 @@ import static com.facebook.presto.spi.StandardErrorCode.FUNCTION_NOT_FOUND;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
+import static com.facebook.presto.spi.type.IntegerType.INTEGER;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.spi.type.VarbinaryType.VARBINARY;
 import static com.facebook.presto.type.DecimalCasts.BIGINT_TO_DECIMAL_CAST;
@@ -239,6 +241,8 @@ public class FunctionRegistry
 
     // hack: java classes for types that can be used with magic literals
     private static final Set<Class<?>> SUPPORTED_LITERAL_TYPES = ImmutableSet.<Class<?>>of(long.class, double.class, Slice.class, boolean.class);
+    // TODO: add TINYINT and SMALLINT when those types are added
+    private static final Set<Type> AMBIGUOUS_INTEGRAL_COERCION_SOURCES = ImmutableSet.of(INTEGER);
 
     private final TypeManager typeManager;
     private final BlockEncodingSerde blockEncodingSerde;
@@ -348,6 +352,7 @@ public class FunctionRegistry
                 .scalar(UnknownOperators.class)
                 .scalar(BooleanOperators.class)
                 .scalar(BigintOperators.class)
+                .scalar(IntegerOperators.class)
                 .scalar(DoubleOperators.class)
                 .scalar(VarcharOperators.class)
                 .scalar(VarbinaryOperators.class)
@@ -380,14 +385,19 @@ public class FunctionRegistry
                 .scalar(ArrayNotEqualOperator.class)
                 .scalar(ArrayEqualOperator.class)
                 .scalar(ArrayHashCodeOperator.class)
-                .scalar(MapEqualOperator.class)
                 .scalar(ArraySliceFunction.class)
+                .scalar(MapEqualOperator.class)
+                .scalar(MapNotEqualOperator.class)
+                .scalar(MapKeys.class)
+                .scalar(MapValues.class)
+                .scalar(MapCardinalityFunction.class)
+                .scalar(MapConcatFunction.class)
                 .functions(ARRAY_CONTAINS, ARRAY_JOIN, ARRAY_JOIN_WITH_NULL_REPLACEMENT)
                 .functions(ARRAY_TO_ARRAY_CAST, ARRAY_LESS_THAN, ARRAY_GREATER_THAN_OR_EQUAL)
                 .functions(ARRAY_TO_ELEMENT_CONCAT_FUNCTION, ELEMENT_TO_ARRAY_CONCAT_FUNCTION)
-                .functions(MAP_NOT_EQUAL, MAP_HASH_CODE)
+                .function(MAP_HASH_CODE)
                 .functions(ARRAY_CONSTRUCTOR, ARRAY_SUBSCRIPT, ARRAY_CARDINALITY, ARRAY_POSITION, ARRAY_SORT_FUNCTION, ARRAY_INTERSECT_FUNCTION, ARRAY_TO_JSON, JSON_TO_ARRAY)
-                .functions(MAP_CONSTRUCTOR, MAP_CARDINALITY, MAP_SUBSCRIPT, MAP_TO_JSON, JSON_TO_MAP, MAP_KEYS, MAP_VALUES, MAP_CONCAT_FUNCTION)
+                .functions(MAP_CONSTRUCTOR, MAP_SUBSCRIPT, MAP_TO_JSON, JSON_TO_MAP)
                 .functions(MAP_AGG, MULTIMAP_AGG)
                 .functions(DECIMAL_TO_VARCHAR_CAST, BOOLEAN_TO_DECIMAL_CAST, DECIMAL_TO_BIGINT_CAST, DOUBLE_TO_DECIMAL_CAST, DECIMAL_TO_DOUBLE_CAST, DECIMAL_TO_BOOLEAN_CAST, BIGINT_TO_DECIMAL_CAST, VARCHAR_TO_DECIMAL_CAST)
                 .functions(DECIMAL_MULTIPLY_OPERATOR, DECIMAL_DIVIDE_OPERATOR, DECIMAL_MODULUS_OPERATOR)
@@ -498,7 +508,8 @@ public class FunctionRegistry
             return match.resolveCalculatedTypes(parameterTypes);
         }
 
-        // search for coerced match
+        // search for coerced matches
+        List<Signature> coercedMatches = new ArrayList<>();
         for (SqlFunction function : candidates) {
             Map<String, Type> boundTypeVariables = function.getSignature().bindTypeVariables(resolvedTypes, true, typeManager);
             if (boundTypeVariables == null) {
@@ -506,10 +517,25 @@ public class FunctionRegistry
             }
             Signature signature = bindSignature(function.getSignature(), boundTypeVariables, resolvedTypes.size());
             if (signature != null) {
-                // TODO: This should also check for ambiguities
-                match = signature;
-                break;
+                coercedMatches.add(signature);
             }
+        }
+
+        // TODO: remove when we move to a lattice-based type coercion system
+        if (coercedMatches.size() == 2) {
+            for (int i = 0; i < resolvedTypes.size(); i++) {
+                if (AMBIGUOUS_INTEGRAL_COERCION_SOURCES.contains(resolvedTypes.get(i)) &&
+                        typeManager.getType(coercedMatches.get(0).getArgumentTypes().get(i)).equals(DOUBLE) &&
+                        typeManager.getType(coercedMatches.get(1).getArgumentTypes().get(i)).equals(BIGINT)) {
+                    coercedMatches = ImmutableList.of(coercedMatches.get(1));
+                    break;
+                }
+            }
+        }
+
+        if (!coercedMatches.isEmpty()) {
+            // TODO: This should also check for ambiguities
+            match = coercedMatches.get(0);
         }
 
         if (match != null) {

@@ -21,6 +21,7 @@ import static com.facebook.presto.spi.StandardErrorCode.NUMERIC_VALUE_OUT_OF_RAN
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
+import static com.facebook.presto.spi.type.IntegerType.INTEGER;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 
 public class TestMathFunctions
@@ -35,6 +36,9 @@ public class TestMathFunctions
     @Test
     public void testAbs()
     {
+        assertFunction("abs(INTEGER'123')", INTEGER, 123);
+        assertFunction("abs(INTEGER'-123')", INTEGER, 123);
+        assertFunction("abs(CAST(NULL AS INTEGER))", INTEGER, null);
         assertFunction("abs(123)", BIGINT, 123L);
         assertFunction("abs(-123)", BIGINT, 123L);
         assertFunction("abs(CAST(NULL AS BIGINT))", BIGINT, null);
@@ -96,16 +100,19 @@ public class TestMathFunctions
     @Test
     public void testCeil()
     {
-        assertFunction("ceil(123)", BIGINT, 123);
-        assertFunction("ceil(-123)", BIGINT, -123);
+        assertFunction("ceil(INTEGER'123')", INTEGER, 123);
+        assertFunction("ceil(INTEGER'-123')", INTEGER, -123);
+        assertFunction("ceil(CAST(NULL AS INTEGER))", INTEGER, null);
+        assertFunction("ceil(123)", BIGINT, 123L);
+        assertFunction("ceil(-123)", BIGINT, -123L);
         assertFunction("ceil(CAST(NULL as BIGINT))", BIGINT, null);
         assertFunction("ceil(123.0)", DOUBLE, 123.0);
         assertFunction("ceil(-123.0)", DOUBLE, -123.0);
         assertFunction("ceil(123.45)", DOUBLE, 124.0);
         assertFunction("ceil(-123.45)", DOUBLE, -123.0);
         assertFunction("ceil(CAST(NULL as DOUBLE))", DOUBLE, null);
-        assertFunction("ceiling(123)", BIGINT, 123);
-        assertFunction("ceiling(-123)", BIGINT, -123);
+        assertFunction("ceiling(123)", BIGINT, 123L);
+        assertFunction("ceiling(-123)", BIGINT, -123L);
         assertFunction("ceiling(CAST(NULL AS BIGINT))", BIGINT, null);
         assertFunction("ceiling(123.0)", DOUBLE, 123.0);
         assertFunction("ceiling(-123.0)", DOUBLE, -123.0);
@@ -174,8 +181,11 @@ public class TestMathFunctions
     @Test
     public void testFloor()
     {
-        assertFunction("floor(123)", BIGINT, 123);
-        assertFunction("floor(-123)", BIGINT, -123);
+        assertFunction("floor(INTEGER'123')", INTEGER, 123);
+        assertFunction("floor(INTEGER'-123')", INTEGER, -123);
+        assertFunction("floor(CAST(NULL AS INTEGER))", INTEGER, null);
+        assertFunction("floor(123)", BIGINT, 123L);
+        assertFunction("floor(-123)", BIGINT, -123L);
         assertFunction("floor(CAST(NULL as BIGINT))", BIGINT, null);
         assertFunction("floor(123.0)", DOUBLE, 123.0);
         assertFunction("floor(-123.0)", DOUBLE, -123.0);
@@ -227,6 +237,12 @@ public class TestMathFunctions
     @Test
     public void testMod()
     {
+        for (long left : longLefts) {
+            for (long right : longRights) {
+                assertFunction("mod( INTEGER'" + left + "' , INTEGER'" + right + "' )", INTEGER, (int) (left % right));
+            }
+        }
+
         for (long left : longLefts) {
             for (long right : longRights) {
                 assertFunction("mod(" + left + ", " + right + ")", BIGINT, left % right);
@@ -360,8 +376,10 @@ public class TestMathFunctions
     @Test
     public void testRound()
     {
-        assertFunction("round( 3)", BIGINT, 3);
-        assertFunction("round(-3)", BIGINT, -3);
+        assertFunction("round(INTEGER'3')", INTEGER, 3);
+        assertFunction("round(INTEGER'-3')", INTEGER, -3);
+        assertFunction("round( 3)", BIGINT, 3L);
+        assertFunction("round(-3)", BIGINT, -3L);
         assertFunction("round(CAST(NULL as BIGINT))", BIGINT, null);
         assertFunction("round( 3.0)", DOUBLE, 3.0);
         assertFunction("round(-3.0)", DOUBLE, -3.0);
@@ -373,8 +391,10 @@ public class TestMathFunctions
         assertFunction("round(-3.99)", DOUBLE, -4.0);
         assertFunction("round(CAST(NULL as DOUBLE))", DOUBLE, null);
 
-        assertFunction("round( 3, 0)", BIGINT, 3);
-        assertFunction("round(-3, 0)", BIGINT, -3);
+        assertFunction("round(INTEGER'3', 0)", INTEGER, 3);
+        assertFunction("round(INTEGER'-3', 0)", INTEGER, -3);
+        assertFunction("round( 3, 0)", BIGINT, 3L);
+        assertFunction("round(-3, 0)", BIGINT, -3L);
         assertFunction("round( 3.0, 0)", DOUBLE, 3.0);
         assertFunction("round(-3.0, 0)", DOUBLE, -3.0);
         assertFunction("round( 3.499, 0)", DOUBLE, 3.0);
@@ -384,8 +404,10 @@ public class TestMathFunctions
         assertFunction("round(-3.5001, 0)", DOUBLE, -4.0);
         assertFunction("round(-3.99, 0)", DOUBLE, -4.0);
 
-        assertFunction("round( 3, 1)", BIGINT, 3);
-        assertFunction("round(-3, 1)", BIGINT, -3);
+        assertFunction("round(INTEGER'3', 1)", INTEGER, 3);
+        assertFunction("round(INTEGER'-3', 1)", INTEGER, -3);
+        assertFunction("round( 3, 1)", BIGINT, 3L);
+        assertFunction("round(-3, 1)", BIGINT, -3L);
         assertFunction("round(CAST(NULL as BIGINT), CAST(NULL as BIGINT))", BIGINT, null);
         assertFunction("round(-3, CAST(NULL as BIGINT))", BIGINT, null);
         assertFunction("round(CAST(NULL as BIGINT), 1)", BIGINT, null);
@@ -442,11 +464,18 @@ public class TestMathFunctions
     public void testGreatest()
             throws Exception
     {
+        // integer
+        assertFunction("greatest(INTEGER'1', INTEGER'2')", INTEGER, 2);
+        assertFunction("greatest(INTEGER'-1', INTEGER'-2')", INTEGER, -1);
+        assertFunction("greatest(INTEGER'5', INTEGER'4', INTEGER'3', INTEGER'2', INTEGER'1', INTEGER'2', INTEGER'3', INTEGER'4', INTEGER'1', INTEGER'5')", INTEGER, 5);
+        assertFunction("greatest(INTEGER'-1')", INTEGER, -1);
+        assertFunction("greatest(INTEGER'5', INTEGER'4', CAST(NULL AS INTEGER), INTEGER'3')", INTEGER, null);
+
         // bigint
-        assertFunction("greatest(1, 2)", BIGINT, 2);
-        assertFunction("greatest(-1, -2)", BIGINT, -1);
-        assertFunction("greatest(5, 4, 3, 2, 1, 2, 3, 4, 1, 5)", BIGINT, 5);
-        assertFunction("greatest(-1)", BIGINT, -1);
+        assertFunction("greatest(1, 2)", BIGINT, 2L);
+        assertFunction("greatest(-1, -2)", BIGINT, -1L);
+        assertFunction("greatest(5, 4, 3, 2, 1, 2, 3, 4, 1, 5)", BIGINT, 5L);
+        assertFunction("greatest(-1)", BIGINT, -1L);
         assertFunction("greatest(5, 4, CAST(NULL as BIGINT), 3)", BIGINT, null);
 
         // double
@@ -457,6 +486,8 @@ public class TestMathFunctions
         assertFunction("greatest(5, 4, CAST(NULL as DOUBLE), 3)", DOUBLE, null);
 
         // mixed
+        assertFunction("greatest(INTEGER'1', 2)", BIGINT, 2L);
+        assertFunction("greatest(1.0, INTEGER'2')", DOUBLE, 2.0);
         assertFunction("greatest(1, 2.0)", DOUBLE, 2.0);
         assertFunction("greatest(1.0, 2)", DOUBLE, 2.0);
         assertFunction("greatest(5.0, 4, CAST(NULL as DOUBLE), 3)", DOUBLE, null);
@@ -470,11 +501,18 @@ public class TestMathFunctions
     public void testLeast()
             throws Exception
     {
+        // integer
+        assertFunction("least(INTEGER'1', INTEGER'2')", INTEGER, 1);
+        assertFunction("least(INTEGER'-1', INTEGER'-2')", INTEGER, -2);
+        assertFunction("least(INTEGER'5', INTEGER'4', INTEGER'3', INTEGER'2', INTEGER'1', INTEGER'2', INTEGER'3', INTEGER'4', INTEGER'1', INTEGER'5')", INTEGER, 1);
+        assertFunction("least(INTEGER'-1')", INTEGER, -1);
+        assertFunction("least(INTEGER'5', INTEGER'4', CAST(NULL AS INTEGER), INTEGER'3')", INTEGER, null);
+
         // bigint
-        assertFunction("least(1, 2)", BIGINT, 1);
-        assertFunction("least(-1, -2)", BIGINT, -2);
-        assertFunction("least(5, 4, 3, 2, 1, 2, 3, 4, 1, 5)", BIGINT, 1);
-        assertFunction("least(-1)", BIGINT, -1);
+        assertFunction("least(1, 2)", BIGINT, 1L);
+        assertFunction("least(-1, -2)", BIGINT, -2L);
+        assertFunction("least(5, 4, 3, 2, 1, 2, 3, 4, 1, 5)", BIGINT, 1L);
+        assertFunction("least(-1)", BIGINT, -1L);
         assertFunction("least(5, 4, CAST(NULL as BIGINT), 3)", BIGINT, null);
 
         // double
@@ -485,6 +523,8 @@ public class TestMathFunctions
         assertFunction("least(5, 4, CAST(NULL as DOUBLE), 3)", DOUBLE, null);
 
         // mixed
+        assertFunction("greatest(INTEGER'1', 2)", BIGINT, 2L);
+        assertFunction("greatest(1.0, INTEGER'2')", DOUBLE, 2.0);
         assertFunction("least(1, 2.0)", DOUBLE, 1.0);
         assertFunction("least(1.0, 2)", DOUBLE, 1.0);
         assertFunction("least(5.0, 4, CAST(NULL as DOUBLE), 3)", DOUBLE, null);
@@ -520,8 +560,8 @@ public class TestMathFunctions
             throws Exception
     {
         assertFunction("from_base('80000000', 16)", BIGINT, 2147483648L);
-        assertFunction("from_base('11111111', 2)", BIGINT, 255);
-        assertFunction("from_base('-7fffffff', 16)", BIGINT, -2147483647);
+        assertFunction("from_base('11111111', 2)", BIGINT, 255L);
+        assertFunction("from_base('-7fffffff', 16)", BIGINT, -2147483647L);
         assertFunction("from_base('9223372036854775807', 10)", BIGINT, 9223372036854775807L);
         assertFunction("from_base('-9223372036854775808', 10)", BIGINT, -9223372036854775808L);
         assertFunction("from_base(NULL, 10)", BIGINT, null);
@@ -539,16 +579,16 @@ public class TestMathFunctions
     public void testWidthBucket()
             throws Exception
     {
-        assertFunction("width_bucket(3.14, 0, 4, 3)", BIGINT, 3);
-        assertFunction("width_bucket(2, 0, 4, 3)", BIGINT, 2);
-        assertFunction("width_bucket(infinity(), 0, 4, 3)", BIGINT, 4);
-        assertFunction("width_bucket(-1, 0, 3.2, 4)", BIGINT, 0);
+        assertFunction("width_bucket(3.14, 0, 4, 3)", BIGINT, 3L);
+        assertFunction("width_bucket(2, 0, 4, 3)", BIGINT, 2L);
+        assertFunction("width_bucket(infinity(), 0, 4, 3)", BIGINT, 4L);
+        assertFunction("width_bucket(-1, 0, 3.2, 4)", BIGINT, 0L);
 
         // bound1 > bound2 is not symmetric with bound2 > bound1
-        assertFunction("width_bucket(3.14, 4, 0, 3)", BIGINT, 1);
-        assertFunction("width_bucket(2, 4, 0, 3)", BIGINT, 2);
-        assertFunction("width_bucket(infinity(), 4, 0, 3)", BIGINT, 0);
-        assertFunction("width_bucket(-1, 3.2, 0, 4)", BIGINT, 5);
+        assertFunction("width_bucket(3.14, 4, 0, 3)", BIGINT, 1L);
+        assertFunction("width_bucket(2, 4, 0, 3)", BIGINT, 2L);
+        assertFunction("width_bucket(infinity(), 4, 0, 3)", BIGINT, 0L);
+        assertFunction("width_bucket(-1, 3.2, 0, 4)", BIGINT, 5L);
 
         // failure modes
         assertInvalidFunction("width_bucket(3.14, 0, 4, 0)", "bucketCount must be greater than 0");
@@ -579,13 +619,13 @@ public class TestMathFunctions
     public void testWidthBucketArray()
             throws Exception
     {
-        assertFunction("width_bucket(3.14, array[0.0, 2.0, 4.0])", BIGINT, 2);
-        assertFunction("width_bucket(infinity(), array[0.0, 2.0, 4.0])", BIGINT, 3);
-        assertFunction("width_bucket(-1, array[0.0, 1.2, 3.3, 4.5])", BIGINT, 0);
+        assertFunction("width_bucket(3.14, array[0.0, 2.0, 4.0])", BIGINT, 2L);
+        assertFunction("width_bucket(infinity(), array[0.0, 2.0, 4.0])", BIGINT, 3L);
+        assertFunction("width_bucket(-1, array[0.0, 1.2, 3.3, 4.5])", BIGINT, 0L);
 
         // edge case of only a single bin
-        assertFunction("width_bucket(3.145, array[0.0])", BIGINT, 1);
-        assertFunction("width_bucket(-3.145, array[0.0])", BIGINT, 0);
+        assertFunction("width_bucket(3.145, array[0.0])", BIGINT, 1L);
+        assertFunction("width_bucket(-3.145, array[0.0])", BIGINT, 0L);
 
         // failure modes
         assertInvalidFunction("width_bucket(3.14, array[])", "Bins cannot be an empty array");
@@ -598,6 +638,6 @@ public class TestMathFunctions
         assertInvalidFunction("width_bucket(3.145, array[1.0, 0.3, 0.0, -1.0])", "Bin values are not sorted in ascending order");
 
         // this is a case that we can't catch because we are using binary search to bisect the bins array
-        assertFunction("width_bucket(1.5, array[1.0, 2.3, 2.0])", BIGINT, 1);
+        assertFunction("width_bucket(1.5, array[1.0, 2.3, 2.0])", BIGINT, 1L);
     }
 }

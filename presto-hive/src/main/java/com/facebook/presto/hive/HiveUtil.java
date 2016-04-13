@@ -43,7 +43,6 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.JobConf;
@@ -87,7 +86,6 @@ import static com.facebook.presto.hive.HiveType.HIVE_LONG;
 import static com.facebook.presto.hive.HiveType.HIVE_SHORT;
 import static com.facebook.presto.hive.HiveType.HIVE_STRING;
 import static com.facebook.presto.hive.HiveType.HIVE_TIMESTAMP;
-import static com.facebook.presto.hive.HiveType.toHiveType;
 import static com.facebook.presto.hive.RetryDriver.retry;
 import static com.facebook.presto.hive.util.Types.checkType;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
@@ -96,6 +94,7 @@ import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.DecimalType.createDecimalType;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
+import static com.facebook.presto.spi.type.IntegerType.INTEGER;
 import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -120,7 +119,6 @@ import static org.apache.hadoop.hive.serde.serdeConstants.SERIALIZATION_LIB;
 import static org.apache.hadoop.hive.serde2.ColumnProjectionUtils.READ_ALL_COLUMNS;
 import static org.apache.hadoop.hive.serde2.ColumnProjectionUtils.READ_COLUMN_IDS_CONF_STR;
 import static org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
-import static org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils.getTypeInfoFromTypeString;
 
 public final class HiveUtil
 {
@@ -401,7 +399,17 @@ public final class HiveUtil
                 return NullableValue.of(BOOLEAN, parseBoolean(value));
             }
 
-            if (HIVE_BYTE.equals(hiveType) || HIVE_SHORT.equals(hiveType) || HIVE_INT.equals(hiveType) || HIVE_LONG.equals(hiveType)) {
+            if (HIVE_BYTE.equals(hiveType) || HIVE_SHORT.equals(hiveType) || HIVE_INT.equals(hiveType)) {
+                if (isNull) {
+                    return NullableValue.asNull(INTEGER);
+                }
+                if (value.isEmpty()) {
+                    return NullableValue.of(INTEGER, 0L);
+                }
+                return NullableValue.of(INTEGER, parseLong(value));
+            }
+
+            if (HIVE_LONG.equals(hiveType)) {
                 if (isNull) {
                     return NullableValue.asNull(BIGINT);
                 }
@@ -534,6 +542,16 @@ public final class HiveUtil
         }
     }
 
+    public static long integerPartitionKey(String value, String name)
+    {
+        try {
+            return parseInt(value);
+        }
+        catch (NumberFormatException e) {
+            throw new PrestoException(HIVE_INVALID_PARTITION_VALUE, format("Invalid partition value '%s' for INTEGER partition key: %s", value, name));
+        }
+    }
+
     public static double doublePartitionKey(String value, String name)
     {
         try {
@@ -618,9 +636,8 @@ public final class HiveUtil
         int hiveColumnIndex = 0;
         for (FieldSchema field : table.getSd().getCols()) {
             // ignore unsupported types rather than failing
-            TypeInfo typeInfo = getTypeInfoFromTypeString(field.getType());
-            if (HiveType.isSupportedType(typeInfo)) {
-                HiveType hiveType = toHiveType(typeInfo);
+            HiveType hiveType = HiveType.valueOf(field.getType());
+            if (hiveType.isSupportedType()) {
                 columns.add(new HiveColumnHandle(connectorId, field.getName(), hiveType, hiveType.getTypeSignature(), hiveColumnIndex, false));
             }
             hiveColumnIndex++;
@@ -636,7 +653,10 @@ public final class HiveUtil
         List<FieldSchema> partitionKeys = table.getPartitionKeys();
         for (FieldSchema field : partitionKeys) {
             HiveType hiveType = HiveType.valueOf(field.getType());
-            columns.add(new HiveColumnHandle(connectorId, field.getName(), hiveType, HiveType.valueOf(field.getType()).getTypeSignature(), -1, true));
+            if (!hiveType.isSupportedType()) {
+                throw new PrestoException(NOT_SUPPORTED, format("Unsupported Hive type %s found in partition keys of table %s.%s", hiveType, table.getDbName(), table.getTableName()));
+            }
+            columns.add(new HiveColumnHandle(connectorId, field.getName(), hiveType, hiveType.getTypeSignature(), -1, true));
         }
 
         return columns.build();

@@ -58,11 +58,15 @@ import static com.facebook.presto.hive.HiveBucketing.HiveBucket;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_INVALID_METADATA;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_INVALID_PARTITION_VALUE;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_PARTITION_SCHEMA_MISMATCH;
+import static com.facebook.presto.hive.HiveSessionProperties.getMaxInitialSplitSize;
+import static com.facebook.presto.hive.HiveSessionProperties.getMaxSplitSize;
 import static com.facebook.presto.hive.HiveUtil.checkCondition;
 import static com.facebook.presto.hive.HiveUtil.getInputFormat;
 import static com.facebook.presto.hive.HiveUtil.isSplittable;
 import static com.facebook.presto.hive.UnpartitionedPartition.isUnpartitioned;
+import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.google.common.base.Preconditions.checkState;
+import static java.lang.String.format;
 
 public class BackgroundHiveSplitLoader
         implements HiveSplitLoader
@@ -108,14 +112,12 @@ public class BackgroundHiveSplitLoader
             Iterable<HivePartitionMetadata> partitions,
             Optional<HiveBucketHandle> bucketHandle,
             Optional<HiveBucket> bucket,
-            DataSize maxSplitSize,
             ConnectorSession session,
             HdfsEnvironment hdfsEnvironment,
             NamenodeStats namenodeStats,
             DirectoryLister directoryLister,
             Executor executor,
             int maxPartitionBatchSize,
-            DataSize maxInitialSplitSize,
             int maxInitialSplits,
             boolean recursiveDirWalkerEnabled)
     {
@@ -123,13 +125,13 @@ public class BackgroundHiveSplitLoader
         this.table = table;
         this.bucketHandle = bucketHandle;
         this.bucket = bucket;
-        this.maxSplitSize = maxSplitSize;
+        this.maxSplitSize = getMaxSplitSize(session);
         this.maxPartitionBatchSize = maxPartitionBatchSize;
         this.session = session;
         this.hdfsEnvironment = hdfsEnvironment;
         this.namenodeStats = namenodeStats;
         this.directoryLister = directoryLister;
-        this.maxInitialSplitSize = maxInitialSplitSize;
+        this.maxInitialSplitSize = getMaxInitialSplitSize(session);
         this.remainingInitialSplits = new AtomicInteger(maxInitialSplits);
         this.recursiveDirWalkerEnabled = recursiveDirWalkerEnabled;
         this.executor = executor;
@@ -494,6 +496,9 @@ public class BackgroundHiveSplitLoader
         for (int i = 0; i < keys.size(); i++) {
             String name = keys.get(i).getName();
             HiveType hiveType = HiveType.valueOf(keys.get(i).getType());
+            if (!hiveType.isSupportedType()) {
+                throw new PrestoException(NOT_SUPPORTED, format("Unsupported Hive type %s found in partition keys of table %s.%s", hiveType, table.getDbName(), table.getTableName()));
+            }
             String value = values.get(i);
             checkCondition(value != null, HIVE_INVALID_PARTITION_VALUE, "partition key value cannot be null for field: %s", name);
             partitionKeys.add(new HivePartitionKey(name, hiveType, value));

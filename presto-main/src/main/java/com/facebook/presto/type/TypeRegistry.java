@@ -39,6 +39,7 @@ import static com.facebook.presto.spi.type.BooleanType.BOOLEAN;
 import static com.facebook.presto.spi.type.DateType.DATE;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
 import static com.facebook.presto.spi.type.HyperLogLogType.HYPER_LOG_LOG;
+import static com.facebook.presto.spi.type.IntegerType.INTEGER;
 import static com.facebook.presto.spi.type.IntervalDayTimeType.INTERVAL_DAY_TIME;
 import static com.facebook.presto.spi.type.IntervalYearMonthType.INTERVAL_YEAR_MONTH;
 import static com.facebook.presto.spi.type.P4HyperLogLogType.P4_HYPER_LOG_LOG;
@@ -88,6 +89,7 @@ public final class TypeRegistry
         // always add the built-in types; Presto will not function without these
         addType(BOOLEAN);
         addType(BIGINT);
+        addType(INTEGER);
         addType(DOUBLE);
         addType(VARBINARY);
         addType(DATE);
@@ -160,11 +162,18 @@ public final class TypeRegistry
         if (parametricType == null) {
             return null;
         }
-        Type instantiatedType = parametricType.createType(parameters);
 
-        // TODO: reimplement this check? Currently "varchar(Integer.MAX_VALUE)" fails with "varchar"
-        //checkState(instantiatedType.equalsSignature(signature), "Instantiated parametric type name (%s) does not match expected name (%s)", instantiatedType, signature);
-        return instantiatedType;
+        try {
+            Type instantiatedType = parametricType.createType(parameters);
+
+            // TODO: reimplement this check? Currently "varchar(Integer.MAX_VALUE)" fails with "varchar"
+            //checkState(instantiatedType.equalsSignature(signature), "Instantiated parametric type name (%s) does not match expected name (%s)", instantiatedType, signature);
+            return instantiatedType;
+        }
+        catch (IllegalArgumentException e) {
+            // TODO: check whether a type constructor actually exists rather than failing when it doesn't. This will be possible in the next version of the type system
+            return null;
+        }
     }
 
     @Override
@@ -219,6 +228,8 @@ public final class TypeRegistry
             return true;
         }
         switch (fromTypeBase) {
+            case StandardTypes.INTEGER:
+                return StandardTypes.BIGINT.equals(toTypeBase) || StandardTypes.DOUBLE.equals(toTypeBase);
             case StandardTypes.BIGINT:
                 return StandardTypes.DOUBLE.equals(toTypeBase);
             case StandardTypes.DATE:
