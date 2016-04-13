@@ -462,6 +462,7 @@ public class TestPkThreader
                                                 false))
                                 .build(),
                         ImmutableMap.of(),
+                        ImmutableList.of(), // FIXME ??
                         AggregationNode.Step.SINGLE,
                         Optional.empty(),
                         1.0,
@@ -656,6 +657,7 @@ public class TestPkThreader
                             newAggregations,
                             newFunctions,
                             node.getMasks(),
+                            node.getGroupingSets(),
                             node.getStep(),
                             node.getSampleWeight(),
                             node.getConfidence(),
@@ -805,6 +807,7 @@ public class TestPkThreader
         LocalExecutionPlanner executionPlanner = new LocalExecutionPlanner(
                 pq.lqr.getMetadata(),
                 pq.lqr.getSqlParser(),
+                Optional.empty(),
                 pq.lqr.getPageSourceManager(),
                 pq.lqr.getIndexManager(),
                 nodePartitioningManager,

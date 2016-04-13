@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.codec;
 
+import com.facebook.presto.metadata.BoundVariables;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
@@ -27,7 +28,7 @@ import io.airlift.slice.Slice;
 import java.lang.invoke.MethodHandle;
 import java.util.Map;
 
-import static com.facebook.presto.metadata.Signature.typeParameter;
+import static com.facebook.presto.metadata.Signature.typeVariable;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -41,15 +42,16 @@ public class EncodeFunction
 
     public EncodeFunction(TypeCodec typeCodec)
     {
-        super(typeCodec.getName(), ImmutableList.of(typeParameter("T")), typeCodec.getName() + "<T>", ImmutableList.of("T"));
+        super(typeCodec.getName(), ImmutableList.of(typeVariable("T")), ImmutableList.of(), typeCodec.getName() + "<T>", ImmutableList.of("T"));
         this.typeCodec = typeCodec;
     }
 
     @Override
-    public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    public ScalarFunctionImplementation specialize(BoundVariables boundVariables, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
-        checkArgument(types.size() == 1);
-        Type fromType = Iterables.getOnlyElement(types.values());
+        checkArgument(boundVariables.getTypeVariables().size() == 1);
+        checkArgument(boundVariables.getLongVariables().size() == 0);
+        Type fromType = Iterables.getOnlyElement(boundVariables.getTypeVariables().values());
         Class<?> javaType = typeCodec.getJavaType();
         MethodHandle mh;
         if (javaType == Slice.class) {

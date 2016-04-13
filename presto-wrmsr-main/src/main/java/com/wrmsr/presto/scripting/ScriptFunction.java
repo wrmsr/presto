@@ -19,10 +19,11 @@ import com.facebook.presto.bytecode.DynamicClassLoader;
 import com.facebook.presto.bytecode.MethodDefinition;
 import com.facebook.presto.bytecode.Scope;
 import com.facebook.presto.bytecode.Variable;
+import com.facebook.presto.metadata.BoundVariables;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.metadata.SqlScalarFunction;
-import com.facebook.presto.metadata.TypeParameterRequirement;
+import com.facebook.presto.metadata.TypeVariableConstraint;
 import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.ConnectorSession;
@@ -137,7 +138,8 @@ public class ScriptFunction
     {
         super(
                 config.name,
-                IntStream.range(0, config.arity).boxed().map(n -> new TypeParameterRequirement("T" + n.toString(), false, false, null)).collect(toImmutableList()),
+                IntStream.range(0, config.arity).boxed().map(n -> new TypeVariableConstraint("T" + n.toString(), false, false, null)).collect(toImmutableList()),
+                ImmutableList.of(),
                 config.returnType.getTypeSignature().getBase(),
                 ImmutableList.<String>builder()
                         .add("varchar")
@@ -181,7 +183,7 @@ public class ScriptFunction
     }
 
     @Override
-    public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    public ScalarFunctionImplementation specialize(BoundVariables boundVariables, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
         checkArgument(arity == config.arity + 2);
 
@@ -201,7 +203,7 @@ public class ScriptFunction
         parameters.add(ImmutablePair.of("scriptingName", Slice.class));
         parameters.add(ImmutablePair.of("functionName", Slice.class));
         for (int i = 0; i < arity - 2; i++) {
-            Type argType = types.get("T" + i);
+            Type argType = boundVariables.getTypeVariable("T" + i);
             Class<?> javaType = argType.getJavaType();
             if (javaType == Void.class) {
                 javaType = Object.class; // FUCKING FUCK FUCK YOU
@@ -221,7 +223,7 @@ public class ScriptFunction
         methodDefinition.declareParameterAnnotation(SqlType.class, 2).setValue("value", "varchar");
         methodDefinition.declareParameterAnnotation(SqlType.class, 3).setValue("value", "varchar");
         for (int i = 0; i < arity - 2; i++) {
-            methodDefinition.declareParameterAnnotation(SqlType.class, i + 4).setValue("value", types.get("T" + i).getTypeSignature().toString());
+            methodDefinition.declareParameterAnnotation(SqlType.class, i + 4).setValue("value", boundVariables.getTypeVariable("T" + i).getTypeSignature().toString());
         }
 
         Scope scope = methodDefinition.getScope();
@@ -242,7 +244,7 @@ public class ScriptFunction
                     .dup()
                     .push(i);
 
-            Type argType = types.get("T" + i);
+            Type argType = boundVariables.getTypeVariable("T" + i);
             Class<?> javaType = argType.getJavaType();
 
             if (javaType == Void.class) {
@@ -280,7 +282,7 @@ public class ScriptFunction
         List<Type> argTypes = ImmutableList.<Type>builder()
                 .add(VarcharType.VARCHAR)
                 .add(VarcharType.VARCHAR)
-                .addAll(IntStream.range(0, arity - 2).boxed().map(n -> types.get("T" + n.toString())).collect(toImmutableList()))
+                .addAll(IntStream.range(0, arity - 2).boxed().map(n -> boundVariables.getTypeVariable("T" + n.toString())).collect(toImmutableList()))
                 .build();
 
         MethodHandle methodHandle;

@@ -14,6 +14,7 @@
 package com.wrmsr.presto.struct;
 
 import com.facebook.presto.Session;
+import com.facebook.presto.metadata.BoundVariables;
 import com.facebook.presto.metadata.FunctionKind;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
@@ -50,7 +51,6 @@ import javax.inject.Inject;
 import java.lang.invoke.MethodHandle;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
@@ -68,7 +68,7 @@ public class DefineStructForQueryFunction
 {
     private static final String FUNCTION_NAME = "define_struct_for_query";
     private static final Signature SIGNATURE = new Signature(
-            FUNCTION_NAME, FunctionKind.SCALAR, ImmutableList.of(comparableTypeParameter("varchar")), StandardTypes.VARCHAR, ImmutableList.of(StandardTypes.VARCHAR, StandardTypes.VARCHAR), false);
+            FUNCTION_NAME, FunctionKind.SCALAR, ImmutableList.of(comparableTypeParameter("varchar")), ImmutableList.of(), StandardTypes.VARCHAR, ImmutableList.of(StandardTypes.VARCHAR, StandardTypes.VARCHAR), false);
     private static final MethodHandle METHOD_HANDLE = methodHandle(DefineStructForQueryFunction.class, "defineStructForQuery", DefineStructForQueryFunction.class, ConnectorSession.class, Slice.class, Slice.class);
 
     private final SqlParser sqlParser;
@@ -87,7 +87,7 @@ public class DefineStructForQueryFunction
             Metadata metadata,
             AccessControl accessControl)
     {
-        super(FUNCTION_NAME, SIGNATURE.getTypeParameterRequirements(), "varchar", ImmutableList.of("varchar", "varchar"));
+        super(FUNCTION_NAME, SIGNATURE.getTypeVariableConstraints(), SIGNATURE.getLongVariableConstraints(), "varchar", ImmutableList.of("varchar", "varchar"));
         this.structManager = structManager;
         this.sqlParser = checkNotNull(sqlParser);
         this.planOptimizers = checkNotNull(planOptimizers);
@@ -123,10 +123,10 @@ public class DefineStructForQueryFunction
     }
 
     @Override
-    public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    public ScalarFunctionImplementation specialize(BoundVariables boundVariables, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
         checkArgument(arity == 2);
-        checkArgument(types.size() == 1);
+//        checkArgument(types.size() == 1);
 
         return new ScalarFunctionImplementation(false, ImmutableList.of(false, false), METHOD_HANDLE.bindTo(this), isDeterministic());
         /*

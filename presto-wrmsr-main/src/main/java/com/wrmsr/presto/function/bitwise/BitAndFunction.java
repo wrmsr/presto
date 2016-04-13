@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.function.bitwise;
 
+import com.facebook.presto.metadata.BoundVariables;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
@@ -40,13 +41,12 @@ public class BitAndFunction
 
     public BitAndFunction()
     {
-        super(NAME, ImmutableList.of(), "bigint", ImmutableList.of("bigint"), true);
+        super(NAME, ImmutableList.of(), ImmutableList.of(), "bigint", ImmutableList.of("bigint"), true);
     }
 
     @Override
-    public ScalarFunctionImplementation specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    public ScalarFunctionImplementation specialize(BoundVariables boundVariables, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
-        checkArgument(types.isEmpty());
         return new ScalarFunctionImplementation(false, listOf(arity, false), METHOD_HANDLE.asVarargsCollector(long[].class), true);
     }
 
