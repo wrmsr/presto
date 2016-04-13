@@ -140,7 +140,7 @@ public class EncodedType
     }
 
     @Override
-    public int hash(Block block, int position)
+    public long hash(Block block, int position)
     {
         return underlyingType.hash(block, position);
     }
