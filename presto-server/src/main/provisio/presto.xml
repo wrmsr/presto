@@ -173,4 +173,11 @@
         </artifact>
     </artifactSet>
     -->
+
+    <artifactSet to="plugin/mongodb">
+        <artifact id="${project.groupId}:presto-mongodb:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
+
 </runtime>

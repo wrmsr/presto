@@ -91,6 +91,7 @@
         <module>presto-mysql</module>
         <module>presto-local-file</module>
         <module>presto-postgresql</module>
+        <module>presto-mongodb</module>
         <module>presto-bytecode</module>
         <module>presto-client</module>
         <module>presto-parser</module>
