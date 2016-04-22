@@ -45,6 +45,7 @@ import com.facebook.presto.operator.scalar.ArrayElementAtFunction;
 import com.facebook.presto.operator.scalar.ArrayEqualOperator;
 import com.facebook.presto.operator.scalar.ArrayFunctions;
 import com.facebook.presto.operator.scalar.ArrayGreaterThanOperator;
+import com.facebook.presto.operator.scalar.ArrayGreaterThanOrEqualOperator;
 import com.facebook.presto.operator.scalar.ArrayHashCodeOperator;
 import com.facebook.presto.operator.scalar.ArrayLessThanOrEqualOperator;
 import com.facebook.presto.operator.scalar.ArrayMaxFunction;
@@ -143,6 +144,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.facebook.presto.metadata.FunctionKind.AGGREGATE;
 import static com.facebook.presto.metadata.FunctionKind.APPROXIMATE_AGGREGATE;
@@ -167,7 +169,6 @@ import static com.facebook.presto.operator.aggregation.MultimapAggregationFuncti
 import static com.facebook.presto.operator.scalar.ArrayCardinalityFunction.ARRAY_CARDINALITY;
 import static com.facebook.presto.operator.scalar.ArrayConstructor.ARRAY_CONSTRUCTOR;
 import static com.facebook.presto.operator.scalar.ArrayContains.ARRAY_CONTAINS;
-import static com.facebook.presto.operator.scalar.ArrayGreaterThanOrEqualOperator.ARRAY_GREATER_THAN_OR_EQUAL;
 import static com.facebook.presto.operator.scalar.ArrayIntersectFunction.ARRAY_INTERSECT_FUNCTION;
 import static com.facebook.presto.operator.scalar.ArrayJoin.ARRAY_JOIN;
 import static com.facebook.presto.operator.scalar.ArrayJoin.ARRAY_JOIN_WITH_NULL_REPLACEMENT;
@@ -210,8 +211,10 @@ import static com.facebook.presto.type.DecimalCasts.BOOLEAN_TO_DECIMAL_CAST;
 import static com.facebook.presto.type.DecimalCasts.DECIMAL_TO_BIGINT_CAST;
 import static com.facebook.presto.type.DecimalCasts.DECIMAL_TO_BOOLEAN_CAST;
 import static com.facebook.presto.type.DecimalCasts.DECIMAL_TO_DOUBLE_CAST;
+import static com.facebook.presto.type.DecimalCasts.DECIMAL_TO_INTEGER_CAST;
 import static com.facebook.presto.type.DecimalCasts.DECIMAL_TO_VARCHAR_CAST;
 import static com.facebook.presto.type.DecimalCasts.DOUBLE_TO_DECIMAL_CAST;
+import static com.facebook.presto.type.DecimalCasts.INTEGER_TO_DECIMAL_CAST;
 import static com.facebook.presto.type.DecimalCasts.VARCHAR_TO_DECIMAL_CAST;
 import static com.facebook.presto.type.DecimalInequalityOperators.DECIMAL_BETWEEN_OPERATOR;
 import static com.facebook.presto.type.DecimalInequalityOperators.DECIMAL_EQUAL_OPERATOR;
@@ -241,8 +244,6 @@ public class FunctionRegistry
 
     // hack: java classes for types that can be used with magic literals
     private static final Set<Class<?>> SUPPORTED_LITERAL_TYPES = ImmutableSet.<Class<?>>of(long.class, double.class, Slice.class, boolean.class);
-    // TODO: add TINYINT and SMALLINT when those types are added
-    private static final Set<Type> AMBIGUOUS_INTEGRAL_COERCION_SOURCES = ImmutableSet.of(INTEGER);
 
     private final TypeManager typeManager;
     private final BlockEncodingSerde blockEncodingSerde;
@@ -377,6 +378,7 @@ public class FunctionRegistry
                 .scalar(ArrayLessThanOrEqualOperator.class)
                 .scalar(ArrayRemoveFunction.class)
                 .scalar(ArrayGreaterThanOperator.class)
+                .scalar(ArrayGreaterThanOrEqualOperator.class)
                 .scalar(ArrayElementAtFunction.class)
                 .scalar(ArrayMinFunction.class)
                 .scalar(ArrayMaxFunction.class)
@@ -393,13 +395,14 @@ public class FunctionRegistry
                 .scalar(MapCardinalityFunction.class)
                 .scalar(MapConcatFunction.class)
                 .functions(ARRAY_CONTAINS, ARRAY_JOIN, ARRAY_JOIN_WITH_NULL_REPLACEMENT)
-                .functions(ARRAY_TO_ARRAY_CAST, ARRAY_LESS_THAN, ARRAY_GREATER_THAN_OR_EQUAL)
+                .functions(ARRAY_TO_ARRAY_CAST, ARRAY_LESS_THAN)
                 .functions(ARRAY_TO_ELEMENT_CONCAT_FUNCTION, ELEMENT_TO_ARRAY_CONCAT_FUNCTION)
                 .function(MAP_HASH_CODE)
                 .functions(ARRAY_CONSTRUCTOR, ARRAY_SUBSCRIPT, ARRAY_CARDINALITY, ARRAY_POSITION, ARRAY_SORT_FUNCTION, ARRAY_INTERSECT_FUNCTION, ARRAY_TO_JSON, JSON_TO_ARRAY)
                 .functions(MAP_CONSTRUCTOR, MAP_SUBSCRIPT, MAP_TO_JSON, JSON_TO_MAP)
                 .functions(MAP_AGG, MULTIMAP_AGG)
-                .functions(DECIMAL_TO_VARCHAR_CAST, BOOLEAN_TO_DECIMAL_CAST, DECIMAL_TO_BIGINT_CAST, DOUBLE_TO_DECIMAL_CAST, DECIMAL_TO_DOUBLE_CAST, DECIMAL_TO_BOOLEAN_CAST, BIGINT_TO_DECIMAL_CAST, VARCHAR_TO_DECIMAL_CAST)
+                .functions(DECIMAL_TO_VARCHAR_CAST, DECIMAL_TO_INTEGER_CAST, DECIMAL_TO_BIGINT_CAST, DECIMAL_TO_DOUBLE_CAST, DECIMAL_TO_BOOLEAN_CAST)
+                .functions(VARCHAR_TO_DECIMAL_CAST, INTEGER_TO_DECIMAL_CAST, BIGINT_TO_DECIMAL_CAST, DOUBLE_TO_DECIMAL_CAST, BOOLEAN_TO_DECIMAL_CAST)
                 .functions(DECIMAL_MULTIPLY_OPERATOR, DECIMAL_DIVIDE_OPERATOR, DECIMAL_MODULUS_OPERATOR)
                 .functions(DECIMAL_EQUAL_OPERATOR, DECIMAL_NOT_EQUAL_OPERATOR)
                 .functions(DECIMAL_LESS_THAN_OPERATOR, DECIMAL_LESS_THAN_OR_EQUAL_OPERATOR)
@@ -509,7 +512,8 @@ public class FunctionRegistry
         }
 
         // search for coerced matches
-        List<Signature> coercedMatches = new ArrayList<>();
+        List<SqlFunction> coercedCandidates = new ArrayList<>();
+        Signature firstCoercedMatch = null;
         for (SqlFunction function : candidates) {
             Map<String, Type> boundTypeVariables = function.getSignature().bindTypeVariables(resolvedTypes, true, typeManager);
             if (boundTypeVariables == null) {
@@ -517,25 +521,37 @@ public class FunctionRegistry
             }
             Signature signature = bindSignature(function.getSignature(), boundTypeVariables, resolvedTypes.size());
             if (signature != null) {
-                coercedMatches.add(signature);
-            }
-        }
+                coercedCandidates.add(function);
 
-        // TODO: remove when we move to a lattice-based type coercion system
-        if (coercedMatches.size() == 2) {
-            for (int i = 0; i < resolvedTypes.size(); i++) {
-                if (AMBIGUOUS_INTEGRAL_COERCION_SOURCES.contains(resolvedTypes.get(i)) &&
-                        typeManager.getType(coercedMatches.get(0).getArgumentTypes().get(i)).equals(DOUBLE) &&
-                        typeManager.getType(coercedMatches.get(1).getArgumentTypes().get(i)).equals(BIGINT)) {
-                    coercedMatches = ImmutableList.of(coercedMatches.get(1));
-                    break;
+                if (firstCoercedMatch == null) {
+                    firstCoercedMatch = signature;
                 }
             }
         }
 
-        if (!coercedMatches.isEmpty()) {
-            // TODO: This should also check for ambiguities
-            match = coercedMatches.get(0);
+        // search for a 'best' coerced match if it exists
+        // TODO: remove when we move to a lattice-based type coercion system
+        // TODO: this is a hack that relies on the fact that all functions are specified for bigints, but not for the narrower integral types
+        // converts any ints to bigints and then see if there is an exact match
+        List<Type> promotedTypes = resolvedTypes.stream()
+                .map(type -> type == INTEGER ? BIGINT : type)
+                .collect(Collectors.toList());
+
+        for (SqlFunction coercedFunction : coercedCandidates) {
+            Map<String, Type> boundTypeVariables = coercedFunction.getSignature().bindTypeVariables(promotedTypes, false, typeManager);
+            if (boundTypeVariables == null) {
+                continue;
+            }
+            Signature signature = bindSignature(coercedFunction.getSignature(), boundTypeVariables, resolvedTypes.size());
+            if (signature != null) {
+                checkState(match == null, "ambiguous function implementations found when integers were cast to bigints");
+                match = signature;
+            }
+        }
+
+        if (match == null || coercedCandidates.size() == 1) {
+            // i.e. revert to old behavior
+            match = firstCoercedMatch; // TODO: this does not deal with ambiguities
         }
 
         if (match != null) {
