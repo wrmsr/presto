@@ -13,6 +13,10 @@
  */
 package com.facebook.presto.sql.planner;
 
+import com.facebook.presto.Session;
+import com.facebook.presto.metadata.Metadata;
+import com.facebook.presto.metadata.TableLayout;
+import com.facebook.presto.metadata.TableLayout.NodePartitioning;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.planner.plan.ExchangeNode;
 import com.facebook.presto.sql.planner.plan.ExplainAnalyzeNode;
@@ -39,6 +43,7 @@ import java.util.Set;
 import static com.facebook.presto.sql.planner.SystemPartitioningHandle.COORDINATOR_DISTRIBUTION;
 import static com.facebook.presto.sql.planner.SystemPartitioningHandle.SINGLE_DISTRIBUTION;
 import static com.facebook.presto.sql.planner.SystemPartitioningHandle.SOURCE_DISTRIBUTION;
+import static com.facebook.presto.sql.planner.plan.ExchangeNode.Scope.REMOTE;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.in;
@@ -49,9 +54,9 @@ import static java.util.Objects.requireNonNull;
  */
 public class PlanFragmenter
 {
-    public SubPlan createSubPlans(Plan plan)
+    public SubPlan createSubPlans(Session session, Metadata metadata, Plan plan)
     {
-        Fragmenter fragmenter = new Fragmenter(plan.getSymbolAllocator().getTypes());
+        Fragmenter fragmenter = new Fragmenter(session, metadata, plan.getSymbolAllocator().getTypes());
 
         FragmentProperties properties = new FragmentProperties(new PartitionFunctionBinding(SINGLE_DISTRIBUTION, plan.getRoot().getOutputSymbols(), ImmutableList.of()))
                 .setSingleNodeDistribution();
@@ -68,11 +73,15 @@ public class PlanFragmenter
     {
         private static final int ROOT_FRAGMENT_ID = 0;
 
+        private final Session session;
+        private final Metadata metadata;
         private final Map<Symbol, Type> types;
         private int nextFragmentId = ROOT_FRAGMENT_ID + 1;
 
-        public Fragmenter(Map<Symbol, Type> types)
+        public Fragmenter(Session session, Metadata metadata, Map<Symbol, Type> types)
         {
+            this.session = session;
+            this.metadata = metadata;
             this.types = types;
         }
 
@@ -133,7 +142,13 @@ public class PlanFragmenter
         @Override
         public PlanNode visitTableScan(TableScanNode node, RewriteContext<FragmentProperties> context)
         {
-            context.get().setSourceDistribution(node.getId());
+            PartitioningHandle partitioning = node.getLayout()
+                    .map(layout -> metadata.getLayout(session, layout))
+                    .flatMap(TableLayout::getNodePartitioning)
+                    .map(NodePartitioning::getPartitioningHandle)
+                    .orElse(SOURCE_DISTRIBUTION);
+
+            context.get().setSourceDistribution(node.getId(), partitioning);
             return context.defaultRewrite(node, context.get());
         }
 
@@ -147,6 +162,10 @@ public class PlanFragmenter
         @Override
         public PlanNode visitExchange(ExchangeNode exchange, RewriteContext<FragmentProperties> context)
         {
+            if (exchange.getScope() != REMOTE) {
+                return context.defaultRewrite(exchange, context.get());
+            }
+
             PartitionFunctionBinding partitionFunction = exchange.getPartitionFunction();
 
             ImmutableList.Builder<SubPlan> builder = ImmutableList.builder();
@@ -256,11 +275,11 @@ public class PlanFragmenter
             return this;
         }
 
-        public FragmentProperties setSourceDistribution(PlanNodeId source)
+        public FragmentProperties setSourceDistribution(PlanNodeId source, PartitioningHandle partitioning)
         {
             if (partitioningHandle.isPresent()) {
                 PartitioningHandle partitioningHandle = this.partitioningHandle.get();
-                if (partitioningHandle.equals(SOURCE_DISTRIBUTION)) {
+                if (partitioningHandle.equals(partitioning)) {
                     checkState(distributeBy == null || distributeBy == source, "Cannot overwrite partitioned source");
                 }
                 else {
@@ -274,7 +293,7 @@ public class PlanFragmenter
                 }
             }
             distributeBy = requireNonNull(source, "source is null");
-            partitioningHandle = Optional.of(SOURCE_DISTRIBUTION);
+            partitioningHandle = Optional.of(partitioning);
 
             return this;
         }

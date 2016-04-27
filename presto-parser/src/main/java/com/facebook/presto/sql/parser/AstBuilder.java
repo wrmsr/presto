@@ -341,7 +341,7 @@ class AstBuilder
     @Override
     public Node visitNamedQuery(SqlBaseParser.NamedQueryContext context)
     {
-        return new WithQuery(getLocation(context), context.name.getText(), (Query) visit(context.query()), getColumnAliases(context.columnAliases()));
+        return new WithQuery(getLocation(context), context.name.getText(), (Query) visit(context.query()), Optional.ofNullable(getColumnAliases(context.columnAliases())));
     }
 
     @Override
@@ -1541,6 +1541,20 @@ class AstBuilder
 
         if (type.MAP() != null) {
             return "MAP(" + getType(type.type(0)) + "," + getType(type.type(1)) + ")";
+        }
+
+        if (type.ROW() != null) {
+            StringBuilder builder = new StringBuilder("(");
+            for (int i = 0; i < type.identifier().size(); i++) {
+                if (i != 0) {
+                    builder.append(",");
+                }
+                builder.append(type.identifier(i).getText())
+                        .append(" ")
+                        .append(getType(type.type(i)));
+            }
+            builder.append(")");
+            return "ROW" + builder.toString();
         }
 
         throw new IllegalArgumentException("Unsupported type specification: " + type.getText());

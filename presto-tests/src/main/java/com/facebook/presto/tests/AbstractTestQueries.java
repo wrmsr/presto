@@ -323,6 +323,18 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testRowCast()
+            throws Exception
+    {
+        assertQuery("SELECT cast(test_row(1, 2) as row(aa bigint, bb boolean)).aa", "SELECT 1");
+        assertQuery("SELECT cast(test_row(1, 2) as row(aa bigint, bb boolean)).bb", "SELECT true");
+        assertQuery("SELECT cast(test_row(1, 2) as row(aa bigint, bb varchar)).bb", "SELECT '2'");
+        assertQuery("SELECT cast(test_row(true, array[0, 2]) as row(aa boolean, bb array(boolean))).bb[1]", "SELECT false");
+        assertQuery("SELECT cast(test_row(0.1, array[0, 2], test_row(1, 0.5)) as row(aa bigint, bb array(boolean), cc row(dd varchar, ee varchar))).cc.ee", "SELECT '0.5'");
+        assertQuery("SELECT cast(array[test_row(0.1, array[0, 2], test_row(1, 0.5))] as array<row(aa bigint, bb array(boolean), cc row(dd varchar, ee varchar))>)[1].cc.ee", "SELECT '0.5'");
+    }
+
+    @Test
     public void testDereferenceInSubquery()
             throws Exception
     {
@@ -1860,6 +1872,15 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testColocatedJoinWithLocalUnion()
+            throws Exception
+    {
+        assertQuery(
+                "select count(*) from ((select * from orders) union all (select * from orders)) join orders using (orderkey)",
+                "select 2 * count(*) from orders");
+    }
+
+    @Test
     public void testJoinWithNonJoinExpression()
             throws Exception
     {
@@ -3174,7 +3195,7 @@ public abstract class AbstractTestQueries
                 ") WHERE rn <= 10000");
         String sql = "SELECT row_number() OVER (), orderkey, orderstatus FROM orders ORDER BY orderkey LIMIT 10000";
         MaterializedResult expected = computeExpected(sql, actual.getTypes());
-        assertEquals(actual, expected);
+        assertEqualsIgnoreOrder(actual, expected);
     }
 
     @Test
@@ -3745,13 +3766,17 @@ public abstract class AbstractTestQueries
                 "SELECT 123, 123 FROM orders LIMIT 1");
     }
 
-    @Test(enabled = false)
+    @Test
     public void testWithColumnAliasing()
             throws Exception
     {
         assertQuery(
-                "WITH a (id) AS (SELECT 123 FROM orders LIMIT 1) SELECT * FROM a",
+                "WITH a (id) AS (SELECT 123 FROM orders LIMIT 1) SELECT id FROM a",
                 "SELECT 123 FROM orders LIMIT 1");
+
+        assertQuery(
+                "WITH t (a, b, c) AS (SELECT 1, custkey x, orderkey FROM orders) SELECT c, b, a FROM t",
+                "SELECT orderkey, custkey, 1 FROM orders");
     }
 
     @Test
@@ -4165,7 +4190,7 @@ public abstract class AbstractTestQueries
     {
         MaterializedResult actual = computeActual("SHOW COLUMNS FROM orders");
 
-        MaterializedResult expected = resultBuilder(getSession(), VARCHAR, VARCHAR, VARCHAR)
+        MaterializedResult expectedUnparametrizedVarchar = resultBuilder(getSession(), VARCHAR, VARCHAR, VARCHAR)
                 .row("orderkey", "bigint", "")
                 .row("custkey", "bigint", "")
                 .row("orderstatus", "varchar", "")
@@ -4177,7 +4202,21 @@ public abstract class AbstractTestQueries
                 .row("comment", "varchar", "")
                 .build();
 
-        assertEquals(actual, expected);
+        MaterializedResult expectedParametrizedVarchar = resultBuilder(getSession(), VARCHAR, VARCHAR, VARCHAR)
+                .row("orderkey", "bigint", "")
+                .row("custkey", "bigint", "")
+                .row("orderstatus", "varchar(1)", "")
+                .row("totalprice", "double",  "")
+                .row("orderdate", "date", "")
+                .row("orderpriority", "varchar(5)", "")
+                .row("clerk", "varchar(25)", "")
+                .row("shippriority", "integer", "")
+                .row("comment", "varchar(115)", "")
+                .build();
+
+        // Until we migrate all connectors to parametrized varchar we check two options
+        assertTrue(actual.equals(expectedParametrizedVarchar) || actual.equals(expectedUnparametrizedVarchar),
+                format("%s does not matche neither of %s and %s", actual, expectedParametrizedVarchar, expectedUnparametrizedVarchar));
     }
 
     @Test

@@ -286,6 +286,13 @@ public class TestSqlParser
         assertCast("ARRAY<foo(42,55)>", "ARRAY(foo(42,55))");
         assertCast("varchar(42) ARRAY", "ARRAY(varchar(42))");
         assertCast("foo(42, 55) ARRAY", "ARRAY(foo(42,55))");
+
+        assertCast("ROW(m DOUBLE)", "ROW(m DOUBLE)");
+        assertCast("ROW(m DOUBLE)");
+        assertCast("ROW(x BIGINT,y DOUBLE)");
+        assertCast("ROW(x BIGINT, y DOUBLE)", "ROW(x bigint,y double)");
+        assertCast("ROW(x BIGINT, y DOUBLE, z ROW(m array<bigint>,n map<double,timestamp>))", "ROW(x BIGINT,y DOUBLE,z ROW(m array(bigint),n map(double,timestamp)))");
+        assertCast("array<ROW(x BIGINT, y TIMESTAMP)>", "ARRAY(ROW(x BIGINT,y TIMESTAMP))");
     }
 
     @Test
@@ -1182,8 +1189,8 @@ public class TestSqlParser
     {
         assertStatement("WITH a (t, u) AS (SELECT * FROM x), b AS (SELECT * FROM y) TABLE z",
                 new Query(Optional.of(new With(false, ImmutableList.of(
-                        new WithQuery("a", simpleQuery(selectList(new AllColumns()), table(QualifiedName.of("x"))), ImmutableList.of("t", "u")),
-                        new WithQuery("b", simpleQuery(selectList(new AllColumns()), table(QualifiedName.of("y"))), null)))),
+                        new WithQuery("a", simpleQuery(selectList(new AllColumns()), table(QualifiedName.of("x"))), Optional.of(ImmutableList.of("t", "u"))),
+                        new WithQuery("b", simpleQuery(selectList(new AllColumns()), table(QualifiedName.of("y"))), Optional.empty())))),
                         new Table(QualifiedName.of("z")),
                         ImmutableList.of(),
                         Optional.<String>empty(),
@@ -1191,7 +1198,7 @@ public class TestSqlParser
 
         assertStatement("WITH RECURSIVE a AS (SELECT * FROM x) TABLE y",
                 new Query(Optional.of(new With(true, ImmutableList.of(
-                        new WithQuery("a", simpleQuery(selectList(new AllColumns()), table(QualifiedName.of("x"))), null)))),
+                        new WithQuery("a", simpleQuery(selectList(new AllColumns()), table(QualifiedName.of("x"))), Optional.empty())))),
                         new Table(QualifiedName.of("y")),
                         ImmutableList.of(),
                         Optional.<String>empty(),

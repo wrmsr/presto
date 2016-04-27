@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -149,9 +150,7 @@ public class SqlTaskExecution
                         fragment.getRoot(),
                         fragment.getSymbols(),
                         fragment.getPartitionFunction(),
-                        sharedBuffer,
-                        fragment.getPartitioning().isSingleNode(),
-                        fragment.getPartitionedSource() == null);
+                        sharedBuffer);
                 driverFactories = localExecutionPlan.getDriverFactories();
             }
             catch (Throwable e) {
@@ -166,6 +165,7 @@ public class SqlTaskExecution
             for (DriverFactory driverFactory : driverFactories) {
                 if (driverFactory.getSourceIds().contains(fragment.getPartitionedSource())) {
                     checkState(partitionedDriverFactory == null, "multiple partitioned sources are not supported");
+                    checkArgument(!driverFactory.getDriverInstances().isPresent(), "Driver instances must not be set on a partitioned driver");
                     partitionedDriverFactory = new DriverSplitRunnerFactory(driverFactory);
                 }
                 else {
@@ -208,7 +208,7 @@ public class SqlTaskExecution
         // start unpartitioned drivers
         List<DriverSplitRunner> runners = new ArrayList<>();
         for (DriverSplitRunnerFactory driverFactory : unpartitionedDriverFactories) {
-            for (int i = 0; i < driverFactory.getDriverInstances(); i++) {
+            for (int i = 0; i < driverFactory.getDriverInstances().orElse(1); i++) {
                 runners.add(driverFactory.createDriverRunner(null, false));
             }
             driverFactory.setNoMoreSplits();
@@ -507,7 +507,7 @@ public class SqlTaskExecution
             }
         }
 
-        public int getDriverInstances()
+        public OptionalInt getDriverInstances()
         {
             return driverFactory.getDriverInstances();
         }

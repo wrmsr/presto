@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.testing;
+package com.facebook.presto.operator.exchange;
 
 import com.facebook.presto.operator.DriverContext;
 import com.facebook.presto.operator.Operator;
@@ -20,43 +20,47 @@ import com.facebook.presto.operator.OperatorFactory;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.planner.plan.PlanNodeId;
-import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
-public class MaterializingOperator
+public class LocalExchangeSourceOperator
         implements Operator
 {
-    public static class MaterializingOperatorFactory
+    public static class LocalExchangeSourceOperatorFactory
             implements OperatorFactory
     {
         private final int operatorId;
         private final PlanNodeId planNodeId;
-        private final List<Type> sourceTypes;
+        private final LocalExchange inMemoryExchange;
+        private int bufferIndex;
         private boolean closed;
 
-        public MaterializingOperatorFactory(int operatorId, PlanNodeId planNodeId, List<Type> sourceTypes)
+        public LocalExchangeSourceOperatorFactory(int operatorId, PlanNodeId planNodeId, LocalExchange inMemoryExchange)
         {
             this.operatorId = operatorId;
             this.planNodeId = requireNonNull(planNodeId, "planNodeId is null");
-            this.sourceTypes = sourceTypes;
+            this.inMemoryExchange = requireNonNull(inMemoryExchange, "inMemoryExchange is null");
         }
 
         @Override
         public List<Type> getTypes()
         {
-            return ImmutableList.of();
+            return inMemoryExchange.getTypes();
         }
 
         @Override
-        public MaterializingOperator createOperator(DriverContext driverContext)
+        public Operator createOperator(DriverContext driverContext)
         {
             checkState(!closed, "Factory is already closed");
-            OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, planNodeId, MaterializingOperator.class.getSimpleName());
-            return new MaterializingOperator(operatorContext, sourceTypes);
+            checkState(bufferIndex < inMemoryExchange.getBufferCount(), "All operators already created");
+            OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, planNodeId, LocalExchangeSourceOperator.class.getSimpleName());
+            Operator operator = new LocalExchangeSourceOperator(operatorContext, inMemoryExchange.getSource(bufferIndex));
+            bufferIndex++;
+            return operator;
         }
 
         @Override
@@ -68,35 +72,18 @@ public class MaterializingOperator
         @Override
         public OperatorFactory duplicate()
         {
-            return new MaterializingOperatorFactory(operatorId, planNodeId, sourceTypes);
+            throw new UnsupportedOperationException("Source operator factories can not be duplicated");
         }
     }
 
     private final OperatorContext operatorContext;
-    private final MaterializedResult.Builder resultBuilder;
-    private boolean finished;
-    private boolean closed;
+    private final LocalExchangeSource source;
 
-    public MaterializingOperator(OperatorContext operatorContext, List<Type> sourceTypes)
+    public LocalExchangeSourceOperator(OperatorContext operatorContext, LocalExchangeSource source)
     {
         this.operatorContext = requireNonNull(operatorContext, "operatorContext is null");
-        resultBuilder = MaterializedResult.resultBuilder(operatorContext.getSession(), sourceTypes);
-    }
-
-    public MaterializingOperator(OperatorContext operatorContext, MaterializedResult.Builder resultBuilder)
-    {
-        this.operatorContext = requireNonNull(operatorContext, "operatorContext is null");
-        this.resultBuilder = requireNonNull(resultBuilder, "resultBuilder is null");
-    }
-
-    public boolean isClosed()
-    {
-        return closed;
-    }
-
-    public MaterializedResult getMaterializedResult()
-    {
-        return resultBuilder.build();
+        this.source = requireNonNull(source, "source is null");
+        operatorContext.setInfoSupplier(source::getBufferInfo);
     }
 
     @Override
@@ -108,46 +95,52 @@ public class MaterializingOperator
     @Override
     public List<Type> getTypes()
     {
-        return ImmutableList.of();
+        return source.getTypes();
     }
 
     @Override
     public void finish()
     {
-        finished = true;
+        source.finish();
     }
 
     @Override
     public boolean isFinished()
     {
-        return finished;
+        return source.isFinished();
+    }
+
+    @Override
+    public ListenableFuture<?> isBlocked()
+    {
+        return source.waitForReading();
     }
 
     @Override
     public boolean needsInput()
     {
-        return !finished;
+        return false;
     }
 
     @Override
     public void addInput(Page page)
     {
-        requireNonNull(page, "page is null");
-        checkState(!finished, "operator finished");
-
-        resultBuilder.page(page);
-        operatorContext.recordGeneratedOutput(page.getSizeInBytes(), page.getPositionCount());
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public Page getOutput()
     {
-        return null;
+        Page page = source.removePage();
+        if (page != null) {
+            operatorContext.recordGeneratedInput(page.getSizeInBytes(), page.getPositionCount());
+        }
+        return page;
     }
 
     @Override
     public void close()
     {
-        closed = true;
+        source.close();
     }
 }
