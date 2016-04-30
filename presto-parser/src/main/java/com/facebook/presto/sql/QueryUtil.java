@@ -14,6 +14,7 @@
 package com.facebook.presto.sql;
 
 import com.facebook.presto.sql.tree.AliasedRelation;
+import com.facebook.presto.sql.tree.AllColumns;
 import com.facebook.presto.sql.tree.CoalesceExpression;
 import com.facebook.presto.sql.tree.ComparisonExpression;
 import com.facebook.presto.sql.tree.Expression;
@@ -179,6 +180,14 @@ public final class QueryUtil
                 having,
                 ordering,
                 limit));
+    }
+
+    public static Query singleValueQuery(String columnName, String value)
+    {
+        Relation values = values(row(new StringLiteral((value))));
+        return simpleQuery(
+                selectList(new AllColumns()),
+                aliased(values, "t", ImmutableList.of(columnName)));
     }
 
     public static Query query(QueryBody body)

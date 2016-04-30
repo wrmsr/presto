@@ -13,20 +13,19 @@
  */
 package com.facebook.presto.execution.resourceGroups;
 
-import com.facebook.presto.execution.QueryQueueRuleFactory;
-import com.google.inject.Binder;
-import com.google.inject.Module;
-import com.google.inject.Scopes;
-import com.google.inject.TypeLiteral;
-
-import java.util.List;
-
-public class ResourceGroupsModule
-        implements Module
+interface UpdateablePriorityQueue<E>
 {
-    @Override
-    public void configure(Binder binder)
-    {
-        binder.bind(new TypeLiteral<List<? extends ResourceGroupSelector>>() {}).toProvider(QueryQueueRuleFactory.class).in(Scopes.SINGLETON);
-    }
+    boolean addOrUpdate(E element, int priority);
+
+    boolean contains(E element);
+
+    boolean remove(E element);
+
+    E poll();
+
+    E peek();
+
+    int size();
+
+    boolean isEmpty();
 }

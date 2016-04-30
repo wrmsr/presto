@@ -84,6 +84,7 @@ import com.facebook.presto.sql.tree.SampledRelation;
 import com.facebook.presto.sql.tree.SelectItem;
 import com.facebook.presto.sql.tree.ShowCatalogs;
 import com.facebook.presto.sql.tree.ShowColumns;
+import com.facebook.presto.sql.tree.ShowCreate;
 import com.facebook.presto.sql.tree.ShowFunctions;
 import com.facebook.presto.sql.tree.ShowPartitions;
 import com.facebook.presto.sql.tree.ShowSchemas;
@@ -135,6 +136,7 @@ import static com.facebook.presto.connector.informationSchema.InformationSchemaM
 import static com.facebook.presto.metadata.FunctionKind.AGGREGATE;
 import static com.facebook.presto.metadata.FunctionKind.APPROXIMATE_AGGREGATE;
 import static com.facebook.presto.metadata.FunctionKind.WINDOW;
+import static com.facebook.presto.metadata.MetadataUtil.createQualifiedName;
 import static com.facebook.presto.metadata.MetadataUtil.createQualifiedObjectName;
 import static com.facebook.presto.spi.StandardErrorCode.INVALID_FUNCTION_ARGUMENT;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
@@ -154,10 +156,11 @@ import static com.facebook.presto.sql.QueryUtil.row;
 import static com.facebook.presto.sql.QueryUtil.selectAll;
 import static com.facebook.presto.sql.QueryUtil.selectList;
 import static com.facebook.presto.sql.QueryUtil.simpleQuery;
+import static com.facebook.presto.sql.QueryUtil.singleValueQuery;
 import static com.facebook.presto.sql.QueryUtil.subquery;
 import static com.facebook.presto.sql.QueryUtil.table;
 import static com.facebook.presto.sql.QueryUtil.unaliasedName;
-import static com.facebook.presto.sql.QueryUtil.values;
+import static com.facebook.presto.sql.SqlFormatter.formatSql;
 import static com.facebook.presto.sql.analyzer.ExpressionAnalyzer.createConstantAnalyzer;
 import static com.facebook.presto.sql.analyzer.ExpressionAnalyzer.getExpressionTypes;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.AMBIGUOUS_ATTRIBUTE;
@@ -199,6 +202,7 @@ import static com.facebook.presto.sql.tree.FrameBound.Type.FOLLOWING;
 import static com.facebook.presto.sql.tree.FrameBound.Type.PRECEDING;
 import static com.facebook.presto.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
 import static com.facebook.presto.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
+import static com.facebook.presto.sql.tree.ShowCreate.Type.VIEW;
 import static com.facebook.presto.sql.tree.WindowFrame.Type.RANGE;
 import static com.facebook.presto.type.TypeRegistry.canCoerce;
 import static com.facebook.presto.type.UnknownType.UNKNOWN;
@@ -295,9 +299,16 @@ class StatementAnalyzer
             throw new SemanticException(CATALOG_NOT_SPECIFIED, node, "Catalog must be specified when session catalog is not set");
         }
 
+        Optional<Expression> predicate = Optional.empty();
+        Optional<String> likePattern = node.getLikePattern();
+        if (likePattern.isPresent()) {
+            predicate = Optional.of(new LikePredicate(nameReference("schema_name"), new StringLiteral(likePattern.get()), null));
+        }
+
         Query query = simpleQuery(
                 selectList(aliasedName("schema_name", "Schema")),
                 from(node.getCatalog().orElseGet(() -> session.getCatalog().get()), TABLE_SCHEMATA),
+                predicate,
                 ordering(ascending("schema_name")));
 
         return process(query, context);
@@ -310,9 +321,17 @@ class StatementAnalyzer
                 .map(name -> row(new StringLiteral(name)))
                 .collect(toList());
 
+        Optional<Expression> predicate = Optional.empty();
+        Optional<String> likePattern = node.getLikePattern();
+        if (likePattern.isPresent()) {
+            predicate = Optional.of(new LikePredicate(nameReference("Catalog"), new StringLiteral(likePattern.get()), null));
+        }
+
         Query query = simpleQuery(
                 selectList(new AllColumns()),
-                aliased(new Values(rows), "catalogs", ImmutableList.of("Catalog")));
+                aliased(new Values(rows), "catalogs", ImmutableList.of("Catalog")),
+                predicate,
+                ordering(ascending("Catalog")));
 
         return process(query, context);
     }
@@ -420,6 +439,29 @@ class StatementAnalyzer
                 showPartitions.getLimit());
 
         return process(query, context);
+    }
+
+    @Override
+    protected RelationType visitShowCreate(ShowCreate node, AnalysisContext context)
+    {
+        if (node.getType() != VIEW) {
+            throw new UnsupportedOperationException("SHOW CREATE only supported for views");
+        }
+
+        QualifiedObjectName viewName = createQualifiedObjectName(session, node, node.getName());
+        Optional<ViewDefinition> view = metadata.getView(session, viewName);
+        if (!view.isPresent()) {
+            if (metadata.getTableHandle(session, viewName).isPresent()) {
+                throw new SemanticException(NOT_SUPPORTED, node, "Relation '%s' is a table, not a view", viewName);
+            }
+            throw new SemanticException(MISSING_TABLE, node, "View '%s' does not exist", viewName);
+        }
+
+        Query query = parseView(view.get().getOriginalSql(), viewName, node);
+
+        String sql = formatSql(new CreateView(createQualifiedName(viewName), query, false)).trim();
+
+        return process(singleValueQuery("Create View", sql), context);
     }
 
     @Override
@@ -762,16 +804,9 @@ class StatementAnalyzer
             }
         }
 
-        String queryPlan = getQueryPlan(node, planType, planFormat);
+        String plan = getQueryPlan(node, planType, planFormat);
 
-        Query query = simpleQuery(
-                selectList(new AllColumns()),
-                aliased(
-                        values(row(new StringLiteral((queryPlan)))),
-                        "plan",
-                        ImmutableList.of("Query Plan")));
-
-        return process(query, context);
+        return process(singleValueQuery("Query Plan", plan), context);
     }
 
     private String getQueryPlan(Explain node, ExplainType.Type planType, ExplainFormat.Type planFormat)
@@ -789,7 +824,7 @@ class StatementAnalyzer
     @Override
     protected RelationType visitQuery(Query node, AnalysisContext parentContext)
     {
-        AnalysisContext context = new AnalysisContext(parentContext);
+        AnalysisContext context = new AnalysisContext(parentContext, new RelationType());
 
         if (node.getApproximate().isPresent()) {
             if (!experimentalSyntaxEnabled) {
@@ -1032,7 +1067,7 @@ class StatementAnalyzer
         // TODO: extract candidate names from SELECT, WHERE, HAVING, GROUP BY and ORDER BY expressions
         // to pass down to analyzeFrom
 
-        AnalysisContext context = new AnalysisContext(parentContext);
+        AnalysisContext context = new AnalysisContext(parentContext, new RelationType());
 
         RelationType sourceType = analyzeFrom(node, context);
 
@@ -1132,7 +1167,7 @@ class StatementAnalyzer
             throw new SemanticException(NOT_SUPPORTED, node, "Natural join not supported");
         }
 
-        AnalysisContext leftContext = new AnalysisContext(context);
+        AnalysisContext leftContext = new AnalysisContext(context, new RelationType());
         RelationType left = process(node.getLeft(), context);
         leftContext.setLateralTupleDescriptor(left);
         RelationType right = process(node.getRight(), leftContext);
@@ -1839,7 +1874,7 @@ class StatementAnalyzer
         }
     }
 
-    private Query parseView(String view, QualifiedObjectName name, Table node)
+    private Query parseView(String view, QualifiedObjectName name, Node node)
     {
         try {
             Statement statement = sqlParser.createStatement(view);

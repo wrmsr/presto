@@ -4124,6 +4124,14 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testShowCatalogsLike()
+            throws Exception
+    {
+        MaterializedResult result = computeActual(format("SHOW CATALOGS LIKE '%s'", getSession().getCatalog().get()));
+        assertEquals(result.getOnlyColumnAsSet(), ImmutableSet.of(getSession().getCatalog().get()));
+    }
+
+    @Test
     public void testShowSchemas()
             throws Exception
     {
@@ -4140,6 +4148,13 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testShowSchemasLike()
+            throws Exception
+    {
+        MaterializedResult result = computeActual(format("SHOW SCHEMAS LIKE '%s'", getSession().getSchema().get()));
+        assertEquals(result.getOnlyColumnAsSet(), ImmutableSet.of(getSession().getSchema().get()));
+    }
+
     public void testShowTables()
             throws Exception
     {
@@ -4352,7 +4367,8 @@ public abstract class AbstractTestQueries
                 "SELECT SUM(CASE WHEN CAST(round(totalprice/100) AS BIGINT) BETWEEN 2 AND 36 THEN 1 ELSE 0 END) FROM orders");
     }
 
-    @Test(expectedExceptions = RuntimeException.class, expectedExceptionsMessageRegExp = "\\Q/ by zero\\E.*")
+    // no regexp specified because the JVM optimizes away exception message constructor if run enough times
+    @Test(expectedExceptions = RuntimeException.class)
     public void testTryNoMergeProjections()
         throws Exception
     {
@@ -5066,6 +5082,50 @@ public abstract class AbstractTestQueries
                 "FROM lineitem " +
                 "GROUP BY linenumber, (SELECT count(orderkey) FROM orders WHERE orderkey < 7)" +
                 "HAVING min(orderkey) < (SELECT sum(orderkey) FROM orders WHERE orderkey < 7)");
+    }
+
+    @Test
+    public void testCorrelatedScalarSubqueries()
+            throws Exception
+    {
+        String errorMsg = "line .*: Correlated queries not yet supported. Invalid column reference: .*";
+
+        assertQueryFails("SELECT (SELECT l.orderkey) FROM lineitem l", errorMsg);
+        assertQueryFails("SELECT * FROM lineitem l WHERE 1 = (SELECT l.orderkey)", errorMsg);
+        assertQueryFails("SELECT * FROM lineitem l ORDER BY (SELECT l.orderkey)", errorMsg);
+
+        // group by
+        assertQueryFails("SELECT max(l.quantity), l.orderkey, (SELECT l.orderkey) FROM lineitem l GROUP BY l.orderkey", errorMsg);
+        assertQueryFails("SELECT max(l.quantity), l.orderkey FROM lineitem l GROUP BY l.orderkey HAVING max(l.quantity) < (SELECT l.orderkey)", errorMsg);
+        assertQueryFails("SELECT max(l.quantity), l.orderkey FROM lineitem l GROUP BY l.orderkey, (SELECT l.orderkey)", errorMsg);
+
+        // join
+        assertQueryFails("SELECT * FROM lineitem l1 JOIN lineitem l2 ON l1.orderkey= (SELECT l2.orderkey)", errorMsg);
+        assertQueryFails("SELECT * FROM lineitem l1 WHERE 1 = (SELECT count(*) FROM lineitem l2 CROSS JOIN (SELECT l1.orderkey) l3)", errorMsg);
+
+        // subrelation
+        assertQueryFails("SELECT * FROM lineitem l WHERE l.orderkey= (SELECT * FROM (SELECT l.orderkey))", errorMsg);
+    }
+
+    @Test
+    public void testCorrelatedInPredicateSubqueries()
+    {
+        String errorMsg = "line .*: Correlated queries not yet supported. Invalid column reference: .*";
+
+        assertQueryFails("SELECT 1 IN (SELECT l.orderkey) FROM lineitem l", errorMsg);
+        assertQueryFails("SELECT * FROM lineitem l WHERE 1 IN (SELECT l.orderkey)", errorMsg);
+        assertQueryFails("SELECT * FROM lineitem l ORDER BY 1 IN (SELECT l.orderkey)", errorMsg);
+
+        // group by
+        assertQueryFails("SELECT max(l.quantity), l.orderkey, 1 IN (SELECT l.orderkey) FROM lineitem l GROUP BY l.orderkey", errorMsg);
+        assertQueryFails("SELECT max(l.quantity), l.orderkey FROM lineitem l GROUP BY l.orderkey HAVING max(l.quantity) IN (SELECT l.orderkey)", errorMsg);
+        assertQueryFails("SELECT max(l.quantity), l.orderkey FROM lineitem l GROUP BY l.orderkey, 1 IN (SELECT l.orderkey)", errorMsg);
+
+        // join
+        assertQueryFails("SELECT * FROM lineitem l1 JOIN lineitem l2 ON l1.orderkey IN (SELECT l2.orderkey)", errorMsg);
+
+        // subrelation
+        assertQueryFails("SELECT * FROM lineitem l WHERE l.orderkey = (SELECT * FROM (SELECT 1 IN (SELECT l.orderkey)))", errorMsg);
     }
 
     @Test

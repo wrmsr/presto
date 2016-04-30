@@ -100,6 +100,7 @@ import com.facebook.presto.sql.tree.SelectItem;
 import com.facebook.presto.sql.tree.SetSession;
 import com.facebook.presto.sql.tree.ShowCatalogs;
 import com.facebook.presto.sql.tree.ShowColumns;
+import com.facebook.presto.sql.tree.ShowCreate;
 import com.facebook.presto.sql.tree.ShowFunctions;
 import com.facebook.presto.sql.tree.ShowPartitions;
 import com.facebook.presto.sql.tree.ShowSchemas;
@@ -554,13 +555,19 @@ class AstBuilder
     @Override
     public Node visitShowSchemas(SqlBaseParser.ShowSchemasContext context)
     {
-        return new ShowSchemas(getLocation(context), getTextIfPresent(context.identifier()));
+        return new ShowSchemas(
+                getLocation(context),
+                getTextIfPresent(context.identifier()),
+                getTextIfPresent(context.pattern)
+                        .map(AstBuilder::unquote));
     }
 
     @Override
     public Node visitShowCatalogs(SqlBaseParser.ShowCatalogsContext context)
     {
-        return new ShowCatalogs(getLocation(context));
+        return new ShowCatalogs(getLocation(context),
+                getTextIfPresent(context.pattern)
+                        .map(AstBuilder::unquote));
     }
 
     @Override
@@ -578,6 +585,12 @@ class AstBuilder
                 visitIfPresent(context.booleanExpression(), Expression.class),
                 visit(context.sortItem(), SortItem.class),
                 getTextIfPresent(context.limit));
+    }
+
+    @Override
+    public Node visitShowCreateView(SqlBaseParser.ShowCreateViewContext context)
+    {
+        return new ShowCreate(getLocation(context), ShowCreate.Type.VIEW, getQualifiedName(context.qualifiedName()));
     }
 
     @Override
