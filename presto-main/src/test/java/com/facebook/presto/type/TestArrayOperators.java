@@ -23,6 +23,7 @@ import com.facebook.presto.spi.type.SqlTimestamp;
 import com.facebook.presto.sql.analyzer.SemanticErrorCode;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 import io.airlift.slice.DynamicSliceOutput;
@@ -272,6 +273,7 @@ public class TestArrayOperators
         assertFunction("CONTAINS(ARRAY [CAST (NULL AS BIGINT)], 1)", BOOLEAN, null);
         assertFunction("CONTAINS(ARRAY [CAST (NULL AS BIGINT)], NULL)", BOOLEAN, null);
         assertFunction("CONTAINS(ARRAY [], NULL)", BOOLEAN, null);
+        assertFunction("CONTAINS(ARRAY [], 1)", BOOLEAN, false);
     }
 
     @Test
@@ -375,6 +377,13 @@ public class TestArrayOperators
 
         assertFunction("ARRAY_POSITION(ARRAY [DATE '2000-01-01', DATE '2000-01-02', DATE '2000-01-03', DATE '2000-01-04'], DATE '2000-01-03')", BIGINT, 3L);
         assertFunction("ARRAY_POSITION(ARRAY [ARRAY [1, 11], ARRAY [2, 12], ARRAY [3, 13], ARRAY [4, 14]], ARRAY [3, 13])", BIGINT, 3L);
+
+        assertFunction("ARRAY_POSITION(ARRAY [], NULL)", BIGINT, null);
+        assertFunction("ARRAY_POSITION(ARRAY [NULL], NULL)", BIGINT, null);
+        assertFunction("ARRAY_POSITION(ARRAY [1, NULL, 2], NULL)", BIGINT, null);
+        assertFunction("ARRAY_POSITION(ARRAY [1, CAST(NULL AS BIGINT), 2], CAST(NULL AS BIGINT))", BIGINT, null);
+        assertFunction("ARRAY_POSITION(ARRAY [1, NULL, 2], CAST(NULL AS BIGINT))", BIGINT, null);
+        assertFunction("ARRAY_POSITION(ARRAY [1, CAST(NULL AS BIGINT), 2], NULL)", BIGINT, null);
     }
 
     @Test
@@ -815,6 +824,49 @@ public class TestArrayOperators
         catch (SemanticException e) {
             assertEquals(e.getCode(), errorCode);
         }
+    }
+
+    @Test
+    public void testFlatten()
+    {
+        // BOOLEAN Tests
+        assertFunction("flatten(ARRAY [ARRAY [TRUE, FALSE], ARRAY [FALSE]])", new ArrayType(BOOLEAN), ImmutableList.of(true, false, false));
+        assertFunction("flatten(ARRAY [ARRAY [TRUE, FALSE], NULL])", new ArrayType(BOOLEAN), ImmutableList.of(true, false));
+        assertFunction("flatten(ARRAY [ARRAY [TRUE, FALSE]])", new ArrayType(BOOLEAN), ImmutableList.of(true, false));
+        assertFunction("flatten(ARRAY [NULL, ARRAY [TRUE, FALSE]])", new ArrayType(BOOLEAN), ImmutableList.of(true, false));
+        assertFunction("flatten(ARRAY [ARRAY [TRUE], ARRAY [FALSE], ARRAY [TRUE, FALSE]])", new ArrayType(BOOLEAN), ImmutableList.of(true, false, true, false));
+        assertFunction("flatten(ARRAY [NULL, ARRAY [TRUE], NULL, ARRAY [FALSE], ARRAY [FALSE, TRUE]])", new ArrayType(BOOLEAN), ImmutableList.of(true, false, false, true));
+
+        // VARCHAR Tests
+        assertFunction("flatten(ARRAY [ARRAY ['1', '2'], ARRAY ['3']])", new ArrayType(createVarcharType(1)), ImmutableList.of("1", "2", "3"));
+        assertFunction("flatten(ARRAY [ARRAY ['1', '2'], NULL])", new ArrayType(createVarcharType(1)), ImmutableList.of("1", "2"));
+        assertFunction("flatten(ARRAY [NULL, ARRAY ['1', '2']])", new ArrayType(createVarcharType(1)), ImmutableList.of("1", "2"));
+        assertFunction("flatten(ARRAY [ARRAY ['0'], ARRAY ['1'], ARRAY ['2', '3']])", new ArrayType(createVarcharType(1)), ImmutableList.of("0", "1", "2", "3"));
+        assertFunction("flatten(ARRAY [NULL, ARRAY ['0'], NULL, ARRAY ['1'], ARRAY ['2', '3']])", new ArrayType(createVarcharType(1)), ImmutableList.of("0", "1", "2", "3"));
+
+        // BIGINT Tests
+        assertFunction("flatten(ARRAY [ARRAY [1, 2], ARRAY [3]])", new ArrayType(INTEGER), ImmutableList.of(1, 2, 3));
+        assertFunction("flatten(ARRAY [ARRAY [1, 2], NULL])", new ArrayType(INTEGER), ImmutableList.of(1, 2));
+        assertFunction("flatten(ARRAY [NULL, ARRAY [1, 2]])", new ArrayType(INTEGER), ImmutableList.of(1, 2));
+        assertFunction("flatten(ARRAY [ARRAY [0], ARRAY [1], ARRAY [2, 3]])", new ArrayType(INTEGER), ImmutableList.of(0, 1, 2, 3));
+        assertFunction("flatten(ARRAY [NULL, ARRAY [0], NULL, ARRAY [1], ARRAY [2, 3]])", new ArrayType(INTEGER), ImmutableList.of(0, 1, 2, 3));
+
+        // DOUBLE Tests
+        assertFunction("flatten(ARRAY [ARRAY [1.2, 2.2], ARRAY [3.2]])", new ArrayType(DOUBLE), ImmutableList.of(1.2, 2.2, 3.2));
+        assertFunction("flatten(ARRAY [ARRAY [1.2, 2.2], NULL])", new ArrayType(DOUBLE), ImmutableList.of(1.2, 2.2));
+        assertFunction("flatten(ARRAY [NULL, ARRAY [1.2, 2.2]])", new ArrayType(DOUBLE), ImmutableList.of(1.2, 2.2));
+        assertFunction("flatten(ARRAY [ARRAY[0.2], ARRAY [1.2], ARRAY [2.2, 3.2]])", new ArrayType(DOUBLE), ImmutableList.of(0.2, 1.2, 2.2, 3.2));
+        assertFunction("flatten(ARRAY [NULL, ARRAY [0.2], NULL, ARRAY [1.2], ARRAY [2.2, 3.2]])", new ArrayType(DOUBLE), ImmutableList.of(0.2, 1.2, 2.2, 3.2));
+
+        // ARRAY<BIGINT> tests
+        assertFunction("flatten(ARRAY [ARRAY [ARRAY [1, 2], ARRAY [3, 4]], ARRAY [ARRAY [5, 6], ARRAY [7, 8]]])", new ArrayType(new ArrayType(INTEGER)), ImmutableList.of(ImmutableList.of(1, 2), ImmutableList.of(3, 4), ImmutableList.of(5, 6), ImmutableList.of(7, 8)));
+        assertFunction("flatten(ARRAY [ARRAY [ARRAY [1, 2], ARRAY [3, 4]], NULL])", new ArrayType(new ArrayType(INTEGER)), ImmutableList.of(ImmutableList.of(1, 2), ImmutableList.of(3, 4)));
+        assertFunction("flatten(ARRAY [NULL, ARRAY [ARRAY [5, 6], ARRAY [7, 8]]])", new ArrayType(new ArrayType(INTEGER)), ImmutableList.of(ImmutableList.of(5, 6), ImmutableList.of(7, 8)));
+
+        // MAP<BIGINT, BIGINT> Tests
+        assertFunction("flatten(ARRAY [ARRAY [MAP (ARRAY [1, 2], ARRAY [1, 2])], ARRAY [MAP (ARRAY [3, 4], ARRAY [3, 4])]])", new ArrayType(new MapType(INTEGER, INTEGER)), ImmutableList.of(ImmutableMap.of(1, 1, 2, 2), ImmutableMap.of(3, 3, 4, 4)));
+        assertFunction("flatten(ARRAY [ARRAY [MAP (ARRAY [1, 2], ARRAY [1, 2])], NULL])", new ArrayType(new MapType(INTEGER, INTEGER)), ImmutableList.of(ImmutableMap.of(1, 1, 2, 2)));
+        assertFunction("flatten(ARRAY [NULL, ARRAY [MAP (ARRAY [3, 4], ARRAY [3, 4])]])", new ArrayType(new MapType(INTEGER, INTEGER)), ImmutableList.of(ImmutableMap.of(3, 3, 4, 4)));
     }
 
     public void assertInvalidFunction(String projection, ErrorCode errorCode)

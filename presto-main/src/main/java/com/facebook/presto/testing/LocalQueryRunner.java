@@ -581,7 +581,7 @@ public class LocalQueryRunner
             ImmutableSet.Builder<ScheduledSplit> scheduledSplits = ImmutableSet.builder();
             while (!splitSource.isFinished()) {
                 for (Split split : getFutureValue(splitSource.getNextBatch(1000))) {
-                    scheduledSplits.add(new ScheduledSplit(sequenceId++, split));
+                    scheduledSplits.add(new ScheduledSplit(sequenceId++, tableScan.getId(), split));
                 }
             }
 
@@ -596,9 +596,7 @@ public class LocalQueryRunner
                 DriverContext driverContext = taskContext.addPipelineContext(driverFactory.isInputDriver(), driverFactory.isOutputDriver()).addDriverContext();
                 Driver driver = driverFactory.createDriver(driverContext);
                 drivers.add(driver);
-                for (PlanNodeId sourceId : driver.getSourceIds()) {
-                    driversBySource.put(sourceId, driver);
-                }
+                driver.getSourceId().ifPresent(sourceId -> driversBySource.put(sourceId, driver));
             }
             driverFactory.close();
         }

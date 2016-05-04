@@ -30,7 +30,6 @@ import com.facebook.presto.testing.QueryRunner;
 import com.facebook.presto.tests.AbstractTestIntegrationSmokeTest;
 import com.facebook.presto.tests.DistributedQueryRunner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import org.intellij.lang.annotations.Language;
 import org.joda.time.DateTime;
 import org.testng.annotations.Test;
@@ -45,8 +44,8 @@ import static com.facebook.presto.hive.HiveQueryRunner.HIVE_CATALOG;
 import static com.facebook.presto.hive.HiveQueryRunner.TPCH_SCHEMA;
 import static com.facebook.presto.hive.HiveQueryRunner.createQueryRunner;
 import static com.facebook.presto.hive.HiveQueryRunner.createSampledSession;
+import static com.facebook.presto.hive.HiveTableProperties.BUCKETED_BY_PROPERTY;
 import static com.facebook.presto.hive.HiveTableProperties.BUCKET_COUNT_PROPERTY;
-import static com.facebook.presto.hive.HiveTableProperties.CLUSTERED_BY_PROPERTY;
 import static com.facebook.presto.hive.HiveTableProperties.PARTITIONED_BY_PROPERTY;
 import static com.facebook.presto.hive.HiveTableProperties.STORAGE_FORMAT_PROPERTY;
 import static com.facebook.presto.hive.HiveUtil.annotateColumnComment;
@@ -54,6 +53,7 @@ import static com.facebook.presto.spi.type.VarcharType.createUnboundedVarcharTyp
 import static com.facebook.presto.spi.type.VarcharType.createVarcharType;
 import static com.facebook.presto.testing.MaterializedResult.resultBuilder;
 import static com.facebook.presto.transaction.TransactionBuilder.transaction;
+import static com.google.common.collect.Iterables.getOnlyElement;
 import static io.airlift.tpch.TpchTable.ORDERS;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -387,7 +387,7 @@ public class TestHiveIntegrationSmokeTest
                 "WITH (" +
                 "format = '" + storageFormat + "', " +
                 "partitioned_by = ARRAY[ 'orderstatus' ], " +
-                "clustered_by = ARRAY[ 'custkey' ], " +
+                "bucketed_by = ARRAY[ 'custkey' ], " +
                 "bucket_count = 11 " +
                 ") " +
                 "AS " +
@@ -409,7 +409,7 @@ public class TestHiveIntegrationSmokeTest
             assertEquals(columnMetadata.getComment(), annotateColumnComment(null, partitionKey));
         }
 
-        assertEquals(tableMetadata.getMetadata().getProperties().get(CLUSTERED_BY_PROPERTY), ImmutableList.of("custkey"));
+        assertEquals(tableMetadata.getMetadata().getProperties().get(BUCKETED_BY_PROPERTY), ImmutableList.of("custkey"));
         assertEquals(tableMetadata.getMetadata().getProperties().get(BUCKET_COUNT_PROPERTY), 11);
 
         List<?> partitions = getPartitions("test_create_partitioned_bucketed_table_as");
@@ -454,7 +454,7 @@ public class TestHiveIntegrationSmokeTest
                 "WITH (" +
                 "format = '" + storageFormat + "', " +
                 "partitioned_by = ARRAY[ 'orderstatus' ], " +
-                "clustered_by = ARRAY[ 'custkey' ], " +
+                "bucketed_by = ARRAY[ 'custkey' ], " +
                 "bucket_count = 13)");
 
         ImmutableList<String> orderStatusList = ImmutableList.of("F", "O", "P");
@@ -480,7 +480,7 @@ public class TestHiveIntegrationSmokeTest
                 assertEquals(columnMetadata.getComment(), annotateColumnComment(null, partitionKey));
             }
 
-            assertEquals(tableMetadata.getMetadata().getProperties().get(CLUSTERED_BY_PROPERTY), ImmutableList.of("custkey"));
+            assertEquals(tableMetadata.getMetadata().getProperties().get(BUCKETED_BY_PROPERTY), ImmutableList.of("custkey"));
             assertEquals(tableMetadata.getMetadata().getProperties().get(BUCKET_COUNT_PROPERTY), 13);
 
             List<?> partitions = getPartitions("test_insert_partitioned_bucketed_table");
@@ -743,7 +743,7 @@ public class TestHiveIntegrationSmokeTest
                     assertTrue(tableHandle.isPresent());
 
                     List<TableLayoutResult> layouts = metadata.getLayouts(transactionSession, tableHandle.get(), Constraint.alwaysTrue(), Optional.empty());
-                    TableLayout layout = Iterables.getOnlyElement(layouts).getLayout();
+                    TableLayout layout = getOnlyElement(layouts).getLayout();
                     return getPartitions(layout.getHandle().getConnectorHandle());
                 });
     }
@@ -865,6 +865,48 @@ public class TestHiveIntegrationSmokeTest
         assertQuery(
                 "SELECT a[1]['a'], a[2]['d'] FROM tmp_complex1",
                 "SELECT 2.0, 14.0");
+    }
+
+    @Test
+    public void testShowCreateTable()
+            throws Exception
+    {
+        String createTableSql = format("" +
+                        "CREATE TABLE %s.%s.%s (\n" +
+                        "   c1 bigint,\n" +
+                        "   c2 double,\n" +
+                        "   \"c 3\" varchar,\n" +
+                        "   \"c'4\" array(bigint),\n" +
+                        "   c5 map(bigint, varchar)\n" +
+                        ")\n" +
+                        "WITH (\n" +
+                        "   format = 'RCBINARY'\n" +
+                        ")",
+                getSession().getCatalog().get(),
+                getSession().getSchema().get(),
+                "test_show_create_table");
+
+        assertUpdate(createTableSql);
+        MaterializedResult actualResult = computeActual("SHOW CREATE TABLE test_show_create_table");
+        assertEquals(getOnlyElement(actualResult.getOnlyColumnAsSet()), createTableSql);
+
+        createTableSql = format("" +
+                        "CREATE TABLE %s.%s.%s (\n" +
+                        "   c1 bigint,\n" +
+                        "   \"c 2\" varchar,\n" +
+                        "   \"c'3\" array(bigint),\n" +
+                        "   c4 map(bigint, varchar),\n" +
+                        "   c5 double\n)\n" +
+                        "WITH (\n" +
+                        "   format = 'ORC',\n" +
+                        "   partitioned_by = ARRAY['c4','c5']\n" +
+                        ")",
+                getSession().getCatalog().get(),
+                getSession().getSchema().get(),
+                "\"test_show_create_table'2\"");
+        assertUpdate(createTableSql);
+        actualResult = computeActual("SHOW CREATE TABLE \"test_show_create_table'2\"");
+        assertEquals(getOnlyElement(actualResult.getOnlyColumnAsSet()), createTableSql);
     }
 
     private void assertOneNotNullResult(@Language("SQL") String query)

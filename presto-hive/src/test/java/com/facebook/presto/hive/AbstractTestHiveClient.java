@@ -119,8 +119,8 @@ import static com.facebook.presto.hive.HiveStorageFormat.RCBINARY;
 import static com.facebook.presto.hive.HiveStorageFormat.RCTEXT;
 import static com.facebook.presto.hive.HiveStorageFormat.SEQUENCEFILE;
 import static com.facebook.presto.hive.HiveStorageFormat.TEXTFILE;
+import static com.facebook.presto.hive.HiveTableProperties.BUCKETED_BY_PROPERTY;
 import static com.facebook.presto.hive.HiveTableProperties.BUCKET_COUNT_PROPERTY;
-import static com.facebook.presto.hive.HiveTableProperties.CLUSTERED_BY_PROPERTY;
 import static com.facebook.presto.hive.HiveTableProperties.PARTITIONED_BY_PROPERTY;
 import static com.facebook.presto.hive.HiveTableProperties.STORAGE_FORMAT_PROPERTY;
 import static com.facebook.presto.hive.HiveTestUtils.SESSION;
@@ -147,7 +147,6 @@ import static com.facebook.presto.spi.type.TimestampType.TIMESTAMP;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.spi.type.VarbinaryType.VARBINARY;
 import static com.facebook.presto.spi.type.VarcharType.createUnboundedVarcharType;
-import static com.facebook.presto.spi.type.VarcharType.createVarcharType;
 import static com.facebook.presto.spi.type.Varchars.isVarcharType;
 import static com.facebook.presto.testing.MaterializedResult.materializeSourceDataStream;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -282,9 +281,6 @@ public abstract class AbstractTestHiveClient
     protected ConnectorPageSinkProvider pageSinkProvider;
     protected ExecutorService executor;
 
-    protected SchemaTableName insertTableDestination;
-    protected SchemaTableName insertTablePartitionedDestination;
-
     @BeforeClass
     public void setupClass()
             throws Exception
@@ -345,9 +341,6 @@ public abstract class AbstractTestHiveClient
         dummyColumn = new HiveColumnHandle(connectorId, "dummy", HIVE_INT, parseTypeSignature(StandardTypes.INTEGER), -1, true);
         intColumn = new HiveColumnHandle(connectorId, "t_int", HIVE_INT, parseTypeSignature(StandardTypes.INTEGER), -1, true);
         invalidColumnHandle = new HiveColumnHandle(connectorId, INVALID_COLUMN, HIVE_STRING, parseTypeSignature(StandardTypes.VARCHAR), 0, false);
-
-        insertTableDestination = new SchemaTableName(database, "presto_insert_destination");
-        insertTablePartitionedDestination = new SchemaTableName(database, "presto_insert_destination_partitioned");
 
         List<ColumnHandle> partitionColumns = ImmutableList.of(dsColumn, fileFormatColumn, dummyColumn);
         List<HivePartition> partitions = ImmutableList.<HivePartition>builder()
@@ -664,7 +657,6 @@ public abstract class AbstractTestHiveClient
         Map<String, ColumnMetadata> map = uniqueIndex(tableMetadata.getColumns(), ColumnMetadata::getName);
 
         assertPrimitiveField(map, "t_string", createUnboundedVarcharType(), false);
-        assertPrimitiveField(map, "t_varchar", createVarcharType(50), false);
         assertPrimitiveField(map, "t_tinyint", INTEGER, false);
         assertPrimitiveField(map, "t_smallint", INTEGER, false);
         assertPrimitiveField(map, "t_int", INTEGER, false);
@@ -968,24 +960,6 @@ public abstract class AbstractTestHiveClient
                     }
                     else {
                         assertEquals(value, "test");
-                    }
-
-                    value = row.getField(columnIndex.get("t_varchar"));
-                    if (rowNumber % 39 == 0) {
-                        assertNull(value);
-                    }
-                    else if (rowNumber % 39 == 1) {
-                        // https://issues.apache.org/jira/browse/HIVE-13289
-                        // RCBINARY reads empty VARCHAR as Null
-                        if (fileType == RCBINARY) {
-                            assertNull(value);
-                        }
-                        else {
-                            assertEquals(value, "");
-                        }
-                    }
-                    else {
-                        assertEquals(value, "test varchar");
                     }
 
                     assertEquals(row.getField(columnIndex.get("t_tinyint")), 1 + (int) rowNumber);
@@ -2576,7 +2550,7 @@ public abstract class AbstractTestHiveClient
         return UUID.randomUUID().toString().toLowerCase(ENGLISH).replace("-", "");
     }
 
-    private static Map<String, Object> createTableProperties(HiveStorageFormat storageFormat)
+    protected static Map<String, Object> createTableProperties(HiveStorageFormat storageFormat)
     {
         return createTableProperties(storageFormat, ImmutableList.of());
     }
@@ -2586,7 +2560,7 @@ public abstract class AbstractTestHiveClient
         return ImmutableMap.<String, Object>builder()
                 .put(STORAGE_FORMAT_PROPERTY, storageFormat)
                 .put(PARTITIONED_BY_PROPERTY, ImmutableList.copyOf(parititonedBy))
-                .put(CLUSTERED_BY_PROPERTY, ImmutableList.of())
+                .put(BUCKETED_BY_PROPERTY, ImmutableList.of())
                 .put(BUCKET_COUNT_PROPERTY, 0)
                 .build();
     }
