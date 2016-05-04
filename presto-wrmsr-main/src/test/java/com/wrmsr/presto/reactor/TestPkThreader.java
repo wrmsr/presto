@@ -65,6 +65,7 @@ import com.facebook.presto.metadata.TableLayoutHandle;
 import com.facebook.presto.operator.Driver;
 import com.facebook.presto.operator.DriverContext;
 import com.facebook.presto.operator.DriverFactory;
+import com.facebook.presto.operator.OutputFactory;
 import com.facebook.presto.operator.TaskContext;
 import com.facebook.presto.operator.index.IndexJoinLookupStats;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
@@ -110,6 +111,7 @@ import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.MaterializedResult;
 import com.facebook.presto.testing.MaterializedRow;
+import com.facebook.presto.testing.PageConsumerOperator;
 import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.facebook.presto.type.ArrayType;
 import com.facebook.presto.type.RowType;
@@ -138,6 +140,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -788,9 +791,17 @@ public class TestPkThreader
         // ----
 
         TaskContext taskContext = createTaskContext(pq.lqr.getExecutor(), pq.lqr.getDefaultSession());
-        LocalQueryRunner.MaterializedOutputFactory outputFactory = new LocalQueryRunner.MaterializedOutputFactory();
 
-        SubPlan subplan = new PlanFragmenter().createSubPlans(plan);
+        AtomicReference<MaterializedResult.Builder> builder = new AtomicReference<>();
+        PageConsumerOperator.PageConsumerOutputFactory outputFactory = new PageConsumerOperator.PageConsumerOutputFactory(types -> {
+            builder.compareAndSet(null, MaterializedResult.resultBuilder(pq.lqr.getDefaultSession(), types));
+            return builder.get()::page;
+        });
+
+        SubPlan subplan = new PlanFragmenter().createSubPlans(
+                pq.lqr.getDefaultSession(),
+                pq.lqr.getMetadata(),
+                plan);
         if (!subplan.getChildren().isEmpty()) {
             throw new AssertionError("Expected subplan to have no children");
         }
@@ -816,7 +827,7 @@ public class TestPkThreader
                 pq.lqr.getCompiler(),
                 new IndexJoinLookupStats(),
                 new CompilerConfig().setInterpreterEnabled(false), // make sure tests fail if compiler breaks
-                new TaskManagerConfig().setTaskDefaultConcurrency(4)
+                new TaskManagerConfig().setTaskConcurrency(4)
         );
 
         // plan query
@@ -826,9 +837,7 @@ public class TestPkThreader
                 subplan.getFragment().getPartitionFunction().getOutputLayout(),
                 plan.getTypes(),
                 //subplan.getFragment().getDistribution(),
-                outputFactory,
-                true,
-                false);
+                outputFactory);
 
         // generate sources
         List<TaskSource> sources = new ArrayList<>();
@@ -841,7 +850,7 @@ public class TestPkThreader
             ImmutableSet.Builder<ScheduledSplit> scheduledSplits = ImmutableSet.builder();
             while (!splitSource.isFinished()) {
                 for (Split split : getFutureValue(splitSource.getNextBatch(1000))) {
-                    scheduledSplits.add(new ScheduledSplit(sequenceId++, split));
+                    scheduledSplits.add(new ScheduledSplit(sequenceId++, tableScan.getId(), split));
                 }
             }
 
@@ -852,14 +861,14 @@ public class TestPkThreader
         List<Driver> drivers = new ArrayList<>();
         Map<PlanNodeId, Driver> driversBySource = new HashMap<>();
         for (DriverFactory driverFactory : localExecutionPlan.getDriverFactories()) {
-            for (int i = 0; i < driverFactory.getDriverInstances(); i++) {
+            driverFactory.getDriverInstances().ifPresent(i -> {
                 DriverContext driverContext = taskContext.addPipelineContext(driverFactory.isInputDriver(), driverFactory.isOutputDriver()).addDriverContext();
                 Driver driver = driverFactory.createDriver(driverContext);
                 drivers.add(driver);
-                for (PlanNodeId sourceId : driver.getSourceIds()) {
+                driverFactory.getSourceId().ifPresent(sourceId -> {
                     driversBySource.put(sourceId, driver);
-                }
-            }
+                });
+            });
             driverFactory.close();
         }
 
@@ -882,7 +891,7 @@ public class TestPkThreader
             done = !processed;
         }
 
-        MaterializedResult result = outputFactory.getMaterializedResult();
+        MaterializedResult result = builder.get().build();
         for (MaterializedRow row : result.getMaterializedRows()) {
             System.out.println(row);
         }
