@@ -1181,8 +1181,26 @@ public class HiveMetadata
         HiveTableHandle handle = checkType(tableHandle, HiveTableHandle.class, "tableHandle");
         HiveTableLayoutHandle layoutHandle = checkType(tableLayoutHandle, HiveTableLayoutHandle.class, "tableLayoutHandle");
 
-        for (HivePartition hivePartition : getOrComputePartitions(layoutHandle, session, tableHandle)) {
-            metastore.dropPartitionByName(handle.getSchemaName(), handle.getTableName(), hivePartition.getPartitionId());
+        Optional<Table> table = metastore.getTable(handle.getSchemaName(), handle.getTableName());
+        if (!table.isPresent()) {
+            throw new TableNotFoundException(handle.getSchemaTableName());
+        }
+
+        if (table.get().getPartitionKeysSize() == 0) {
+            // only delete data for managed tables
+            if (!table.get().getTableType().equals(TableType.MANAGED_TABLE.toString())) {
+                throw new PrestoException(NOT_SUPPORTED, "Cannot delete from non-managed Hive table");
+            }
+            String location = table.get().getSd().getLocation();
+            List<String> notDeletedFiles = recursiveDeleteFilesStartingWith(session.getUser(), location, "");
+            if (!notDeletedFiles.isEmpty()) {
+                throw new PrestoException(HIVE_FILESYSTEM_ERROR, "Error deleting from unpartitioned table: " + handle.getSchemaTableName());
+            }
+        }
+        else {
+            for (HivePartition hivePartition : getOrComputePartitions(layoutHandle, session, tableHandle)) {
+                metastore.dropPartitionByName(handle.getSchemaName(), handle.getTableName(), hivePartition.getPartitionId());
+            }
         }
         // it is too expensive to determine the exact number of deleted rows
         return OptionalLong.empty();
@@ -1210,11 +1228,7 @@ public class HiveMetadata
     @Override
     public boolean supportsMetadataDelete(ConnectorSession session, ConnectorTableHandle tableHandle, ConnectorTableLayoutHandle tableLayoutHandle)
     {
-        HiveTableLayoutHandle layoutHandle = checkType(tableLayoutHandle, HiveTableLayoutHandle.class, "tableLayoutHandle");
-
-        // return true if none of the partitions is <UNPARTITIONED>
-        return layoutHandle.getPartitions().get().stream()
-                .noneMatch(partition -> HivePartition.UNPARTITIONED_ID.equals(partition.getPartitionId()));
+        return true;
     }
 
     @Override
@@ -1296,7 +1310,6 @@ public class HiveMetadata
     public void grantTablePrivileges(ConnectorSession session, SchemaTableName schemaTableName, Set<Privilege> privileges, String grantee, boolean grantOption)
     {
         String schemaName = schemaTableName.getSchemaName();
-
         String tableName = schemaTableName.getTableName();
 
         Set<PrivilegeGrantInfo> privilegeGrantInfoSet = privileges.stream()
@@ -1304,6 +1317,19 @@ public class HiveMetadata
                 .collect(toSet());
 
         metastore.grantTablePrivileges(schemaName, tableName, grantee, privilegeGrantInfoSet);
+    }
+
+    @Override
+    public void revokeTablePrivileges(ConnectorSession session, SchemaTableName schemaTableName, Set<Privilege> privileges, String grantee, boolean grantOption)
+    {
+        String schemaName = schemaTableName.getSchemaName();
+        String tableName = schemaTableName.getTableName();
+
+        Set<PrivilegeGrantInfo> privilegeGrantInfoSet = privileges.stream()
+                .map(privilege -> new PrivilegeGrantInfo(privilege.name().toLowerCase(), 0, session.getUser(), PrincipalType.USER, grantOption))
+                .collect(toSet());
+
+        metastore.revokeTablePrivileges(schemaName, tableName, grantee, privilegeGrantInfoSet);
     }
 
     @Override
