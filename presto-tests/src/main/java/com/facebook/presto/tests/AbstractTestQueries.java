@@ -67,6 +67,7 @@ import static com.facebook.presto.testing.TestingAccessControlManager.TestingPri
 import static com.facebook.presto.testing.TestingAccessControlManager.privilege;
 import static com.facebook.presto.tests.QueryAssertions.assertContains;
 import static com.facebook.presto.tests.QueryAssertions.assertEqualsIgnoreOrder;
+import static com.facebook.presto.tests.QueryAssertions.assertQuery;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Iterables.transform;
 import static io.airlift.tpch.TpchTable.ORDERS;
@@ -431,8 +432,8 @@ public abstract class AbstractTestQueries
             throws Exception
     {
         assertQuery("SELECT 1 FROM (VALUES (ARRAY[1])) AS t (a) CROSS JOIN UNNEST(a)", "SELECT 1");
-        assertQuery("SELECT x[1] FROM UNNEST(ARRAY[ARRAY[2, 2, 3]]) t(x)", "SELECT 2");
-        assertQuery("SELECT x[1][2] FROM UNNEST(ARRAY[ARRAY[ARRAY[2, 2, 3]]]) t(x)", "SELECT 2");
+        assertQuery("SELECT x[1] FROM UNNEST(ARRAY[ARRAY[1, 2, 3]]) t(x)", "SELECT 1");
+        assertQuery("SELECT x[1][2] FROM UNNEST(ARRAY[ARRAY[ARRAY[1, 2, 3]]]) t(x)", "SELECT 2");
         assertQuery("SELECT x[2] FROM UNNEST(ARRAY[MAP(ARRAY[1,2], ARRAY['hello', 'hi'])]) t(x)", "SELECT 'hi'");
         assertQuery("SELECT * FROM UNNEST(ARRAY[1, 2, 3])", "SELECT * FROM VALUES (1), (2), (3)");
         assertQuery("SELECT a FROM UNNEST(ARRAY[1, 2, 3]) t(a)", "SELECT * FROM VALUES (1), (2), (3)");
@@ -4151,6 +4152,7 @@ public abstract class AbstractTestQueries
         assertExplainDdl("ALTER TABLE orders RENAME TO new_name");
         assertExplainDdl("ALTER TABLE orders RENAME COLUMN orderkey TO new_column_name");
         assertExplainDdl("SET SESSION foo = 'bar'");
+        assertExplainDdl("PREPARE my_query FROM SELECT * FROM orders", "PREPARE my_query");
         assertExplainDdl("RESET SESSION foo");
         assertExplainDdl("START TRANSACTION");
         assertExplainDdl("COMMIT");
@@ -4276,10 +4278,10 @@ public abstract class AbstractTestQueries
                 .row("orderstatus", "varchar(1)", "")
                 .row("totalprice", "double",  "")
                 .row("orderdate", "date", "")
-                .row("orderpriority", "varchar(5)", "")
-                .row("clerk", "varchar(25)", "")
+                .row("orderpriority", "varchar(15)", "")
+                .row("clerk", "varchar(15)", "")
                 .row("shippriority", "integer", "")
-                .row("comment", "varchar(115)", "")
+                .row("comment", "varchar(79)", "")
                 .build();
 
         // Until we migrate all connectors to parametrized varchar we check two options
@@ -5031,6 +5033,92 @@ public abstract class AbstractTestQueries
                 "FROM lineitem " +
                 "GROUP BY linenumber, 6 IN (SELECT orderkey FROM orders WHERE orderkey < 5)" +
                 "HAVING 6 IN (SELECT orderkey FROM orders WHERE orderkey > 3)");
+    }
+
+    @Test
+    public void testSemiJoinUnionNullHandling()
+            throws Exception
+    {
+        assertQuery("" +
+                "SELECT orderkey\n" +
+                "  IN (\n" +
+                "    SELECT CASE WHEN orderkey % 500 = 0 THEN NULL ELSE orderkey END\n" +
+                "    FROM orders\n" +
+                "    WHERE orderkey % 200 = 0\n" +
+                "    UNION ALL\n" +
+                "    SELECT CASE WHEN orderkey % 600 = 0 THEN NULL ELSE orderkey END\n" +
+                "    FROM orders\n" +
+                "    WHERE orderkey % 300 = 0\n" +
+                "  )\n" +
+                "FROM (\n" +
+                "  SELECT orderkey\n" +
+                "  FROM lineitem\n" +
+                "  WHERE orderkey % 100 = 0)");
+    }
+
+    @Test
+    public void testSemiJoinAggregationNullHandling()
+            throws Exception
+    {
+        assertQuery("" +
+                "SELECT orderkey\n" +
+                "  IN (\n" +
+                "    SELECT CASE WHEN orderkey % 10 = 0 THEN NULL ELSE orderkey END\n" +
+                "    FROM lineitem\n" +
+                "    WHERE orderkey % 2 = 0\n" +
+                "    GROUP BY orderkey\n" +
+                "  )\n" +
+                "FROM (\n" +
+                "  SELECT orderkey\n" +
+                "  FROM orders\n" +
+                "  WHERE orderkey % 3 = 0)");
+    }
+
+    @Test
+    public void testSemiJoinUnionAggregationNullHandling()
+            throws Exception
+    {
+        assertQuery("" +
+                "SELECT orderkey\n" +
+                "  IN (\n" +
+                "    SELECT CASE WHEN orderkey % 500 = 0 THEN NULL ELSE orderkey END\n" +
+                "    FROM lineitem\n" +
+                "    WHERE orderkey % 250 = 0\n" +
+                "    UNION ALL\n" +
+                "    SELECT CASE WHEN orderkey % 300 = 0 THEN NULL ELSE orderkey END\n" +
+                "    FROM lineitem\n" +
+                "    WHERE orderkey % 200 = 0\n" +
+                "    GROUP BY orderkey\n" +
+                "  )\n" +
+                "FROM (\n" +
+                "  SELECT orderkey\n" +
+                "  FROM orders\n" +
+                "  WHERE orderkey % 100 = 0)\n");
+    }
+
+    @Test
+    public void testSemiJoinAggregationUnionNullHandling()
+            throws Exception
+    {
+        assertQuery("" +
+                "SELECT orderkey\n" +
+                "  IN (\n" +
+                "    SELECT orderkey\n" +
+                "    FROM (\n" +
+                "      SELECT CASE WHEN orderkey % 500 = 0 THEN NULL ELSE orderkey END AS orderkey\n" +
+                "      FROM orders\n" +
+                "      WHERE orderkey % 200 = 0\n" +
+                "      UNION ALL\n" +
+                "      SELECT CASE WHEN orderkey % 600 = 0 THEN NULL ELSE orderkey END AS orderkey\n" +
+                "      FROM orders\n" +
+                "      WHERE orderkey % 300 = 0\n" +
+                "    )\n" +
+                "    GROUP BY orderkey\n" +
+                "  )\n" +
+                "FROM (\n" +
+                "  SELECT orderkey\n" +
+                "  FROM lineitem\n" +
+                "  WHERE orderkey % 100 = 0)");
     }
 
     @Test
