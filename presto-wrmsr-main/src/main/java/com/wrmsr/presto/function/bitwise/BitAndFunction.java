@@ -15,6 +15,7 @@ package com.wrmsr.presto.function.bitwise;
 
 import com.facebook.presto.metadata.BoundVariables;
 import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.type.Type;
@@ -24,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 import java.lang.invoke.MethodHandle;
 import java.util.Map;
 
+import static com.facebook.presto.metadata.FunctionKind.SCALAR;
+import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.collect.Lists.listOf;
@@ -41,7 +44,7 @@ public class BitAndFunction
 
     public BitAndFunction()
     {
-        super(NAME, ImmutableList.of(), ImmutableList.of(), "bigint", ImmutableList.of("bigint"), true);
+        super(new Signature(NAME, SCALAR, ImmutableList.of(), ImmutableList.of(), parseTypeSignature("bigint"), ImmutableList.of(parseTypeSignature("bigint")), true));
     }
 
     @Override

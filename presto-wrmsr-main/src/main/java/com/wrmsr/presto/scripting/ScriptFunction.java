@@ -21,6 +21,7 @@ import com.facebook.presto.bytecode.Scope;
 import com.facebook.presto.bytecode.Variable;
 import com.facebook.presto.metadata.BoundVariables;
 import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.metadata.TypeVariableConstraint;
@@ -29,6 +30,7 @@ import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.spi.type.VarcharType;
 import com.facebook.presto.sql.gen.CallSiteBinder;
 import com.facebook.presto.type.SqlType;
@@ -60,6 +62,8 @@ import static com.facebook.presto.bytecode.CompilerUtils.defineClass;
 import static com.facebook.presto.bytecode.CompilerUtils.makeClassName;
 import static com.facebook.presto.bytecode.Parameter.arg;
 import static com.facebook.presto.bytecode.ParameterizedType.type;
+import static com.facebook.presto.metadata.FunctionKind.SCALAR;
+import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
@@ -136,16 +140,18 @@ public class ScriptFunction
     @Inject
     public ScriptFunction(ScriptingManager scriptingManager, @Assisted Config config)
     {
-        super(
+        super(new Signature(
                 config.name,
+                SCALAR,
                 IntStream.range(0, config.arity).boxed().map(n -> new TypeVariableConstraint("T" + n.toString(), false, false, null)).collect(toImmutableList()),
                 ImmutableList.of(),
-                config.returnType.getTypeSignature().getBase(),
-                ImmutableList.<String>builder()
-                        .add("varchar")
-                        .add("varchar")
-                        .addAll(IntStream.range(0, config.arity).boxed().map(n -> "T" + n.toString()).collect(toImmutableList()))
-                        .build());
+                config.returnType.getTypeSignature(),
+                ImmutableList.<TypeSignature>builder()
+                        .add(parseTypeSignature("varchar"))
+                        .add(parseTypeSignature("varchar"))
+                        .addAll(IntStream.range(0, config.arity).boxed().map(n -> parseTypeSignature("T" + n.toString())).collect(toImmutableList()))
+                        .build(),
+                true));
         this.scriptingManager = scriptingManager;
         this.config = config;
     }

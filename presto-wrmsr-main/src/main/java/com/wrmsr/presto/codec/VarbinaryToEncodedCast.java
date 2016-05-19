@@ -15,6 +15,7 @@ package com.wrmsr.presto.codec;
 
 import com.facebook.presto.metadata.BoundVariables;
 import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.SqlOperator;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.type.Type;
@@ -25,8 +26,10 @@ import io.airlift.slice.Slice;
 import java.lang.invoke.MethodHandle;
 import java.util.Map;
 
+import static com.facebook.presto.metadata.FunctionKind.SCALAR;
 import static com.facebook.presto.metadata.OperatorType.CAST;
 import static com.facebook.presto.metadata.Signature.typeVariable;
+import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -39,7 +42,7 @@ public class VarbinaryToEncodedCast
 
     public VarbinaryToEncodedCast(TypeCodec typeCodec)
     {
-        super(CAST, ImmutableList.of(typeVariable("T")), ImmutableList.of(), typeCodec.getName() + "<T>", ImmutableList.of("varbinary"));
+        super(CAST, ImmutableList.of(typeVariable("T")), ImmutableList.of(), parseTypeSignature(typeCodec.getName() + "<T>"), ImmutableList.of(parseTypeSignature("varbinary")));
         this.typeCodec = typeCodec;
     }
 

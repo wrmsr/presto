@@ -15,6 +15,7 @@ package com.wrmsr.presto.codec;
 
 import com.facebook.presto.metadata.BoundVariables;
 import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.block.Block;
@@ -26,9 +27,10 @@ import com.wrmsr.presto.util.codec.Codec;
 import io.airlift.slice.Slice;
 
 import java.lang.invoke.MethodHandle;
-import java.util.Map;
 
+import static com.facebook.presto.metadata.FunctionKind.SCALAR;
 import static com.facebook.presto.metadata.Signature.typeVariable;
+import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -42,7 +44,7 @@ public class EncodeFunction
 
     public EncodeFunction(TypeCodec typeCodec)
     {
-        super(typeCodec.getName(), ImmutableList.of(typeVariable("T")), ImmutableList.of(), typeCodec.getName() + "<T>", ImmutableList.of("T"));
+        super(new Signature(typeCodec.getName(), SCALAR, ImmutableList.of(typeVariable("T")), ImmutableList.of(), parseTypeSignature(typeCodec.getName() + "<T>"), ImmutableList.of(parseTypeSignature("T")), false));
         this.typeCodec = typeCodec;
     }
 

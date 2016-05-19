@@ -834,7 +834,7 @@ public class TestPkThreader
         LocalExecutionPlanner.LocalExecutionPlan localExecutionPlan = executionPlanner.plan(
                 pq.session,
                 subplan.getFragment().getRoot(),
-                subplan.getFragment().getPartitionFunction().getOutputLayout(),
+                subplan.getFragment().getPartitioningScheme().getOutputLayout(),
                 plan.getTypes(),
                 //subplan.getFragment().getDistribution(),
                 outputFactory);

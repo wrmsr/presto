@@ -53,9 +53,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import static com.facebook.presto.metadata.FunctionKind.SCALAR;
 import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
 import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
+import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -68,7 +70,7 @@ public class DefineStructForQueryFunction
 {
     private static final String FUNCTION_NAME = "define_struct_for_query";
     private static final Signature SIGNATURE = new Signature(
-            FUNCTION_NAME, FunctionKind.SCALAR, ImmutableList.of(comparableTypeParameter("varchar")), ImmutableList.of(), StandardTypes.VARCHAR, ImmutableList.of(StandardTypes.VARCHAR, StandardTypes.VARCHAR), false);
+            FUNCTION_NAME, SCALAR, ImmutableList.of(comparableTypeParameter("varchar")), ImmutableList.of(), parseTypeSignature(StandardTypes.VARCHAR), ImmutableList.of(parseTypeSignature(StandardTypes.VARCHAR), parseTypeSignature(StandardTypes.VARCHAR)), false);
     private static final MethodHandle METHOD_HANDLE = methodHandle(DefineStructForQueryFunction.class, "defineStructForQuery", DefineStructForQueryFunction.class, ConnectorSession.class, Slice.class, Slice.class);
 
     private final SqlParser sqlParser;
@@ -87,7 +89,7 @@ public class DefineStructForQueryFunction
             Metadata metadata,
             AccessControl accessControl)
     {
-        super(FUNCTION_NAME, SIGNATURE.getTypeVariableConstraints(), SIGNATURE.getLongVariableConstraints(), "varchar", ImmutableList.of("varchar", "varchar"));
+        super(new Signature(FUNCTION_NAME, SCALAR, SIGNATURE.getTypeVariableConstraints(), SIGNATURE.getLongVariableConstraints(), parseTypeSignature("varchar"), ImmutableList.of(parseTypeSignature("varchar"), parseTypeSignature("varchar")), false));
         this.structManager = structManager;
         this.sqlParser = checkNotNull(sqlParser);
         this.planOptimizers = checkNotNull(planOptimizers);

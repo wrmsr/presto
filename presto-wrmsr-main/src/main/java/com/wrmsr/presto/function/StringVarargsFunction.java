@@ -31,6 +31,7 @@ import java.lang.invoke.MethodHandle;
 import java.util.List;
 import java.util.Map;
 
+import static com.facebook.presto.metadata.FunctionKind.SCALAR;
 import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
 import static com.facebook.presto.metadata.Signature.typeVariable;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
@@ -61,7 +62,7 @@ public abstract class StringVarargsFunction
             String methodName,
             List<Class<?>> fixedMethodParametersClasses)
     {
-        super(functionName, buildTypeParameters(fixedParameterTypes), ImmutableList.of(), functionReturnType, buildArgumentTypes(fixedParameterTypes), true);
+        super(new Signature(functionName, SCALAR, buildTypeParameters(fixedParameterTypes), ImmutableList.of(), parseTypeSignature(functionReturnType), buildArgumentTypes(fixedParameterTypes), true));
         this.functionName = functionName;
         this.description = description;
         this.fixedParameterTypes = fixedParameterTypes;
@@ -71,8 +72,8 @@ public abstract class StringVarargsFunction
         this.fixedMethodParametersClasses = fixedMethodParametersClasses;
 
         List<TypeVariableConstraint> typeParameters = buildTypeParameters(fixedParameterTypes);
-        List<String> argumentTypes = buildArgumentTypes(fixedParameterTypes);
-        signature = new Signature(functionName, FunctionKind.SCALAR, typeParameters, ImmutableList.of(), functionReturnType, argumentTypes, true);
+        List<TypeSignature> argumentTypes = buildArgumentTypes(fixedParameterTypes);
+        signature = new Signature(functionName, SCALAR, typeParameters, ImmutableList.of(), parseTypeSignature(functionReturnType), argumentTypes, true);
 
         List<Class<?>> parameterTypes = newArrayList();
         for (Class<?> c : fixedMethodParametersClasses) {
@@ -92,13 +93,13 @@ public abstract class StringVarargsFunction
         return typeParameters;
     }
 
-    protected static List<String> buildArgumentTypes(List<String> fixedParameterTypes)
+    protected static List<TypeSignature> buildArgumentTypes(List<String> fixedParameterTypes)
     {
-        List<String> argumentTypes = newArrayList();
+        List<TypeSignature> argumentTypes = newArrayList();
         for (String s : fixedParameterTypes) {
-            argumentTypes.add(s);
+            argumentTypes.add(parseTypeSignature(s));
         }
-        argumentTypes.add("E");
+        argumentTypes.add(parseTypeSignature("E"));
         return argumentTypes;
     }
 

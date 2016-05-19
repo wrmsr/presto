@@ -47,6 +47,18 @@ public class TestSerialization
             implements TypeManager
     {
         @Override
+        public boolean isTypeOnlyCoercion(Type actualType, Type expectedType)
+        {
+            return false;
+        }
+
+        @Override
+        public Optional<Type> coerceTypeBase(Type sourceType, String resultTypeBase)
+        {
+            return null;
+        }
+
+        @Override
         public Type getType(TypeSignature signature)
         {
             return null;
@@ -58,11 +70,6 @@ public class TestSerialization
             return null;
         }
 
-        @Override
-        public Type getParameterizedType(String baseTypeName, List<TypeSignature> typeParameters, List<String> literalParameters)
-        {
-            return null;
-        }
 //
 //        @Override
 //        public Type getType(TypeSignature signature)

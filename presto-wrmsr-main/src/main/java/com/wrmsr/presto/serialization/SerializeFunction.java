@@ -15,6 +15,7 @@ package com.wrmsr.presto.serialization;
 
 import com.facebook.presto.metadata.BoundVariables;
 import com.facebook.presto.metadata.FunctionRegistry;
+import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
 import com.facebook.presto.spi.ConnectorSession;
@@ -36,7 +37,9 @@ import javax.inject.Inject;
 import java.lang.invoke.MethodHandle;
 import java.util.Map;
 
+import static com.facebook.presto.metadata.FunctionKind.SCALAR;
 import static com.facebook.presto.metadata.Signature.typeVariable;
+import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
@@ -68,7 +71,7 @@ public class SerializeFunction
     @Inject
     public SerializeFunction(StructManager structManager)
     {
-        super(FUNCTION_NAME, ImmutableList.of(typeVariable("E")), ImmutableList.of(), StandardTypes.VARBINARY, ImmutableList.of("E"));
+        super(new Signature(FUNCTION_NAME, SCALAR, ImmutableList.of(typeVariable("E")), ImmutableList.of(), parseTypeSignature(StandardTypes.VARBINARY), ImmutableList.of(parseTypeSignature("E")), false));
         this.structManager = structManager;
     }
 
