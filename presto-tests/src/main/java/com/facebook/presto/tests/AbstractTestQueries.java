@@ -1819,8 +1819,16 @@ public abstract class AbstractTestQueries
                 "VALUES (1.0, 2.0, 1, 3)"
         );
         assertQuery(
+                "SELECT * FROM (VALUES (1, 2)) x (a, b) JOIN (VALUES (CAST (1 AS SMALLINT), CAST(3 AS SMALLINT))) y (a, b) USING(a)",
+                "VALUES (1, 2, 1, 3)"
+        );
+        assertQuery(
                 "SELECT * FROM (VALUES (1.0, 2.0)) x (a, b) JOIN (VALUES (1, 3)) y (a, b) ON x.a = y.a",
                 "VALUES (1.0, 2.0, 1, 3)"
+        );
+        assertQuery(
+                "SELECT * FROM (VALUES (1, 2)) x (a, b) JOIN (VALUES (SMALLINT '1', SMALLINT '3')) y (a, b) ON x.a = y.a",
+                "VALUES (1, 2, 1, 3)"
         );
     }
 
@@ -4392,6 +4400,13 @@ public abstract class AbstractTestQueries
         assertQuery("SELECT x AT TIME ZONE 'America/Los_Angeles' FROM (values TIMESTAMP '1970-01-01 00:01:00', TIMESTAMP '1970-01-01 08:01:00', TIMESTAMP '1969-12-31 16:01:00') t(x)",
                 "values TIMESTAMP '1969-12-31 16:01:00-08:00', TIMESTAMP '1970-01-01 00:01:00-08:00', TIMESTAMP '1969-12-31 08:01:00-08:00'");
         assertQuery("SELECT min(x) AT TIME ZONE 'America/Los_Angeles' FROM (values TIMESTAMP '1970-01-01 00:01:00+00:00', TIMESTAMP '1970-01-01 08:01:00+08:00', TIMESTAMP '1969-12-31 16:01:00-08:00') t(x)",
+                "values TIMESTAMP '1969-12-31 16:01:00-08:00'");
+
+        // with chained AT TIME ZONE
+        assertQuery("SELECT TIMESTAMP '2012-10-31 01:00' AT TIME ZONE 'America/Los_Angeles' AT TIME ZONE 'UTC'", "SELECT TIMESTAMP '2012-10-30 18:00:00.000 America/Los_Angeles'");
+        assertQuery("SELECT TIMESTAMP '2012-10-31 01:00' AT TIME ZONE 'Asia/Tokyo' AT TIME ZONE 'America/Los_Angeles'", "SELECT TIMESTAMP '2012-10-30 18:00:00.000 America/Los_Angeles'");
+        assertQuery("SELECT TIMESTAMP '2012-10-31 01:00' AT TIME ZONE 'America/Los_Angeles' AT TIME ZONE 'Asia/Shanghai'", "SELECT TIMESTAMP '2012-10-30 18:00:00.000 America/Los_Angeles'");
+        assertQuery("SELECT min(x) AT TIME ZONE 'America/Los_Angeles' AT TIME ZONE 'UTC' FROM (values TIMESTAMP '1970-01-01 00:01:00+00:00', TIMESTAMP '1970-01-01 08:01:00+08:00', TIMESTAMP '1969-12-31 16:01:00-08:00') t(x)",
                 "values TIMESTAMP '1969-12-31 16:01:00-08:00'");
     }
 
