@@ -60,7 +60,6 @@ import com.google.common.collect.Iterables;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -389,16 +388,10 @@ class QueryPlanner
         // 2.b. Add a groupIdNode and groupIdSymbol if there are multiple grouping sets
         List<List<Symbol>> groupingSetsSymbols = groupingSetsSymbolsBuilder.build();
         if (groupingSets.size() > 1) {
-            Set<Symbol> groupIdInputs = new HashSet<>();
-            distinctGroupingColumns.stream()
-                    .map(subPlan::translate)
-                    .forEach(groupIdInputs::add);
-
             ImmutableMap.Builder<Symbol, Symbol> identityMapping = ImmutableMap.builder();
-            for (Expression argument : arguments) {
+            for (Expression argument : ImmutableSet.copyOf(arguments)) {
                 Symbol output = symbolAllocator.newSymbol(argument, analysis.getTypeWithCoercions(argument), "id");
                 identityMapping.put(subPlan.translate(argument), output);
-                groupIdInputs.add(subPlan.translate(argument));
 
                 // relies on the fact that group by expressions have already been re-written, and will not be affected by this mapping change
                 subPlan.getTranslations().put(argument, output);
