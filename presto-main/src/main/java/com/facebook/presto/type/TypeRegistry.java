@@ -362,6 +362,8 @@ public final class TypeRegistry
                         return Optional.of(BIGINT);
                     case StandardTypes.DOUBLE:
                         return Optional.of(DOUBLE);
+                    case StandardTypes.DECIMAL:
+                        return Optional.of(createDecimalType(3, 0));
                     default:
                         return Optional.empty();
                 }
@@ -374,6 +376,8 @@ public final class TypeRegistry
                         return Optional.of(BIGINT);
                     case StandardTypes.DOUBLE:
                         return Optional.of(DOUBLE);
+                    case StandardTypes.DECIMAL:
+                        return Optional.of(createDecimalType(5, 0));
                     default:
                         return Optional.empty();
                 }
@@ -384,11 +388,23 @@ public final class TypeRegistry
                         return Optional.of(BIGINT);
                     case StandardTypes.DOUBLE:
                         return Optional.of(DOUBLE);
+                    case StandardTypes.DECIMAL:
+                        return Optional.of(createDecimalType(10, 0));
                     default:
                         return Optional.empty();
                 }
             }
             case StandardTypes.BIGINT: {
+                switch (resultTypeBase) {
+                    case StandardTypes.DOUBLE:
+                        return Optional.of(DOUBLE);
+                    case StandardTypes.DECIMAL:
+                        return Optional.of(createDecimalType(19, 0));
+                    default:
+                        return Optional.empty();
+                }
+            }
+            case StandardTypes.DECIMAL: {
                 switch (resultTypeBase) {
                     case StandardTypes.DOUBLE:
                         return Optional.of(DOUBLE);
