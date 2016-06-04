@@ -48,7 +48,7 @@
         <dep.antlr.version>4.5.1</dep.antlr.version>
         <dep.airlift.version>0.128</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
-        <dep.slice.version>0.19</dep.slice.version>
+        <dep.slice.version>0.21</dep.slice.version>
         <dep.aws-sdk.version>1.9.40</dep.aws-sdk.version>
         <dep.tempto.version>1.8</dep.tempto.version>
 
@@ -992,6 +992,12 @@
                             <consoleOutput>true</consoleOutput>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
                             <configLocation>${air.main.basedir}/src/checkstyle/checks.xml</configLocation>
+                            <sourceDirectories>
+                                <directory>${project.build.sourceDirectory}</directory>
+                            </sourceDirectories>
+                            <testSourceDirectories>
+                                <directory>${project.build.testSourceDirectory}</directory>
+                            </testSourceDirectories>
                         </configuration>
                     </execution>
                 </executions>
