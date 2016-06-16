@@ -17,14 +17,14 @@ import com.facebook.presto.Session;
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.spi.session.PropertyMetadata;
-import com.facebook.presto.spi.type.SqlIntervalDayTime;
-import com.facebook.presto.spi.type.SqlIntervalYearMonth;
 import com.facebook.presto.spi.type.TimeZoneKey;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.testing.MaterializedResult;
 import com.facebook.presto.testing.MaterializedRow;
 import com.facebook.presto.testing.QueryRunner;
+import com.facebook.presto.type.SqlIntervalDayTime;
+import com.facebook.presto.type.SqlIntervalYearMonth;
 import com.facebook.presto.type.TypeRegistry;
 import com.facebook.presto.util.DateTimeZoneIndex;
 import com.google.common.collect.ArrayListMultimap;
@@ -1514,6 +1514,24 @@ public abstract class AbstractTestQueries
                         "SELECT orderkey, partkey, NULL, linenumber, SUM(CAST(quantity AS BIGINT)) FROM lineitem GROUP BY orderkey, partkey, linenumber UNION ALL " +
                         "SELECT orderkey, partkey, suppkey, NULL, SUM(CAST(quantity AS BIGINT)) FROM lineitem GROUP BY orderkey, partkey, suppkey UNION ALL " +
                         "SELECT orderkey, partkey, NULL, NULL, SUM(CAST(quantity AS BIGINT)) FROM lineitem GROUP BY orderkey, partkey");
+    }
+
+    @Test
+    public void testRollupOverUnion()
+            throws Exception
+    {
+        assertQuery("" +
+                "SELECT orderstatus, sum(orderkey)\n" +
+                "FROM (SELECT orderkey, orderstatus\n" +
+                "      FROM orders\n" +
+                "      UNION ALL\n" +
+                "      SELECT orderkey, orderstatus\n" +
+                "      FROM orders) x\n" +
+                "GROUP BY ROLLUP (orderstatus)",
+                "VALUES ('P', 21470000),\n" +
+                        "('O', 439774330),\n" +
+                        "('F', 438500670),\n" +
+                        "(NULL, 899745000)");
     }
 
     @Test
