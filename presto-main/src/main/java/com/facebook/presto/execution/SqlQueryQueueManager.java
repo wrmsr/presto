@@ -53,7 +53,14 @@ public class SqlQueryQueueManager
     @Override
     public boolean submit(Statement statement, QueryExecution queryExecution, Executor executor)
     {
-        List<QueryQueue> queues = selectQueues(statement, queryExecution.getSession(), executor);
+        List<QueryQueue> queues;
+        try {
+            queues = selectQueues(queryExecution.getSession(), executor);
+        }
+        catch (PrestoException e) {
+            queryExecution.fail(e);
+            return false;
+        }
 
         for (QueryQueue queue : queues) {
             if (!queue.reserve(queryExecution)) {
@@ -68,7 +75,7 @@ public class SqlQueryQueueManager
     }
 
     // Queues returned have already been created and added queryQueues
-    private List<QueryQueue> selectQueues(Statement statement, Session session, Executor executor)
+    private List<QueryQueue> selectQueues(Session session, Executor executor)
     {
         for (QueryQueueRule rule : rules) {
             Optional<List<QueryQueueDefinition>> queues = rule.match(session.toSessionRepresentation());
