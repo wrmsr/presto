@@ -360,22 +360,6 @@ public class ServerMainModule
                 .addProperty("coordinator", String.valueOf(serverConfig.isCoordinator()))
                 .addProperty("datasources", nullToEmpty(serverConfig.getDataSources()));
 
-        // statement resource
-        jsonCodecBinder(binder).bindJsonCodec(QueryInfo.class);
-        jsonCodecBinder(binder).bindJsonCodec(TaskInfo.class);
-        jsonCodecBinder(binder).bindJsonCodec(QueryResults.class);
-        jaxrsBinder(binder).bind(StatementResource.class);
-
-        // execute resource
-        jaxrsBinder(binder).bind(ExecuteResource.class);
-        httpClientBinder(binder).bindHttpClient("execute", ForExecute.class)
-                .withTracing()
-                .withConfigDefaults(config -> {
-                    config.setIdleTimeout(new Duration(30, SECONDS));
-                    config.setRequestTimeout(new Duration(10, SECONDS));
-                });
-
-
         binder.bind(ServerEventManager.class).asEagerSingleton();
 
         // server info resource
