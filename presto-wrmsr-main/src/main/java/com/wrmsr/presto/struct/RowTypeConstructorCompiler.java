@@ -15,6 +15,7 @@ package com.wrmsr.presto.struct;
 
 import com.facebook.presto.bytecode.BytecodeBlock;
 import com.facebook.presto.bytecode.ClassDefinition;
+import com.facebook.presto.bytecode.CompilerUtils;
 import com.facebook.presto.bytecode.DynamicClassLoader;
 import com.facebook.presto.bytecode.MethodDefinition;
 import com.facebook.presto.bytecode.Parameter;
@@ -29,13 +30,12 @@ import com.facebook.presto.spi.block.BlockEncoding;
 import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
 import com.facebook.presto.spi.block.VariableWidthBlockEncoding;
 import com.facebook.presto.sql.gen.CallSiteBinder;
-import com.facebook.presto.bytecode.CompilerUtils;
 import com.facebook.presto.type.RowType;
 import com.facebook.presto.type.SqlType;
 import com.google.common.collect.ImmutableList;
+import io.airlift.slice.DynamicSliceOutput;
 import io.airlift.slice.Slice;
 import io.airlift.slice.SliceOutput;
-import io.airlift.slice.Slices;
 
 import java.util.List;
 
@@ -44,10 +44,9 @@ import static com.facebook.presto.bytecode.Access.PRIVATE;
 import static com.facebook.presto.bytecode.Access.PUBLIC;
 import static com.facebook.presto.bytecode.Access.STATIC;
 import static com.facebook.presto.bytecode.Access.a;
+import static com.facebook.presto.bytecode.CompilerUtils.defineClass;
 import static com.facebook.presto.bytecode.Parameter.arg;
 import static com.facebook.presto.bytecode.ParameterizedType.type;
-import static com.facebook.presto.bytecode.CompilerUtils.defineClass;
-import static com.google.common.base.Preconditions.checkState;
 
 public class RowTypeConstructorCompiler
 {
@@ -178,8 +177,8 @@ public class RowTypeConstructorCompiler
 
     public Class<?> run(RowType rowType, String name)
     {
-    // TODO foo_array
-    List<RowType.RowField> fieldTypes = rowType.getFields();
+        // TODO foo_array
+        List<RowType.RowField> fieldTypes = rowType.getFields();
 
         ClassDefinition definition = new ClassDefinition(
                 a(PUBLIC, FINAL),
@@ -256,13 +255,9 @@ public class RowTypeConstructorCompiler
     {
         BlockEncoding blockEncoding = new VariableWidthBlockEncoding();
 
-        int estimatedSize = blockEncoding.getEstimatedSize(block);
-        Slice outputSlice = Slices.allocate(estimatedSize);
-        SliceOutput sliceOutput = outputSlice.getOutput();
-
+        // FIXME lazy fuck
+        SliceOutput sliceOutput = new DynamicSliceOutput(32);
         blockEncoding.writeBlock(sliceOutput, block);
-        checkState(sliceOutput.size() == estimatedSize);
-
-        return outputSlice;
+        return sliceOutput.slice();
     }
 }
