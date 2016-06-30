@@ -29,7 +29,6 @@ import com.facebook.presto.type.TypeRegistry;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.inject.Injector;
 import com.wrmsr.presto.server.PreloadedPluginSet;
@@ -374,7 +373,7 @@ public class PluginManager
 
     private static List<Artifact> sortedArtifacts(List<Artifact> artifacts)
     {
-        List<Artifact> list = Lists.newArrayList(artifacts);
+        List<Artifact> list = new ArrayList<>(artifacts);
         Collections.sort(list, Ordering.natural().nullsLast().onResultOf(Artifact::getFile));
         return list;
     }
