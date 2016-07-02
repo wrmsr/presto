@@ -20,7 +20,6 @@ import com.facebook.presto.hive.metastore.CachingHiveMetastore;
 import com.facebook.presto.hive.metastore.HiveMetastore;
 import com.facebook.presto.hive.orc.OrcPageSource;
 import com.facebook.presto.hive.parquet.ParquetHiveRecordCursor;
-import com.facebook.presto.hive.rcfile.RcFilePageSource;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorInsertTableHandle;
@@ -460,6 +459,8 @@ public abstract class AbstractTestHiveClient
                 new HivePartitionManager(connectorId, TYPE_MANAGER, hiveClientConfig),
                 timeZone,
                 10,
+                true,
+                true,
                 true,
                 true,
                 HiveStorageFormat.RCBINARY,
@@ -2483,9 +2484,6 @@ public abstract class AbstractTestHiveClient
     private static Class<? extends ConnectorPageSource> pageSourceType(HiveStorageFormat hiveStorageFormat)
     {
         switch (hiveStorageFormat) {
-            case RCTEXT:
-            case RCBINARY:
-                return RcFilePageSource.class;
             case ORC:
             case DWRF:
                 return OrcPageSource.class;
