@@ -15,14 +15,13 @@ package com.wrmsr.presto.reactor;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.execution.QueryId;
-import com.facebook.presto.index.IndexManager;
 import com.facebook.presto.metadata.InMemoryNodeManager;
 import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
+import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
-import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.transaction.IsolationLevel;
 import com.facebook.presto.sql.analyzer.Analysis;
@@ -44,11 +43,10 @@ import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
-import com.wrmsr.presto.connectorSupport.ExtendedJdbcConnectorSupport;
-import com.wrmsr.presto.tpch.TpchConnectorSupport;
-import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnector;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnectorFactory;
+import com.wrmsr.presto.connectorSupport.ExtendedJdbcConnectorSupport;
 import com.wrmsr.presto.spi.connectorSupport.ConnectorSupport;
+import com.wrmsr.presto.tpch.TpchConnectorSupport;
 import org.intellij.lang.annotations.Language;
 
 import java.io.File;
@@ -187,7 +185,8 @@ public class TestHelper
                     session,
                     planOptimizers,
                     idAllocator,
-                    lqr.getMetadata()
+                    lqr.getMetadata(),
+                    sqlParser
             );
 
             plan = planner.plan(analysis);
@@ -195,13 +194,14 @@ public class TestHelper
             connectors = lqr.getConnectorManager().getConnectors();
 
             connectorSupport = ImmutableMap.<String, ConnectorSupport>builder()
-                   .put("tpch", new TpchConnectorSupport(session.toConnectorSession(), connectors.get("tpch"))) // , connectors.get("tpch"), "tiny"))
-                   .put("test", new ExtendedJdbcConnectorSupport(session.toConnectorSession(), connectors.get("test"), ((LegacyTransactionConnector) connectors.get("test")).getConnector()))
-                   .build();
+                    .put("tpch", new TpchConnectorSupport(session.toConnectorSession(), connectors.get("tpch"))) // , connectors.get("tpch"), "tiny"))
+                    .put("test", new ExtendedJdbcConnectorSupport(session.toConnectorSession(), connectors.get("test"), ((LegacyTransactionConnector) connectors.get("test")).getConnector()))
+                    .build();
         }
     }
 
-    public PlannedQuery plan(@Language("SQL") String sql) throws Throwable
+    public PlannedQuery plan(@Language("SQL") String sql)
+            throws Throwable
     {
         return new PlannedQuery(sql);
     }

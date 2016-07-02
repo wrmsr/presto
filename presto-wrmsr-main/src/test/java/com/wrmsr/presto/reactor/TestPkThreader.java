@@ -65,17 +65,16 @@ import com.facebook.presto.metadata.TableLayoutHandle;
 import com.facebook.presto.operator.Driver;
 import com.facebook.presto.operator.DriverContext;
 import com.facebook.presto.operator.DriverFactory;
-import com.facebook.presto.operator.OutputFactory;
 import com.facebook.presto.operator.TaskContext;
 import com.facebook.presto.operator.index.IndexJoinLookupStats;
 import com.facebook.presto.plugin.jdbc.BaseJdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.spi.ColumnMetadata;
-import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.predicate.TupleDomain;
 import com.facebook.presto.spi.transaction.IsolationLevel;
@@ -107,7 +106,7 @@ import com.facebook.presto.sql.planner.plan.TableScanNode;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.QualifiedName;
-import com.facebook.presto.sql.tree.QualifiedNameReference;
+import com.facebook.presto.sql.tree.SymbolReference;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.MaterializedResult;
 import com.facebook.presto.testing.MaterializedRow;
@@ -342,13 +341,13 @@ public class TestPkThreader
         {
             NodeInfo newSource = context.addChild(node.getSource());
 
-            Set<QualifiedNameReference> pkQnrs = newSource.pkSyms().stream().map(Symbol::toQualifiedNameReference).collect(toImmutableSet());
+            Set<SymbolReference> pkQnrs = newSource.pkSyms().stream().map(Symbol::toSymbolReference).collect(toImmutableSet());
             Set<Symbol> identityAssignments = node.getAssignments().entrySet().stream().filter(e -> pkQnrs.contains(e.getValue())).map(Map.Entry::getKey).collect(toImmutableSet());
 
             Map<Symbol, Expression> newAssignments = newHashMap(node.getAssignments());
             for (Symbol pkSym : newSource.pkSyms()) {
                 if (!identityAssignments.contains(pkSym)) {
-                    newAssignments.put(pkSym, pkSym.toQualifiedNameReference());
+                    newAssignments.put(pkSym, pkSym.toSymbolReference());
                 }
             }
 
@@ -405,6 +404,7 @@ public class TestPkThreader
                     newLeft.node,
                     newRight.node,
                     node.getCriteria(),
+                    node.getFilter(),
                     node.getLeftHashSymbol(),
                     node.getRightHashSymbol());
 
@@ -439,10 +439,10 @@ public class TestPkThreader
                         idAllocator.getNextId(),
                         newNode,
                         ImmutableMap.<Symbol, Expression>builder()
-                                .putAll(newNode.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, s.toQualifiedNameReference())).collect(toImmutableMap()))
+                                .putAll(newNode.getOutputSymbols().stream().map(s -> ImmutablePair.of(s, s.toSymbolReference())).collect(toImmutableMap()))
                                 .put(rightPkSym, new FunctionCall(
                                         QualifiedName.of("right_pk"),
-                                        newRight.pkSyms().stream().map(Symbol::toQualifiedNameReference).collect(toImmutableList())))
+                                        newRight.pkSyms().stream().map(Symbol::toSymbolReference).collect(toImmutableList())))
                                 .build());
 
                 PlanNode leftIndexAgg = new AggregationNode(
@@ -453,8 +453,8 @@ public class TestPkThreader
                                 .put(
                                         rightPkArraySym,
                                         new FunctionCall(
-                                                rightPkArraySym.toQualifiedName(),
-                                                ImmutableList.of(rightPkSym.toQualifiedNameReference())))
+                                                QualifiedName.of(""), // FIXME lol
+                                                ImmutableList.of(rightPkSym.toSymbolReference())))
                                 .build(),
                         ImmutableMap.<Symbol, Signature>builder()
                                 .put(
@@ -640,7 +640,7 @@ public class TestPkThreader
                     new ProjectNode(
                             idAllocator.getNextId(),
                             newSource.node,
-                            gkPkSyms.stream().map(s -> ImmutablePair.of(s, (Expression) s.toQualifiedNameReference())).collect(toImmutableMap())),
+                            gkPkSyms.stream().map(s -> ImmutablePair.of(s, (Expression) s.toSymbolReference())).collect(toImmutableMap())),
                     gkPkSyms.stream().map(Symbol::getName).collect(toImmutableList()),
                     gkPkSyms);
             indexQueryRoot = optimize(indexQueryRoot);
