@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.operator.scalar;
+package com.facebook.presto.operator.scalar.annotations;
 
 import com.facebook.presto.metadata.BoundVariables;
 import com.facebook.presto.metadata.FunctionRegistry;
@@ -19,9 +19,7 @@ import com.facebook.presto.metadata.LongVariableConstraint;
 import com.facebook.presto.metadata.OperatorType;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.SignatureBinder;
-import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.metadata.TypeVariableConstraint;
-import com.facebook.presto.operator.Description;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.type.Type;
@@ -43,7 +41,6 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,7 +52,6 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static com.facebook.presto.metadata.FunctionKind.SCALAR;
-import static com.facebook.presto.metadata.FunctionRegistry.mangleOperatorName;
 import static com.facebook.presto.metadata.OperatorType.BETWEEN;
 import static com.facebook.presto.metadata.OperatorType.CAST;
 import static com.facebook.presto.metadata.OperatorType.EQUAL;
@@ -69,11 +65,8 @@ import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
 import static com.facebook.presto.metadata.Signature.internalOperator;
 import static com.facebook.presto.metadata.Signature.orderableTypeParameter;
 import static com.facebook.presto.metadata.Signature.typeVariable;
-import static com.facebook.presto.spi.StandardErrorCode.AMBIGUOUS_FUNCTION_IMPLEMENTATION;
 import static com.facebook.presto.spi.StandardErrorCode.FUNCTION_IMPLEMENTATION_ERROR;
-import static com.facebook.presto.spi.StandardErrorCode.FUNCTION_IMPLEMENTATION_MISSING;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
-import static com.facebook.presto.util.Failures.checkCondition;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableSet;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -84,189 +77,190 @@ import static java.lang.reflect.Modifier.isStatic;
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 
-public class ReflectionParametricScalar
-        extends SqlScalarFunction
+public class ScalarImplementation
 {
-    private static final Set<OperatorType> COMPARABLE_TYPE_OPERATORS = ImmutableSet.of(EQUAL, NOT_EQUAL, HASH_CODE);
-    private static final Set<OperatorType> ORDERABLE_TYPE_OPERATORS = ImmutableSet.of(LESS_THAN, LESS_THAN_OR_EQUAL, GREATER_THAN, GREATER_THAN_OR_EQUAL, BETWEEN);
+    private final Signature signature;
+    private final boolean nullable;
+    private final List<Boolean> nullableArguments;
+    private final MethodHandle methodHandle;
+    private final List<ImplementationDependency> dependencies;
+    private final Optional<MethodHandle> constructor;
+    private final List<ImplementationDependency> constructorDependencies;
+    private final List<Class<?>> argumentNativeContainerTypes;
+    private final Map<String, Class<?>> specializedTypeParameters;
 
-    // These three collections implement something similar to partial template specialization from C++, and allow more optimized implementations to be provided for specific types
-
-    // These are implementations for concrete types (they have no unbound type parameters), and have the highest priority when picking an implementation
-    private final Map<Signature, Implementation> exactImplementations;
-    // These are implementations for when a type parameter binds to a specific native container type
-    private final List<Implementation> specializedImplementations;
-    // These are generic implementations
-    private final List<Implementation> implementations;
-    private final String description;
-    private final boolean hidden;
-    private final boolean deterministic;
-
-    private ReflectionParametricScalar(
+    public ScalarImplementation(
             Signature signature,
-            String description,
-            boolean hidden,
-            Map<Signature, Implementation> exactImplementations,
-            List<Implementation> specializedImplementations,
-            List<Implementation> implementations,
-            boolean deterministic)
+            boolean nullable,
+            List<Boolean> nullableArguments,
+            MethodHandle methodHandle,
+            List<ImplementationDependency> dependencies,
+            Optional<MethodHandle> constructor,
+            List<ImplementationDependency> constructorDependencies,
+            List<Class<?>> argumentNativeContainerTypes,
+            Map<String, Class<?>> specializedTypeParameters)
     {
-        super(signature);
-        this.description = description;
-        this.hidden = hidden;
-        this.exactImplementations = ImmutableMap.copyOf(requireNonNull(exactImplementations, "exactImplementations is null"));
-        this.specializedImplementations = ImmutableList.copyOf(requireNonNull(specializedImplementations, "specializedImplementations is null"));
-        this.implementations = ImmutableList.copyOf(requireNonNull(implementations, "implementations is null"));
-        this.deterministic = deterministic;
+        this.signature = requireNonNull(signature, "signature is null");
+        this.nullable = nullable;
+        this.nullableArguments = ImmutableList.copyOf(requireNonNull(nullableArguments, "nullableArguments is null"));
+        this.methodHandle = requireNonNull(methodHandle, "methodHandle is null");
+        this.dependencies = ImmutableList.copyOf(requireNonNull(dependencies, "dependencies is null"));
+        this.constructor = requireNonNull(constructor, "constructor is null");
+        this.constructorDependencies = ImmutableList.copyOf(requireNonNull(constructorDependencies, "constructorDependencies is null"));
+        this.argumentNativeContainerTypes = ImmutableList.copyOf(requireNonNull(argumentNativeContainerTypes, "argumentNativeContainerTypes is null"));
+        this.specializedTypeParameters = ImmutableMap.copyOf(requireNonNull(specializedTypeParameters, "specializedTypeParameters is null"));
     }
 
-    @Override
-    public boolean isHidden()
+    public Optional<MethodHandleAndConstructor> specialize(Signature boundSignature, BoundVariables boundVariables, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
-        return hidden;
+        for (Map.Entry<String, Class<?>> entry : specializedTypeParameters.entrySet()) {
+            if (!entry.getValue().isAssignableFrom(boundVariables.getTypeVariable(entry.getKey()).getJavaType())) {
+                return Optional.empty();
+            }
+        }
+        Class<?> returnContainerType = getNullAwareContainerType(typeManager.getType(boundSignature.getReturnType()).getJavaType(), nullable);
+        if (!returnContainerType.equals(methodHandle.type().returnType())) {
+            return Optional.empty();
+        }
+        for (int i = 0; i < boundSignature.getArgumentTypes().size(); i++) {
+            Class<?> argumentContainerType = getNullAwareContainerType(typeManager.getType(boundSignature.getArgumentTypes().get(i)).getJavaType(), nullableArguments.get(i));
+            if (!argumentNativeContainerTypes.get(i).isAssignableFrom(argumentContainerType)) {
+                return Optional.empty();
+            }
+        }
+        MethodHandle methodHandle = this.methodHandle;
+        for (ImplementationDependency dependency : dependencies) {
+            methodHandle = methodHandle.bindTo(dependency.resolve(boundVariables.getTypeVariables(), typeManager, functionRegistry));
+        }
+        MethodHandle constructor = null;
+        if (this.constructor.isPresent()) {
+            constructor = this.constructor.get();
+            for (ImplementationDependency dependency : constructorDependencies) {
+                constructor = constructor.bindTo(dependency.resolve(boundVariables.getTypeVariables(), typeManager, functionRegistry));
+            }
+        }
+        return Optional.of(new MethodHandleAndConstructor(methodHandle, Optional.ofNullable(constructor)));
     }
 
-    @Override
-    public boolean isDeterministic()
+    private static Class<?> getNullAwareContainerType(Class<?> clazz, boolean nullable)
     {
-        return deterministic;
+        if (nullable) {
+            return Primitives.wrap(clazz);
+        }
+        return clazz;
     }
 
-    @Override
-    public String getDescription()
+    public boolean hasSpecializedTypeParameters()
     {
-        return description;
+        return !specializedTypeParameters.isEmpty();
     }
 
-    @Override
-    public ScalarFunctionImplementation specialize(BoundVariables boundVariables, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    public Signature getSignature()
     {
-        Signature boundSignature = SignatureBinder.bindVariables(getSignature(), boundVariables, arity);
-        if (exactImplementations.containsKey(boundSignature)) {
-            Implementation implementation = exactImplementations.get(boundSignature);
-            return new ScalarFunctionImplementation(implementation.isNullable(), implementation.getNullableArguments(), implementation.getMethodHandle(), isDeterministic());
-        }
-
-        ScalarFunctionImplementation selectedImplementation = null;
-        for (Implementation implementation : specializedImplementations) {
-            MethodHandleAndConstructor methodHandle = implementation.specialize(boundSignature, boundVariables, typeManager, functionRegistry);
-            if (methodHandle != null) {
-                checkCondition(selectedImplementation == null, AMBIGUOUS_FUNCTION_IMPLEMENTATION, "Ambiguous implementation for %s with bindings %s", getSignature(), boundVariables.getTypeVariables());
-                selectedImplementation = new ScalarFunctionImplementation(implementation.isNullable(), implementation.getNullableArguments(), methodHandle.getMethodHandle(), methodHandle.getConstructor(), isDeterministic());
-            }
-        }
-        if (selectedImplementation != null) {
-            return selectedImplementation;
-        }
-
-        for (Implementation implementation : implementations) {
-            MethodHandleAndConstructor methodHandle = implementation.specialize(boundSignature, boundVariables, typeManager, functionRegistry);
-            if (methodHandle != null) {
-                checkCondition(selectedImplementation == null, AMBIGUOUS_FUNCTION_IMPLEMENTATION, "Ambiguous implementation for %s with bindings %s", getSignature(), boundVariables.getTypeVariables());
-                selectedImplementation = new ScalarFunctionImplementation(implementation.isNullable(), implementation.getNullableArguments(), methodHandle.getMethodHandle(), methodHandle.getConstructor(), isDeterministic());
-            }
-        }
-        if (selectedImplementation != null) {
-            return selectedImplementation;
-        }
-
-        throw new PrestoException(FUNCTION_IMPLEMENTATION_MISSING, format("Unsupported type parameters (%s) for %s", boundVariables, getSignature()));
+        return signature;
     }
 
-    public static SqlScalarFunction parseDefinition(Class<?> clazz)
+    public boolean isNullable()
     {
-        ScalarFunction scalarAnnotation = clazz.getAnnotation(ScalarFunction.class);
-        ScalarOperator operatorAnnotation = clazz.getAnnotation(ScalarOperator.class);
-        Description descriptionAnnotation = clazz.getAnnotation(Description.class);
-        checkArgument(scalarAnnotation != null || operatorAnnotation != null, "Missing parametric annotation");
-        checkArgument(scalarAnnotation == null || operatorAnnotation == null, "%s annotated as both an operator and a function", clazz.getSimpleName());
-        if (scalarAnnotation != null) {
-            requireNonNull(descriptionAnnotation, format("%s missing @Description annotation", clazz.getSimpleName()));
-        }
-        String name;
-        String description = descriptionAnnotation == null ? "" : descriptionAnnotation.value();
-        boolean hidden;
-        boolean deterministic;
-
-        if (scalarAnnotation != null) {
-            name = scalarAnnotation.value();
-            hidden = scalarAnnotation.hidden();
-            deterministic = scalarAnnotation.deterministic();
-        }
-        else {
-            name = mangleOperatorName(operatorAnnotation.value());
-            hidden = true;
-            deterministic = true;
-        }
-
-        ImmutableMap.Builder<Signature, Implementation> exactImplementations = ImmutableMap.builder();
-        ImmutableList.Builder<Implementation> specializedImplementations = ImmutableList.builder();
-        ImmutableList.Builder<Implementation> implementations = ImmutableList.builder();
-        Signature signature = null;
-
-        Map<Set<TypeParameter>, Constructor<?>> constructors = findConstructors(clazz);
-
-        for (Method method : findPublicMethodsWithAnnotation(clazz, SqlType.class)) {
-            Implementation implementation = new ImplementationParser(name, method, constructors).get();
-            if (implementation.getSignature().getTypeVariableConstraints().isEmpty()
-                    && implementation.getSignature().getArgumentTypes().stream().noneMatch(TypeSignature::isCalculated)) {
-                exactImplementations.put(implementation.getSignature(), implementation);
-                continue;
-            }
-            if (signature == null) {
-                signature = implementation.getSignature();
-            }
-            else {
-                checkArgument(implementation.getSignature().equals(signature), "Implementations with type parameters must all have matching signatures. %s does not match %s", implementation.getSignature(), signature);
-            }
-            if (implementation.hasSpecializedTypeParameters()) {
-                specializedImplementations.add(implementation);
-            }
-            else {
-                implementations.add(implementation);
-            }
-        }
-
-        requireNonNull(signature, format("No implementations found for %s", name));
-
-        return new ReflectionParametricScalar(
-                signature,
-                description,
-                hidden,
-                exactImplementations.build(),
-                specializedImplementations.build(),
-                implementations.build(),
-                deterministic);
+        return nullable;
     }
 
-    private static List<Method> findPublicMethodsWithAnnotation(Class<?> clazz, Class<?> annotationClass)
+    public List<Boolean> getNullableArguments()
     {
-        ImmutableList.Builder<Method> methods = ImmutableList.builder();
-        for (Method method : clazz.getMethods()) {
-            for (Annotation annotation : method.getAnnotations()) {
-                if (annotationClass.isInstance(annotation)) {
-                    checkArgument(Modifier.isPublic(method.getModifiers()), "%s annotated with %s must be public", method.getName(), annotationClass.getSimpleName());
-                    methods.add(method);
-                }
-            }
-        }
-        return methods.build();
+        return nullableArguments;
     }
 
-    private static Map<Set<TypeParameter>, Constructor<?>> findConstructors(Class<?> clazz)
+    public MethodHandle getMethodHandle()
     {
-        ImmutableMap.Builder<Set<TypeParameter>, Constructor<?>> builder = ImmutableMap.builder();
-        for (Constructor<?> constructor : clazz.getConstructors()) {
-            Set<TypeParameter> typeParameters = new HashSet<>();
-            Stream.of(constructor.getAnnotationsByType(TypeParameter.class))
-                    .forEach(typeParameters::add);
-            builder.put(typeParameters, constructor);
-        }
-        return builder.build();
+        return methodHandle;
     }
 
-    private static final class ImplementationParser
+    public List<ImplementationDependency> getDependencies()
     {
+        return dependencies;
+    }
+
+    public static final class MethodHandleAndConstructor
+    {
+        private final MethodHandle methodHandle;
+        private final Optional<MethodHandle> constructor;
+
+        public MethodHandleAndConstructor(MethodHandle methodHandle, Optional<MethodHandle> constructor)
+        {
+            this.methodHandle = requireNonNull(methodHandle, "methodHandle is null");
+            this.constructor = requireNonNull(constructor, "constructor is null");
+        }
+
+        public MethodHandle getMethodHandle()
+        {
+            return methodHandle;
+        }
+
+        public Optional<MethodHandle> getConstructor()
+        {
+            return constructor;
+        }
+    }
+
+    private interface ImplementationDependency
+    {
+        Object resolve(Map<String, Type> types, TypeManager typeManager, FunctionRegistry functionRegistry);
+    }
+
+    private static final class OperatorImplementationDependency
+            implements ImplementationDependency
+    {
+        private final OperatorType operator;
+        private final Signature signature;
+
+        private OperatorImplementationDependency(OperatorType operator, TypeSignature returnType, List<TypeSignature> argumentTypes)
+        {
+            this.operator = requireNonNull(operator, "operator is null");
+            requireNonNull(returnType, "returnType is null");
+            requireNonNull(argumentTypes, "argumentTypes is null");
+            this.signature = internalOperator(operator, returnType, argumentTypes);
+        }
+
+        public OperatorType getOperator()
+        {
+            return operator;
+        }
+
+        public Signature getSignature()
+        {
+            return signature;
+        }
+
+        @Override
+        public MethodHandle resolve(Map<String, Type> types, TypeManager typeManager, FunctionRegistry functionRegistry)
+        {
+            Signature signature = SignatureBinder.bindVariables(this.signature, new BoundVariables(types, ImmutableMap.of()), this.signature.getArgumentTypes().size());
+            return functionRegistry.getScalarFunctionImplementation(signature).getMethodHandle();
+        }
+    }
+
+    private static final class TypeImplementationDependency
+            implements ImplementationDependency
+    {
+        private final TypeSignature signature;
+
+        private TypeImplementationDependency(String signature)
+        {
+            this.signature = parseTypeSignature(requireNonNull(signature, "signature is null"));
+        }
+
+        @Override
+        public Type resolve(Map<String, Type> types, TypeManager typeManager, FunctionRegistry functionRegistry)
+        {
+            return typeManager.getType(SignatureBinder.bindVariables(signature, new BoundVariables(types, ImmutableMap.of())));
+        }
+    }
+
+    public static final class Parser
+    {
+        private static final Set<OperatorType> COMPARABLE_TYPE_OPERATORS = ImmutableSet.of(EQUAL, NOT_EQUAL, HASH_CODE);
+        private static final Set<OperatorType> ORDERABLE_TYPE_OPERATORS = ImmutableSet.of(LESS_THAN, LESS_THAN_OR_EQUAL, GREATER_THAN, GREATER_THAN_OR_EQUAL, BETWEEN);
+
         private final String functionName;
         private final boolean nullable;
         private final List<Boolean> nullableArguments = new ArrayList<>();
@@ -282,7 +276,7 @@ public class ReflectionParametricScalar
         private final List<ImplementationDependency> constructorDependencies = new ArrayList<>();
         private final List<LongVariableConstraint> longVariableConstraints = new ArrayList<>();
 
-        public ImplementationParser(String functionName, Method method, Map<Set<TypeParameter>, Constructor<?>> constructors)
+        private Parser(String functionName, Method method, Map<Set<TypeParameter>, Constructor<?>> constructors)
         {
             this.functionName = requireNonNull(functionName, "functionName is null");
             this.nullable = method.getAnnotation(Nullable.class) != null;
@@ -504,7 +498,7 @@ public class ReflectionParametricScalar
             return false;
         }
 
-        public Implementation get()
+        public ScalarImplementation get()
         {
             Signature signature = new Signature(
                     functionName,
@@ -514,7 +508,7 @@ public class ReflectionParametricScalar
                     returnType,
                     argumentTypes,
                     false);
-            return new Implementation(
+            return new ScalarImplementation(
                     signature,
                     nullable,
                     nullableArguments,
@@ -525,186 +519,10 @@ public class ReflectionParametricScalar
                     argumentNativeContainerTypes,
                     specializedTypeParameters);
         }
-    }
 
-    private static final class Implementation
-    {
-        private final Signature signature;
-        private final boolean nullable;
-        private final List<Boolean> nullableArguments;
-        private final MethodHandle methodHandle;
-        private final List<ImplementationDependency> dependencies;
-        private final Optional<MethodHandle> constructor;
-        private final List<ImplementationDependency> constructorDependencies;
-        private final List<Class<?>> argumentNativeContainerTypes;
-        private final Map<String, Class<?>> specializedTypeParameters;
-
-        private Implementation(
-                Signature signature,
-                boolean nullable,
-                List<Boolean> nullableArguments,
-                MethodHandle methodHandle,
-                List<ImplementationDependency> dependencies,
-                Optional<MethodHandle> constructor,
-                List<ImplementationDependency> constructorDependencies,
-                List<Class<?>> argumentNativeContainerTypes,
-                Map<String, Class<?>> specializedTypeParameters)
+        public static ScalarImplementation parseImplementation(String functionName, Method method, Map<Set<TypeParameter>, Constructor<?>> constructors)
         {
-            this.signature = requireNonNull(signature, "signature is null");
-            this.nullable = nullable;
-            this.nullableArguments = ImmutableList.copyOf(requireNonNull(nullableArguments, "nullableArguments is null"));
-            this.methodHandle = requireNonNull(methodHandle, "methodHandle is null");
-            this.dependencies = ImmutableList.copyOf(requireNonNull(dependencies, "dependencies is null"));
-            this.constructor = requireNonNull(constructor, "constructor is null");
-            this.constructorDependencies = ImmutableList.copyOf(requireNonNull(constructorDependencies, "constructorDependencies is null"));
-            this.argumentNativeContainerTypes = ImmutableList.copyOf(requireNonNull(argumentNativeContainerTypes, "argumentNativeContainerTypes is null"));
-            this.specializedTypeParameters = ImmutableMap.copyOf(requireNonNull(specializedTypeParameters, "specializedTypeParameters is null"));
-        }
-
-        public MethodHandleAndConstructor specialize(Signature boundSignature, BoundVariables boundVariables, TypeManager typeManager, FunctionRegistry functionRegistry)
-        {
-            for (Map.Entry<String, Class<?>> entry : specializedTypeParameters.entrySet()) {
-                if (!entry.getValue().isAssignableFrom(boundVariables.getTypeVariable(entry.getKey()).getJavaType())) {
-                    return null;
-                }
-            }
-            Class<?> returnContainerType = getNullAwareContainerType(typeManager.getType(boundSignature.getReturnType()).getJavaType(), nullable);
-            if (!returnContainerType.equals(methodHandle.type().returnType())) {
-                return null;
-            }
-            for (int i = 0; i < boundSignature.getArgumentTypes().size(); i++) {
-                Class<?> argumentContainerType = getNullAwareContainerType(typeManager.getType(boundSignature.getArgumentTypes().get(i)).getJavaType(), nullableArguments.get(i));
-                if (!argumentNativeContainerTypes.get(i).isAssignableFrom(argumentContainerType)) {
-                    return null;
-                }
-            }
-            MethodHandle methodHandle = this.methodHandle;
-            for (ImplementationDependency dependency : dependencies) {
-                methodHandle = methodHandle.bindTo(dependency.resolve(boundVariables.getTypeVariables(), typeManager, functionRegistry));
-            }
-            MethodHandle constructor = null;
-            if (this.constructor.isPresent()) {
-                constructor = this.constructor.get();
-                for (ImplementationDependency dependency : constructorDependencies) {
-                    constructor = constructor.bindTo(dependency.resolve(boundVariables.getTypeVariables(), typeManager, functionRegistry));
-                }
-            }
-            return new MethodHandleAndConstructor(methodHandle, Optional.ofNullable(constructor));
-        }
-
-        private static Class<?> getNullAwareContainerType(Class<?> clazz, boolean nullable)
-        {
-            if (nullable) {
-                return Primitives.wrap(clazz);
-            }
-            checkArgument(clazz != void.class);
-            return clazz;
-        }
-
-        public boolean hasSpecializedTypeParameters()
-        {
-            return !specializedTypeParameters.isEmpty();
-        }
-
-        public Signature getSignature()
-        {
-            return signature;
-        }
-
-        public boolean isNullable()
-        {
-            return nullable;
-        }
-
-        public List<Boolean> getNullableArguments()
-        {
-            return nullableArguments;
-        }
-
-        public MethodHandle getMethodHandle()
-        {
-            return methodHandle;
-        }
-
-        public List<ImplementationDependency> getDependencies()
-        {
-            return dependencies;
-        }
-    }
-
-    private static final class MethodHandleAndConstructor
-    {
-        private final MethodHandle methodHandle;
-        private final Optional<MethodHandle> constructor;
-
-        public MethodHandleAndConstructor(MethodHandle methodHandle, Optional<MethodHandle> constructor)
-        {
-            this.methodHandle = requireNonNull(methodHandle, "methodHandle is null");
-            this.constructor = requireNonNull(constructor, "constructor is null");
-        }
-
-        public MethodHandle getMethodHandle()
-        {
-            return methodHandle;
-        }
-
-        public Optional<MethodHandle> getConstructor()
-        {
-            return constructor;
-        }
-    }
-
-    private interface ImplementationDependency
-    {
-        Object resolve(Map<String, Type> types, TypeManager typeManager, FunctionRegistry functionRegistry);
-    }
-
-    private static final class OperatorImplementationDependency
-            implements ImplementationDependency
-    {
-        private final OperatorType operator;
-        private final Signature signature;
-
-        private OperatorImplementationDependency(OperatorType operator, TypeSignature returnType, List<TypeSignature> argumentTypes)
-        {
-            this.operator = requireNonNull(operator, "operator is null");
-            requireNonNull(returnType, "returnType is null");
-            requireNonNull(argumentTypes, "argumentTypes is null");
-            this.signature = internalOperator(operator, returnType, argumentTypes);
-        }
-
-        public OperatorType getOperator()
-        {
-            return operator;
-        }
-
-        public Signature getSignature()
-        {
-            return signature;
-        }
-
-        @Override
-        public MethodHandle resolve(Map<String, Type> types, TypeManager typeManager, FunctionRegistry functionRegistry)
-        {
-            Signature signature = SignatureBinder.bindVariables(this.signature, new BoundVariables(types, ImmutableMap.of()), this.signature.getArgumentTypes().size());
-            return functionRegistry.getScalarFunctionImplementation(signature).getMethodHandle();
-        }
-    }
-
-    private static final class TypeImplementationDependency
-            implements ImplementationDependency
-    {
-        private final TypeSignature signature;
-
-        private TypeImplementationDependency(String signature)
-        {
-            this.signature = parseTypeSignature(requireNonNull(signature, "signature is null"));
-        }
-
-        @Override
-        public Type resolve(Map<String, Type> types, TypeManager typeManager, FunctionRegistry functionRegistry)
-        {
-            return typeManager.getType(SignatureBinder.bindVariables(signature, new BoundVariables(types, ImmutableMap.of())));
+            return new Parser(functionName, method, constructors).get();
         }
     }
 }

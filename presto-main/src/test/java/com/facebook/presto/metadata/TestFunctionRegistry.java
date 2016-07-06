@@ -15,8 +15,8 @@ package com.facebook.presto.metadata;
 
 import com.facebook.presto.block.BlockEncodingManager;
 import com.facebook.presto.operator.scalar.CustomFunctions;
-import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
+import com.facebook.presto.operator.scalar.annotations.ScalarFunction;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.TypeManager;
@@ -107,8 +107,8 @@ public class TestFunctionRegistry
     @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "\\QFunction already registered: custom_add(bigint,bigint):bigint\\E")
     public void testDuplicateFunctions()
     {
-        List<SqlFunction> functions = new FunctionListBuilder(new TypeRegistry())
-                .scalar(CustomFunctions.class)
+        List<SqlFunction> functions = new FunctionListBuilder()
+                .scalars(CustomFunctions.class)
                 .getFunctions()
                 .stream()
                 .filter(input -> input.getSignature().getName().equals("custom_add"))
@@ -124,8 +124,8 @@ public class TestFunctionRegistry
     public void testConflictingScalarAggregation()
             throws Exception
     {
-        List<SqlFunction> functions = new FunctionListBuilder(new TypeRegistry())
-                .scalar(ScalarSum.class)
+        List<SqlFunction> functions = new FunctionListBuilder()
+                .scalars(ScalarSum.class)
                 .getFunctions();
 
         TypeRegistry typeManager = new TypeRegistry();

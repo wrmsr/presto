@@ -11,22 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.jdbc;
+package com.facebook.presto.spi;
 
-import org.eclipse.jetty.util.log.JavaUtilLog;
-import org.eclipse.jetty.util.log.Log;
-
-// TODO: fix this in Airlift
-final class JettyLogging
+public enum ErrorType
 {
-    private JettyLogging() {}
-
-    /**
-     * Force Jetty to use java.util.logging instead of SLF4J
-     */
-    public static void useJavaUtilLogging()
-    {
-        Log.__logClass = JavaUtilLog.class.getName();
-        Log.initialized();
-    }
+    USER_ERROR,
+    INTERNAL_ERROR,
+    INSUFFICIENT_RESOURCES,
+    EXTERNAL
 }

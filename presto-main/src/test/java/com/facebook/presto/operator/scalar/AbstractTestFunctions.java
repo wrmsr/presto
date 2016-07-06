@@ -138,8 +138,8 @@ public abstract class AbstractTestFunctions
     protected void registerScalar(Class<?> clazz)
     {
         Metadata metadata = functionAssertions.getMetadata();
-        List<SqlFunction> functions = new FunctionListBuilder(metadata.getTypeManager())
-                .scalar(clazz)
+        List<SqlFunction> functions = new FunctionListBuilder()
+                .scalars(clazz)
                 .getFunctions();
         metadata.getFunctionRegistry().addFunctions(functions);
     }
