@@ -22,6 +22,7 @@ done
        -Dmdep.analyze.skip=true \
        -DignoreNonCompile=true \
        -Dlicense.skip=true \
+       -Dair.check.fail-checkstyle=true \
        -Dair.check.skip-extended=true \
        -Dair.check.skip-all=true \
        -Dair.check.skip-checkstyle=true \
@@ -34,6 +35,7 @@ done
        -Dmdep.analyze.skip=true \
        -DignoreNonCompile=true \
        -Dlicense.skip=true \
+       -Dair.check.fail-checkstyle=true \
        -Dair.check.skip-all=true \
        -Dair.check.skip-checkstyle=true \
        -Dair.check.skip-license=true
