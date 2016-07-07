@@ -25,8 +25,8 @@ import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.metadata.SqlScalarFunction;
 import com.facebook.presto.metadata.TypeVariableConstraint;
-import com.facebook.presto.operator.scalar.ScalarFunction;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
+import com.facebook.presto.operator.scalar.annotations.ScalarFunction;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
@@ -199,7 +199,6 @@ public class ScriptFunction
                 a(PUBLIC, FINAL),
                 makeClassName(name),
                 type(Object.class));
-
         definition.declareDefaultConstructor(a(PRIVATE));
 
         // unfucking believable. FUCK OFF PARAMETERIZEDTYPE

@@ -51,7 +51,7 @@ public interface FunctionRegistration
             @Override
             public List<SqlFunction> getFunctions(TypeManager typeManager)
             {
-                FunctionListBuilder builder = new FunctionListBuilder(typeManager);
+                FunctionListBuilder builder = new FunctionListBuilder();
                 fn.accept(builder);
                 return builder.getFunctions();
             }

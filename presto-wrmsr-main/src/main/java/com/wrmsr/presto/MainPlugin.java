@@ -236,7 +236,7 @@ public class MainPlugin
 
             Set<SqlFunction> sfs = injector.getInstance(Key.get(new TypeLiteral<Set<SqlFunction>>() {}));
             for (SqlFunction sf : sfs) {
-                metadata.addFunctions(new FunctionListBuilder(typeRegistry).function(sf).getFunctions());
+                metadata.addFunctions(new FunctionListBuilder().function(sf).getFunctions());
             }
 
             Set<ConnectorFactory> cfs = injector.getInstance(Key.get(new TypeLiteral<Set<ConnectorFactory>>() {}));
