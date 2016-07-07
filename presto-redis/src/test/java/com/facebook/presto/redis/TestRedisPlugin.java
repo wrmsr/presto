@@ -22,6 +22,7 @@ import com.facebook.presto.spi.NodeState;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.spi.type.TypeSignatureParameter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -75,7 +76,7 @@ public class TestRedisPlugin
         }
 
         @Override
-        public Type getParameterizedType(String baseTypeName, List<TypeSignature> typeParameters, List<Object> literalParameters)
+        public Type getParameterizedType(String baseTypeName, List<TypeSignatureParameter> typeParameters)
         {
             return null;
         }
@@ -93,9 +94,21 @@ public class TestRedisPlugin
         }
 
         @Override
+        public boolean isTypeOnlyCoercion(Type actualType, Type expectedType)
+        {
+            return false;
+        }
+
+        @Override
         public Optional<Type> getCommonSuperType(Type firstType, Type secondType)
         {
             return Optional.empty();
+        }
+
+        @Override
+        public Optional<Type> coerceTypeBase(Type sourceType, String resultTypeBase)
+        {
+            throw new UnsupportedOperationException();
         }
     }
 

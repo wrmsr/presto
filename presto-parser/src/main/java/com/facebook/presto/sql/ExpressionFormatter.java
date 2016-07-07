@@ -18,18 +18,22 @@ import com.facebook.presto.sql.tree.ArithmeticBinaryExpression;
 import com.facebook.presto.sql.tree.ArithmeticUnaryExpression;
 import com.facebook.presto.sql.tree.ArrayConstructor;
 import com.facebook.presto.sql.tree.AstVisitor;
+import com.facebook.presto.sql.tree.AtTimeZone;
 import com.facebook.presto.sql.tree.BetweenPredicate;
+import com.facebook.presto.sql.tree.BinaryLiteral;
 import com.facebook.presto.sql.tree.BooleanLiteral;
 import com.facebook.presto.sql.tree.Cast;
 import com.facebook.presto.sql.tree.CoalesceExpression;
 import com.facebook.presto.sql.tree.ComparisonExpression;
 import com.facebook.presto.sql.tree.Cube;
 import com.facebook.presto.sql.tree.CurrentTime;
+import com.facebook.presto.sql.tree.DecimalLiteral;
 import com.facebook.presto.sql.tree.DereferenceExpression;
 import com.facebook.presto.sql.tree.DoubleLiteral;
 import com.facebook.presto.sql.tree.ExistsPredicate;
 import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.Extract;
+import com.facebook.presto.sql.tree.FieldReference;
 import com.facebook.presto.sql.tree.FrameBound;
 import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.GenericLiteral;
@@ -38,7 +42,6 @@ import com.facebook.presto.sql.tree.GroupingSets;
 import com.facebook.presto.sql.tree.IfExpression;
 import com.facebook.presto.sql.tree.InListExpression;
 import com.facebook.presto.sql.tree.InPredicate;
-import com.facebook.presto.sql.tree.InputReference;
 import com.facebook.presto.sql.tree.IntervalLiteral;
 import com.facebook.presto.sql.tree.IsNotNullPredicate;
 import com.facebook.presto.sql.tree.IsNullPredicate;
@@ -61,8 +64,10 @@ import com.facebook.presto.sql.tree.SortItem;
 import com.facebook.presto.sql.tree.StringLiteral;
 import com.facebook.presto.sql.tree.SubqueryExpression;
 import com.facebook.presto.sql.tree.SubscriptExpression;
+import com.facebook.presto.sql.tree.SymbolReference;
 import com.facebook.presto.sql.tree.TimeLiteral;
 import com.facebook.presto.sql.tree.TimestampLiteral;
+import com.facebook.presto.sql.tree.TryExpression;
 import com.facebook.presto.sql.tree.WhenClause;
 import com.facebook.presto.sql.tree.Window;
 import com.facebook.presto.sql.tree.WindowFrame;
@@ -76,7 +81,6 @@ import java.util.Set;
 import java.util.function.Function;
 
 import static com.facebook.presto.sql.SqlFormatter.formatSql;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
@@ -119,6 +123,15 @@ public final class ExpressionFormatter
         }
 
         @Override
+        protected String visitAtTimeZone(AtTimeZone node, Boolean context)
+        {
+            return new StringBuilder()
+                    .append(process(node.getValue(), context))
+                    .append(" AT TIME ZONE ")
+                    .append(process(node.getTimeZone(), context)).toString();
+        }
+
+        @Override
         protected String visitCurrentTime(CurrentTime node, Boolean unmangleNames)
         {
             StringBuilder builder = new StringBuilder();
@@ -153,6 +166,12 @@ public final class ExpressionFormatter
         }
 
         @Override
+        protected String visitBinaryLiteral(BinaryLiteral node, Boolean unmangleNames)
+        {
+            return "X'" + node.toHexString() + "'";
+        }
+
+        @Override
         protected String visitArrayConstructor(ArrayConstructor node, Boolean unmangleNames)
         {
             ImmutableList.Builder<String> valueStrings = ImmutableList.builder();
@@ -181,9 +200,15 @@ public final class ExpressionFormatter
         }
 
         @Override
+        protected String visitDecimalLiteral(DecimalLiteral node, Boolean unmangleNames)
+        {
+            return "DECIMAL '" + node.getValue() + "'";
+        }
+
+        @Override
         protected String visitGenericLiteral(GenericLiteral node, Boolean unmangleNames)
         {
-            return node.getType() + " '" + node.getValue() + "'";
+            return node.getType() + " " + formatStringLiteral(node.getValue());
         }
 
         @Override
@@ -239,6 +264,12 @@ public final class ExpressionFormatter
         }
 
         @Override
+        protected String visitSymbolReference(SymbolReference node, Boolean context)
+        {
+            return formatIdentifier(node.getName());
+        }
+
+        @Override
         protected String visitDereferenceExpression(DereferenceExpression node, Boolean unmangleNames)
         {
             String baseString = process(node.getBase(), unmangleNames);
@@ -255,10 +286,10 @@ public final class ExpressionFormatter
         }
 
         @Override
-        public String visitInputReference(InputReference node, Boolean unmangleNames)
+        public String visitFieldReference(FieldReference node, Boolean unmangleNames)
         {
             // add colon so this won't parse
-            return ":input(" + node.getChannel() + ")";
+            return ":input(" + node.getFieldIndex() + ")";
         }
 
         @Override
@@ -274,15 +305,8 @@ public final class ExpressionFormatter
                 arguments = "DISTINCT " + arguments;
             }
 
-            if (unmangleNames && node.getName().toString().startsWith(QueryUtil.FIELD_REFERENCE_PREFIX)) {
-                checkState(node.getArguments().size() == 1, "Expected only one argument to field reference");
-                QualifiedName name = QualifiedName.of(QueryUtil.unmangleFieldReference(node.getName().toString()));
-                builder.append(arguments).append(".").append(name);
-            }
-            else {
-                builder.append(formatQualifiedName(node.getName()))
-                        .append('(').append(arguments).append(')');
-            }
+            builder.append(formatQualifiedName(node.getName()))
+                    .append('(').append(arguments).append(')');
 
             if (node.getWindow().isPresent()) {
                 builder.append(" OVER ").append(visitWindow(node.getWindow().get(), unmangleNames));
@@ -353,6 +377,12 @@ public final class ExpressionFormatter
             }
             builder.append(")");
             return builder.toString();
+        }
+
+        @Override
+        protected String visitTryExpression(TryExpression node, Boolean unmangleNames)
+        {
+            return "TRY(" + process(node.getInnerExpression(), unmangleNames) + ")";
         }
 
         @Override

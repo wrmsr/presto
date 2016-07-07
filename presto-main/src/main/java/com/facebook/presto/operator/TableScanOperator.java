@@ -59,7 +59,7 @@ public class TableScanOperator
             this.operatorId = operatorId;
             this.sourceId = requireNonNull(sourceId, "sourceId is null");
             this.types = requireNonNull(types, "types is null");
-            this.pageSourceProvider = requireNonNull(pageSourceProvider, "pageSourceManager is null");
+            this.pageSourceProvider = requireNonNull(pageSourceProvider, "pageSourceProvider is null");
             this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns is null"));
         }
 
@@ -79,7 +79,7 @@ public class TableScanOperator
         public SourceOperator createOperator(DriverContext driverContext)
         {
             checkState(!closed, "Factory is already closed");
-            OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, TableScanOperator.class.getSimpleName());
+            OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, sourceId, TableScanOperator.class.getSimpleName());
             return new TableScanOperator(
                     operatorContext,
                     sourceId,
@@ -121,7 +121,7 @@ public class TableScanOperator
         this.operatorContext = requireNonNull(operatorContext, "operatorContext is null");
         this.planNodeId = requireNonNull(planNodeId, "planNodeId is null");
         this.types = requireNonNull(types, "types is null");
-        this.pageSourceProvider = requireNonNull(pageSourceProvider, "pageSourceManager is null");
+        this.pageSourceProvider = requireNonNull(pageSourceProvider, "pageSourceProvider is null");
         this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns is null"));
         this.systemMemoryContext = operatorContext.getSystemMemoryContext().newLocalMemoryContext();
     }

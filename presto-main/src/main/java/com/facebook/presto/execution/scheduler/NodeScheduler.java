@@ -14,21 +14,23 @@
 package com.facebook.presto.execution.scheduler;
 
 import com.facebook.presto.execution.NodeTaskMap;
+import com.facebook.presto.execution.RemoteTask;
+import com.facebook.presto.metadata.Split;
 import com.facebook.presto.spi.HostAddress;
 import com.facebook.presto.spi.Node;
 import com.facebook.presto.spi.NodeManager;
+import com.facebook.presto.sql.planner.NodePartitionMap;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.airlift.log.Logger;
+import com.google.common.collect.Multimap;
 import io.airlift.stats.CounterStat;
 
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import java.net.InetAddress;
@@ -39,10 +41,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import static com.facebook.presto.execution.scheduler.NodeSchedulerConfig.LEGACY_NETWORK_TOPOLOGY;
+import static com.facebook.presto.execution.scheduler.NodeSchedulerConfig.NetworkTopologyType;
 import static com.facebook.presto.spi.NodeState.ACTIVE;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableSet;
@@ -51,16 +52,14 @@ import static java.util.Objects.requireNonNull;
 
 public class NodeScheduler
 {
-    private static final Logger log = Logger.get(NodeScheduler.class);
-
-    private final LoadingCache<HostAddress, NetworkLocation> networkLocationCache;
+    private final NetworkLocationCache networkLocationCache;
     private final List<CounterStat> topologicalSplitCounters;
     private final List<String> networkLocationSegmentNames;
     private final NodeManager nodeManager;
     private final int minCandidates;
     private final boolean includeCoordinator;
     private final int maxSplitsPerNode;
-    private final int maxSplitsPerNodePerTaskWhenFull;
+    private final int maxPendingSplitsPerNodePerStageWhenFull;
     private final NodeTaskMap nodeTaskMap;
     private final boolean doubleScheduling;
     private final boolean useNetworkTopology;
@@ -68,15 +67,26 @@ public class NodeScheduler
     @Inject
     public NodeScheduler(NetworkTopology networkTopology, NodeManager nodeManager, NodeSchedulerConfig config, NodeTaskMap nodeTaskMap)
     {
+        this(new NetworkLocationCache(networkTopology), networkTopology, nodeManager, config, nodeTaskMap);
+    }
+
+    public NodeScheduler(
+            NetworkLocationCache networkLocationCache,
+            NetworkTopology networkTopology,
+            NodeManager nodeManager,
+            NodeSchedulerConfig config,
+            NodeTaskMap nodeTaskMap)
+    {
+        this.networkLocationCache = networkLocationCache;
         this.nodeManager = nodeManager;
         this.minCandidates = config.getMinCandidates();
         this.includeCoordinator = config.isIncludeCoordinator();
         this.doubleScheduling = config.isMultipleTasksPerNodeEnabled();
         this.maxSplitsPerNode = config.getMaxSplitsPerNode();
-        this.maxSplitsPerNodePerTaskWhenFull = config.getMaxPendingSplitsPerNodePerTask();
+        this.maxPendingSplitsPerNodePerStageWhenFull = config.getMaxPendingSplitsPerNodePerStage();
         this.nodeTaskMap = requireNonNull(nodeTaskMap, "nodeTaskMap is null");
-        checkArgument(maxSplitsPerNode > maxSplitsPerNodePerTaskWhenFull, "maxSplitsPerNode must be > maxSplitsPerNodePerTaskWhenFull");
-        this.useNetworkTopology = !config.getNetworkTopology().equals(LEGACY_NETWORK_TOPOLOGY);
+        checkArgument(maxSplitsPerNode > maxPendingSplitsPerNodePerStageWhenFull, "maxSplitsPerNode must be > maxPendingSplitsPerNodePerStageWhenFull");
+        this.useNetworkTopology = !config.getNetworkTopology().equals(NetworkTopologyType.LEGACY);
 
         ImmutableList.Builder<CounterStat> builder = ImmutableList.builder();
         if (useNetworkTopology) {
@@ -89,19 +99,12 @@ public class NodeScheduler
             networkLocationSegmentNames = ImmutableList.of();
         }
         topologicalSplitCounters = builder.build();
+    }
 
-        networkLocationCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(1, TimeUnit.DAYS)
-                .refreshAfterWrite(12, TimeUnit.HOURS)
-                .build(new CacheLoader<HostAddress, NetworkLocation>()
-                {
-                    @Override
-                    public NetworkLocation load(HostAddress address)
-                            throws Exception
-                    {
-                        return networkTopology.locate(address);
-                    }
-                });
+    @PreDestroy
+    public void stop()
+    {
+        networkLocationCache.stop();
     }
 
     public Map<String, CounterStat> getTopologicalSplitCounters()
@@ -136,14 +139,9 @@ public class NodeScheduler
 
             for (Node node : nodes) {
                 if (useNetworkTopology && (includeCoordinator || !coordinatorNodeIds.contains(node.getNodeIdentifier()))) {
-                    try {
-                        NetworkLocation location = networkLocationCache.get(node.getHostAndPort());
-                        for (int i = 0; i <= location.getSegments().size(); i++) {
-                            workersByNetworkPath.put(location.subLocation(0, i), node);
-                        }
-                    }
-                    catch (ExecutionException | UncheckedExecutionException e) {
-                        log.error(e, "Failed to locate network location of %s", node.getHostAndPort());
+                    NetworkLocation location = networkLocationCache.get(node.getHostAndPort());
+                    for (int i = 0; i <= location.getSegments().size(); i++) {
+                        workersByNetworkPath.put(location.subLocation(0, i), node);
                     }
                 }
                 try {
@@ -169,13 +167,13 @@ public class NodeScheduler
                     nodeMap,
                     minCandidates,
                     maxSplitsPerNode,
-                    maxSplitsPerNodePerTaskWhenFull,
+                    maxPendingSplitsPerNodePerStageWhenFull,
                     topologicalSplitCounters,
                     networkLocationSegmentNames,
                     networkLocationCache);
         }
         else {
-            return new SimpleNodeSelector(nodeManager, nodeTaskMap, includeCoordinator, doubleScheduling, nodeMap, minCandidates, maxSplitsPerNode, maxSplitsPerNodePerTaskWhenFull);
+            return new SimpleNodeSelector(nodeManager, nodeTaskMap, includeCoordinator, doubleScheduling, nodeMap, minCandidates, maxSplitsPerNode, maxPendingSplitsPerNodePerStageWhenFull);
         }
     }
 
@@ -266,5 +264,31 @@ public class NodeScheduler
         }
 
         return ImmutableList.copyOf(chosen);
+    }
+
+    public static Multimap<Node, Split> selectDistributionNodes(
+            NodeMap nodeMap,
+            NodeTaskMap nodeTaskMap,
+            int maxSplitsPerNode,
+            int maxPendingSplitsPerNodePerStageWhenFull,
+            Set<Split> splits,
+            List<RemoteTask> existingTasks,
+            NodePartitionMap partitioning)
+    {
+        Multimap<Node, Split> assignments = HashMultimap.create();
+        NodeAssignmentStats assignmentStats = new NodeAssignmentStats(nodeTaskMap, nodeMap, existingTasks);
+
+        for (Split split : splits) {
+            // node placement is forced by the partitioning
+            Node node = partitioning.getNode(split);
+
+            // if node is full, don't schedule now, which will push back on the scheduling of splits
+            if (assignmentStats.getTotalSplitCount(node) < maxSplitsPerNode ||
+                    assignmentStats.getQueuedSplitCountForStage(node) < maxPendingSplitsPerNodePerStageWhenFull) {
+                assignments.put(node, split);
+                assignmentStats.addAssignedSplit(node);
+            }
+        }
+        return ImmutableMultimap.copyOf(assignments);
     }
 }

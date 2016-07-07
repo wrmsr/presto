@@ -24,6 +24,8 @@ import static com.teradata.tempto.fulfillment.table.hive.InlineDataSource.create
 
 public final class AllSimpleTypesTableDefinitions
 {
+    // TODO generate data files using hive instead using prebuilt commited files.
+
     private AllSimpleTypesTableDefinitions()
     {
     }
@@ -47,8 +49,7 @@ public final class AllSimpleTypesTableDefinitions
     {
         String tableName = fileFormat.toLowerCase() + "_all_types";
         HiveDataSource dataSource = createResourceDataSource(tableName, "" + System.currentTimeMillis(), "com/facebook/presto/tests/hive/data/all_types/data." + fileFormat.toLowerCase());
-        return HiveTableDefinition.builder()
-                .setName(tableName)
+        return HiveTableDefinition.builder(tableName)
                 .setCreateTableDDLTemplate("" +
                         "CREATE EXTERNAL TABLE %NAME%(" +
                         "   c_tinyint            TINYINT," +
@@ -78,8 +79,7 @@ public final class AllSimpleTypesTableDefinitions
     {
         String tableName = "parquet_all_types";
         HiveDataSource dataSource = createResourceDataSource(tableName, "" + System.currentTimeMillis(), "com/facebook/presto/tests/hive/data/all_types/data.parquet");
-        return HiveTableDefinition.builder()
-                .setName(tableName)
+        return HiveTableDefinition.builder(tableName)
                 .setCreateTableDDLTemplate("" +
                         "CREATE EXTERNAL TABLE %NAME%(" +
                         "   c_tinyint            TINYINT," +
@@ -88,11 +88,14 @@ public final class AllSimpleTypesTableDefinitions
                         "   c_bigint             BIGINT," +
                         "   c_float              FLOAT," +
                         "   c_double             DOUBLE," +
+                        "   c_decimal            DECIMAL," +
+                        "   c_decimal_w_params   DECIMAL(10,5)," +
                         "   c_timestamp          TIMESTAMP," +
                         "   c_string             STRING," +
                         "   c_varchar            VARCHAR(10)," +
                         "   c_char               CHAR(10)," +
-                        "   c_boolean            BOOLEAN" +
+                        "   c_boolean            BOOLEAN," +
+                        "   c_binary             BINARY" +
                         ") " +
                         "STORED AS PARQUET " +
                         "LOCATION '%LOCATION%'")
@@ -104,8 +107,7 @@ public final class AllSimpleTypesTableDefinitions
     {
         String tableName = "textfile_all_types_known_to_presto";
         HiveDataSource dataSource = createResourceDataSource(tableName, "" + System.currentTimeMillis(), "com/facebook/presto/tests/hive/data/all_types_known_to_presto/data.textfile");
-        return HiveTableDefinition.builder()
-                .setName(tableName)
+        return HiveTableDefinition.builder(tableName)
                 .setCreateTableDDLTemplate("" +
                         "CREATE EXTERNAL TABLE %NAME%(" +
                         "   c_tinyint            TINYINT," +

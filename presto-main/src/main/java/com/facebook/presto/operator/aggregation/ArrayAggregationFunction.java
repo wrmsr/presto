@@ -13,7 +13,8 @@
  */
 package com.facebook.presto.operator.aggregation;
 
-import com.facebook.presto.byteCode.DynamicClassLoader;
+import com.facebook.presto.bytecode.DynamicClassLoader;
+import com.facebook.presto.metadata.BoundVariables;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.SqlAggregationFunction;
 import com.facebook.presto.operator.aggregation.AggregationMetadata.ParameterMetadata;
@@ -33,13 +34,14 @@ import com.google.common.collect.ImmutableList;
 
 import java.lang.invoke.MethodHandle;
 import java.util.List;
-import java.util.Map;
 
-import static com.facebook.presto.metadata.Signature.typeParameter;
+import static com.facebook.presto.metadata.Signature.typeVariable;
 import static com.facebook.presto.operator.aggregation.AggregationMetadata.ParameterMetadata.ParameterType.BLOCK_INDEX;
-import static com.facebook.presto.operator.aggregation.AggregationMetadata.ParameterMetadata.ParameterType.BLOCK_INPUT_CHANNEL;
+import static com.facebook.presto.operator.aggregation.AggregationMetadata.ParameterMetadata.ParameterType.NULLABLE_BLOCK_INPUT_CHANNEL;
 import static com.facebook.presto.operator.aggregation.AggregationMetadata.ParameterMetadata.ParameterType.STATE;
 import static com.facebook.presto.operator.aggregation.AggregationUtils.generateAggregationName;
+import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
+import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.facebook.presto.util.Reflection.methodHandle;
 
 public class ArrayAggregationFunction
@@ -53,7 +55,11 @@ public class ArrayAggregationFunction
 
     public ArrayAggregationFunction()
     {
-        super(NAME, ImmutableList.of(typeParameter("T")), "array<T>", ImmutableList.of("T"));
+        super(NAME,
+                ImmutableList.of(typeVariable("T")),
+                ImmutableList.of(),
+                parseTypeSignature("array(T)"),
+                ImmutableList.of(parseTypeSignature("T")));
     }
 
     @Override
@@ -63,9 +69,9 @@ public class ArrayAggregationFunction
     }
 
     @Override
-    public InternalAggregationFunction specialize(Map<String, Type> types, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
+    public InternalAggregationFunction specialize(BoundVariables boundVariables, int arity, TypeManager typeManager, FunctionRegistry functionRegistry)
     {
-        Type type = types.get("T");
+        Type type = boundVariables.getTypeVariable("T");
         return generateAggregation(type);
     }
 
@@ -87,7 +93,7 @@ public class ArrayAggregationFunction
         Class<? extends AccumulatorState> stateInterface = ArrayAggregationState.class;
 
         AggregationMetadata metadata = new AggregationMetadata(
-                generateAggregationName(NAME, type, inputTypes),
+                generateAggregationName(NAME, type.getTypeSignature(), inputTypes.stream().map(Type::getTypeSignature).collect(toImmutableList())),
                 inputParameterMetadata,
                 inputFunction,
                 null,
@@ -106,14 +112,14 @@ public class ArrayAggregationFunction
 
     private static List<ParameterMetadata> createInputParameterMetadata(Type value)
     {
-        return ImmutableList.of(new ParameterMetadata(STATE), new ParameterMetadata(BLOCK_INPUT_CHANNEL, value), new ParameterMetadata(BLOCK_INDEX));
+        return ImmutableList.of(new ParameterMetadata(STATE), new ParameterMetadata(NULLABLE_BLOCK_INPUT_CHANNEL, value), new ParameterMetadata(BLOCK_INDEX));
     }
 
     public static void input(Type type, ArrayAggregationState state, Block value, int position)
     {
         BlockBuilder blockBuilder = state.getBlockBuilder();
         if (blockBuilder == null) {
-            blockBuilder = type.createBlockBuilder(new BlockBuilderStatus(), 100);
+            blockBuilder = type.createBlockBuilder(new BlockBuilderStatus(), 4);
             state.setBlockBuilder(blockBuilder);
         }
         long startSize = blockBuilder.getRetainedSizeInBytes();

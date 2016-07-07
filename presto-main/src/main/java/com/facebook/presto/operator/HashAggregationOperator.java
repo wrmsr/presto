@@ -20,6 +20,7 @@ import com.facebook.presto.spi.PageBuilder;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.planner.plan.AggregationNode.Step;
+import com.facebook.presto.sql.planner.plan.PlanNodeId;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
@@ -44,7 +45,7 @@ public class HashAggregationOperator
             implements OperatorFactory
     {
         private final int operatorId;
-        private final Optional<Integer> maskChannel;
+        private final PlanNodeId planNodeId;
         private final List<Type> groupByTypes;
         private final List<Integer> groupByChannels;
         private final Step step;
@@ -58,17 +59,17 @@ public class HashAggregationOperator
 
         public HashAggregationOperatorFactory(
                 int operatorId,
+                PlanNodeId planNodeId,
                 List<? extends Type> groupByTypes,
                 List<Integer> groupByChannels,
                 Step step,
                 List<AccumulatorFactory> accumulatorFactories,
-                Optional<Integer> maskChannel,
                 Optional<Integer> hashChannel,
                 int expectedGroups,
                 DataSize maxPartialMemory)
         {
             this.operatorId = operatorId;
-            this.maskChannel = requireNonNull(maskChannel, "maskChannel is null");
+            this.planNodeId = requireNonNull(planNodeId, "planNodeId is null");
             this.hashChannel = requireNonNull(hashChannel, "hashChannel is null");
             this.groupByTypes = ImmutableList.copyOf(groupByTypes);
             this.groupByChannels = ImmutableList.copyOf(groupByChannels);
@@ -93,10 +94,10 @@ public class HashAggregationOperator
 
             OperatorContext operatorContext;
             if (step.isOutputPartial()) {
-                operatorContext = driverContext.addOperatorContext(operatorId, HashAggregationOperator.class.getSimpleName(), maxPartialMemory);
+                operatorContext = driverContext.addOperatorContext(operatorId, planNodeId, HashAggregationOperator.class.getSimpleName(), maxPartialMemory);
             }
             else {
-                operatorContext = driverContext.addOperatorContext(operatorId, HashAggregationOperator.class.getSimpleName());
+                operatorContext = driverContext.addOperatorContext(operatorId, planNodeId, HashAggregationOperator.class.getSimpleName());
             }
             HashAggregationOperator hashAggregationOperator = new HashAggregationOperator(
                     operatorContext,
@@ -104,7 +105,6 @@ public class HashAggregationOperator
                     groupByChannels,
                     step,
                     accumulatorFactories,
-                    maskChannel,
                     hashChannel,
                     expectedGroups);
             return hashAggregationOperator;
@@ -121,11 +121,11 @@ public class HashAggregationOperator
         {
             return new HashAggregationOperatorFactory(
                     operatorId,
+                    planNodeId,
                     groupByTypes,
                     groupByChannels,
                     step,
                     accumulatorFactories,
-                    maskChannel,
                     hashChannel,
                     expectedGroups,
                     new DataSize(maxPartialMemory, Unit.BYTE));
@@ -137,7 +137,6 @@ public class HashAggregationOperator
     private final List<Integer> groupByChannels;
     private final Step step;
     private final List<AccumulatorFactory> accumulatorFactories;
-    private final Optional<Integer> maskChannel;
     private final Optional<Integer> hashChannel;
     private final int expectedGroups;
 
@@ -153,7 +152,6 @@ public class HashAggregationOperator
             List<Integer> groupByChannels,
             Step step,
             List<AccumulatorFactory> accumulatorFactories,
-            Optional<Integer> maskChannel,
             Optional<Integer> hashChannel,
             int expectedGroups)
     {
@@ -165,7 +163,6 @@ public class HashAggregationOperator
         this.groupByTypes = ImmutableList.copyOf(groupByTypes);
         this.groupByChannels = ImmutableList.copyOf(groupByChannels);
         this.accumulatorFactories = ImmutableList.copyOf(accumulatorFactories);
-        this.maskChannel = requireNonNull(maskChannel, "maskChannel is null");
         this.hashChannel = requireNonNull(hashChannel, "hashChannel is null");
         this.step = step;
         this.expectedGroups = expectedGroups;
@@ -214,7 +211,6 @@ public class HashAggregationOperator
                     expectedGroups,
                     groupByTypes,
                     groupByChannels,
-                    maskChannel,
                     hashChannel,
                     operatorContext);
 
@@ -282,11 +278,10 @@ public class HashAggregationOperator
                 int expectedGroups,
                 List<Type> groupByTypes,
                 List<Integer> groupByChannels,
-                Optional<Integer> maskChannel,
                 Optional<Integer> hashChannel,
                 OperatorContext operatorContext)
         {
-            this.groupByHash = createGroupByHash(groupByTypes, Ints.toArray(groupByChannels), maskChannel, hashChannel, expectedGroups);
+            this.groupByHash = createGroupByHash(operatorContext.getSession(), groupByTypes, Ints.toArray(groupByChannels), hashChannel, expectedGroups);
             this.operatorContext = operatorContext;
             this.partial = step.isOutputPartial();
 

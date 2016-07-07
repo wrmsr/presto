@@ -29,7 +29,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
-import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
+import static com.facebook.presto.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static com.facebook.presto.spi.StandardErrorCode.SYNTAX_ERROR;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Functions.toStringFunction;
@@ -43,7 +43,7 @@ public final class Failures
 
     public static final String WORKER_NODE_ERROR = "Encountered too many errors talking to a worker node. " + NODE_CRASHED_ERROR;
 
-    public static final String WORKER_RESTARTED_ERROR = "A worker node running your query has restarted. " + NODE_CRASHED_ERROR;
+    public static final String REMOTE_TASK_MISMATCH_ERROR = "Could not communicate with the remote task. " + NODE_CRASHED_ERROR;
 
     private Failures() {}
 
@@ -121,6 +121,6 @@ public final class Failures
         if (throwable.getCause() != null) {
             return toErrorCode(throwable.getCause());
         }
-        return INTERNAL_ERROR.toErrorCode();
+        return GENERIC_INTERNAL_ERROR.toErrorCode();
     }
 }

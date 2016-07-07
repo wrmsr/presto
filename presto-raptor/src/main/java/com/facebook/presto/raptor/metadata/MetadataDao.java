@@ -25,9 +25,18 @@ import java.util.List;
 
 public interface MetadataDao
 {
-    @SqlQuery("SELECT table_id FROM tables\n" +
-            "WHERE schema_name = :schemaName\n" +
-            "  AND table_name = :tableName")
+    @SqlQuery("SELECT t.table_id, t.distribution_id, d.bucket_count, t.temporal_column_id\n" +
+            "FROM tables t\n" +
+            "LEFT JOIN distributions d ON (t.distribution_id = d.distribution_id)\n" +
+            "WHERE t.table_id = :tableId")
+    @Mapper(TableMapper.class)
+    Table getTableInformation(@Bind("tableId") long tableId);
+
+    @SqlQuery("SELECT t.table_id, t.distribution_id, d.bucket_count, t.temporal_column_id\n" +
+            "FROM tables t\n" +
+            "LEFT JOIN distributions d ON (t.distribution_id = d.distribution_id)\n" +
+            "WHERE t.schema_name = :schemaName\n" +
+            "  AND t.table_name = :tableName")
     @Mapper(TableMapper.class)
     Table getTableInformation(
             @Bind("schemaName") String schemaName,
@@ -88,6 +97,14 @@ public interface MetadataDao
             "ORDER BY c.sort_ordinal_position")
     List<TableColumn> listSortColumns(@Bind("tableId") long tableId);
 
+    @SqlQuery("SELECT t.schema_name, t.table_name, c.column_id, c.column_name, c.data_type\n" +
+            "FROM tables t\n" +
+            "JOIN columns c ON (t.table_id = c.table_id)\n" +
+            "WHERE t.table_id = :tableId\n" +
+            "  AND c.bucket_ordinal_position IS NOT NULL\n" +
+            "ORDER BY c.bucket_ordinal_position")
+    List<TableColumn> listBucketColumns(@Bind("tableId") long tableId);
+
     @SqlQuery("SELECT schema_name, table_name, data\n" +
             "FROM views\n" +
             "WHERE (schema_name = :schemaName OR :schemaName IS NULL)")
@@ -105,23 +122,25 @@ public interface MetadataDao
             @Bind("schemaName") String schemaName,
             @Bind("tableName") String tableName);
 
-    @SqlUpdate("INSERT INTO tables (schema_name, table_name, compaction_enabled)\n" +
-            "VALUES (:schemaName, :tableName, :compactionEnabled)")
+    @SqlUpdate("INSERT INTO tables (schema_name, table_name, compaction_enabled, distribution_id)\n" +
+            "VALUES (:schemaName, :tableName, :compactionEnabled, :distributionId)")
     @GetGeneratedKeys
     long insertTable(
             @Bind("schemaName") String schemaName,
             @Bind("tableName") String tableName,
-            @Bind("compactionEnabled") boolean compactionEnabled);
+            @Bind("compactionEnabled") boolean compactionEnabled,
+            @Bind("distributionId") Long distributionId);
 
-    @SqlUpdate("INSERT INTO columns (table_id, column_id, column_name, ordinal_position, data_type, sort_ordinal_position)\n" +
-            "VALUES (:tableId, :columnId, :columnName, :ordinalPosition, :dataType, :sortOrdinalPosition)")
+    @SqlUpdate("INSERT INTO columns (table_id, column_id, column_name, ordinal_position, data_type, sort_ordinal_position, bucket_ordinal_position)\n" +
+            "VALUES (:tableId, :columnId, :columnName, :ordinalPosition, :dataType, :sortOrdinalPosition, :bucketOrdinalPosition)")
     void insertColumn(
             @Bind("tableId") long tableId,
             @Bind("columnId") long columnId,
             @Bind("columnName") String columnName,
             @Bind("ordinalPosition") int ordinalPosition,
             @Bind("dataType") String dataType,
-            @Bind("sortOrdinalPosition") Integer sortOrdinalPosition);
+            @Bind("sortOrdinalPosition") Integer sortOrdinalPosition,
+            @Bind("bucketOrdinalPosition") Integer bucketOrdinalPosition);
 
     @SqlUpdate("UPDATE tables SET\n" +
             "  schema_name = :newSchemaName\n" +
@@ -180,4 +199,47 @@ public interface MetadataDao
 
     @SqlQuery("SELECT table_id FROM tables WHERE table_id = :tableId FOR UPDATE")
     Long getLockedTableId(@Bind("tableId") long tableId);
+
+    @SqlQuery("SELECT distribution_id, distribution_name, column_types, bucket_count\n" +
+            "FROM distributions\n" +
+            "WHERE distribution_id = :distributionId")
+    Distribution getDistribution(@Bind("distributionId") long distributionId);
+
+    @SqlQuery("SELECT distribution_id, distribution_name, column_types, bucket_count\n" +
+            "FROM distributions\n" +
+            "WHERE distribution_name = :distributionName")
+    Distribution getDistribution(@Bind("distributionName") String distributionName);
+
+    @SqlUpdate("INSERT INTO distributions (distribution_name, column_types, bucket_count)\n" +
+            "VALUES (:distributionName, :columnTypes, :bucketCount)")
+    @GetGeneratedKeys
+    long insertDistribution(
+            @Bind("distributionName") String distributionName,
+            @Bind("columnTypes") String columnTypes,
+            @Bind("bucketCount") int bucketCount);
+
+    @SqlQuery("SELECT table_id, schema_name, table_name, temporal_column_id, distribution_name, bucket_count\n" +
+            "FROM tables\n" +
+            "LEFT JOIN distributions\n" +
+            "ON tables.distribution_id = distributions.distribution_id\n" +
+            "WHERE (schema_name = :schemaName OR :schemaName IS NULL)\n" +
+            "  AND (table_name = :tableName OR :tableName IS NULL)\n" +
+            "ORDER BY table_id")
+    @Mapper(TableMetadataRow.Mapper.class)
+    List<TableMetadataRow> getTableMetadataRows(
+            @Bind("schemaName") String schemaName,
+            @Bind("tableName") String tableName);
+
+    @SqlQuery("SELECT table_id, column_id, column_name, sort_ordinal_position, bucket_ordinal_position\n" +
+            "FROM columns\n" +
+            "WHERE table_id IN (\n" +
+            "  SELECT table_id\n" +
+            "  FROM tables\n" +
+            "  WHERE (schema_name = :schemaName OR :schemaName IS NULL)\n" +
+            "    AND (table_name = :tableName OR :tableName IS NULL))\n" +
+            "ORDER BY table_id")
+    @Mapper(ColumnMetadataRow.Mapper.class)
+    List<ColumnMetadataRow> getColumnMetadataRows(
+            @Bind("schemaName") String schemaName,
+            @Bind("tableName") String tableName);
 }

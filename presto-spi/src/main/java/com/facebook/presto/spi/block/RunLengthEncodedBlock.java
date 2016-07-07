@@ -13,17 +13,28 @@
  */
 package com.facebook.presto.spi.block;
 
+import com.facebook.presto.spi.predicate.Utils;
+import com.facebook.presto.spi.type.Type;
 import io.airlift.slice.Slice;
+import org.openjdk.jol.info.ClassLayout;
 
 import java.util.List;
 
-import static com.facebook.presto.spi.block.BlockValidationUtil.checkValidPositions;
+import static com.facebook.presto.spi.block.BlockUtil.checkValidPositions;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 public class RunLengthEncodedBlock
         implements Block
 {
+    private static final int INSTANCE_SIZE = ClassLayout.parseClass(RunLengthEncodedBlock.class).instanceSize();
+
+    public static Block create(Type type, Object value, int positionCount)
+    {
+        Block block = Utils.nativeValueToBlock(type, value);
+        return new RunLengthEncodedBlock(block, positionCount);
+    }
+
     private final Block value;
     private final int positionCount;
 
@@ -67,7 +78,7 @@ public class RunLengthEncodedBlock
     @Override
     public int getRetainedSizeInBytes()
     {
-        return value.getRetainedSizeInBytes();
+        return INSTANCE_SIZE + value.getRetainedSizeInBytes();
     }
 
     @Override
@@ -128,18 +139,6 @@ public class RunLengthEncodedBlock
     }
 
     @Override
-    public float getFloat(int position, int offset)
-    {
-        return value.getFloat(0, offset);
-    }
-
-    @Override
-    public double getDouble(int position, int offset)
-    {
-        return value.getDouble(0, offset);
-    }
-
-    @Override
     public Slice getSlice(int position, int offset, int length)
     {
         return value.getSlice(0, offset, length);
@@ -182,7 +181,7 @@ public class RunLengthEncodedBlock
     }
 
     @Override
-    public int hash(int position, int offset, int length)
+    public long hash(int position, int offset, int length)
     {
         return value.hash(0, offset, length);
     }
@@ -232,7 +231,7 @@ public class RunLengthEncodedBlock
 
     private void checkReadablePosition(int position)
     {
-        if (position < 0  || position >= positionCount) {
+        if (position < 0 || position >= positionCount) {
             throw new IllegalArgumentException("position is not valid");
         }
     }

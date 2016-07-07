@@ -19,8 +19,11 @@ import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.security.Identity;
 import com.facebook.presto.spi.type.TimeZoneKey;
+import com.facebook.presto.sql.tree.Execute;
+import com.facebook.presto.transaction.TransactionId;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import io.airlift.units.Duration;
 
 import java.net.URI;
 import java.security.Principal;
@@ -32,13 +35,18 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.TimeZone;
 
+import static com.facebook.presto.spi.StandardErrorCode.NOT_FOUND;
+import static com.facebook.presto.util.Failures.checkCondition;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 public final class Session
 {
     private final QueryId queryId;
+    private final Optional<TransactionId> transactionId;
+    private final boolean clientTransactionSupport;
     private final Identity identity;
     private final Optional<String> source;
     private final Optional<String> catalog;
@@ -51,9 +59,12 @@ public final class Session
     private final Map<String, String> systemProperties;
     private final Map<String, Map<String, String>> catalogProperties;
     private final SessionPropertyManager sessionPropertyManager;
+    private final Map<String, String> preparedStatements;
 
     public Session(
             QueryId queryId,
+            Optional<TransactionId> transactionId,
+            boolean clientTransactionSupport,
             Identity identity,
             Optional<String> source,
             Optional<String> catalog,
@@ -65,9 +76,12 @@ public final class Session
             long startTime,
             Map<String, String> systemProperties,
             Map<String, Map<String, String>> catalogProperties,
-            SessionPropertyManager sessionPropertyManager)
+            SessionPropertyManager sessionPropertyManager,
+            Map<String, String> preparedStatements)
     {
         this.queryId = requireNonNull(queryId, "queryId is null");
+        this.transactionId = requireNonNull(transactionId, "transactionId is null");
+        this.clientTransactionSupport = clientTransactionSupport;
         this.identity = identity;
         this.source = requireNonNull(source, "source is null");
         this.catalog = requireNonNull(catalog, "catalog is null");
@@ -79,6 +93,7 @@ public final class Session
         this.startTime = startTime;
         this.systemProperties = ImmutableMap.copyOf(requireNonNull(systemProperties, "systemProperties is null"));
         this.sessionPropertyManager = requireNonNull(sessionPropertyManager, "sessionPropertyManager is null");
+        this.preparedStatements = requireNonNull(preparedStatements, "preparedStatements is null");
 
         ImmutableMap.Builder<String, Map<String, String>> catalogPropertiesBuilder = ImmutableMap.<String, Map<String, String>>builder();
         catalogProperties.entrySet().stream()
@@ -144,6 +159,22 @@ public final class Session
         return startTime;
     }
 
+    public Optional<TransactionId> getTransactionId()
+    {
+        return transactionId;
+    }
+
+    public TransactionId getRequiredTransactionId()
+    {
+        checkState(transactionId.isPresent(), "Not in a transaction");
+        return transactionId.get();
+    }
+
+    public boolean isClientTransactionSupport()
+    {
+        return clientTransactionSupport;
+    }
+
     public <T> T getProperty(String name, Class<T> type)
     {
         return sessionPropertyManager.decodeProperty(name, systemProperties.get(name), type);
@@ -164,16 +195,37 @@ public final class Session
         return systemProperties;
     }
 
-    public Session withSystemProperty(String key, String value)
+    public Map<String, String> getPreparedStatements()
     {
-        requireNonNull(key, "key is null");
-        requireNonNull(value, "value is null");
+        return preparedStatements;
+    }
 
-        Map<String, String> systemProperties = new LinkedHashMap<>(this.systemProperties);
-        systemProperties.put(key, value);
+    public String getPreparedStatementFromExecute(Execute execute)
+    {
+        String name = execute.getName();
+        String sql = preparedStatements.get(name);
+        checkCondition(sql != null, NOT_FOUND, "Prepared statement not found: " + name);
+        return sql;
+    }
 
+    public Session withTransactionId(TransactionId transactionId)
+    {
+        requireNonNull(transactionId, "transactionId is null");
+        checkArgument(!this.transactionId.isPresent(), "Session already has an active transaction");
+        return withTransactionId(Optional.of(transactionId));
+    }
+
+    public Session withoutTransactionId()
+    {
+        return withTransactionId(Optional.empty());
+    }
+
+    private Session withTransactionId(Optional<TransactionId> transactionId)
+    {
         return new Session(
                 queryId,
+                transactionId,
+                clientTransactionSupport,
                 identity,
                 source,
                 catalog,
@@ -185,7 +237,35 @@ public final class Session
                 startTime,
                 systemProperties,
                 catalogProperties,
-                sessionPropertyManager);
+                sessionPropertyManager,
+                preparedStatements);
+    }
+
+    public Session withSystemProperty(String key, String value)
+    {
+        requireNonNull(key, "key is null");
+        requireNonNull(value, "value is null");
+
+        Map<String, String> systemProperties = new LinkedHashMap<>(this.systemProperties);
+        systemProperties.put(key, value);
+
+        return new Session(
+                queryId,
+                transactionId,
+                clientTransactionSupport,
+                identity,
+                source,
+                catalog,
+                schema,
+                timeZoneKey,
+                locale,
+                remoteUserAddress,
+                userAgent,
+                startTime,
+                systemProperties,
+                catalogProperties,
+                sessionPropertyManager,
+                preparedStatements);
     }
 
     public Session withCatalogProperty(String catalog, String key, String value)
@@ -207,6 +287,8 @@ public final class Session
 
         return new Session(
                 queryId,
+                transactionId,
+                clientTransactionSupport,
                 identity,
                 source,
                 this.catalog,
@@ -218,7 +300,34 @@ public final class Session
                 startTime,
                 systemProperties,
                 catalogProperties,
-                sessionPropertyManager);
+                sessionPropertyManager,
+                preparedStatements);
+    }
+
+    public Session withPreparedStatement(String statementName, String query)
+    {
+        requireNonNull(statementName, "statementName is null");
+        requireNonNull(query, "query is null");
+
+        Map<String, String> preparedStatements = new HashMap<>(getPreparedStatements());
+        preparedStatements.put(statementName, query);
+        return new Session(
+                queryId,
+                transactionId,
+                clientTransactionSupport,
+                identity,
+                source,
+                catalog,
+                schema,
+                timeZoneKey,
+                locale,
+                remoteUserAddress,
+                userAgent,
+                startTime,
+                systemProperties,
+                catalogProperties,
+                sessionPropertyManager,
+                preparedStatements);
     }
 
     public ConnectorSession toConnectorSession()
@@ -240,7 +349,7 @@ public final class Session
                 sessionPropertyManager);
     }
 
-    public ClientSession toClientSession(URI server, boolean debug)
+    public ClientSession toClientSession(URI server, boolean debug, Duration clientRequestTimeout)
     {
         ImmutableMap.Builder<String, String> properties = ImmutableMap.builder();
         properties.putAll(systemProperties);
@@ -260,13 +369,18 @@ public final class Session
                 timeZoneKey.getId(),
                 locale,
                 properties.build(),
-                debug);
+                preparedStatements,
+                transactionId.map(TransactionId::toString).orElse(null),
+                debug,
+                clientRequestTimeout);
     }
 
     public SessionRepresentation toSessionRepresentation()
     {
         return new SessionRepresentation(
                 queryId.toString(),
+                transactionId,
+                clientTransactionSupport,
                 identity.getUser(),
                 identity.getPrincipal().map(Principal::toString),
                 source,
@@ -278,7 +392,8 @@ public final class Session
                 userAgent,
                 startTime,
                 systemProperties,
-                catalogProperties);
+                catalogProperties,
+                preparedStatements);
     }
 
     @Override
@@ -286,6 +401,7 @@ public final class Session
     {
         return toStringHelper(this)
                 .add("queryId", queryId)
+                .add("transactionId", transactionId)
                 .add("user", getUser())
                 .add("principal", getIdentity().getPrincipal().orElse(null))
                 .add("source", source.orElse(null))
@@ -308,6 +424,8 @@ public final class Session
     public static class SessionBuilder
     {
         private QueryId queryId;
+        private TransactionId transactionId;
+        private boolean clientTransactionSupport;
         private Identity identity;
         private String source;
         private String catalog;
@@ -320,6 +438,7 @@ public final class Session
         private Map<String, String> systemProperties = ImmutableMap.of();
         private final Map<String, Map<String, String>> catalogProperties = new HashMap<>();
         private final SessionPropertyManager sessionPropertyManager;
+        private Map<String, String> preparedStatements = ImmutableMap.of();
 
         private SessionBuilder(SessionPropertyManager sessionPropertyManager)
         {
@@ -329,6 +448,18 @@ public final class Session
         public SessionBuilder setQueryId(QueryId queryId)
         {
             this.queryId = requireNonNull(queryId, "queryId is null");
+            return this;
+        }
+
+        public SessionBuilder setTransactionId(TransactionId transactionId)
+        {
+            this.transactionId = transactionId;
+            return this;
+        }
+
+        public SessionBuilder setClientTransactionSupport()
+        {
+            this.clientTransactionSupport = true;
             return this;
         }
 
@@ -409,10 +540,17 @@ public final class Session
             return this;
         }
 
+        public void setPreparedStatements(Map<String, String> preparedStatements)
+        {
+            this.preparedStatements = ImmutableMap.copyOf(preparedStatements);
+        }
+
         public Session build()
         {
             return new Session(
                     queryId,
+                    Optional.ofNullable(transactionId),
+                    clientTransactionSupport,
                     identity,
                     Optional.ofNullable(source),
                     Optional.ofNullable(catalog),
@@ -424,7 +562,8 @@ public final class Session
                     startTime,
                     systemProperties,
                     catalogProperties,
-                    sessionPropertyManager);
+                    sessionPropertyManager,
+                    preparedStatements);
         }
     }
 }

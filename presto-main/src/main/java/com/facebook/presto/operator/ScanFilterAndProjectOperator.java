@@ -36,6 +36,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import static com.facebook.presto.SystemSessionProperties.getProcessingOptimization;
+import static com.facebook.presto.sql.analyzer.FeaturesConfig.ProcessingOptimization.COLUMNAR;
+import static com.facebook.presto.sql.analyzer.FeaturesConfig.ProcessingOptimization.COLUMNAR_DICTIONARY;
+import static com.facebook.presto.sql.analyzer.FeaturesConfig.ProcessingOptimization.DISABLED;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
@@ -55,6 +59,7 @@ public class ScanFilterAndProjectOperator
     private final LocalMemoryContext pageSourceMemoryContext;
     private final LocalMemoryContext pageBuilderMemoryContext;
     private final SettableFuture<?> blocked = SettableFuture.create();
+    private final String processingOptimization;
 
     private RecordCursor cursor;
     private ConnectorPageSource pageSource;
@@ -86,6 +91,7 @@ public class ScanFilterAndProjectOperator
         this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns is null"));
         this.pageSourceMemoryContext = operatorContext.getSystemMemoryContext().newLocalMemoryContext();
         this.pageBuilderMemoryContext = operatorContext.getSystemMemoryContext().newLocalMemoryContext();
+        this.processingOptimization = getProcessingOptimization(operatorContext.getSession());
 
         this.pageBuilder = new PageBuilder(getTypes());
     }
@@ -237,10 +243,29 @@ public class ScanFilterAndProjectOperator
                 }
 
                 if (currentPage != null) {
-                    currentPosition = pageProcessor.process(operatorContext.getSession().toConnectorSession(), currentPage, currentPosition, currentPage.getPositionCount(), pageBuilder);
-                    if (currentPosition == currentPage.getPositionCount()) {
-                        currentPage = null;
-                        currentPosition = 0;
+                    switch (processingOptimization) {
+                        case COLUMNAR: {
+                            Page page = pageProcessor.processColumnar(operatorContext.getSession().toConnectorSession(), currentPage, getTypes());
+                            currentPage = null;
+                            currentPosition = 0;
+                            return page;
+                        }
+                        case COLUMNAR_DICTIONARY: {
+                            Page page = pageProcessor.processColumnarDictionary(operatorContext.getSession().toConnectorSession(), currentPage, getTypes());
+                            currentPage = null;
+                            currentPosition = 0;
+                            return page;
+                        }
+                        case DISABLED: {
+                            currentPosition = pageProcessor.process(operatorContext.getSession().toConnectorSession(), currentPage, currentPosition, currentPage.getPositionCount(), pageBuilder);
+                            if (currentPosition == currentPage.getPositionCount()) {
+                                currentPage = null;
+                                currentPosition = 0;
+                            }
+                            break;
+                        }
+                        default:
+                            throw new IllegalStateException(String.format("Found unexpected value %s for processingOptimization", processingOptimization));
                     }
                 }
 
@@ -278,8 +303,9 @@ public class ScanFilterAndProjectOperator
             implements SourceOperatorFactory
     {
         private final int operatorId;
-        private final CursorProcessor cursorProcessor;
-        private final PageProcessor pageProcessor;
+        private final PlanNodeId planNodeId;
+        private final Supplier<CursorProcessor> cursorProcessor;
+        private final Supplier<PageProcessor> pageProcessor;
         private final PlanNodeId sourceId;
         private final PageSourceProvider pageSourceProvider;
         private final List<ColumnHandle> columns;
@@ -288,14 +314,16 @@ public class ScanFilterAndProjectOperator
 
         public ScanFilterAndProjectOperatorFactory(
                 int operatorId,
+                PlanNodeId planNodeId,
                 PlanNodeId sourceId,
                 PageSourceProvider pageSourceProvider,
-                CursorProcessor cursorProcessor,
-                PageProcessor pageProcessor,
+                Supplier<CursorProcessor> cursorProcessor,
+                Supplier<PageProcessor> pageProcessor,
                 Iterable<ColumnHandle> columns,
                 List<Type> types)
         {
             this.operatorId = operatorId;
+            this.planNodeId = requireNonNull(planNodeId, "planNodeId is null");
             this.cursorProcessor = requireNonNull(cursorProcessor, "cursorProcessor is null");
             this.pageProcessor = requireNonNull(pageProcessor, "pageProcessor is null");
             this.sourceId = requireNonNull(sourceId, "sourceId is null");
@@ -320,13 +348,13 @@ public class ScanFilterAndProjectOperator
         public SourceOperator createOperator(DriverContext driverContext)
         {
             checkState(!closed, "Factory is already closed");
-            OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, ScanFilterAndProjectOperator.class.getSimpleName());
+            OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, planNodeId, ScanFilterAndProjectOperator.class.getSimpleName());
             return new ScanFilterAndProjectOperator(
                     operatorContext,
                     sourceId,
                     pageSourceProvider,
-                    cursorProcessor,
-                    pageProcessor,
+                    cursorProcessor.get(),
+                    pageProcessor.get(),
                     columns,
                     types);
         }

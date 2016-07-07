@@ -13,15 +13,16 @@
  */
 package com.facebook.presto.kafka;
 
-import com.facebook.presto.spi.Connector;
-import com.facebook.presto.spi.ConnectorFactory;
 import com.facebook.presto.spi.HostAddress;
 import com.facebook.presto.spi.Node;
 import com.facebook.presto.spi.NodeManager;
 import com.facebook.presto.spi.NodeState;
+import com.facebook.presto.spi.connector.Connector;
+import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.spi.type.TypeSignatureParameter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -75,7 +76,7 @@ public class TestKafkaPlugin
         }
 
         @Override
-        public Type getParameterizedType(String baseTypeName, List<TypeSignature> typeParameters, List<Object> literalParameters)
+        public Type getParameterizedType(String baseTypeName, List<TypeSignatureParameter> typeParameters)
         {
             return null;
         }
@@ -93,9 +94,21 @@ public class TestKafkaPlugin
         }
 
         @Override
+        public boolean isTypeOnlyCoercion(Type actualType, Type expectedType)
+        {
+            return false;
+        }
+
+        @Override
         public Optional<Type> getCommonSuperType(Type firstType, Type secondType)
         {
             return Optional.empty();
+        }
+
+        @Override
+        public Optional<Type> coerceTypeBase(Type sourceType, String resultTypeBase)
+        {
+            throw new UnsupportedOperationException();
         }
     }
 

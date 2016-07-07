@@ -20,6 +20,7 @@ import com.facebook.presto.operator.aggregation.InternalAggregationFunction;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.sql.planner.plan.AggregationNode.Step;
+import com.facebook.presto.sql.planner.plan.PlanNodeId;
 import com.facebook.presto.testing.MaterializedResult;
 import com.google.common.collect.ImmutableList;
 import org.testng.annotations.AfterMethod;
@@ -40,6 +41,7 @@ import static com.facebook.presto.operator.aggregation.DoubleSumAggregation.DOUB
 import static com.facebook.presto.operator.aggregation.LongSumAggregation.LONG_SUM;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
+import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
 import static com.facebook.presto.testing.MaterializedResult.resultBuilder;
 import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
@@ -73,14 +75,17 @@ public class TestAggregationOperator
             throws Exception
     {
         MetadataManager metadata = MetadataManager.createTestMetadataManager();
-        InternalAggregationFunction countVarcharColumn = metadata.getFunctionRegistry().getAggregateFunctionImplementation(new Signature("count", AGGREGATE, StandardTypes.BIGINT, StandardTypes.VARCHAR));
-        InternalAggregationFunction maxVarcharColumn = metadata.getFunctionRegistry().getAggregateFunctionImplementation(new Signature("max", AGGREGATE, StandardTypes.VARCHAR, StandardTypes.VARCHAR));
+        InternalAggregationFunction countVarcharColumn = metadata.getFunctionRegistry().getAggregateFunctionImplementation(
+                new Signature("count", AGGREGATE, parseTypeSignature(StandardTypes.BIGINT), parseTypeSignature(StandardTypes.VARCHAR)));
+        InternalAggregationFunction maxVarcharColumn = metadata.getFunctionRegistry().getAggregateFunctionImplementation(
+                new Signature("max", AGGREGATE, parseTypeSignature(StandardTypes.VARCHAR), parseTypeSignature(StandardTypes.VARCHAR)));
         List<Page> input = rowPagesBuilder(VARCHAR, BIGINT, VARCHAR, BIGINT, DOUBLE, VARCHAR)
                 .addSequencePage(100, 0, 0, 300, 500, 500, 500)
                 .build();
 
         OperatorFactory operatorFactory = new AggregationOperatorFactory(
                 0,
+                new PlanNodeId("test"),
                 Step.SINGLE,
                 ImmutableList.of(COUNT.bind(ImmutableList.of(0), Optional.empty(), Optional.empty(), 1.0),
                         LONG_SUM.bind(ImmutableList.of(1), Optional.empty(), Optional.empty(), 1.0),
@@ -93,7 +98,7 @@ public class TestAggregationOperator
         Operator operator = operatorFactory.createOperator(driverContext);
 
         MaterializedResult expected = resultBuilder(driverContext.getSession(), BIGINT, BIGINT, DOUBLE, VARCHAR, BIGINT, BIGINT, DOUBLE, VARCHAR)
-                .row(100, 4950, 49.5, "399", 100, 54950, 54950.0, "599")
+                .row(100L, 4950L, 49.5, "399", 100L, 54950L, 54950.0, "599")
                 .build();
 
         assertOperatorEquals(operator, input, expected);

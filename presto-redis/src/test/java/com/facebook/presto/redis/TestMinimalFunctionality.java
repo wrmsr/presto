@@ -37,6 +37,7 @@ import java.util.UUID;
 import static com.facebook.presto.redis.util.RedisTestUtils.createEmptyTableDescription;
 import static com.facebook.presto.redis.util.RedisTestUtils.installRedisPlugin;
 import static com.facebook.presto.testing.TestingSession.testSessionBuilder;
+import static com.facebook.presto.transaction.TransactionBuilder.transaction;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
@@ -111,8 +112,12 @@ public class TestMinimalFunctionality
             throws Exception
     {
         QualifiedObjectName name = new QualifiedObjectName("redis", "default", tableName);
-        Optional<TableHandle> handle = queryRunner.getServer().getMetadata().getTableHandle(SESSION, name);
-        assertTrue(handle.isPresent());
+        transaction(queryRunner.getTransactionManager())
+                .singleStatement()
+                .execute(SESSION, session -> {
+                    Optional<TableHandle> handle = queryRunner.getServer().getMetadata().getTableHandle(session, name);
+                    assertTrue(handle.isPresent());
+                });
     }
 
     @Test
@@ -122,7 +127,7 @@ public class TestMinimalFunctionality
         MaterializedResult result = queryRunner.execute("SELECT count(1) from " + tableName);
 
         MaterializedResult expected = MaterializedResult.resultBuilder(SESSION, BigintType.BIGINT)
-                .row(0)
+                .row(0L)
                 .build();
 
         assertEquals(result, expected);
@@ -133,7 +138,7 @@ public class TestMinimalFunctionality
         result = queryRunner.execute("SELECT count(1) from " + tableName);
 
         expected = MaterializedResult.resultBuilder(SESSION, BigintType.BIGINT)
-                .row(count)
+                .row((long) count)
                 .build();
 
         assertEquals(result, expected);

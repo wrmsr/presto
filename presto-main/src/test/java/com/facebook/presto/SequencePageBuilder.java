@@ -17,6 +17,7 @@ import com.facebook.presto.block.BlockAssertions;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.VarcharType;
 
 import java.util.List;
 
@@ -51,7 +52,7 @@ public final class SequencePageBuilder
             else if (type.equals(DOUBLE)) {
                 blocks[i] = BlockAssertions.createDoubleSequenceBlock(initialValue, initialValue + length);
             }
-            else if (type.equals(VARCHAR)) {
+            else if (type instanceof VarcharType) {
                 blocks[i] = BlockAssertions.createStringSequenceBlock(initialValue, initialValue + length);
             }
             else if (type.equals(BOOLEAN)) {
@@ -62,6 +63,31 @@ public final class SequencePageBuilder
             }
             else if (type.equals(TIMESTAMP)) {
                 blocks[i] = BlockAssertions.createTimestampSequenceBlock(initialValue, initialValue + length);
+            }
+            else {
+                throw new IllegalStateException("Unsupported type " + type);
+            }
+        }
+
+        return new Page(blocks);
+    }
+
+    public static Page createSequencePageWithDictionaryBlocks(List<? extends Type> types, int length)
+    {
+        return createSequencePageWithDictionaryBlocks(types, length, new int[types.size()]);
+    }
+
+    public static Page createSequencePageWithDictionaryBlocks(List<? extends Type> types, int length, int... initialValues)
+    {
+        Block[] blocks = new Block[initialValues.length];
+        for (int i = 0; i < blocks.length; i++) {
+            Type type = types.get(i);
+            int initialValue = initialValues[i];
+            if (type.equals(VARCHAR)) {
+                blocks[i] = BlockAssertions.createStringDictionaryBlock(initialValue, initialValue + length);
+            }
+            else if (type.equals(BIGINT)) {
+                blocks[i] = BlockAssertions.createLongDictionaryBlock(initialValue, initialValue + length);
             }
             else {
                 throw new IllegalStateException("Unsupported type " + type);

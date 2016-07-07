@@ -23,6 +23,7 @@ import com.facebook.presto.spi.type.FixedWidthType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
 import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.spi.type.TypeSignatureParameter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
@@ -35,12 +36,9 @@ import static com.facebook.presto.spi.StandardErrorCode.NOT_SUPPORTED;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.lang.String.format;
-import static java.util.Objects.requireNonNull;
 
 public final class TypeUtils
 {
-    public static final int EXPECTED_ARRAY_SIZE = 1024;
     public static final int NULL_HASH_CODE = 0;
 
     private TypeUtils()
@@ -55,7 +53,7 @@ public final class TypeUtils
         return defaultSize;
     }
 
-    public static int hashPosition(Type type, Block block, int position)
+    public static long hashPosition(Type type, Block block, int position)
     {
         if (block.isNull(position)) {
             return NULL_HASH_CODE;
@@ -103,19 +101,30 @@ public final class TypeUtils
         return type.equalTo(leftBlock, leftPosition, rightBlock, rightPosition);
     }
 
+    public static Type resolveType(TypeSignature typeName, TypeManager typeManager)
+    {
+        Type type = typeManager.getType(typeName);
+        checkArgument(type != null, "Type '%s' not found", typeName);
+        return type;
+    }
+
     public static List<Type> resolveTypes(List<TypeSignature> typeNames, TypeManager typeManager)
     {
         return typeNames.stream()
-                .map((TypeSignature type) -> requireNonNull(typeManager.getType(type), format("Type '%s' not found", type)))
+                .map((TypeSignature type) -> resolveType(type, typeManager))
                 .collect(toImmutableList());
     }
 
     public static TypeSignature parameterizedTypeName(String base, TypeSignature... argumentNames)
     {
-        return new TypeSignature(base, ImmutableList.copyOf(argumentNames), ImmutableList.of());
+        ImmutableList.Builder<TypeSignatureParameter> parameters = ImmutableList.builder();
+        for (TypeSignature signature : argumentNames) {
+            parameters.add(TypeSignatureParameter.of(signature));
+        }
+        return new TypeSignature(base, parameters.build());
     }
 
-    public static int getHashPosition(List<? extends Type> hashTypes, Block[] hashBlocks, int position)
+    public static long getHashPosition(List<? extends Type> hashTypes, Block[] hashBlocks, int position)
     {
         int[] hashChannels = new int[hashBlocks.length];
         for (int i = 0; i < hashBlocks.length; i++) {

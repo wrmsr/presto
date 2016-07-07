@@ -14,8 +14,8 @@
 package com.facebook.presto.execution;
 
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.sql.planner.PartitioningScheme;
 import com.facebook.presto.sql.planner.PlanFragment;
-import com.facebook.presto.sql.planner.PlanFragment.PlanDistribution;
 import com.facebook.presto.sql.planner.Symbol;
 import com.facebook.presto.sql.planner.plan.PlanFragmentId;
 import com.facebook.presto.sql.planner.plan.PlanNodeId;
@@ -29,11 +29,12 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.net.URI;
 import java.sql.SQLException;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 import static com.facebook.presto.SessionTestUtils.TEST_SESSION;
 import static com.facebook.presto.spi.type.VarcharType.VARCHAR;
+import static com.facebook.presto.sql.planner.SystemPartitioningHandle.singlePartition;
+import static com.facebook.presto.sql.planner.SystemPartitioningHandle.unknownPartitioning;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
@@ -324,10 +325,9 @@ public class TestStageStateMachine
                         ImmutableList.of(symbol),
                         ImmutableList.of(ImmutableList.of(new StringLiteral("foo")))),
                 ImmutableMap.<Symbol, Type>of(symbol, VARCHAR),
-                ImmutableList.of(symbol),
-                PlanDistribution.SINGLE,
-                valuesNodeId,
-                Optional.empty());
+                unknownPartitioning().getHandle(),
+                ImmutableList.of(valuesNodeId),
+                new PartitioningScheme(singlePartition(), ImmutableList.of(symbol)));
 
         return planFragment;
     }

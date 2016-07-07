@@ -30,7 +30,7 @@ statement
     : query                                                            #statementDefault
     | USE schema=identifier                                            #use
     | USE catalog=identifier '.' schema=identifier                     #use
-    | CREATE TABLE qualifiedName
+    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
         (WITH tableProperties)? AS query
         (WITH (NO)? DATA)?                                             #createTableAsSelect
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
@@ -46,10 +46,22 @@ statement
         ADD COLUMN column=tableElement                                 #addColumn
     | CREATE (OR REPLACE)? VIEW qualifiedName AS query                 #createView
     | DROP VIEW (IF EXISTS)? qualifiedName                             #dropView
-    | EXPLAIN ('(' explainOption (',' explainOption)* ')')? statement  #explain
+    | CALL qualifiedName '(' (callArgument (',' callArgument)*)? ')'   #call
+    | GRANT
+        (privilege (',' privilege)* | ALL PRIVILEGES)
+        ON TABLE? qualifiedName TO grantee=identifier
+        (WITH GRANT OPTION)?                                           #grant
+    | REVOKE
+        (GRANT OPTION FOR)?
+        (privilege (',' privilege)* | ALL PRIVILEGES)
+        ON TABLE? qualifiedName FROM grantee=identifier                #revoke
+    | EXPLAIN ANALYZE?
+        ('(' explainOption (',' explainOption)* ')')? statement        #explain
+    | SHOW CREATE TABLE qualifiedName                                  #showCreateTable
+    | SHOW CREATE VIEW qualifiedName                                   #showCreateView
     | SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
-    | SHOW SCHEMAS ((FROM | IN) identifier)?                           #showSchemas
-    | SHOW CATALOGS                                                    #showCatalogs
+    | SHOW SCHEMAS ((FROM | IN) identifier)? (LIKE pattern=STRING)?    #showSchemas
+    | SHOW CATALOGS (LIKE pattern=STRING)?                             #showCatalogs
     | SHOW COLUMNS (FROM | IN) qualifiedName                           #showColumns
     | DESCRIBE qualifiedName                                           #showColumns
     | DESC qualifiedName                                               #showColumns
@@ -57,10 +69,16 @@ statement
     | SHOW SESSION                                                     #showSession
     | SET SESSION qualifiedName EQ expression                          #setSession
     | RESET SESSION qualifiedName                                      #resetSession
+    | START TRANSACTION (transactionMode (',' transactionMode)*)?      #startTransaction
+    | COMMIT WORK?                                                     #commit
+    | ROLLBACK WORK?                                                   #rollback
     | SHOW PARTITIONS (FROM | IN) qualifiedName
         (WHERE booleanExpression)?
         (ORDER BY sortItem (',' sortItem)*)?
         (LIMIT limit=(INTEGER_VALUE | ALL))?                           #showPartitions
+    | PREPARE identifier FROM statement                                #prepare
+    | DEALLOCATE PREPARE identifier                                    #deallocate
+    | EXECUTE identifier                                               #execute
     ;
 
 query
@@ -111,8 +129,12 @@ querySpecification
     : SELECT setQuantifier? selectItem (',' selectItem)*
       (FROM relation (',' relation)*)?
       (WHERE where=booleanExpression)?
-      (GROUP BY groupingElement (',' groupingElement)*)?
+      (GROUP BY groupBy)?
       (HAVING having=booleanExpression)?
+    ;
+
+groupBy
+    : setQuantifier? groupingElement (',' groupingElement)*
     ;
 
 groupingElement
@@ -206,7 +228,6 @@ booleanExpression
     | NOT booleanExpression                                        #logicalNot
     | left=booleanExpression operator=AND right=booleanExpression  #logicalBinary
     | left=booleanExpression operator=OR right=booleanExpression   #logicalBinary
-    | EXISTS '(' query ')'                                         #exists
     ;
 
 // workaround for:
@@ -242,6 +263,7 @@ primaryExpression
     | number                                                                         #numericLiteral
     | booleanValue                                                                   #booleanLiteral
     | STRING                                                                         #stringLiteral
+    | BINARY_LITERAL                                                                 #binaryLiteral
     | POSITION '(' valueExpression IN valueExpression ')'                            #position
     | '(' expression (',' expression)+ ')'                                           #rowConstructor
     | ROW '(' expression (',' expression)* ')'                                       #rowConstructor
@@ -250,6 +272,8 @@ primaryExpression
     | identifier '->' expression                                                     #lambda
     | '(' identifier (',' identifier)* ')' '->' expression                           #lambda
     | '(' query ')'                                                                  #subqueryExpression
+    // This is an extension to ANSI SQL, which considers EXISTS to be a <boolean expression>
+    | EXISTS '(' query ')'                                                           #exists
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                         #searchedCase
     | CAST '(' expression AS type ')'                                                #cast
@@ -294,10 +318,15 @@ type
     : type ARRAY
     | ARRAY '<' type '>'
     | MAP '<' type ',' type '>'
-    | simpleType
+    | ROW '(' identifier type (',' identifier type)* ')'
+    | baseType ('(' typeParameter (',' typeParameter)* ')')?
     ;
 
-simpleType
+typeParameter
+    : INTEGER_VALUE | type
+    ;
+
+baseType
     : TIME_WITH_TIME_ZONE
     | TIMESTAMP_WITH_TIME_ZONE
     | identifier
@@ -335,6 +364,27 @@ explainOption
     | TYPE value=(LOGICAL | DISTRIBUTED)     #explainType
     ;
 
+transactionMode
+    : ISOLATION LEVEL levelOfIsolation    #isolationLevel
+    | READ accessMode=(ONLY | WRITE)      #transactionAccessMode
+    ;
+
+levelOfIsolation
+    : READ UNCOMMITTED                    #readUncommitted
+    | READ COMMITTED                      #readCommitted
+    | REPEATABLE READ                     #repeatableRead
+    | SERIALIZABLE                        #serializable
+    ;
+
+callArgument
+    : expression                    #positionalArgument
+    | identifier '=>' expression    #namedArgument
+    ;
+
+privilege
+    : SELECT | DELETE | INSERT | identifier
+    ;
+
 qualifiedName
     : identifier ('.' identifier)*
     ;
@@ -359,18 +409,24 @@ number
 nonReserved
     : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS | SESSION
     | ADD
-    | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW | MAP
-    | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
+    | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW | MAP | ARRAY
+    | TINYINT | SMALLINT | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
     | YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
-    | EXPLAIN | FORMAT | TYPE | TEXT | GRAPHVIZ | LOGICAL | DISTRIBUTED
+    | EXPLAIN | ANALYZE | FORMAT | TYPE | TEXT | GRAPHVIZ | LOGICAL | DISTRIBUTED
     | TABLESAMPLE | SYSTEM | BERNOULLI | POISSONIZED | USE | TO
     | RESCALED | APPROXIMATE | AT | CONFIDENCE
     | SET | RESET
     | VIEW | REPLACE
     | IF | NULLIF | COALESCE
+    | TRY
     | normalForm
     | POSITION
     | NO | DATA
+    | START | TRANSACTION | COMMIT | ROLLBACK | WORK | ISOLATION | LEVEL
+    | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | ONLY
+    | CALL
+    | GRANT | REVOKE | PRIVILEGES | PUBLIC | OPTION
+    | SUBSTRING
     ;
 
 normalForm
@@ -419,6 +475,9 @@ DESC: 'DESC';
 SUBSTRING: 'SUBSTRING';
 POSITION: 'POSITION';
 FOR: 'FOR';
+TINYINT: 'TINYINT';
+SMALLINT: 'SMALLINT';
+INTEGER: 'INTEGER';
 DATE: 'DATE';
 TIME: 'TIME';
 TIMESTAMP: 'TIMESTAMP';
@@ -472,13 +531,20 @@ DELETE: 'DELETE';
 INTO: 'INTO';
 CONSTRAINT: 'CONSTRAINT';
 DESCRIBE: 'DESCRIBE';
+GRANT: 'GRANT';
+REVOKE: 'REVOKE';
+PRIVILEGES: 'PRIVILEGES';
+PUBLIC: 'PUBLIC';
+OPTION: 'OPTION';
 EXPLAIN: 'EXPLAIN';
+ANALYZE: 'ANALYZE';
 FORMAT: 'FORMAT';
 TYPE: 'TYPE';
 TEXT: 'TEXT';
 GRAPHVIZ: 'GRAPHVIZ';
 LOGICAL: 'LOGICAL';
 DISTRIBUTED: 'DISTRIBUTED';
+TRY: 'TRY';
 CAST: 'CAST';
 TRY_CAST: 'TRY_CAST';
 SHOW: 'SHOW';
@@ -511,6 +577,24 @@ SET: 'SET';
 RESET: 'RESET';
 SESSION: 'SESSION';
 DATA: 'DATA';
+START: 'START';
+TRANSACTION: 'TRANSACTION';
+COMMIT: 'COMMIT';
+ROLLBACK: 'ROLLBACK';
+WORK: 'WORK';
+ISOLATION: 'ISOLATION';
+LEVEL: 'LEVEL';
+SERIALIZABLE: 'SERIALIZABLE';
+REPEATABLE: 'REPEATABLE';
+COMMITTED: 'COMMITTED';
+UNCOMMITTED: 'UNCOMMITTED';
+READ: 'READ';
+WRITE: 'WRITE';
+ONLY: 'ONLY';
+CALL: 'CALL';
+PREPARE: 'PREPARE';
+DEALLOCATE: 'DEALLOCATE';
+EXECUTE: 'EXECUTE';
 
 NORMALIZE: 'NORMALIZE';
 NFD : 'NFD';
@@ -538,6 +622,13 @@ CONCAT: '||';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
+    ;
+
+// Note: we allow any character inside the binary literal and validate
+// its a correct literal when the AST is being constructed. This
+// allows us to provide more meaningful error messages to the user
+BINARY_LITERAL
+    :  'X\'' (~'\'')* '\''
     ;
 
 INTEGER_VALUE
