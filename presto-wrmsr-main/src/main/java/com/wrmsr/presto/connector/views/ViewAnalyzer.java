@@ -39,7 +39,8 @@ import javax.inject.Inject;
 import java.util.List;
 import java.util.Optional;
 
-import static com.facebook.presto.spi.StandardErrorCode.INTERNAL_ERROR;
+import static com.facebook.presto.spi.ErrorType.INTERNAL_ERROR;
+import static com.facebook.presto.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static java.util.Locale.ENGLISH;
 
@@ -102,7 +103,7 @@ public class ViewAnalyzer
             statement = sqlParser.createStatement(sql);
         }
         catch (ParsingException e) {
-            throw new PrestoException(INTERNAL_ERROR, "Formatted query does not parse: " + sql);
+            throw new PrestoException(GENERIC_INTERNAL_ERROR, "Formatted query does not parse: " + sql);
         }
 
         Analysis analysis = analyzeStatement(statement, session);

@@ -220,7 +220,7 @@ public class StructManager
     public void registerStructFunctions(RowType rowType, String name)
     {
         metadata.addFunctions(
-                new FunctionListBuilder(typeRegistry)
+                new FunctionListBuilder()
                         .scalar(new RowTypeConstructorCompiler().run(rowType, name + "_strict"))
                         .scalar(new NullableRowTypeConstructorCompiler().run(rowType, name))
                         .getFunctions());

@@ -129,6 +129,6 @@ public class ExtendedMySqlClient
                 fromProperties(connectionProperties),
                 layoutHandle.getTupleDomain(),
                 true);
-        return new FixedSplitSource(connectorId, ImmutableList.of(jdbcSplit));
+        return new FixedSplitSource(ImmutableList.of(jdbcSplit));
     }
 }
