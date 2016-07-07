@@ -11,53 +11,64 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.localfile;
+package com.facebook.presto.plugin.jdbc;
 
+import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
+import java.util.UUID;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class LocalFileConnectorId
+public class JdbcTransactionHandle
+        implements ConnectorTransactionHandle
 {
-    private final String connectorId;
+    private final UUID uuid;
+
+    public JdbcTransactionHandle()
+    {
+        this(UUID.randomUUID());
+    }
 
     @JsonCreator
-    public LocalFileConnectorId(@JsonProperty("connectorId") String connectorId)
+    public JdbcTransactionHandle(@JsonProperty("uuid") UUID uuid)
     {
-        this.connectorId = requireNonNull(connectorId, "connectorId is null");
+        this.uuid = requireNonNull(uuid, "uuid is null");
     }
 
     @JsonProperty
-    public String getConnectorId()
+    public UUID getUuid()
     {
-        return connectorId;
+        return uuid;
     }
 
     @Override
-    public boolean equals(Object o)
+    public boolean equals(Object obj)
     {
-        if (this == o) {
+        if (this == obj) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if ((obj == null) || (getClass() != obj.getClass())) {
             return false;
         }
-        LocalFileConnectorId that = (LocalFileConnectorId) o;
-        return Objects.equals(connectorId, that.connectorId);
+        JdbcTransactionHandle other = (JdbcTransactionHandle) obj;
+        return Objects.equals(uuid, other.uuid);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(connectorId);
+        return Objects.hash(uuid);
     }
 
     @Override
     public String toString()
     {
-        return connectorId;
+        return toStringHelper(this)
+                .add("uuid", uuid)
+                .toString();
     }
 }

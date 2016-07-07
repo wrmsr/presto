@@ -11,10 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.execution;
+package com.facebook.presto.execution.buffer;
 
 import com.facebook.presto.OutputBuffers;
+import com.facebook.presto.OutputBuffers.OutputBufferId;
 import com.facebook.presto.block.BlockAssertions;
+import com.facebook.presto.execution.TaskId;
 import com.facebook.presto.operator.PageAssertions;
 import com.facebook.presto.spi.Page;
 import com.facebook.presto.spi.type.BigintType;
@@ -30,37 +32,41 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static com.facebook.presto.OutputBuffers.INITIAL_EMPTY_OUTPUT_BUFFERS;
-import static com.facebook.presto.execution.BufferResult.emptyResults;
+import static com.facebook.presto.OutputBuffers.BufferType.BROADCAST;
+import static com.facebook.presto.OutputBuffers.BufferType.PARTITIONED;
+import static com.facebook.presto.OutputBuffers.createInitialEmptyOutputBuffers;
+import static com.facebook.presto.execution.buffer.BufferResult.emptyResults;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.google.common.base.Preconditions.checkArgument;
 import static io.airlift.concurrent.MoreFutures.tryGetFutureValue;
 import static io.airlift.concurrent.Threads.daemonThreadsNamed;
 import static io.airlift.units.DataSize.Unit.BYTE;
 import static java.util.concurrent.Executors.newScheduledThreadPool;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
-public class TestSharedBuffer
+public class TestSharedOutputBuffer
 {
     private static final Duration NO_WAIT = new Duration(0, TimeUnit.MILLISECONDS);
     private static final Duration MAX_WAIT = new Duration(1, TimeUnit.SECONDS);
     private static final DataSize PAGE_SIZE = new DataSize(createPage(42).getSizeInBytes(), BYTE);
     private static final DataSize RETAINED_PAGE_SIZE = new DataSize(createPage(42).getRetainedSizeInBytes(), BYTE);
-    private static final TaskId TASK_ID = new TaskId("query", "stage", "task");
+    private static final TaskId TASK_ID = new TaskId("query", "stage", 0);
     private static final int DEFAULT_PARTITION = 0;
     private static final String TASK_INSTANCE_ID = "task-instance-id";
 
     private static final ImmutableList<BigintType> TYPES = ImmutableList.of(BIGINT);
-    public static final TaskId FIRST = new TaskId("query", "stage", "first_task");
-    public static final TaskId SECOND = new TaskId("query", "stage", "second_task");
-    public static final TaskId QUEUE = new TaskId("query", "stage", "queue");
-    public static final TaskId FOO = new TaskId("foo", "bar", "baz");
+    public static final OutputBufferId FIRST = new OutputBufferId(0);
+    public static final OutputBufferId SECOND = new OutputBufferId(1);
+    public static final OutputBufferId QUEUE = new OutputBufferId(0);
+    public static final OutputBufferId FOO = new OutputBufferId(1);
 
     private static Page createPage(int i)
     {
@@ -101,7 +107,7 @@ public class TestSharedBuffer
             throws Exception
     {
         try {
-            new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, new DataSize(0, BYTE));
+            new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, new DataSize(0, BYTE));
             fail("Expected IllegalStateException");
         }
         catch (IllegalArgumentException ignored) {
@@ -112,14 +118,14 @@ public class TestSharedBuffer
     public void testSimple()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
 
         // add three items
         for (int i = 0; i < 3; i++) {
             addPage(sharedBuffer, createPage(i));
         }
 
-        OutputBuffers outputBuffers = INITIAL_EMPTY_OUTPUT_BUFFERS.withBuffer(FIRST, 0);
+        OutputBuffers outputBuffers = createInitialEmptyOutputBuffers(BROADCAST).withBuffer(FIRST, 0);
 
         // add a queue
         sharedBuffer.setOutputBuffers(outputBuffers);
@@ -183,7 +189,7 @@ public class TestSharedBuffer
         // queues consumed the first three pages, so they should be dropped now and the blocked page future from above should be done
         assertQueueState(sharedBuffer, FIRST, DEFAULT_PARTITION, 8, 3, 8, 11);
         assertQueueState(sharedBuffer, SECOND, DEFAULT_PARTITION, 1, 10, 8, 11);
-        assertTrue(future.isDone());
+        assertFutureIsDone(future);
 
         // we should be able to add 3 more pages (the third will be queued)
         // although the first queue fetched the 4th page, the page has not been acknowledged yet
@@ -198,7 +204,7 @@ public class TestSharedBuffer
         assertBufferResultEquals(TYPES, getBufferResult(sharedBuffer, FIRST, 4, sizeOfPages(1), NO_WAIT), bufferResult(4, createPage(4)));
 
         // the blocked page future above should be done
-        assertTrue(future.isDone());
+        assertFutureIsDone(future);
         assertQueueState(sharedBuffer, FIRST, DEFAULT_PARTITION, 10, 4, 10, 14);
         assertQueueState(sharedBuffer, SECOND, DEFAULT_PARTITION, 4, 10, 10, 14);
 
@@ -259,7 +265,7 @@ public class TestSharedBuffer
     {
         int firstPartition = 0;
         int secondPartition = 1;
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(2));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(2));
 
         // Add two pages, buffer is full
         addPage(sharedBuffer, createPage(1), firstPartition);
@@ -275,8 +281,8 @@ public class TestSharedBuffer
     {
         int firstPartition = 0;
         int secondPartition = 1;
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(2));
-        OutputBuffers outputBuffers = INITIAL_EMPTY_OUTPUT_BUFFERS
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(2));
+        OutputBuffers outputBuffers = createInitialEmptyOutputBuffers(BROADCAST)
                 .withBuffer(FIRST, firstPartition)
                 .withBuffer(SECOND, secondPartition)
                 .withNoMoreBufferIds();
@@ -299,7 +305,7 @@ public class TestSharedBuffer
         sharedBuffer.get(FIRST, 2, sizeOfPages(10)).cancel(true);
 
         // page should be dequeued, we should not be blocked
-        assertTrue(future.isDone());
+        assertFutureIsDone(future);
         assertQueueState(sharedBuffer, SECOND, secondPartition, 1, 0, 1, 1); // no more queued pages
     }
 
@@ -309,7 +315,7 @@ public class TestSharedBuffer
     {
         int firstPartition = 0;
         int secondPartition = 1;
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(20));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(20));
 
         // add three items to each buffer
         for (int i = 0; i < 3; i++) {
@@ -317,7 +323,7 @@ public class TestSharedBuffer
             addPage(sharedBuffer, createPage(i), secondPartition);
         }
 
-        OutputBuffers outputBuffers = INITIAL_EMPTY_OUTPUT_BUFFERS.withBuffer(FIRST, firstPartition);
+        OutputBuffers outputBuffers = createInitialEmptyOutputBuffers(PARTITIONED).withBuffer(FIRST, firstPartition);
 
         // add first partition
         sharedBuffer.setOutputBuffers(outputBuffers);
@@ -380,7 +386,7 @@ public class TestSharedBuffer
         sharedBuffer.setOutputBuffers(outputBuffers);
 
         // since both queues consumed some pages, the blocked page future from above should be done
-        assertTrue(future.isDone());
+        assertFutureIsDone(future);
         assertQueueState(sharedBuffer, FIRST, firstPartition, 8, 3, 8, 11);
         assertQueueState(sharedBuffer, SECOND, secondPartition, 0, 10, 0, 10);
 
@@ -396,7 +402,7 @@ public class TestSharedBuffer
         assertBufferResultEquals(TYPES, getBufferResult(sharedBuffer, FIRST, 4, sizeOfPages(1), NO_WAIT), bufferResult(4, createPage(4)));
 
         // the blocked page future above should be done
-        assertTrue(future.isDone());
+        assertFutureIsDone(future);
         assertQueueState(sharedBuffer, FIRST, firstPartition, 10, 4, 10, 14);
         assertQueueState(sharedBuffer, SECOND, secondPartition, 0, 10, 0, 10);
 
@@ -435,9 +441,9 @@ public class TestSharedBuffer
         assertFinished(sharedBuffer);
     }
 
-    public static BufferResult getBufferResult(SharedBuffer sharedBuffer, TaskId outputId, long sequenceId, DataSize maxSize, Duration maxWait)
+    public static BufferResult getBufferResult(SharedOutputBuffer sharedBuffer, OutputBufferId bufferId, long sequenceId, DataSize maxSize, Duration maxWait)
     {
-        CompletableFuture<BufferResult> future = sharedBuffer.get(outputId, sequenceId, maxSize);
+        CompletableFuture<BufferResult> future = sharedBuffer.get(bufferId, sequenceId, maxSize);
         return getFuture(future, maxWait);
     }
 
@@ -450,14 +456,14 @@ public class TestSharedBuffer
     public void testDuplicateRequests()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
         // add three items
         for (int i = 0; i < 3; i++) {
             addPage(sharedBuffer, createPage(i));
         }
 
         // add a queue
-        OutputBuffers outputBuffers = INITIAL_EMPTY_OUTPUT_BUFFERS;
+        OutputBuffers outputBuffers = createInitialEmptyOutputBuffers(BROADCAST);
         outputBuffers = outputBuffers.withBuffer(FIRST, 0);
         sharedBuffer.setOutputBuffers(outputBuffers);
         assertQueueState(sharedBuffer, FIRST, DEFAULT_PARTITION, 3, 0, 3, 3);
@@ -485,30 +491,30 @@ public class TestSharedBuffer
     public void testAddQueueAfterNoMoreQueues()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
         assertFalse(sharedBuffer.isFinished());
 
         // tell buffer no more queues will be added
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS.withNoMoreBufferIds());
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST).withNoMoreBufferIds());
         assertFalse(sharedBuffer.isFinished());
 
         // set no more queues a second time to assure that we don't get an exception or such
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS.withNoMoreBufferIds());
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST).withNoMoreBufferIds());
         assertFalse(sharedBuffer.isFinished());
 
         // set no more queues a third time to assure that we don't get an exception or such
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS.withNoMoreBufferIds());
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST).withNoMoreBufferIds());
         assertFalse(sharedBuffer.isFinished());
 
         try {
-            OutputBuffers outputBuffers = INITIAL_EMPTY_OUTPUT_BUFFERS
+            OutputBuffers outputBuffers = createInitialEmptyOutputBuffers(BROADCAST)
                     .withBuffer(FOO, 0)
                     .withNoMoreBufferIds();
 
             sharedBuffer.setOutputBuffers(outputBuffers);
             fail("Expected IllegalStateException from addQueue after noMoreQueues has been called");
         }
-        catch (IllegalStateException ignored) {
+        catch (IllegalArgumentException ignored) {
         }
     }
 
@@ -516,7 +522,7 @@ public class TestSharedBuffer
     public void testAddQueueAfterDestroy()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
         assertFalse(sharedBuffer.isFinished());
 
         // destroy buffer
@@ -524,22 +530,22 @@ public class TestSharedBuffer
         assertFinished(sharedBuffer);
 
         // set no more queues to assure that we don't get an exception or such
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS.withNoMoreBufferIds());
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST).withNoMoreBufferIds());
         assertFinished(sharedBuffer);
 
         // set no more queues a second time to assure that we don't get an exception or such
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS.withNoMoreBufferIds());
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST).withNoMoreBufferIds());
         assertFinished(sharedBuffer);
 
         // add queue calls after finish should be ignored
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS.withBuffer(FOO, 0).withNoMoreBufferIds());
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST).withBuffer(FOO, 0).withNoMoreBufferIds());
     }
 
     @Test
     public void testGetBeforeCreate()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
         assertFalse(sharedBuffer.isFinished());
 
         // get a page from a buffer that doesn't exist yet
@@ -551,7 +557,7 @@ public class TestSharedBuffer
         assertFalse(future.isDone());
 
         // add the buffer and verify the future completed
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS.withBuffer(FIRST, 0));
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST).withBuffer(FIRST, 0));
         assertBufferResultEquals(TYPES, getFuture(future, NO_WAIT), bufferResult(0, createPage(33)));
     }
 
@@ -559,7 +565,7 @@ public class TestSharedBuffer
     public void testAbortBeforeCreate()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
         assertFalse(sharedBuffer.isFinished());
 
         // get a page from a buffer that doesn't exist yet
@@ -574,7 +580,7 @@ public class TestSharedBuffer
         assertFalse(future.isDone());
 
         // add the buffer and verify we did not get the page
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS.withBuffer(FIRST, 0));
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST).withBuffer(FIRST, 0));
         assertBufferResultEquals(TYPES, getFuture(future, NO_WAIT), emptyResults(TASK_INSTANCE_ID, 0, true));
 
         // verify that a normal read returns a closed empty result
@@ -586,14 +592,14 @@ public class TestSharedBuffer
             throws Exception
     {
         // add after finish
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
         sharedBuffer.setNoMorePages();
         addPage(sharedBuffer, createPage(0));
         addPage(sharedBuffer, createPage(0));
         assertEquals(sharedBuffer.getInfo().getTotalPagesSent(), 0);
 
         // add after destroy
-        sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
+        sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
         sharedBuffer.destroy();
         addPage(sharedBuffer, createPage(0));
         addPage(sharedBuffer, createPage(0));
@@ -604,7 +610,7 @@ public class TestSharedBuffer
     public void testAbort()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
 
         // fill the buffer
         for (int i = 0; i < 10; i++) {
@@ -612,7 +618,7 @@ public class TestSharedBuffer
         }
         sharedBuffer.setNoMorePages();
 
-        OutputBuffers outputBuffers = INITIAL_EMPTY_OUTPUT_BUFFERS
+        OutputBuffers outputBuffers = createInitialEmptyOutputBuffers(BROADCAST)
                 .withBuffer(FIRST, 0);
         sharedBuffer.setOutputBuffers(outputBuffers);
         assertBufferResultEquals(TYPES, getBufferResult(sharedBuffer, FIRST, 0, sizeOfPages(1), NO_WAIT), bufferResult(0, createPage(0)));
@@ -633,8 +639,8 @@ public class TestSharedBuffer
     public void testFinishClosesEmptyQueues()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(10));
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST)
                 .withBuffer(FIRST, 0)
                 .withBuffer(SECOND, 0));
 
@@ -655,8 +661,8 @@ public class TestSharedBuffer
     public void testAbortFreesReader()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS.withBuffer(QUEUE, 0));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST).withBuffer(QUEUE, 0));
         assertFalse(sharedBuffer.isFinished());
 
         // attempt to get a page
@@ -687,8 +693,8 @@ public class TestSharedBuffer
     public void testFinishFreesReader()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS.withBuffer(QUEUE, 0));
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST).withBuffer(QUEUE, 0));
         assertFalse(sharedBuffer.isFinished());
 
         // attempt to get a page
@@ -721,8 +727,8 @@ public class TestSharedBuffer
     public void testFinishFreesWriter()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST)
                 .withBuffer(QUEUE, 0)
                 .withNoMoreBufferIds());
         assertFalse(sharedBuffer.isFinished());
@@ -749,8 +755,8 @@ public class TestSharedBuffer
         assertFalse(sharedBuffer.isFinished());
 
         // verify futures are complete
-        assertTrue(firstEnqueuePage.isDone());
-        assertTrue(secondEnqueuePage.isDone());
+        assertFutureIsDone(firstEnqueuePage);
+        assertFutureIsDone(secondEnqueuePage);
 
         // get and acknowledge the last 6 pages
         assertBufferResultEquals(TYPES, getBufferResult(sharedBuffer, QUEUE, 1, sizeOfPages(100), NO_WAIT),
@@ -767,8 +773,8 @@ public class TestSharedBuffer
     public void testDestroyFreesReader()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST)
                 .withBuffer(QUEUE, 0)
                 .withNoMoreBufferIds());
         assertFalse(sharedBuffer.isFinished());
@@ -801,8 +807,8 @@ public class TestSharedBuffer
     public void testDestroyFreesWriter()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST)
                 .withBuffer(QUEUE, 0)
                 .withNoMoreBufferIds());
         assertFalse(sharedBuffer.isFinished());
@@ -828,17 +834,17 @@ public class TestSharedBuffer
         sharedBuffer.destroy();
         assertFinished(sharedBuffer);
 
-        // verify the furutres are completed
-        assertTrue(firstEnqueuePage.isDone());
-        assertTrue(secondEnqueuePage.isDone());
+        // verify the futures are completed
+        assertFutureIsDone(firstEnqueuePage);
+        assertFutureIsDone(secondEnqueuePage);
     }
 
     @Test
     public void testBufferCompletion()
             throws Exception
     {
-        SharedBuffer sharedBuffer = new SharedBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
-        sharedBuffer.setOutputBuffers(INITIAL_EMPTY_OUTPUT_BUFFERS
+        SharedOutputBuffer sharedBuffer = new SharedOutputBuffer(TASK_ID, TASK_INSTANCE_ID, stateNotificationExecutor, retainedSizeOfPages(5));
+        sharedBuffer.setOutputBuffers(createInitialEmptyOutputBuffers(BROADCAST)
                 .withBuffer(QUEUE, 0)
                 .withNoMoreBufferIds());
 
@@ -870,31 +876,31 @@ public class TestSharedBuffer
         assertTrue(sharedBuffer.isFinished());
     }
 
-    private static ListenableFuture<?> enqueuePage(SharedBuffer sharedBuffer, Page page)
+    private static ListenableFuture<?> enqueuePage(SharedOutputBuffer sharedBuffer, Page page)
     {
         return enqueuePage(sharedBuffer, page, DEFAULT_PARTITION);
     }
 
-    private static ListenableFuture<?> enqueuePage(SharedBuffer sharedBuffer, Page page, int partition)
+    private static ListenableFuture<?> enqueuePage(SharedOutputBuffer sharedBuffer, Page page, int partition)
     {
         ListenableFuture<?> future = sharedBuffer.enqueue(partition, page);
         assertFalse(future.isDone());
         return future;
     }
 
-    private static void addPage(SharedBuffer sharedBuffer, Page page)
+    private static void addPage(SharedOutputBuffer sharedBuffer, Page page)
     {
         addPage(sharedBuffer, page, DEFAULT_PARTITION);
     }
 
-    private static void addPage(SharedBuffer sharedBuffer, Page page, int partition)
+    private static void addPage(SharedOutputBuffer sharedBuffer, Page page, int partition)
     {
         assertTrue(sharedBuffer.enqueue(partition, page).isDone());
     }
 
     private static void assertQueueState(
-            SharedBuffer sharedBuffer,
-            TaskId queueId,
+            SharedOutputBuffer sharedBuffer,
+            OutputBufferId bufferId,
             int partition,
             int bufferedPages,
             int pagesSent,
@@ -902,9 +908,9 @@ public class TestSharedBuffer
             int pageBufferPagesSent)
     {
         assertEquals(
-                getBufferInfo(sharedBuffer, queueId),
+                getBufferInfo(sharedBuffer, bufferId),
                 new BufferInfo(
-                        queueId,
+                        bufferId,
                         false,
                         bufferedPages,
                         pagesSent,
@@ -917,25 +923,25 @@ public class TestSharedBuffer
     }
 
     @SuppressWarnings("ConstantConditions")
-    private static void assertQueueClosed(SharedBuffer sharedBuffer, TaskId queueId, int pagesSent)
+    private static void assertQueueClosed(SharedOutputBuffer sharedBuffer, OutputBufferId bufferId, int pagesSent)
     {
-        BufferInfo bufferInfo = getBufferInfo(sharedBuffer, queueId);
+        BufferInfo bufferInfo = getBufferInfo(sharedBuffer, bufferId);
         assertEquals(bufferInfo.getBufferedPages(), 0);
         assertEquals(bufferInfo.getPagesSent(), pagesSent);
         assertEquals(bufferInfo.isFinished(), true);
     }
 
-    private static BufferInfo getBufferInfo(SharedBuffer sharedBuffer, TaskId queueId)
+    private static BufferInfo getBufferInfo(SharedOutputBuffer sharedBuffer, OutputBufferId bufferId)
     {
         for (BufferInfo bufferInfo : sharedBuffer.getInfo().getBuffers()) {
-            if (bufferInfo.getBufferId().equals(queueId)) {
+            if (bufferInfo.getBufferId().equals(bufferId)) {
                 return bufferInfo;
             }
         }
         return null;
     }
 
-    private static void assertFinished(SharedBuffer sharedBuffer)
+    private static void assertFinished(SharedOutputBuffer sharedBuffer)
             throws Exception
     {
         assertTrue(sharedBuffer.isFinished());
@@ -956,6 +962,12 @@ public class TestSharedBuffer
             PageAssertions.assertPageEquals(types, actualPage, expectedPage);
         }
         assertEquals(actual.isBufferComplete(), expected.isBufferComplete());
+    }
+
+    private static void assertFutureIsDone(Future<?> future)
+    {
+        tryGetFutureValue(future, 5, SECONDS);
+        assertTrue(future.isDone());
     }
 
     public static BufferResult bufferResult(long token, Page firstPage, Page... otherPages)

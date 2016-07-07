@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.execution;
+package com.facebook.presto.execution.buffer;
 
 import com.facebook.presto.spi.Page;
 import com.google.common.collect.ImmutableList;
@@ -25,7 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.facebook.presto.execution.PageSplitterUtil.splitPage;
+import static com.facebook.presto.execution.buffer.PageSplitterUtil.splitPage;
 import static com.facebook.presto.spi.block.PageBuilderStatus.DEFAULT_MAX_PAGE_SIZE_IN_BYTES;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -33,7 +33,7 @@ import static com.google.common.base.Verify.verify;
 import static java.util.Objects.requireNonNull;
 
 @ThreadSafe
-public class PartitionBuffer
+public class SharedOutputBufferPartition
 {
     private final LinkedList<Page> masterBuffer = new LinkedList<>();
     private final AtomicLong rowsAdded = new AtomicLong(); // Number of rows added to the masterBuffer
@@ -41,9 +41,9 @@ public class PartitionBuffer
     private final AtomicLong masterSequenceId = new AtomicLong();
     private final AtomicLong bufferedBytes = new AtomicLong();  // Bytes in the master buffer
     private final int partition;
-    private final SharedBufferMemoryManager memoryManager;
+    private final OutputBufferMemoryManager memoryManager;
 
-    public PartitionBuffer(int partition, SharedBufferMemoryManager memoryManager)
+    public SharedOutputBufferPartition(int partition, OutputBufferMemoryManager memoryManager)
     {
         checkArgument(partition >= 0, "partition must be >= 0");
         this.partition = partition;

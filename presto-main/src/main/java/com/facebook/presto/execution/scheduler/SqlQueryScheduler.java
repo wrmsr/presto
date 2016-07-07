@@ -14,6 +14,7 @@
 package com.facebook.presto.execution.scheduler;
 
 import com.facebook.presto.OutputBuffers;
+import com.facebook.presto.OutputBuffers.OutputBufferId;
 import com.facebook.presto.Session;
 import com.facebook.presto.execution.LocationFactory;
 import com.facebook.presto.execution.NodeTaskMap;
@@ -25,7 +26,6 @@ import com.facebook.presto.execution.SqlStageExecution;
 import com.facebook.presto.execution.StageId;
 import com.facebook.presto.execution.StageInfo;
 import com.facebook.presto.execution.StageState;
-import com.facebook.presto.execution.scheduler.OutputBufferManager.OutputBuffer;
 import com.facebook.presto.spi.Node;
 import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.split.SplitSource;
@@ -40,6 +40,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.primitives.Ints;
 import io.airlift.concurrent.SetThreadName;
 import io.airlift.units.Duration;
 
@@ -58,6 +59,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
+import static com.facebook.presto.connector.ConnectorManager.INFORMATION_SCHEMA_CONNECTOR_PREFIX;
+import static com.facebook.presto.connector.ConnectorManager.SYSTEM_TABLES_CONNECTOR_PREFIX;
 import static com.facebook.presto.execution.StageState.ABORTED;
 import static com.facebook.presto.execution.StageState.CANCELED;
 import static com.facebook.presto.execution.StageState.FAILED;
@@ -66,8 +69,8 @@ import static com.facebook.presto.execution.StageState.RUNNING;
 import static com.facebook.presto.execution.StageState.SCHEDULED;
 import static com.facebook.presto.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static com.facebook.presto.spi.StandardErrorCode.NO_NODES_AVAILABLE;
-import static com.facebook.presto.sql.planner.SystemPartitioningHandle.FIXED_BROADCAST_DISTRIBUTION;
-import static com.facebook.presto.sql.planner.SystemPartitioningHandle.SOURCE_DISTRIBUTION;
+import static com.facebook.presto.sql.planner.SystemPartitioningHandle.isFixedBroadcastPartitioning;
+import static com.facebook.presto.sql.planner.SystemPartitioningHandle.isUnknownPartitioning;
 import static com.facebook.presto.util.Failures.checkCondition;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableMap;
@@ -206,11 +209,14 @@ public class SqlQueryScheduler
         stages.add(stage);
 
         Optional<int[]> bucketToPartition;
-        PartitioningHandle partitioningHandle = plan.getFragment().getPartitioning();
-        if (partitioningHandle.equals(SOURCE_DISTRIBUTION)) {
+        if (isUnknownPartitioning(plan.getFragment().getPartitioning())) {
             // nodes are selected dynamically based on the constraints of the splits and the system load
             Entry<PlanNodeId, SplitSource> entry = Iterables.getOnlyElement(plan.getSplitSources().entrySet());
-            NodeSelector nodeSelector = nodeScheduler.createNodeSelector(entry.getValue().getDataSourceName());
+            String dataSourceName = entry.getValue().getDataSourceName();
+            if (dataSourceName.startsWith(SYSTEM_TABLES_CONNECTOR_PREFIX) || dataSourceName.startsWith(INFORMATION_SCHEMA_CONNECTOR_PREFIX)) {
+                dataSourceName = null;
+            }
+            NodeSelector nodeSelector = nodeScheduler.createNodeSelector(dataSourceName);
             SplitPlacementPolicy placementPolicy = new DynamicSplitPlacementPolicy(nodeSelector, stage::getAllTasks);
             stageSchedulers.put(stageId, new SourcePartitionedScheduler(stage, entry.getKey(), entry.getValue(), placementPolicy, splitBatchSize));
             bucketToPartition = Optional.of(new int[1]);
@@ -426,11 +432,12 @@ public class SqlQueryScheduler
             this.parent = parent;
             this.childOutputBufferManagers = children.stream()
                     .map(childStage -> {
-                        if (childStage.getFragment().getPartitioningScheme().getPartitioning().getHandle().equals(FIXED_BROADCAST_DISTRIBUTION)) {
+                        if (isFixedBroadcastPartitioning(childStage.getFragment().getOutputPartitioningScheme().getPartitioning())) {
                             return new BroadcastOutputBufferManager(childStage::setOutputBuffers);
                         }
                         else {
-                            return new PartitionedOutputBufferManager(childStage::setOutputBuffers);
+                            int partitionCount = Ints.max(childStage.getFragment().getOutputPartitioningScheme().getBucketToPartition().get()) + 1;
+                            return new PartitionedOutputBufferManager(partitionCount, childStage::setOutputBuffers);
                         }
                     })
                     .collect(toImmutableSet());
@@ -478,8 +485,8 @@ public class SqlQueryScheduler
 
             if (!childOutputBufferManagers.isEmpty()) {
                 // Add an output buffer to the child stages for each new task
-                List<OutputBuffer> newOutputBuffers = newTasks.stream()
-                        .map(task -> new OutputBuffer(task.getTaskId(), task.getPartition()))
+                List<OutputBufferId> newOutputBuffers = newTasks.stream()
+                        .map(task -> new OutputBufferId(task.getTaskId().getId()))
                         .collect(toImmutableList());
                 for (OutputBufferManager child : childOutputBufferManagers) {
                     child.addOutputBuffers(newOutputBuffers, noMoreTasks);
