@@ -15,7 +15,7 @@ package com.wrmsr.presto.connector.jdbc;
 
 import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcConnector;
-import com.facebook.presto.plugin.jdbc.JdbcMetadata;
+import com.facebook.presto.plugin.jdbc.JdbcMetadataFactory;
 import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
 import com.facebook.presto.plugin.jdbc.JdbcRecordSinkProvider;
 import com.facebook.presto.plugin.jdbc.JdbcSplitManager;
@@ -32,13 +32,13 @@ public class ExtendedJdbcConnector
     @Inject
     public ExtendedJdbcConnector(
             LifeCycleManager lifeCycleManager,
-            JdbcMetadata jdbcMetadata,
+            JdbcMetadataFactory jdbcMetadataFactory,
             JdbcSplitManager jdbcSplitManager,
             JdbcRecordSetProvider jdbcRecordSetProvider,
             JdbcRecordSinkProvider jdbcRecordSinkProvider,
             JdbcClient jdbcClient)
     {
-        super(lifeCycleManager, jdbcMetadata, jdbcSplitManager, jdbcRecordSetProvider, jdbcRecordSinkProvider);
+        super(lifeCycleManager, jdbcMetadataFactory, jdbcSplitManager, jdbcRecordSetProvider, jdbcRecordSinkProvider);
         this.jdbcClient = checkNotNull(jdbcClient);
     }
 

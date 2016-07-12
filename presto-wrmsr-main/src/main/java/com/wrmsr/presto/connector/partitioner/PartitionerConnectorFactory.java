@@ -17,6 +17,7 @@ import com.facebook.presto.connector.ConnectorManager;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorFactory;
+import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.google.inject.Binder;
 import com.google.inject.Module;
@@ -28,6 +29,7 @@ import com.wrmsr.presto.connector.jdbc.JdbcPartitioner;
 
 import java.util.Map;
 
+import static com.facebook.presto.spi.transaction.IsolationLevel.READ_UNCOMMITTED;
 import static com.wrmsr.presto.util.Exceptions.runtimeThrowing;
 
 public class PartitionerConnectorFactory
@@ -47,9 +49,11 @@ public class PartitionerConnectorFactory
     public Connector create(Connector target, String connectorId, Map<String, String> requiredConfiguration)
     {
         Partitioner partitioner = null;
-        if (target instanceof LegacyTransactionConnector && ((LegacyTransactionConnector) target).getConnector() instanceof ExtendedJdbcConnector) {
-            ExtendedJdbcConnector ejc = (ExtendedJdbcConnector) ((LegacyTransactionConnector) target).getConnector();
-            JdbcMetadata jdbcMetadata = (JdbcMetadata) ejc.getMetadata();
+        if (target instanceof ExtendedJdbcConnector) {
+            ExtendedJdbcConnector ejc = (ExtendedJdbcConnector) target;
+            ConnectorTransactionHandle transaction = target.beginTransaction(READ_UNCOMMITTED, true);
+            JdbcMetadata jdbcMetadata = (JdbcMetadata) ejc.getMetadata(transaction);
+            target.commit(transaction);
             ExtendedJdbcClient jdbcClient = (ExtendedJdbcClient) jdbcMetadata.getJdbcClient();
             partitioner = new JdbcPartitioner(
                     runtimeThrowing(() -> jdbcClient.getConnection()),

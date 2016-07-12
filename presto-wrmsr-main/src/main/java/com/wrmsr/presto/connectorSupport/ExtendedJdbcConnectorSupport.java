@@ -18,12 +18,12 @@ import com.facebook.presto.plugin.jdbc.JdbcColumnHandle;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.plugin.jdbc.JdbcTableHandle;
 import com.facebook.presto.spi.ColumnHandle;
-import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.ConnectorSession;
 import com.facebook.presto.spi.ConnectorTableHandle;
 import com.facebook.presto.spi.SchemaTableName;
+import com.facebook.presto.spi.connector.Connector;
+import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.type.Type;
-import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.google.common.base.Throwables;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcClient;
 import com.wrmsr.presto.connector.jdbc.ExtendedJdbcConnector;
@@ -39,6 +39,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
+import static com.facebook.presto.spi.transaction.IsolationLevel.READ_UNCOMMITTED;
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class ExtendedJdbcConnectorSupport
@@ -52,7 +53,8 @@ public class ExtendedJdbcConnectorSupport
     {
         this.session = session;
         this.wrapperConnector = wrapperConnector;
-        this.connector = (ExtendedJdbcConnector) connector;;
+        this.connector = (ExtendedJdbcConnector) connector;
+        ;
     }
 
     public ExtendedJdbcClient getClient()
@@ -88,7 +90,9 @@ public class ExtendedJdbcConnectorSupport
     @Override
     public void exec(String buf)
     {
+        ConnectorTransactionHandle transaction = connector.beginTransaction(READ_UNCOMMITTED, true);
         JdbcMetadata metadata = (JdbcMetadata) connector.getMetadata();
+        connector.commit(transaction);
         BaseJdbcClient client = (BaseJdbcClient) metadata.getJdbcClient();
         try (Connection connection = client.getConnection()) {
             ScriptRunner scriptRunner = new ScriptRunner(connection);

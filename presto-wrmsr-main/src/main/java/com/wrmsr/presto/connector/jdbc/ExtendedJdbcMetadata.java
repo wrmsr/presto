@@ -14,18 +14,15 @@
 package com.wrmsr.presto.connector.jdbc;
 
 import com.facebook.presto.plugin.jdbc.JdbcClient;
-import com.facebook.presto.plugin.jdbc.JdbcConnectorId;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
-import com.facebook.presto.plugin.jdbc.JdbcMetadataConfig;
 
 import javax.inject.Inject;
 
 public class ExtendedJdbcMetadata
-    extends JdbcMetadata
+        extends JdbcMetadata
 {
-    @Inject
-    public ExtendedJdbcMetadata(JdbcConnectorId connectorId, JdbcClient jdbcClient, JdbcMetadataConfig config)
+    public ExtendedJdbcMetadata(JdbcClient jdbcClient, boolean allowDropTable)
     {
-        super(connectorId, jdbcClient, config);
+        super(jdbcClient, allowDropTable);
     }
 }

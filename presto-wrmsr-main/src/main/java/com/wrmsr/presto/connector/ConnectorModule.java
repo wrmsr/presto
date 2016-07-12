@@ -68,22 +68,22 @@ public class ConnectorModule
         newSetBinder(binder, ConnectorFactory.class).addBinding().to(ViewsConnectorFactory.class);
 
         binder.bind(H2ConnectorFactory.class).asEagerSingleton();
-        newSetBinder(binder, com.facebook.presto.spi.ConnectorFactory.class).addBinding().to(H2ConnectorFactory.class);
+        newSetBinder(binder, com.facebook.presto.spi.connector.ConnectorFactory.class).addBinding().to(H2ConnectorFactory.class);
 
         binder.bind(ExtendedMySqlConnectorFactory.class).asEagerSingleton();
-        newSetBinder(binder, com.facebook.presto.spi.ConnectorFactory.class).addBinding().to(ExtendedMySqlConnectorFactory.class);
+        newSetBinder(binder, com.facebook.presto.spi.connector.ConnectorFactory.class).addBinding().to(ExtendedMySqlConnectorFactory.class);
 
         binder.bind(ExtendedPostgreSqlConnectorFactory.class).asEagerSingleton();
-        newSetBinder(binder, com.facebook.presto.spi.ConnectorFactory.class).addBinding().to(ExtendedPostgreSqlConnectorFactory.class);
+        newSetBinder(binder, com.facebook.presto.spi.connector.ConnectorFactory.class).addBinding().to(ExtendedPostgreSqlConnectorFactory.class);
 
         binder.bind(RedshiftConnectorFactory.class).asEagerSingleton();
-        newSetBinder(binder, com.facebook.presto.spi.ConnectorFactory.class).addBinding().to(RedshiftConnectorFactory.class);
+        newSetBinder(binder, com.facebook.presto.spi.connector.ConnectorFactory.class).addBinding().to(RedshiftConnectorFactory.class);
 
         binder.bind(SqliteConnectorFactory.class).asEagerSingleton();
-        newSetBinder(binder, com.facebook.presto.spi.ConnectorFactory.class).addBinding().to(SqliteConnectorFactory.class);
+        newSetBinder(binder, com.facebook.presto.spi.connector.ConnectorFactory.class).addBinding().to(SqliteConnectorFactory.class);
 
         binder.bind(TempConnectorFactory.class).asEagerSingleton();
-        newSetBinder(binder, com.facebook.presto.spi.ConnectorFactory.class).addBinding().to(TempConnectorFactory.class);
+        newSetBinder(binder, com.facebook.presto.spi.connector.ConnectorFactory.class).addBinding().to(TempConnectorFactory.class);
 
         binder.bind(MetaconnectorManager.class).asEagerSingleton();
 

@@ -16,13 +16,14 @@ package com.wrmsr.presto.connector.jdbc;
 import com.facebook.presto.plugin.jdbc.JdbcConnector;
 import com.facebook.presto.plugin.jdbc.JdbcHandleResolver;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
+import com.facebook.presto.plugin.jdbc.JdbcMetadataFactory;
 import com.facebook.presto.plugin.jdbc.JdbcModule;
 import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
 import com.facebook.presto.plugin.jdbc.JdbcRecordSinkProvider;
-import com.facebook.presto.spi.connector.Connector;
-import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.facebook.presto.spi.ConnectorHandleResolver;
 import com.facebook.presto.spi.classloader.ThreadContextClassLoader;
+import com.facebook.presto.spi.connector.Connector;
+import com.facebook.presto.spi.connector.ConnectorFactory;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.google.common.base.Throwables;
@@ -41,11 +42,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.collect.Maps.newHashMap;
 import static com.wrmsr.presto.util.collect.Maps.mapMerge;
 
 public class ExtendedJdbcConnectorFactory
@@ -135,6 +134,7 @@ public class ExtendedJdbcConnectorFactory
             {
                 binder.bind(JdbcConnector.class).to(ExtendedJdbcConnector.class).in(Scopes.SINGLETON);
                 binder.bind(JdbcRecordSetProvider.class).to(ExtendedJdbcRecordSetProvider.class).in(Scopes.SINGLETON);
+                binder.bind(JdbcMetadataFactory.class).to(ExtendedJdbcMetadataFactory.class).in(Scopes.SINGLETON);
                 binder.bind(JdbcHandleResolver.class).to(ExtendedJdbcHandleResolver.class).in(Scopes.SINGLETON);
                 binder.bind(JdbcMetadata.class).to(ExtendedJdbcMetadata.class).in(Scopes.SINGLETON);
                 binder.bind(JdbcRecordSinkProvider.class).to(ExtendedJdbcRecordSinkProvider.class).in(Scopes.SINGLETON);
