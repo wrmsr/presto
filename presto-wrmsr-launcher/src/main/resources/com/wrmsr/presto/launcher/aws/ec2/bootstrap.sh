@@ -9,6 +9,8 @@ sudo bash -c 'echo 127.0.0.1 `hostname` >> /etc/hosts'
 
 ISSUE=$(cat /etc/issue | head -n 1)
 
+# libglib2.0-dev libssl-dev
+# https://github.com/irssi/irssi/releases/download/0.8.19/irssi-0.8.19.tar.xz
 if [[ $ISSUE == "Ubuntu"* ]] ; then
     sudo apt-get update
     # sudo DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade
