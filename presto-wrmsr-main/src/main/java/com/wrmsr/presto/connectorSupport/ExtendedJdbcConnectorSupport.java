@@ -46,13 +46,11 @@ public class ExtendedJdbcConnectorSupport
         implements HandleDetailsConnectorSupport, KeyConnectorSupport, EvalConnectorSupport
 {
     private final ConnectorSession session;
-    private final Connector wrapperConnector;
     private final ExtendedJdbcConnector connector;
 
-    public ExtendedJdbcConnectorSupport(ConnectorSession session, Connector wrapperConnector, com.facebook.presto.spi.Connector connector)
+    public ExtendedJdbcConnectorSupport(ConnectorSession session, Connector connector)
     {
         this.session = session;
-        this.wrapperConnector = wrapperConnector;
         this.connector = (ExtendedJdbcConnector) connector;
         ;
     }
@@ -91,7 +89,7 @@ public class ExtendedJdbcConnectorSupport
     public void exec(String buf)
     {
         ConnectorTransactionHandle transaction = connector.beginTransaction(READ_UNCOMMITTED, true);
-        JdbcMetadata metadata = (JdbcMetadata) connector.getMetadata();
+        JdbcMetadata metadata = (JdbcMetadata) connector.getMetadata(transaction);
         connector.commit(transaction);
         BaseJdbcClient client = (BaseJdbcClient) metadata.getJdbcClient();
         try (Connection connection = client.getConnection()) {
@@ -128,6 +126,6 @@ public class ExtendedJdbcConnectorSupport
     @Override
     public Connector getConnector()
     {
-        return wrapperConnector;
+        return connector;
     }
 }
