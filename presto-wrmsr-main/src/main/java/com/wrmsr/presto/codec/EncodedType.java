@@ -19,6 +19,8 @@ import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.type.AbstractType;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.spi.type.TypeSignatureParameter;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.common.collect.ImmutableList;
 import com.wrmsr.presto.type.WrapperType;
@@ -26,7 +28,6 @@ import io.airlift.slice.Slice;
 
 import java.util.List;
 
-import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static java.util.Objects.requireNonNull;
 
 public class EncodedType
@@ -42,7 +43,7 @@ public class EncodedType
     @JsonCreator
     public EncodedType(TypeCodec typeCodec, TypeCodec.Specialization specialization, Type fromType)
     {
-        super(parameterizedTypeName(typeCodec.getName(), fromType.getTypeSignature()), typeCodec.getJavaType());
+        super(new TypeSignature(typeCodec.getName(), TypeSignatureParameter.of(fromType.getTypeSignature())), typeCodec.getJavaType());
         this.typeCodec = requireNonNull(typeCodec);
         this.specialization = requireNonNull(specialization);
         this.fromType = requireNonNull(fromType);

@@ -33,7 +33,7 @@ public class ConnectorSupportModule
         binder.bind(ConnectorSupportManager.class).asEagerSingleton();
         newSetBinder(binder, ServerEvent.Listener.class).addBinding().to(ConnectorSupportManager.class);
 
-        newSetBinder(binder, ConnectorSupportFactory.class).addBinding().toInstance(new ConnectorSupportFactory.LegacyDefault(
+        newSetBinder(binder, ConnectorSupportFactory.class).addBinding().toInstance(new ConnectorSupportFactory.Default(
                 ExtendedJdbcConnectorSupport.class, ExtendedJdbcConnector.class, ExtendedJdbcConnectorSupport::new));
     }
 }

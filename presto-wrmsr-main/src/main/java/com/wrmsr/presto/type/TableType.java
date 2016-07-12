@@ -21,16 +21,16 @@ import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.type.AbstractType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.spi.type.TypeSignatureParameter;
 import com.facebook.presto.type.RowType;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static java.util.Objects.requireNonNull;
 
 public class TableType
-    extends AbstractType
+        extends AbstractType
 {
     public static final String NAME = "table";
 
@@ -38,7 +38,7 @@ public class TableType
 
     public TableType(RowType rowType)
     {
-        super(parameterizedTypeName(NAME, new TypeSignature(NAME, ImmutableList.of(rowType.getTypeSignature()), ImmutableList.of())), TableHandle.class);
+        super(new TypeSignature(NAME, TypeSignatureParameter.of(new TypeSignature(NAME, ImmutableList.of(rowType.getTypeSignature()), ImmutableList.of()))), TableHandle.class);
         this.rowType = requireNonNull(rowType, "rowType is null");
     }
 

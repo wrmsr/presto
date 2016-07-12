@@ -15,7 +15,6 @@ package com.wrmsr.presto.connector.jdbc;
 
 import com.facebook.presto.plugin.jdbc.JdbcClient;
 import com.facebook.presto.plugin.jdbc.JdbcConnector;
-import com.facebook.presto.plugin.jdbc.JdbcHandleResolver;
 import com.facebook.presto.plugin.jdbc.JdbcMetadata;
 import com.facebook.presto.plugin.jdbc.JdbcRecordSetProvider;
 import com.facebook.presto.plugin.jdbc.JdbcRecordSinkProvider;

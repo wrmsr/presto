@@ -21,6 +21,7 @@ import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockEncodingSerde;
 import com.facebook.presto.spi.block.FixedWidthBlockBuilder;
 import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.type.ArrayType;
 import com.facebook.presto.type.MapType;
 import com.facebook.presto.type.RowType;
@@ -41,7 +42,6 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,14 +49,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.facebook.presto.bytecode.Parameter.arg;
-import static com.facebook.presto.bytecode.ParameterizedType.type;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
-import static com.facebook.presto.bytecode.CompilerUtils.defineClass;
-import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
@@ -203,7 +198,7 @@ public class StructManager
         List<String> fieldNames = def.getFields().stream().map(StructDefinition.Field::getName).filter(Objects::nonNull).collect(toImmutableList());
         checkArgument(fieldNames.isEmpty() || fieldNames.size() == def.getFields().size());
         return new RowType(
-                parameterizedTypeName(def.getName()),
+                new TypeSignature(def.getName()),
                 def.getFields().stream().map(f -> typeRegistry.getType(parseTypeSignature(f.getType()))).collect(toImmutableList()),
                 fieldNames.isEmpty() ? Optional.empty() : Optional.of(fieldNames)
         );

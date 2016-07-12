@@ -13,10 +13,9 @@
  */
 package com.wrmsr.presto.type;
 
+import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.spi.type.VarcharType;
 import com.facebook.presto.type.MapType;
-
-import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 
 public class PropertiesType
         extends MapType
@@ -25,6 +24,6 @@ public class PropertiesType
 
     public PropertiesType()
     {
-        super(parameterizedTypeName("properties"), VarcharType.VARCHAR, VarcharType.VARCHAR);
+        super(new TypeSignature("properties"), VarcharType.VARCHAR, VarcharType.VARCHAR);
     }
 }

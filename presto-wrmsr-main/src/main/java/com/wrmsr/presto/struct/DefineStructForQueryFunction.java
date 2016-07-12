@@ -15,7 +15,6 @@ package com.wrmsr.presto.struct;
 
 import com.facebook.presto.Session;
 import com.facebook.presto.metadata.BoundVariables;
-import com.facebook.presto.metadata.FunctionKind;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.SessionPropertyManager;
@@ -28,6 +27,7 @@ import com.facebook.presto.spi.PrestoException;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
+import com.facebook.presto.spi.type.TypeSignature;
 import com.facebook.presto.sql.analyzer.Analysis;
 import com.facebook.presto.sql.analyzer.Analyzer;
 import com.facebook.presto.sql.analyzer.FeaturesConfig;
@@ -55,10 +55,9 @@ import java.util.Optional;
 
 import static com.facebook.presto.metadata.FunctionKind.SCALAR;
 import static com.facebook.presto.metadata.Signature.comparableTypeParameter;
-import static com.facebook.presto.spi.ErrorType.INTERNAL_ERROR;
+import static com.facebook.presto.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
-import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
 import static com.facebook.presto.util.Reflection.methodHandle;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -170,7 +169,7 @@ public class DefineStructForQueryFunction
             statement = sqlParser.createStatement(sql);
         }
         catch (ParsingException e) {
-            throw new PrestoException(INTERNAL_ERROR, "Formatted query does not parse: " + sql);
+            throw new PrestoException(GENERIC_INTERNAL_ERROR, "Formatted query does not parse: " + sql);
         }
 
         Analysis analysis = analyzeStatement(statement, session);
@@ -203,7 +202,7 @@ public class DefineStructForQueryFunction
             throw new RuntimeException(String.format("All fields must be named or no fields must be named for type: %s -> %s", name, sql));
         }
 
-        return new RowType(parameterizedTypeName(name), fieldTypes, fieldNames);
+        return new RowType(new TypeSignature(name), fieldTypes, fieldNames);
     }
 
     public static Slice defineStructForQuery(DefineStructForQueryFunction self, ConnectorSession session, Slice name, Slice query)
