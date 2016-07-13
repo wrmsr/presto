@@ -25,15 +25,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import static com.wrmsr.presto.util.Jvm.getThisJarFile;
 import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 import static com.wrmsr.presto.util.Strings.getSystemProperties;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMap;
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMultimap;
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableMultiset;
 import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableSet;
 import static com.wrmsr.presto.util.collect.Maps.transformKeys;
 
