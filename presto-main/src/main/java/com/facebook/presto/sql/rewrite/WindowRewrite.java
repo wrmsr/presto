@@ -98,7 +98,7 @@ final class WindowRewrite
         checkArgument(referrer.getExistingName().isPresent(), "Window specification does not contain reference");
         checkArgument(!referent.getExistingName().isPresent(), "Cannot chain window specification references");
 
-        checkArgument(referrer.getPartitionBy().isEmpty(), "Referrer window specification musn't contain partition clauses");
+        checkArgument(referrer.getPartitionBy().isEmpty(), "Referrer window specification must not contain partition clauses");
         List<Expression> partitionBy = ImmutableList.copyOf(referent.getPartitionBy());
 
         List<SortItem> orderBy;
