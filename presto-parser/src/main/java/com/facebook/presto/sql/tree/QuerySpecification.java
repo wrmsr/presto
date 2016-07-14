@@ -38,10 +38,11 @@ public class QuerySpecification
             Optional<Expression> where,
             Optional<GroupBy> groupBy,
             Optional<Expression> having,
+            List<WindowDefinition> window,
             List<SortItem> orderBy,
             Optional<String> limit)
     {
-        this(Optional.empty(), select, from, where, groupBy, having, orderBy, limit);
+        this(Optional.empty(), select, from, where, groupBy, having, window, orderBy, limit);
     }
 
     public QuerySpecification(
@@ -51,10 +52,11 @@ public class QuerySpecification
             Optional<Expression> where,
             Optional<GroupBy> groupBy,
             Optional<Expression> having,
+            List<WindowDefinition> window,
             List<SortItem> orderBy,
             Optional<String> limit)
     {
-        this(Optional.of(location), select, from, where, groupBy, having, orderBy, limit);
+        this(Optional.of(location), select, from, where, groupBy, having, window, orderBy, limit);
     }
 
     private QuerySpecification(
@@ -64,6 +66,7 @@ public class QuerySpecification
             Optional<Expression> where,
             Optional<GroupBy> groupBy,
             Optional<Expression> having,
+            List<WindowDefinition> window,
             List<SortItem> orderBy,
             Optional<String> limit)
     {
@@ -73,6 +76,7 @@ public class QuerySpecification
         requireNonNull(where, "where is null");
         requireNonNull(groupBy, "groupBy is null");
         requireNonNull(having, "having is null");
+        requireNonNull(window, "window is null");
         requireNonNull(orderBy, "orderBy is null");
         requireNonNull(limit, "limit is null");
 
@@ -110,6 +114,11 @@ public class QuerySpecification
         return having;
     }
 
+    public List<WindowDefinition> getWindow()
+    {
+        return window;
+    }
+
     public List<SortItem> getOrderBy()
     {
         return orderBy;
@@ -135,6 +144,7 @@ public class QuerySpecification
                 .add("where", where.orElse(null))
                 .add("groupBy", groupBy)
                 .add("having", having.orElse(null))
+                .add("window", window)
                 .add("orderBy", orderBy)
                 .add("limit", limit.orElse(null))
                 .toString();
@@ -155,6 +165,7 @@ public class QuerySpecification
                 Objects.equals(where, o.where) &&
                 Objects.equals(groupBy, o.groupBy) &&
                 Objects.equals(having, o.having) &&
+                Objects.equals(window, o.window) &&
                 Objects.equals(orderBy, o.orderBy) &&
                 Objects.equals(limit, o.limit);
     }
@@ -162,6 +173,6 @@ public class QuerySpecification
     @Override
     public int hashCode()
     {
-        return Objects.hash(select, from, where, groupBy, having, orderBy, limit);
+        return Objects.hash(select, from, where, groupBy, having, window, orderBy, limit);
     }
 }

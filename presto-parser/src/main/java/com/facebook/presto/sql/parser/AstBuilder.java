@@ -133,6 +133,7 @@ import com.facebook.presto.sql.tree.Use;
 import com.facebook.presto.sql.tree.Values;
 import com.facebook.presto.sql.tree.WhenClause;
 import com.facebook.presto.sql.tree.Window;
+import com.facebook.presto.sql.tree.WindowDefinition;
 import com.facebook.presto.sql.tree.WindowFrame;
 import com.facebook.presto.sql.tree.WindowSpecification;
 import com.facebook.presto.sql.tree.With;
@@ -401,6 +402,7 @@ class AstBuilder
                             query.getWhere(),
                             query.getGroupBy(),
                             query.getHaving(),
+                            query.getWindow(),
                             visit(context.sortItem(), SortItem.class),
                             getTextIfPresent(context.limit)),
                     ImmutableList.of(),
@@ -444,6 +446,7 @@ class AstBuilder
                 visitIfPresent(context.where, Expression.class),
                 visitIfPresent(context.groupBy(), GroupBy.class),
                 visitIfPresent(context.having, Expression.class),
+                visit(context.windowDefinition(), WindowDefinition.class),
                 ImmutableList.of(),
                 Optional.<String>empty());
     }
@@ -1190,6 +1193,15 @@ class AstBuilder
         Expression body = (Expression) visit(context.expression());
 
         return new LambdaExpression(arguments, body);
+    }
+
+    @Override
+    public Node visitWindowDefinition(SqlBaseParser.WindowDefinitionContext context)
+    {
+        return new WindowDefinition(
+                getLocation(context),
+                context.identifier().getText(),
+                (WindowSpecification) visitWindowSpecification(context.windowSpecification()));
     }
 
     @Override
