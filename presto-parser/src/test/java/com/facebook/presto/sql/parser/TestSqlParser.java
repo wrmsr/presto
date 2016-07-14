@@ -97,6 +97,8 @@ import com.facebook.presto.sql.tree.TimestampLiteral;
 import com.facebook.presto.sql.tree.TransactionAccessMode;
 import com.facebook.presto.sql.tree.Union;
 import com.facebook.presto.sql.tree.Unnest;
+import com.facebook.presto.sql.tree.WindowDefinition;
+import com.facebook.presto.sql.tree.WindowSpecification;
 import com.facebook.presto.sql.tree.With;
 import com.facebook.presto.sql.tree.WithQuery;
 import com.google.common.base.Joiner;
@@ -1060,6 +1062,61 @@ public class TestSqlParser
     }
 
     @Test
+    public void testSelectWithWindow()
+            throws Exception
+    {
+        assertStatement("SELECT * FROM table1 WINDOW a AS ()",
+                new Query(
+                        Optional.empty(),
+                        new QuerySpecification(
+                                selectList(new AllColumns()),
+                                Optional.of(new Table(QualifiedName.of("table1"))),
+                                Optional.empty(),
+                                Optional.empty(),
+                                Optional.empty(),
+                                ImmutableList.of(new WindowDefinition("a", new WindowSpecification(ImmutableList.of(), ImmutableList.of(), Optional.empty()))),
+                                ImmutableList.of(),
+                                Optional.empty()),
+                        ImmutableList.of(),
+                        Optional.empty(),
+                        Optional.empty()));
+
+        assertStatement("SELECT * FROM table1 WINDOW a AS (PARTITION BY 1)",
+                new Query(
+                        Optional.empty(),
+                        new QuerySpecification(
+                                selectList(new AllColumns()),
+                                Optional.of(new Table(QualifiedName.of("table1"))),
+                                Optional.empty(),
+                                Optional.empty(),
+                                Optional.empty(),
+                                ImmutableList.of(new WindowDefinition("a", new WindowSpecification(ImmutableList.of(new LongLiteral("1")), ImmutableList.of(), Optional.empty()))),
+                                ImmutableList.of(),
+                                Optional.empty()),
+                        ImmutableList.of(),
+                        Optional.empty(),
+                        Optional.empty()));
+
+        assertStatement("SELECT * FROM table1 WINDOW a AS (PARTITION BY 1), b AS (ORDER BY 2 ASC NULLS LAST)",
+                new Query(
+                        Optional.empty(),
+                        new QuerySpecification(
+                                selectList(new AllColumns()),
+                                Optional.of(new Table(QualifiedName.of("table1"))),
+                                Optional.empty(),
+                                Optional.empty(),
+                                Optional.empty(),
+                                ImmutableList.of(
+                                        new WindowDefinition("a", new WindowSpecification(ImmutableList.of(new LongLiteral("1")), ImmutableList.of(), Optional.empty())),
+                                        new WindowDefinition("b", new WindowSpecification(ImmutableList.of(), ImmutableList.of(new SortItem(new LongLiteral("2"), SortItem.Ordering.ASCENDING, SortItem.NullOrdering.LAST)), Optional.empty()))),
+                                ImmutableList.of(),
+                                Optional.empty()),
+                        ImmutableList.of(),
+                        Optional.empty(),
+                        Optional.empty()));
+    }
+
+    @Test
     public void testCreateTable()
             throws Exception
     {
@@ -1530,22 +1587,6 @@ public class TestSqlParser
                                         ComparisonExpression.Type.EQUAL,
                                         new NotExpression(new ExistsPredicate(simpleQuery(selectList(new LongLiteral("1"))))),
                                         new ExistsPredicate(simpleQuery(selectList(new LongLiteral("2"))))))));
-    }
-
-    @Test
-
-    public void testWindowExpression()
-    {
-        SQL_PARSER.createStatement("SELECT x, sum(x) OVER (ORDER BY x)\n" +
-                "FROM (VALUES (1), (2), (3)) AS t (x)");
-
-        SQL_PARSER.createStatement("SELECT x, sum(x)\n" +
-                "FROM (VALUES (1), (2), (3)) AS t (x)\n" +
-                "WINDOW w AS (ORDER BY x)");
-
-        SQL_PARSER.createStatement("SELECT x, sum(x) OVER w\n" +
-                "FROM (VALUES (1), (2), (3)) AS t (x)\n" +
-                "WINDOW w AS (ORDER BY x)");
     }
 
     private static void assertCast(String type)
