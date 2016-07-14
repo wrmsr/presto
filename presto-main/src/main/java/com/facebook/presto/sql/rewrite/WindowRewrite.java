@@ -26,6 +26,7 @@ import com.facebook.presto.sql.tree.QuerySpecification;
 import com.facebook.presto.sql.tree.SortItem;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.sql.tree.WindowDefinition;
+import com.facebook.presto.sql.tree.WindowFrame;
 import com.facebook.presto.sql.tree.WindowName;
 import com.facebook.presto.sql.tree.WindowSpecification;
 import com.google.common.collect.ImmutableList;
@@ -75,7 +76,9 @@ final class WindowRewrite
                 if (spec.getExistingName().isPresent()) {
                     WindowSpecification existing = specs.get(spec.getExistingName().get());
                     requireNonNull(existing, String.format("Existing window definition '%s' not found for '%s'", spec.getExistingName().get(), def.getName()));
+                    spec = resolveWindowReference(spec, existing);
                 }
+                specs.put(def.getName(), spec);
             }
             return node;
         }
@@ -106,8 +109,17 @@ final class WindowRewrite
             orderBy = ImmutableList.copyOf(referrer.getOrderBy());
         }
         else {
-            checkArgument(referent.getOrderBy().isEmpty(), "Referrer cannot specify orderBy when referent also specifies orderBy");
+            checkArgument(referent.getOrderBy().isEmpty(), "Referrer window specification must not specify orderBy when referent also specifies orderBy");
             orderBy = ImmutableList.copyOf(referrer.getOrderBy());
         }
+
+        checkArgument(!referent.getFrame().isPresent(), "Referent window specificatino must not specify frame");
+        Optional<WindowFrame> frame = referrer.getFrame();
+
+        return new WindowSpecification(
+                Optional.empty(),
+                partitionBy,
+                orderBy,
+                frame);
     }
 }
