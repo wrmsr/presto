@@ -28,7 +28,6 @@ import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.connector.Connector;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
 import com.facebook.presto.testing.TestingConnectorSession;
-import com.facebook.presto.transaction.LegacyTransactionConnector;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -115,8 +114,7 @@ public class TestKv
         File tmp = Files.createTempDir();
         tmp.deleteOnExit();
         File db = new File(tmp, "db");
-        Connector connector =
-                new LegacyTransactionConnector("test", connectorFactory.create("test", TestingH2JdbcModule.createProperties(db)));
+        Connector connector = connectorFactory.create("test", TestingH2JdbcModule.createProperties(db));
         // connector.getMetadata().createTable(session,
         ConnectorMetadata metadata = connector.getMetadata(null);
         //new JdbcMetadata(new JdbcConnectorId(CONNECTOR_ID), database.getJdbcClient(), new JdbcMetadataConfig());

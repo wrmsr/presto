@@ -58,7 +58,7 @@ public class TestBitwiseFunctions
                 ImmutableMap.<String, String>of());
 
         localQueryRunner.getMetadata().getFunctionRegistry().addFunctions(
-                new FunctionListBuilder(localQueryRunner.getTypeManager())
+                new FunctionListBuilder()
                         .aggregate(BitAndAggregationFunction.class)
                         .function(BitAndFunction.BIT_AND_FUNCTION)
                         .getFunctions());
