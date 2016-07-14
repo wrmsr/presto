@@ -979,8 +979,9 @@ class StatementAnalyzer
         List<FunctionCall> windowFunctions = extractor.getWindowFunctions();
 
         for (FunctionCall windowFunction : windowFunctions) {
-            checkArgument(windowFunction.getWindow().get() instanceof WindowInline, "Window must be inline for window function '%s", windowFunction);
+            checkArgument(windowFunction.getWindow().get() instanceof WindowInline, "Window must be inline for window function '%s'", windowFunction);
             WindowSpecification windowSpecification = ((WindowInline) windowFunction.getWindow().get()).getSpecification();
+            checkArgument(!windowSpecification.getExistingName().isPresent(), "Window specification must not have a name for window function '%s'", windowFunction);
 
             WindowFunctionExtractor nestedExtractor = new WindowFunctionExtractor();
             for (Expression argument : windowFunction.getArguments()) {

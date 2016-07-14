@@ -741,6 +741,7 @@ public class ExpressionAnalyzer
             if (node.getWindow().isPresent()) {
                 checkArgument(node.getWindow().get() instanceof WindowInline, "Window must be inline for node %s", node.getName());
                 WindowSpecification windowSpecification = ((WindowInline) node.getWindow().get()).getSpecification();
+                checkArgument(!windowSpecification.getExistingName().isPresent(), "Window specification must not have a name for node %s", node.getName());
 
                 for (Expression expression : windowSpecification.getPartitionBy()) {
                     process(expression, context);
