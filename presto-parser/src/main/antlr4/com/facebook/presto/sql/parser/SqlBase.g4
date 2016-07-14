@@ -131,6 +131,7 @@ querySpecification
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
       (HAVING having=booleanExpression)?
+      (WINDOW windowClause)?
     ;
 
 groupBy
@@ -334,6 +335,14 @@ baseType
 
 whenClause
     : WHEN condition=expression THEN result=expression
+    ;
+
+windowClause
+    : windowDefinition ((',' windowDefinition)*)?
+    ;
+
+windowDefinition
+    : identifier '(' windowSpecification ')'
     ;
 
 over
@@ -596,6 +605,7 @@ CALL: 'CALL';
 PREPARE: 'PREPARE';
 DEALLOCATE: 'DEALLOCATE';
 EXECUTE: 'EXECUTE';
+WINDOW: 'WINDOW';
 
 NORMALIZE: 'NORMALIZE';
 NFD : 'NFD';
