@@ -503,8 +503,8 @@ class QueryPlanner
             Expression frameStart = null;
             Expression frameEnd = null;
 
-            if (window.getFrame().isPresent()) {
-                WindowFrame frame = window.getFrame().get();
+            if (window.getSpecification().getFrame().isPresent()) {
+                WindowFrame frame = window.getSpecification().getFrame().get();
                 frameType = frame.getType();
 
                 frameStartType = frame.getStart().getType();
@@ -519,8 +519,8 @@ class QueryPlanner
             // Pre-project inputs
             ImmutableList.Builder<Expression> inputs = ImmutableList.<Expression>builder()
                     .addAll(windowFunction.getArguments())
-                    .addAll(window.getPartitionBy())
-                    .addAll(Iterables.transform(window.getOrderBy(), SortItem::getSortKey));
+                    .addAll(window.getSpecification().getPartitionBy())
+                    .addAll(Iterables.transform(window.getSpecification().getOrderBy(), SortItem::getSortKey));
 
             if (frameStart != null) {
                 inputs.add(frameStart);
@@ -533,13 +533,13 @@ class QueryPlanner
 
             // Rewrite PARTITION BY in terms of pre-projected inputs
             ImmutableList.Builder<Symbol> partitionBySymbols = ImmutableList.builder();
-            for (Expression expression : window.getPartitionBy()) {
+            for (Expression expression : window.getSpecification().getPartitionBy()) {
                 partitionBySymbols.add(subPlan.translate(expression));
             }
 
             // Rewrite ORDER BY in terms of pre-projected inputs
             Map<Symbol, SortOrder> orderings = new LinkedHashMap<>();
-            for (SortItem item : window.getOrderBy()) {
+            for (SortItem item : window.getSpecification().getOrderBy()) {
                 Symbol symbol = subPlan.translate(item.getSortKey());
                 orderings.put(symbol, toSortOrder(item));
             }

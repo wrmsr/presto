@@ -294,7 +294,7 @@ class AggregationAnalyzer
         @Override
         public Boolean visitWindow(Window node, Void context)
         {
-            for (Expression expression : node.getPartitionBy()) {
+            for (Expression expression : node.getSpecification().getPartitionBy()) {
                 if (!process(expression, context)) {
                     throw new SemanticException(MUST_BE_AGGREGATE_OR_GROUP_BY,
                             expression,
@@ -303,7 +303,7 @@ class AggregationAnalyzer
                 }
             }
 
-            for (SortItem sortItem : node.getOrderBy()) {
+            for (SortItem sortItem : node.getSpecification().getOrderBy()) {
                 Expression expression = sortItem.getSortKey();
                 if (!process(expression, context)) {
                     throw new SemanticException(MUST_BE_AGGREGATE_OR_GROUP_BY,
@@ -313,8 +313,8 @@ class AggregationAnalyzer
                 }
             }
 
-            if (node.getFrame().isPresent()) {
-                process(node.getFrame().get(), context);
+            if (node.getSpecification().getFrame().isPresent()) {
+                process(node.getSpecification().getFrame().get(), context);
             }
 
             return true;

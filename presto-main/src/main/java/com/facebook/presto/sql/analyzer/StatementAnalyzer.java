@@ -81,6 +81,7 @@ import com.facebook.presto.sql.tree.Use;
 import com.facebook.presto.sql.tree.Values;
 import com.facebook.presto.sql.tree.Window;
 import com.facebook.presto.sql.tree.WindowFrame;
+import com.facebook.presto.sql.tree.WindowSpecification;
 import com.facebook.presto.sql.tree.With;
 import com.facebook.presto.sql.tree.WithQuery;
 import com.facebook.presto.type.ArrayType;
@@ -977,23 +978,23 @@ class StatementAnalyzer
         List<FunctionCall> windowFunctions = extractor.getWindowFunctions();
 
         for (FunctionCall windowFunction : windowFunctions) {
-            Window window = windowFunction.getWindow().get();
+            WindowSpecification windowSpecification = windowFunction.getWindow().get().getSpecification();
 
             WindowFunctionExtractor nestedExtractor = new WindowFunctionExtractor();
             for (Expression argument : windowFunction.getArguments()) {
                 nestedExtractor.process(argument, null);
             }
 
-            for (Expression expression : window.getPartitionBy()) {
+            for (Expression expression : windowSpecification.getPartitionBy()) {
                 nestedExtractor.process(expression, null);
             }
 
-            for (SortItem sortItem : window.getOrderBy()) {
+            for (SortItem sortItem : windowSpecification.getOrderBy()) {
                 nestedExtractor.process(sortItem.getSortKey(), null);
             }
 
-            if (window.getFrame().isPresent()) {
-                nestedExtractor.process(window.getFrame().get(), null);
+            if (windowSpecification.getFrame().isPresent()) {
+                nestedExtractor.process(windowSpecification.getFrame().get(), null);
             }
 
             if (!nestedExtractor.getWindowFunctions().isEmpty()) {
@@ -1006,8 +1007,8 @@ class StatementAnalyzer
                 throw new SemanticException(NOT_SUPPORTED, node, "DISTINCT in window function parameters not yet supported: %s", windowFunction);
             }
 
-            if (window.getFrame().isPresent()) {
-                analyzeWindowFrame(window.getFrame().get());
+            if (windowSpecification.getFrame().isPresent()) {
+                analyzeWindowFrame(windowSpecification.getFrame().get());
             }
 
             List<TypeSignature> argumentTypes = Lists.transform(windowFunction.getArguments(), expression -> analysis.getType(expression).getTypeSignature());
