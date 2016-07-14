@@ -28,10 +28,10 @@ import static java.util.Objects.requireNonNull;
 
 public final class StatementRewrite
 {
-    // FIXME uh or here
     private static final List<Rewrite> REWRITES = ImmutableList.of(
             new ShowQueriesRewrite(),
-            new ExplainRewrite());
+            new ExplainRewrite(),
+            new WindowRewrite());
 
     private StatementRewrite() {}
 
