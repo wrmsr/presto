@@ -16,18 +16,23 @@ package com.wrmsr.presto;
 import com.facebook.presto.Session;
 import com.facebook.presto.execution.QueryId;
 import com.facebook.presto.metadata.SessionPropertyManager;
-import com.facebook.presto.spi.block.*;
 import com.facebook.presto.spi.block.Block;
-import com.facebook.presto.spi.type.*;
+import com.facebook.presto.spi.block.BlockBuilder;
+import com.facebook.presto.spi.block.BlockBuilderStatus;
+import com.facebook.presto.spi.block.VariableWidthBlockBuilder;
+import com.facebook.presto.spi.block.VariableWidthBlockEncoding;
+import com.facebook.presto.spi.type.BigintType;
+import com.facebook.presto.spi.type.BooleanType;
+import com.facebook.presto.spi.type.DoubleType;
+import com.facebook.presto.spi.type.Type;
+import com.facebook.presto.spi.type.TypeSignature;
+import com.facebook.presto.spi.type.VarbinaryType;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.tree.Cast;
 import com.facebook.presto.sql.tree.Expression;
-import com.facebook.presto.sql.tree.FunctionCall;
 import com.facebook.presto.sql.tree.Node;
 import com.facebook.presto.sql.tree.NullLiteral;
-import com.facebook.presto.sql.tree.QualifiedName;
 import com.facebook.presto.sql.tree.Statement;
-import com.facebook.presto.sql.tree.StringLiteral;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.tests.AbstractTestQueryFramework;
 import com.facebook.presto.tpch.TpchConnectorFactory;
@@ -44,14 +49,9 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.util.Optional;
 
-import static com.facebook.presto.bytecode.Parameter.arg;
-import static com.facebook.presto.bytecode.ParameterizedType.type;
 import static com.facebook.presto.spi.type.TimeZoneKey.UTC_KEY;
 import static com.facebook.presto.sql.SqlFormatter.formatSql;
-import static com.facebook.presto.bytecode.CompilerUtils.defineClass;
 import static com.facebook.presto.tpch.TpchMetadata.TINY_SCHEMA_NAME;
-import static com.facebook.presto.type.TypeUtils.parameterizedTypeName;
-import static com.google.common.base.Preconditions.checkState;
 import static java.lang.String.format;
 import static java.util.Locale.ENGLISH;
 import static org.testng.Assert.fail;
@@ -73,32 +73,31 @@ public class TestMainPlugin
 
     @Test
     public void testTypeStuff()
-        throws Throwable
+            throws Throwable
     {
-        Type rt = new RowType(
-                parameterizedTypeName("thing"), ImmutableList.<Type>of(DoubleType.DOUBLE, BigintType.BIGINT), Optional.of(ImmutableList.of("a", "b")));
+        Type rt = new RowType(new TypeSignature("thing"), ImmutableList.<Type>of(DoubleType.DOUBLE, BigintType.BIGINT), Optional.of(ImmutableList.of("a", "b")));
         System.out.println(rt);
     }
 
     private static LocalQueryRunner createLocalQueryRunner()
     {
-       Session defaultSession = Session.builder(new SessionPropertyManager())
-               .setSource("test")
-               .setQueryId(QueryId.valueOf("test"))
-               .setCatalog("local")
-               .setSchema(TINY_SCHEMA_NAME)
-               .setTimeZoneKey(UTC_KEY)
-               .setLocale(ENGLISH)
-               .build();
-       LocalQueryRunner queryRunner = new LocalQueryRunner(defaultSession);
-       // add the tpch catalog
-       // local queries run directly against the generator
-       queryRunner.createCatalog(
-               defaultSession.getCatalog().get(),
-               new TpchConnectorFactory(queryRunner.getNodeManager(), 1),
-               ImmutableMap.<String, String>of());
-       MainPlugin plugin = new MainPlugin();
-       plugin.setTypeRegistry(queryRunner.getTypeManager());
+        Session defaultSession = Session.builder(new SessionPropertyManager())
+                .setSource("test")
+                .setQueryId(QueryId.valueOf("test"))
+                .setCatalog("local")
+                .setSchema(TINY_SCHEMA_NAME)
+                .setTimeZoneKey(UTC_KEY)
+                .setLocale(ENGLISH)
+                .build();
+        LocalQueryRunner queryRunner = new LocalQueryRunner(defaultSession);
+        // add the tpch catalog
+        // local queries run directly against the generator
+        queryRunner.createCatalog(
+                defaultSession.getCatalog().get(),
+                new TpchConnectorFactory(queryRunner.getNodeManager(), 1),
+                ImmutableMap.<String, String>of());
+        MainPlugin plugin = new MainPlugin();
+        plugin.setTypeRegistry(queryRunner.getTypeManager());
        /*
        for (Type type : plugin.getServices(Type.class)) {
            queryRunner.getTypeManager().addType(type);
@@ -107,8 +106,8 @@ public class TestMainPlugin
            queryRunner.getTypeManager().addParametricType(parametricType);
        }
        */
-       // queryRunner.getMetadata().getFunctionRegistry().addFunctions(Iterables.getOnlyElement(plugin.getServices(FunctionFactory.class)).listFunctions());
-       return queryRunner;
+        // queryRunner.getMetadata().getFunctionRegistry().addFunctions(Iterables.getOnlyElement(plugin.getServices(FunctionFactory.class)).listFunctions());
+        return queryRunner;
     }
 
     public Slice newThing(long a, Slice b, long c, Slice d)
@@ -131,13 +130,14 @@ public class TestMainPlugin
     }
 
     @Test
-    public void testNewThing() throws Throwable
+    public void testNewThing()
+            throws Throwable
     {
         Slice slice = newThing(0, Slices.wrappedBuffer((byte) 10, (byte) 20), 10, Slices.wrappedBuffer((byte) 30, (byte) 40));
         Block block = new VariableWidthBlockEncoding().readBlock(slice.getInput());
         System.out.println(block);
 
-        RowType rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
+        RowType rt = new RowType(new TypeSignature("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
         Class<?> cls = new RowTypeConstructorCompiler().run(rt);
 
         try {
@@ -149,7 +149,7 @@ public class TestMainPlugin
             throw Throwables.propagate(e);
         }
 
-        rt = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
+        rt = new RowType(new TypeSignature("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
         cls = new NullableRowTypeConstructorCompiler().run(rt);
 
         try {
@@ -163,9 +163,10 @@ public class TestMainPlugin
     }
 
     @Test
-    public void testBoxes() throws Throwable
+    public void testBoxes()
+            throws Throwable
     {
-        RowType rowType = new RowType(parameterizedTypeName("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
+        RowType rowType = new RowType(new TypeSignature("thing"), ImmutableList.of(BigintType.BIGINT, VarbinaryType.VARBINARY, BigintType.BIGINT, VarbinaryType.VARBINARY, BooleanType.BOOLEAN, DoubleType.DOUBLE), Optional.of(ImmutableList.of("a", "b", "c", "d", "e", "f")));
 
         /*
         List<RowType.RowField> fieldTypes = rowType.getFields();
