@@ -69,9 +69,9 @@ import com.facebook.presto.sql.tree.TimeLiteral;
 import com.facebook.presto.sql.tree.TimestampLiteral;
 import com.facebook.presto.sql.tree.TryExpression;
 import com.facebook.presto.sql.tree.WhenClause;
-import com.facebook.presto.sql.tree.WindowAlias;
 import com.facebook.presto.sql.tree.WindowFrame;
 import com.facebook.presto.sql.tree.WindowInline;
+import com.facebook.presto.sql.tree.WindowName;
 import com.facebook.presto.sql.tree.WindowSpecification;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -516,9 +516,9 @@ public final class ExpressionFormatter
         }
 
         @Override
-        public String visitWindowAlias(WindowAlias node, Boolean unmangleNames)
+        public String visitWindowName(WindowName node, Boolean unmangleNames)
         {
-            return formatIdentifier(node.getAlias());
+            return formatIdentifier(node.getName());
         }
 
         @Override

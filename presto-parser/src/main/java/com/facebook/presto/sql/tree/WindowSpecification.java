@@ -23,26 +23,33 @@ import static java.util.Objects.requireNonNull;
 public class WindowSpecification
         extends Node
 {
+    private final Optional<String> existingName;
     private final List<Expression> partitionBy;
     private final List<SortItem> orderBy;
     private final Optional<WindowFrame> frame;
 
-    public WindowSpecification(List<Expression> partitionBy, List<SortItem> orderBy, Optional<WindowFrame> frame)
+    public WindowSpecification(Optional<String> existingName, List<Expression> partitionBy, List<SortItem> orderBy, Optional<WindowFrame> frame)
     {
-        this(Optional.empty(), partitionBy, orderBy, frame);
+        this(Optional.empty(), existingName, partitionBy, orderBy, frame);
     }
 
-    public WindowSpecification(NodeLocation location, List<Expression> partitionBy, List<SortItem> orderBy, Optional<WindowFrame> frame)
+    public WindowSpecification(NodeLocation location, Optional<String> existingName, List<Expression> partitionBy, List<SortItem> orderBy, Optional<WindowFrame> frame)
     {
-        this(Optional.of(location), partitionBy, orderBy, frame);
+        this(Optional.of(location), existingName, partitionBy, orderBy, frame);
     }
 
-    private WindowSpecification(Optional<NodeLocation> location, List<Expression> partitionBy, List<SortItem> orderBy, Optional<WindowFrame> frame)
+    private WindowSpecification(Optional<NodeLocation> location, Optional<String> existingName, List<Expression> partitionBy, List<SortItem> orderBy, Optional<WindowFrame> frame)
     {
         super(location);
+        this.existingName = requireNonNull(existingName, "existingName is null");
         this.partitionBy = requireNonNull(partitionBy, "partitionBy is null");
         this.orderBy = requireNonNull(orderBy, "orderBy is null");
         this.frame = requireNonNull(frame, "frame is null");
+    }
+
+    public Optional<String> getExistingName()
+    {
+        return existingName;
     }
 
     public List<Expression> getPartitionBy()
@@ -67,30 +74,32 @@ public class WindowSpecification
     }
 
     @Override
-    public boolean equals(Object obj)
+    public boolean equals(Object o)
     {
-        if (this == obj) {
+        if (this == o) {
             return true;
         }
-        if ((obj == null) || (getClass() != obj.getClass())) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        WindowSpecification o = (WindowSpecification) obj;
-        return Objects.equals(partitionBy, o.partitionBy) &&
-                Objects.equals(orderBy, o.orderBy) &&
-                Objects.equals(frame, o.frame);
+        WindowSpecification that = (WindowSpecification) o;
+        return Objects.equals(existingName, that.existingName) &&
+                Objects.equals(partitionBy, that.partitionBy) &&
+                Objects.equals(orderBy, that.orderBy) &&
+                Objects.equals(frame, that.frame);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(partitionBy, orderBy, frame);
+        return Objects.hash(existingName, partitionBy, orderBy, frame);
     }
 
     @Override
     public String toString()
     {
         return toStringHelper(this)
+                .add("existingName", existingName)
                 .add("partitionBy", partitionBy)
                 .add("orderBy", orderBy)
                 .add("frame", frame)

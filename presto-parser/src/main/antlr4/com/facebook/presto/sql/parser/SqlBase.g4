@@ -342,12 +342,13 @@ windowDefinition
     ;
 
 over
-    : OVER identifier                   #windowAlias
+    : OVER identifier                   #windowName
     | OVER '(' windowSpecification ')'  #windowInline
     ;
 
 windowSpecification
-    : (PARTITION BY partition+=expression (',' partition+=expression)*)?
+    : identifier?
+      (PARTITION BY partition+=expression (',' partition+=expression)*)?
       (ORDER BY sortItem (',' sortItem)*)?
       windowFrame?
     ;

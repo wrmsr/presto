@@ -19,36 +19,36 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class WindowAlias
+public class WindowName
         extends Window
 {
-    private final String alias;
+    private final String name;
 
-    public WindowAlias(String alias)
+    public WindowName(String name)
     {
-        this(Optional.empty(), alias);
+        this(Optional.empty(), name);
     }
 
-    public WindowAlias(NodeLocation location, String alias)
+    public WindowName(NodeLocation location, String name)
     {
-        this(Optional.of(location), alias);
+        this(Optional.of(location), name);
     }
 
-    private WindowAlias(Optional<NodeLocation> location, String alias)
+    private WindowName(Optional<NodeLocation> location, String name)
     {
         super(location);
-        this.alias = requireNonNull(alias, "alias is null");
+        this.name = requireNonNull(name, "name is null");
     }
 
-    public String getAlias()
+    public String getName()
     {
-        return alias;
+        return name;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {
-        return visitor.visitWindowAlias(this, context);
+        return visitor.visitWindowName(this, context);
     }
 
     @Override
@@ -60,21 +60,21 @@ public class WindowAlias
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        WindowAlias that = (WindowAlias) o;
-        return Objects.equals(alias, that.alias);
+        WindowName that = (WindowName) o;
+        return Objects.equals(name, that.name);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(alias);
+        return Objects.hash(name);
     }
 
     @Override
     public String toString()
     {
         return toStringHelper(this)
-                .add("alias", alias)
+                .add("name", name)
                 .toString();
     }
 }

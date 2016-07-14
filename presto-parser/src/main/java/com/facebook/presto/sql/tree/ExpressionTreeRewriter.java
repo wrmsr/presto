@@ -769,7 +769,7 @@ public final class ExpressionTreeRewriter<C>
         if (!sameElements(windowSpecification.getPartitionBy(), partitionBy.build()) ||
                 !sameElements(windowSpecification.getOrderBy(), orderBy.build()) ||
                 !sameElements(windowSpecification.getFrame(), rewrittenFrame)) {
-            return new WindowSpecification(partitionBy.build(), orderBy.build(), rewrittenFrame);
+            return new WindowSpecification(windowSpecification.getExistingName(), partitionBy.build(), orderBy.build(), rewrittenFrame);
         }
         else {
             return windowSpecification;

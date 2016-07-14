@@ -184,7 +184,7 @@ public abstract class DefaultTraversalVisitor<R, C>
     }
 
     @Override
-    protected R visitWindowAlias(WindowAlias node, C context)
+    protected R visitWindowName(WindowName node, C context)
     {
         return null;
     }

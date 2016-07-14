@@ -23,7 +23,7 @@ public class TestWindowRewrite
     @Test
     public void testWindowRewrite()
     {
-        new WindowRewrite().rewrite(null, null, )
+        // new WindowRewrite().rewrite(null, null, )
         SQL_PARSER.createStatement("SELECT * FROM table1 WINDOW a AS ()");
         SQL_PARSER.createStatement("SELECT * FROM table1 WINDOW a AS (PARTITION BY 1)");
         SQL_PARSER.createStatement("SELECT * FROM table1 WINDOW a AS (PARTITION BY 1), b AS (ORDER BY 2 ASC NULLS LAST)");

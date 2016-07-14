@@ -23,7 +23,7 @@ import com.facebook.presto.sql.tree.Query;
 import com.facebook.presto.sql.tree.QueryBody;
 import com.facebook.presto.sql.tree.QuerySpecification;
 import com.facebook.presto.sql.tree.Statement;
-import com.facebook.presto.sql.tree.WindowAlias;
+import com.facebook.presto.sql.tree.WindowName;
 import com.facebook.presto.sql.tree.WindowInline;
 import com.facebook.presto.sql.tree.WindowSpecification;
 
@@ -68,9 +68,9 @@ class WindowRewrite
         }
 
         @Override
-        protected Node visitWindowAlias(WindowAlias node, Void context)
+        protected Node visitWindowName(WindowName node, Void context)
         {
-            return new WindowInline(windowSpecifications.get(node.getAlias()));
+            return new WindowInline(windowSpecifications.get(node.getName()));
         }
 
         @Override

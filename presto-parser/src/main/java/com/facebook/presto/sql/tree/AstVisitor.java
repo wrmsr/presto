@@ -457,7 +457,7 @@ public abstract class AstVisitor<R, C>
         return visitNode(node, context);
     }
 
-    protected R visitWindowAlias(WindowAlias node, C context)
+    protected R visitWindowName(WindowName node, C context)
     {
         return visitWindow(node, context);
     }
