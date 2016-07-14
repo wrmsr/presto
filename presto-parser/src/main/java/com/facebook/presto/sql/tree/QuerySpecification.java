@@ -28,6 +28,7 @@ public class QuerySpecification
     private final Optional<Expression> where;
     private final Optional<GroupBy> groupBy;
     private final Optional<Expression> having;
+    private final List<WindowDefinition> window;
     private final List<SortItem> orderBy;
     private final Optional<String> limit;
 
