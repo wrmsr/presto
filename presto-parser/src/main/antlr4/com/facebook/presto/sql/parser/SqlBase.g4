@@ -131,7 +131,7 @@ querySpecification
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
       (HAVING having=booleanExpression)?
-      (WINDOW windowClause)?
+      (WINDOW windowDefinition (',' windowDefinition)*)?
     ;
 
 groupBy
@@ -337,12 +337,8 @@ whenClause
     : WHEN condition=expression THEN result=expression
     ;
 
-windowClause
-    : windowDefinition ((',' windowDefinition)*)?
-    ;
-
 windowDefinition
-    : identifier '(' windowSpecification ')'
+    : identifier AS '(' windowSpecification ')'
     ;
 
 over
