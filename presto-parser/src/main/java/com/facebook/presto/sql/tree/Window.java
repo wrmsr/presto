@@ -13,68 +13,19 @@
  */
 package com.facebook.presto.sql.tree;
 
-import java.util.Objects;
 import java.util.Optional;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static java.util.Objects.requireNonNull;
-
-public class Window
+public abstract class Window
         extends Node
 {
-    private final WindowSpecification specification;
-
-    public Window(WindowSpecification specification)
-    {
-        this(Optional.empty(), specification);
-    }
-
-    public Window(NodeLocation location, WindowSpecification specification)
-    {
-        this(Optional.of(location), specification);
-    }
-
-    private Window(Optional<NodeLocation> location, WindowSpecification specification)
+    public Window(Optional<NodeLocation> location)
     {
         super(location);
-        this.specification = requireNonNull(specification, "specification is null");
-    }
-
-    public WindowSpecification getSpecification()
-    {
-        return specification;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {
         return visitor.visitWindow(this, context);
-    }
-
-    @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        Window o = (Window) obj;
-        return Objects.equals(specification, o.specification);
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(specification);
-    }
-
-    @Override
-    public String toString()
-    {
-        return toStringHelper(this)
-                .add("specification", specification)
-                .toString();
     }
 }

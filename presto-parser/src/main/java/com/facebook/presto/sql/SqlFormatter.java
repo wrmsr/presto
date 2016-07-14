@@ -250,6 +250,12 @@ public final class SqlFormatter
                         .append('\n');
             }
 
+            if (!node.getWindow().isEmpty()) {
+                // FIXME
+//                append(indent, "WINDOW " + formatExpression(node.getWindow().get()))
+//                        .append('\n');
+            }
+
             if (!node.getOrderBy().isEmpty()) {
                 append(indent, "ORDER BY " + formatSortItems(node.getOrderBy()))
                         .append('\n');

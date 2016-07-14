@@ -133,8 +133,10 @@ import com.facebook.presto.sql.tree.Use;
 import com.facebook.presto.sql.tree.Values;
 import com.facebook.presto.sql.tree.WhenClause;
 import com.facebook.presto.sql.tree.Window;
+import com.facebook.presto.sql.tree.WindowAlias;
 import com.facebook.presto.sql.tree.WindowDefinition;
 import com.facebook.presto.sql.tree.WindowFrame;
+import com.facebook.presto.sql.tree.WindowInline;
 import com.facebook.presto.sql.tree.WindowSpecification;
 import com.facebook.presto.sql.tree.With;
 import com.facebook.presto.sql.tree.WithQuery;
@@ -1205,9 +1207,17 @@ class AstBuilder
     }
 
     @Override
-    public Node visitOver(SqlBaseParser.OverContext context)
+    public Node visitWindowAlias(SqlBaseParser.WindowAliasContext context)
     {
-        return new Window(
+        return new WindowAlias(
+                getLocation(context),
+                context.identifier().getText());
+    }
+
+    @Override
+    public Node visitWindowInline(SqlBaseParser.WindowInlineContext context)
+    {
+        return new WindowInline(
                 getLocation(context),
                 (WindowSpecification) visitWindowSpecification(context.windowSpecification()));
     }

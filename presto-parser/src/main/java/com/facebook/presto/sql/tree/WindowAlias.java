@@ -19,27 +19,25 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class WindowDefinition
-        extends Node
+public class WindowAlias
+        extends Window
 {
     private final String alias;
-    private final WindowSpecification specification;
 
-    public WindowDefinition(String alias, WindowSpecification specification)
+    public WindowAlias(String alias)
     {
-        this(Optional.empty(), alias, specification);
+        this(Optional.empty(), alias);
     }
 
-    public WindowDefinition(NodeLocation location, String alias, WindowSpecification specification)
+    public WindowAlias(NodeLocation location, String alias)
     {
-        this(Optional.of(location), alias, specification);
+        this(Optional.of(location), alias);
     }
 
-    private WindowDefinition(Optional<NodeLocation> location, String alias, WindowSpecification specification)
+    private WindowAlias(Optional<NodeLocation> location, String alias)
     {
         super(location);
         this.alias = requireNonNull(alias, "alias is null");
-        this.specification = requireNonNull(specification, "specification is null");
     }
 
     public String getAlias()
@@ -47,15 +45,10 @@ public class WindowDefinition
         return alias;
     }
 
-    public WindowSpecification getSpecification()
-    {
-        return specification;
-    }
-
     @Override
-    protected <R, C> R accept(AstVisitor<R, C> visitor, C context)
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {
-        return visitor.visitWindowDefinition(this, context);
+        return visitor.visitWindowAlias(this, context);
     }
 
     @Override
@@ -67,15 +60,14 @@ public class WindowDefinition
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        WindowDefinition that = (WindowDefinition) o;
-        return Objects.equals(alias, that.alias) &&
-                Objects.equals(specification, that.specification);
+        WindowAlias that = (WindowAlias) o;
+        return Objects.equals(alias, that.alias);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(alias, specification);
+        return Objects.hash(alias);
     }
 
     @Override
@@ -83,7 +75,6 @@ public class WindowDefinition
     {
         return toStringHelper(this)
                 .add("alias", alias)
-                .add("specification", specification)
                 .toString();
     }
 }

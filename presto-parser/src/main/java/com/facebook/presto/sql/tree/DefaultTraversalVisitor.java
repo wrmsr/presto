@@ -184,7 +184,13 @@ public abstract class DefaultTraversalVisitor<R, C>
     }
 
     @Override
-    public R visitWindow(Window node, C context)
+    protected R visitWindowAlias(WindowAlias node, C context)
+    {
+        return null;
+    }
+
+    @Override
+    protected R visitWindowInline(WindowInline node, C context)
     {
         process(node.getSpecification(), context);
 

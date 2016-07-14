@@ -19,32 +19,25 @@ import java.util.Optional;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
-public class WindowDefinition
-        extends Node
+public class WindowInline
+    extends Window
 {
-    private final String alias;
     private final WindowSpecification specification;
 
-    public WindowDefinition(String alias, WindowSpecification specification)
+    public WindowInline(WindowSpecification specification)
     {
-        this(Optional.empty(), alias, specification);
+        this(Optional.empty(), specification);
     }
 
-    public WindowDefinition(NodeLocation location, String alias, WindowSpecification specification)
+    public WindowInline(NodeLocation location, WindowSpecification specification)
     {
-        this(Optional.of(location), alias, specification);
+        this(Optional.of(location), specification);
     }
 
-    private WindowDefinition(Optional<NodeLocation> location, String alias, WindowSpecification specification)
+    private WindowInline(Optional<NodeLocation> location, WindowSpecification specification)
     {
         super(location);
-        this.alias = requireNonNull(alias, "alias is null");
         this.specification = requireNonNull(specification, "specification is null");
-    }
-
-    public String getAlias()
-    {
-        return alias;
     }
 
     public WindowSpecification getSpecification()
@@ -53,36 +46,34 @@ public class WindowDefinition
     }
 
     @Override
-    protected <R, C> R accept(AstVisitor<R, C> visitor, C context)
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {
-        return visitor.visitWindowDefinition(this, context);
+        return visitor.visitWindowInline(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
+    public boolean equals(Object obj)
     {
-        if (this == o) {
+        if (this == obj) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if ((obj == null) || (getClass() != obj.getClass())) {
             return false;
         }
-        WindowDefinition that = (WindowDefinition) o;
-        return Objects.equals(alias, that.alias) &&
-                Objects.equals(specification, that.specification);
+        WindowInline o = (WindowInline) obj;
+        return Objects.equals(specification, o.specification);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(alias, specification);
+        return Objects.hash(specification);
     }
 
     @Override
     public String toString()
     {
         return toStringHelper(this)
-                .add("alias", alias)
                 .add("specification", specification)
                 .toString();
     }

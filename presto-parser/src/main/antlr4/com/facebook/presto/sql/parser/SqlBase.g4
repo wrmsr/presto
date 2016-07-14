@@ -342,7 +342,8 @@ windowDefinition
     ;
 
 over
-    : OVER '(' windowSpecification ')'
+    : OVER identifier                   #windowAlias
+    | OVER '(' windowSpecification ')'  #windowInline
     ;
 
 windowSpecification
