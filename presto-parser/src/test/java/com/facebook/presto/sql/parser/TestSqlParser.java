@@ -85,6 +85,7 @@ import com.facebook.presto.sql.tree.ShowSchemas;
 import com.facebook.presto.sql.tree.ShowSession;
 import com.facebook.presto.sql.tree.ShowTables;
 import com.facebook.presto.sql.tree.SimpleGroupBy;
+import com.facebook.presto.sql.tree.SingleColumn;
 import com.facebook.presto.sql.tree.SortItem;
 import com.facebook.presto.sql.tree.StartTransaction;
 import com.facebook.presto.sql.tree.Statement;
@@ -98,6 +99,8 @@ import com.facebook.presto.sql.tree.TransactionAccessMode;
 import com.facebook.presto.sql.tree.Union;
 import com.facebook.presto.sql.tree.Unnest;
 import com.facebook.presto.sql.tree.WindowDefinition;
+import com.facebook.presto.sql.tree.WindowInline;
+import com.facebook.presto.sql.tree.WindowName;
 import com.facebook.presto.sql.tree.WindowSpecification;
 import com.facebook.presto.sql.tree.With;
 import com.facebook.presto.sql.tree.WithQuery;
@@ -1062,7 +1065,64 @@ public class TestSqlParser
     }
 
     @Test
-    public void testSelectWithWindow()
+    public void testWindowName()
+            throws Exception
+    {
+        assertStatement("SELECT a, row_number() OVER (ORDER BY b ASC NULLS FIRST) FROM c",
+                new Query(
+                        Optional.empty(),
+                        new QuerySpecification(
+                                selectList(
+                                        new SingleColumn(new QualifiedNameReference(QualifiedName.of("a"))),
+                                        new SingleColumn(
+                                                new FunctionCall(
+                                                        QualifiedName.of("row_number"),
+                                                        Optional.of(
+                                                                new WindowInline(
+                                                                        new WindowSpecification(
+                                                                                Optional.empty(),
+                                                                                ImmutableList.of(),
+                                                                                ImmutableList.of(new SortItem(new QualifiedNameReference(QualifiedName.of("b")), SortItem.Ordering.ASCENDING, SortItem.NullOrdering.FIRST)),
+                                                                                Optional.empty()))),
+                                                        false,
+                                                        ImmutableList.of()))),
+                                Optional.of(new Table(QualifiedName.of("c"))),
+                                Optional.empty(),
+                                Optional.empty(),
+                                Optional.empty(),
+                                ImmutableList.of(),
+                                ImmutableList.of(),
+                                Optional.empty()),
+                        ImmutableList.of(),
+                        Optional.empty(),
+                        Optional.empty()));
+
+        assertStatement("SELECT a, row_number() OVER b FROM c",
+                new Query(
+                        Optional.empty(),
+                        new QuerySpecification(
+                                selectList(
+                                        new SingleColumn(new QualifiedNameReference(QualifiedName.of("a"))),
+                                        new SingleColumn(
+                                                new FunctionCall(
+                                                        QualifiedName.of("row_number"),
+                                                        Optional.of(new WindowName("b")),
+                                                        false,
+                                                        ImmutableList.of()))),
+                                Optional.of(new Table(QualifiedName.of("c"))),
+                                Optional.empty(),
+                                Optional.empty(),
+                                Optional.empty(),
+                                ImmutableList.of(),
+                                ImmutableList.of(),
+                                Optional.empty()),
+                        ImmutableList.of(),
+                        Optional.empty(),
+                        Optional.empty()));
+    }
+
+    @Test
+    public void testWindowClause()
             throws Exception
     {
         assertStatement("SELECT * FROM table1 WINDOW a AS ()",
@@ -1091,6 +1151,22 @@ public class TestSqlParser
                                 Optional.empty(),
                                 Optional.empty(),
                                 ImmutableList.of(new WindowDefinition("a", new WindowSpecification(Optional.empty(), ImmutableList.of(new LongLiteral("1")), ImmutableList.of(), Optional.empty()))),
+                                ImmutableList.of(),
+                                Optional.empty()),
+                        ImmutableList.of(),
+                        Optional.empty(),
+                        Optional.empty()));
+
+        assertStatement("SELECT * FROM table1 WINDOW a AS (b PARTITION BY 1)",
+                new Query(
+                        Optional.empty(),
+                        new QuerySpecification(
+                                selectList(new AllColumns()),
+                                Optional.of(new Table(QualifiedName.of("table1"))),
+                                Optional.empty(),
+                                Optional.empty(),
+                                Optional.empty(),
+                                ImmutableList.of(new WindowDefinition("a", new WindowSpecification(Optional.of("b"), ImmutableList.of(new LongLiteral("1")), ImmutableList.of(), Optional.empty()))),
                                 ImmutableList.of(),
                                 Optional.empty()),
                         ImmutableList.of(),
