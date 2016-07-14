@@ -180,7 +180,7 @@ public class QueryRewriter
         }
 
         Select select = new Select(false, selectItems.build());
-        return formatSql(new QuerySpecification(select, Optional.of(new Table(table)), Optional.empty(), Optional.empty(), Optional.empty(), ImmutableList.of(), Optional.empty()));
+        return formatSql(new QuerySpecification(select, Optional.of(new Table(table)), Optional.empty(), Optional.empty(), Optional.empty(), ImmutableList.of(), ImmutableList.of(), Optional.empty()));
     }
 
     private static String dropTableSql(QualifiedName table)
