@@ -23,10 +23,12 @@ import com.facebook.presto.sql.tree.Node;
 import com.facebook.presto.sql.tree.Query;
 import com.facebook.presto.sql.tree.QueryBody;
 import com.facebook.presto.sql.tree.QuerySpecification;
+import com.facebook.presto.sql.tree.SortItem;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.sql.tree.WindowDefinition;
 import com.facebook.presto.sql.tree.WindowName;
 import com.facebook.presto.sql.tree.WindowSpecification;
+import com.google.common.collect.ImmutableList;
 
 import java.util.HashMap;
 import java.util.List;
@@ -97,10 +99,15 @@ final class WindowRewrite
         checkArgument(!referent.getExistingName().isPresent(), "Cannot chain window specification references");
 
         checkArgument(referrer.getPartitionBy().isEmpty(), "Referrer window specification musn't contain partition clauses");
-        List<Expression> partitionBy = referent.getPartitionBy();
+        List<Expression> partitionBy = ImmutableList.copyOf(referent.getPartitionBy());
 
-        if (referrer.)
-
-
+        List<SortItem> orderBy;
+        if (referrer.getOrderBy().isEmpty()) {
+            orderBy = ImmutableList.copyOf(referrer.getOrderBy());
+        }
+        else {
+            checkArgument(referent.getOrderBy().isEmpty(), "Referrer cannot specify orderBy when referent also specifies orderBy");
+            orderBy = ImmutableList.copyOf(referrer.getOrderBy());
+        }
     }
 }
