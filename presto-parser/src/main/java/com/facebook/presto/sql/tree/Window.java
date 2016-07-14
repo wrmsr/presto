@@ -29,6 +29,11 @@ public class Window
         this(Optional.empty(), specification);
     }
 
+    private Window(NodeLocation location, WindowSpecification specification)
+    {
+        this(Optional.of(location), specification);
+    }
+
     private Window(Optional<NodeLocation> location, WindowSpecification specification)
     {
         super(location);

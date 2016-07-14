@@ -1197,13 +1197,14 @@ class AstBuilder
     {
         return new Window(
                 getLocation(context),
-                visit(context.windowSpecification(), WindowSpecification.class));
+                visitWindowSpecification(context.windowSpecification()));
     }
 
     @Override
     public Node visitWindowSpecification(SqlBaseParser.WindowSpecificationContext context)
     {
         return new WindowSpecification(
+                getLocation(context),
                 visit(context.partition, Expression.class),
                 visit(context.sortItem(), SortItem.class),
                 visitIfPresent(context.windowFrame(), WindowFrame.class));

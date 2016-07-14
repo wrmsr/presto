@@ -427,11 +427,6 @@ public abstract class AstVisitor<R, C>
         return visitRelation(node, context);
     }
 
-    protected R visitWindowSpecification(WindowSpecification node, C context)
-    {
-        return visitNode(node, context);
-    }
-
     protected R visitExists(ExistsPredicate node, C context)
     {
         return visitExpression(node, context);
@@ -453,6 +448,11 @@ public abstract class AstVisitor<R, C>
     }
 
     protected R visitWindow(Window node, C context)
+    {
+        return visitNode(node, context);
+    }
+
+    protected R visitWindowSpecification(WindowSpecification node, C context)
     {
         return visitNode(node, context);
     }

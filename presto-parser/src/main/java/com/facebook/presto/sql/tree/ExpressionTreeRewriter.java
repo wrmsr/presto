@@ -481,16 +481,16 @@ public final class ExpressionTreeRewriter<C>
 
             Optional<Window> rewrittenWindow = node.getWindow();
             if (node.getWindow().isPresent()) {
-                Window window = node.getWindow().get();
+                WindowSpecification windowSpecification = node.getWindow().get().getSpecification();
 
                 ImmutableList.Builder<Expression> partitionBy = ImmutableList.builder();
-                for (Expression expression : window.getPartitionBy()) {
+                for (Expression expression : windowSpecification.getPartitionBy()) {
                     partitionBy.add(rewrite(expression, context.get()));
                 }
 
                 // Since SortItem is not an Expression, but contains Expressions, just process the default rewrite inline with FunctionCall
                 ImmutableList.Builder<SortItem> orderBy = ImmutableList.builder();
-                for (SortItem sortItem : window.getOrderBy()) {
+                for (SortItem sortItem : windowSpecification.getOrderBy()) {
                     Expression sortKey = rewrite(sortItem.getSortKey(), context.get());
                     if (sortItem.getSortKey() != sortKey) {
                         orderBy.add(new SortItem(sortKey, sortItem.getOrdering(), sortItem.getNullOrdering()));
@@ -500,7 +500,7 @@ public final class ExpressionTreeRewriter<C>
                     }
                 }
 
-                Optional<WindowFrame> rewrittenFrame = window.getFrame();
+                Optional<WindowFrame> rewrittenFrame = windowSpecification.getFrame();
                 if (rewrittenFrame.isPresent()) {
                     WindowFrame frame = rewrittenFrame.get();
 
@@ -528,10 +528,10 @@ public final class ExpressionTreeRewriter<C>
                     }
                 }
 
-                if (!sameElements(window.getPartitionBy(), partitionBy.build()) ||
-                        !sameElements(window.getOrderBy(), orderBy.build()) ||
-                        !sameElements(window.getFrame(), rewrittenFrame)) {
-                    rewrittenWindow = Optional.of(new Window(partitionBy.build(), orderBy.build(), rewrittenFrame));
+                if (!sameElements(windowSpecification.getPartitionBy(), partitionBy.build()) ||
+                        !sameElements(windowSpecification.getOrderBy(), orderBy.build()) ||
+                        !sameElements(windowSpecification.getFrame(), rewrittenFrame)) {
+                    rewrittenWindow = Optional.of(new Window(new WindowSpecification(partitionBy.build(), orderBy.build(), rewrittenFrame)));
                 }
             }
 

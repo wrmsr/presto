@@ -71,6 +71,7 @@ import com.facebook.presto.sql.tree.TryExpression;
 import com.facebook.presto.sql.tree.WhenClause;
 import com.facebook.presto.sql.tree.Window;
 import com.facebook.presto.sql.tree.WindowFrame;
+import com.facebook.presto.sql.tree.WindowSpecification;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -515,6 +516,12 @@ public final class ExpressionFormatter
 
         @Override
         public String visitWindow(Window node, Boolean unmangleNames)
+        {
+            return '(' + process(node.getSpecification(), unmangleNames) + ')';
+        }
+
+        @Override
+        protected String visitWindowSpecification(WindowSpecification node, Boolean unmangleNames)
         {
             List<String> parts = new ArrayList<>();
 

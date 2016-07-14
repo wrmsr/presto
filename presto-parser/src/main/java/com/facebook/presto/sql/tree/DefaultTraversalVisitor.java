@@ -186,6 +186,14 @@ public abstract class DefaultTraversalVisitor<R, C>
     @Override
     public R visitWindow(Window node, C context)
     {
+        process(node.getSpecification(), context);
+
+        return null;
+    }
+
+    @Override
+    protected R visitWindowSpecification(WindowSpecification node, C context)
+    {
         for (Expression expression : node.getPartitionBy()) {
             process(expression, context);
         }
