@@ -63,7 +63,7 @@ class WindowRewrite
         @Override
         protected Node visitQuerySpecification(QuerySpecification node, Void context)
         {
-            node.getWindow().forEach(wd -> windowSpecifications.put(wd.getAlias(), wd.getSpecification()));
+            node.getWindow().forEach(wd -> windowSpecifications.put(wd.getName(), wd.getSpecification()));
             return node;
         }
 

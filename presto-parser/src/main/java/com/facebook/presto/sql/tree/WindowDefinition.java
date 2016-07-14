@@ -22,29 +22,29 @@ import static java.util.Objects.requireNonNull;
 public class WindowDefinition
         extends Node
 {
-    private final String alias;
+    private final String name;
     private final WindowSpecification specification;
 
-    public WindowDefinition(String alias, WindowSpecification specification)
+    public WindowDefinition(String name, WindowSpecification specification)
     {
-        this(Optional.empty(), alias, specification);
+        this(Optional.empty(), name, specification);
     }
 
-    public WindowDefinition(NodeLocation location, String alias, WindowSpecification specification)
+    public WindowDefinition(NodeLocation location, String name, WindowSpecification specification)
     {
-        this(Optional.of(location), alias, specification);
+        this(Optional.of(location), name, specification);
     }
 
-    private WindowDefinition(Optional<NodeLocation> location, String alias, WindowSpecification specification)
+    private WindowDefinition(Optional<NodeLocation> location, String name, WindowSpecification specification)
     {
         super(location);
-        this.alias = requireNonNull(alias, "alias is null");
+        this.name = requireNonNull(name, "name is null");
         this.specification = requireNonNull(specification, "specification is null");
     }
 
-    public String getAlias()
+    public String getName()
     {
-        return alias;
+        return name;
     }
 
     public WindowSpecification getSpecification()
@@ -68,21 +68,21 @@ public class WindowDefinition
             return false;
         }
         WindowDefinition that = (WindowDefinition) o;
-        return Objects.equals(alias, that.alias) &&
+        return Objects.equals(name, that.name) &&
                 Objects.equals(specification, that.specification);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(alias, specification);
+        return Objects.hash(name, specification);
     }
 
     @Override
     public String toString()
     {
         return toStringHelper(this)
-                .add("alias", alias)
+                .add("name", name)
                 .add("specification", specification)
                 .toString();
     }

@@ -16,6 +16,8 @@ package com.facebook.presto.sql.rewrite;
 import com.facebook.presto.sql.parser.SqlParser;
 import org.testng.annotations.Test;
 
+import java.util.Optional;
+
 public class TestWindowRewrite
 {
     private static final SqlParser SQL_PARSER = new SqlParser();
@@ -23,13 +25,18 @@ public class TestWindowRewrite
     @Test
     public void testWindowRewrite()
     {
-        // new WindowRewrite().rewrite(null, null, )
-        SQL_PARSER.createStatement("SELECT * FROM table1 WINDOW a AS ()");
-        SQL_PARSER.createStatement("SELECT * FROM table1 WINDOW a AS (PARTITION BY 1)");
-        SQL_PARSER.createStatement("SELECT * FROM table1 WINDOW a AS (PARTITION BY 1), b AS (ORDER BY 2 ASC NULLS LAST)");
+        run("SELECT * FROM table1 WINDOW a AS ()");
+        run("SELECT * FROM table1 WINDOW a AS (PARTITION BY 1)");
+        run("SELECT * FROM table1 WINDOW a AS (PARTITION BY 1), b AS (ORDER BY 2 ASC NULLS LAST)");
+        run("SELECT a, row_number() OVER (ORDER BY b ASC NULLS FIRST) FROM c");
 
         // SELECT sum(salary) OVER w, avg(salary) OVER w FROM empsalary WINDOW w AS (PARTITION BY depname ORDER BY salary DESC);
         // SELECT x, sum(x) OVER w FROM (VALUES (1), (2), (3)) AS t (x) WINDOW w AS (ORDER BY x);
         // SELECT x, sum(x) OVER (w ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) FROM (VALUES (1), (2), (3)) AS t (x) WINDOW w AS (ORDER BY x);
+    }
+
+    private static void run(String sql)
+    {
+        new WindowRewrite().rewrite(null, null, SQL_PARSER, Optional.empty(), SQL_PARSER.createStatement(sql));
     }
 }
