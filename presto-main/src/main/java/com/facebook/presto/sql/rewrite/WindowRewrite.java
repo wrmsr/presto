@@ -23,15 +23,18 @@ import com.facebook.presto.sql.tree.Query;
 import com.facebook.presto.sql.tree.QueryBody;
 import com.facebook.presto.sql.tree.QuerySpecification;
 import com.facebook.presto.sql.tree.Statement;
+import com.facebook.presto.sql.tree.WindowDefinition;
 import com.facebook.presto.sql.tree.WindowName;
-import com.facebook.presto.sql.tree.WindowInline;
 import com.facebook.presto.sql.tree.WindowSpecification;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-class WindowRewrite
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
+
+final class WindowRewrite
         implements StatementRewrite.Rewrite
 {
     @Override
@@ -43,8 +46,6 @@ class WindowRewrite
     private static final class Visitor
             extends AstVisitor<Node, Void>
     {
-        private final Map<String, WindowSpecification> windowSpecifications = new HashMap<>();
-
         public Visitor()
         {
         }
@@ -63,14 +64,22 @@ class WindowRewrite
         @Override
         protected Node visitQuerySpecification(QuerySpecification node, Void context)
         {
-            node.getWindow().forEach(wd -> windowSpecifications.put(wd.getName(), wd.getSpecification()));
+            Map<String, WindowSpecification> specs = new HashMap<>();
+            for (WindowDefinition def : node.getWindow()) {
+                checkArgument(!specs.containsKey(def.getName()), "Duplicate window definition '%s'", def.getName());
+                WindowSpecification spec = def.getSpecification();
+                if (spec.getExistingName().isPresent()) {
+                    WindowSpecification existing = specs.get(spec.getExistingName().get());
+                    requireNonNull(existing, String.format("Existing window definition '%s' not found for '%s'", spec.getExistingName().get(), def.getName()));
+                }
+            }
             return node;
         }
 
         @Override
         protected Node visitWindowName(WindowName node, Void context)
         {
-            return new WindowInline(windowSpecifications.get(node.getName()));
+            return node; // new WindowInline(windowSpecifications.get(node.getName()));
         }
 
         @Override
@@ -78,5 +87,11 @@ class WindowRewrite
         {
             return node;
         }
+    }
+
+    private static WindowSpecification resolveWindowReference(WindowSpecification referrer, WindowSpecification referent)
+    {
+        checkArgument(referent.getExistingName().);
+
     }
 }
