@@ -531,7 +531,7 @@ public final class ExpressionTreeRewriter<C>
                 if (!sameElements(windowSpecification.getPartitionBy(), partitionBy.build()) ||
                         !sameElements(windowSpecification.getOrderBy(), orderBy.build()) ||
                         !sameElements(windowSpecification.getFrame(), rewrittenFrame)) {
-                    rewrittenWindow = Optional.of(new Window(new WindowSpecification(partitionBy.build(), orderBy.build(), rewrittenFrame)));
+                    rewrittenWindow = Optional.of(new WindowInline(new WindowSpecification(partitionBy.build(), orderBy.build(), rewrittenFrame)));
                 }
             }
 
