@@ -25,7 +25,7 @@ import static com.facebook.presto.block.BlockAssertions.createDoubleSequenceBloc
 import static com.facebook.presto.block.BlockAssertions.createDoublesBlock;
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class TestRegrSlopeAggregation
+public class TestDoubleRegrSlopeAggregation
         extends AbstractTestAggregationFunction
 {
     @Override

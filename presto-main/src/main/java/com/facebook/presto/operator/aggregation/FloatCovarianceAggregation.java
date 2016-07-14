@@ -18,50 +18,51 @@ import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.type.SqlType;
 
-import static com.facebook.presto.operator.aggregation.AggregationUtils.mergeCovarianceState;
-import static com.facebook.presto.operator.aggregation.AggregationUtils.updateCovarianceState;
-import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
+import static com.facebook.presto.operator.aggregation.AggregationUtils.getCovariancePopulation;
+import static com.facebook.presto.operator.aggregation.AggregationUtils.getCovarianceSample;
+import static com.facebook.presto.spi.type.FloatType.FLOAT;
+import static java.lang.Float.intBitsToFloat;
 
 @AggregationFunction("")
-public class CovarianceAggregation
+public class FloatCovarianceAggregation
 {
-    private CovarianceAggregation() {}
+    private FloatCovarianceAggregation() {}
 
     @InputFunction
-    public static void input(CovarianceState state, @SqlType(StandardTypes.DOUBLE) double dependentValue, @SqlType(StandardTypes.DOUBLE) double independentValue)
+    public static void input(CovarianceState state, @SqlType(StandardTypes.FLOAT) long dependentValue, @SqlType(StandardTypes.FLOAT) long independentValue)
     {
-        updateCovarianceState(state, independentValue, dependentValue);
+        DoubleCovarianceAggregation.input(state, intBitsToFloat((int) dependentValue), intBitsToFloat((int) independentValue));
     }
 
     @CombineFunction
     public static void combine(CovarianceState state, CovarianceState otherState)
     {
-        mergeCovarianceState(state, otherState);
+        DoubleCovarianceAggregation.combine(state, otherState);
     }
 
     @AggregationFunction("covar_samp")
-    @OutputFunction(StandardTypes.DOUBLE)
+    @OutputFunction(StandardTypes.FLOAT)
     public static void covarSamp(CovarianceState state, BlockBuilder out)
     {
         if (state.getCount() <= 1) {
             out.appendNull();
         }
         else {
-            double result = (state.getSumXY() - state.getSumX() * state.getSumY() / state.getCount()) / (state.getCount() - 1);
-            DOUBLE.writeDouble(out, result);
+            double result = getCovarianceSample(state);
+            FLOAT.writeLong(out, Float.floatToRawIntBits((float) result));
         }
     }
 
     @AggregationFunction("covar_pop")
-    @OutputFunction(StandardTypes.DOUBLE)
+    @OutputFunction(StandardTypes.FLOAT)
     public static void covarPop(CovarianceState state, BlockBuilder out)
     {
         if (state.getCount() == 0) {
             out.appendNull();
         }
         else {
-            double result = (state.getSumXY() - state.getSumX() * state.getSumY() / state.getCount()) / state.getCount();
-            DOUBLE.writeDouble(out, result);
+            double result = getCovariancePopulation(state);
+            FLOAT.writeLong(out, Float.floatToRawIntBits((float) result));
         }
     }
 }

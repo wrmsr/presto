@@ -13,13 +13,24 @@
  */
 package com.facebook.presto.operator.aggregation;
 
-final class LongDoubleConverterUtil
+final class FloatingPointBitsConverterUtil
 {
-    private LongDoubleConverterUtil() {}
+    private FloatingPointBitsConverterUtil() {}
 
     /**
      * Converts a double value to a sortable long. The value is converted by getting their IEEE 754
      * floating-point bit layout. Some bits are swapped to be able to compare the result as long.
+     */
+    public static long doubleToSortableLong(double value)
+    {
+        long bits = Double.doubleToLongBits(value);
+        return bits ^ (bits >> 63) & Long.MAX_VALUE;
+    }
+
+    /**
+     * Converts a sortable long to double.
+     *
+     * @see #sortableLongToDouble(long)
      */
     public static double sortableLongToDouble(long value)
     {
@@ -28,13 +39,24 @@ final class LongDoubleConverterUtil
     }
 
     /**
-     * Converts a sortable long to double.
+     * Converts a float value to a sortable int.
+     *
+     * @see #doubleToSortableLong(double)
+     */
+    public static int floatToSortableInt(float value)
+    {
+        int bits = Float.floatToIntBits(value);
+        return bits ^ (bits >> 31) & Integer.MAX_VALUE;
+    }
+
+    /**
+     * Coverts a sortable int to float.
      *
      * @see #sortableLongToDouble(long)
      */
-    public static long doubleToSortableLong(double value)
+    public static float sortableIntToFloat(int value)
     {
-        long bits = Double.doubleToRawLongBits(value);
-        return bits ^ (bits >> 63) & Long.MAX_VALUE;
+        value = value ^ (value >> 31)  & Integer.MAX_VALUE;
+        return Float.intBitsToFloat(value);
     }
 }

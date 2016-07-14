@@ -20,16 +20,16 @@ import org.apache.commons.math3.stat.correlation.Covariance;
 
 import java.util.List;
 
-import static com.facebook.presto.block.BlockAssertions.createDoubleSequenceBlock;
+import static com.facebook.presto.block.BlockAssertions.createFloatSequenceBlock;
 import static com.facebook.presto.operator.aggregation.AggregationTestUtils.constructDoublePrimitiveArray;
 
-public class TestCovarianceSampAggregation
+public class TestFloatCovarianceSampAggregation
         extends AbstractTestAggregationFunction
 {
     @Override
     public Block[] getSequenceBlocks(int start, int length)
     {
-        return new Block[]{createDoubleSequenceBlock(start, start + length), createDoubleSequenceBlock(start + 5, start + 5 + length)};
+        return new Block[]{createFloatSequenceBlock(start, start + length), createFloatSequenceBlock(start + 5, start + 5 + length)};
     }
 
     @Override
@@ -41,7 +41,7 @@ public class TestCovarianceSampAggregation
     @Override
     protected List<String> getFunctionParameterTypes()
     {
-        return ImmutableList.of(StandardTypes.DOUBLE, StandardTypes.DOUBLE);
+        return ImmutableList.of(StandardTypes.FLOAT, StandardTypes.FLOAT);
     }
 
     @Override
@@ -50,6 +50,6 @@ public class TestCovarianceSampAggregation
         if (length <= 1) {
             return null;
         }
-        return new Covariance().covariance(constructDoublePrimitiveArray(start + 5, length), constructDoublePrimitiveArray(start, length), true);
+        return (float) new Covariance().covariance(constructDoublePrimitiveArray(start + 5, length), constructDoublePrimitiveArray(start, length), true);
     }
 }

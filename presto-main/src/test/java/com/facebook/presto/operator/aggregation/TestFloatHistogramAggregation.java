@@ -37,25 +37,26 @@ import static com.facebook.presto.operator.aggregation.AggregationTestUtils.getF
 import static com.facebook.presto.operator.aggregation.AggregationTestUtils.getIntermediateBlock;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
+import static com.facebook.presto.spi.type.FloatType.FLOAT;
 import static com.facebook.presto.spi.type.TypeSignature.parseTypeSignature;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
-public class TestNumericHistogramAggregation
+public class TestFloatHistogramAggregation
 {
     private final AccumulatorFactory factory;
     private final Page input;
 
-    public TestNumericHistogramAggregation()
+    public TestFloatHistogramAggregation()
     {
         TypeRegistry typeRegistry = new TypeRegistry();
         FunctionRegistry functionRegistry = new FunctionRegistry(typeRegistry, new BlockEncodingManager(typeRegistry), new FeaturesConfig().setExperimentalSyntaxEnabled(true));
         InternalAggregationFunction function = functionRegistry.getAggregateFunctionImplementation(
                 new Signature("numeric_histogram",
                         AGGREGATE,
-                        parseTypeSignature("map(double,double)"),
+                        parseTypeSignature("map(float, float)"),
                         parseTypeSignature(StandardTypes.BIGINT),
-                        parseTypeSignature(StandardTypes.DOUBLE),
+                        parseTypeSignature(StandardTypes.FLOAT),
                         parseTypeSignature(StandardTypes.DOUBLE)));
         factory = function.bind(ImmutableList.of(0, 1, 2), Optional.empty(), Optional.empty(), 1.0);
 
@@ -99,7 +100,7 @@ public class TestNumericHistogramAggregation
         finalStep.addIntermediate(intermediate);
         Block actual = getFinalBlock(finalStep);
 
-        Map<Double, Double> expected = Maps.transformValues(extractSingleValue(singleStepResult), value -> value * 2);
+        Map<Float, Float> expected = Maps.transformValues(extractSingleValue(singleStepResult), value -> value * 2);
 
         assertEquals(extractSingleValue(actual), expected);
     }
@@ -123,22 +124,22 @@ public class TestNumericHistogramAggregation
         getFinalBlock(singleStep);
     }
 
-    private static Map<Double, Double> extractSingleValue(Block block)
+    private static Map<Float, Float> extractSingleValue(Block block)
             throws IOException
     {
-        MapType mapType = new MapType(DOUBLE, DOUBLE);
-        return (Map<Double, Double>) mapType.getObjectValue(null, block, 0);
+        MapType mapType = new MapType(FLOAT, FLOAT);
+        return (Map<Float, Float>) mapType.getObjectValue(null, block, 0);
     }
 
     private Page makeInput(int numberOfBuckets)
     {
-        PageBuilder builder = new PageBuilder(ImmutableList.of(BIGINT, DOUBLE, DOUBLE));
+        PageBuilder builder = new PageBuilder(ImmutableList.of(BIGINT, FLOAT, DOUBLE));
 
         for (int i = 0; i < 100; i++) {
             builder.declarePosition();
 
             BIGINT.writeLong(builder.getBlockBuilder(0), numberOfBuckets);
-            DOUBLE.writeDouble(builder.getBlockBuilder(1), i); // value
+            FLOAT.writeLong(builder.getBlockBuilder(1), i); // value
             DOUBLE.writeDouble(builder.getBlockBuilder(2), 1); // weight
         }
 

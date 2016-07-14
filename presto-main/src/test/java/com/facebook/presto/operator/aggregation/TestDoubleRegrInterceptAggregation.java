@@ -16,18 +16,16 @@ package com.facebook.presto.operator.aggregation;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.google.common.collect.ImmutableList;
-import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
+import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.testng.annotations.Test;
 
 import java.util.List;
-import java.util.stream.DoubleStream;
 
 import static com.facebook.presto.block.BlockAssertions.createDoubleSequenceBlock;
 import static com.facebook.presto.block.BlockAssertions.createDoublesBlock;
-import static com.facebook.presto.operator.aggregation.AggregationTestUtils.constructDoublePrimitiveArray;
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class TestCorrelationAggregation
+public class TestDoubleRegrInterceptAggregation
         extends AbstractTestAggregationFunction
 {
     @Override
@@ -39,7 +37,7 @@ public class TestCorrelationAggregation
     @Override
     protected String getFunctionName()
     {
-        return "corr";
+        return "regr_intercept";
     }
 
     @Override
@@ -54,34 +52,28 @@ public class TestCorrelationAggregation
         if (length <= 1) {
             return null;
         }
-        PearsonsCorrelation corr = new PearsonsCorrelation();
-        return corr.correlation(constructDoublePrimitiveArray(start + 2, length), constructDoublePrimitiveArray(start, length));
-    }
-
-    @Test
-    public void testDivisionByZero()
-    {
-        testAggregation(null, createDoublesBlock(2.0, 2.0, 2.0, 2.0, 2.0), createDoublesBlock(1.0, 4.0, 9.0, 16.0, 25.0));
-        testAggregation(null, createDoublesBlock(1.0, 4.0, 9.0, 16.0, 25.0), createDoublesBlock(2.0, 2.0, 2.0, 2.0, 2.0));
+        SimpleRegression regression = new SimpleRegression();
+        for (int i = start; i < start + length; i++) {
+            regression.addData(i + 2, i);
+        }
+        return regression.getIntercept();
     }
 
     @Test
     public void testNonTrivialResult()
     {
-        // All other test produce 0, 1, or null only
-        testNonTrivialAggregation(new double[] {1, 2, 3, 4, 5}, new double[] {1, 4, 9, 16, 25});
+        testNonTrivialAggregation(new Double[] {1.0, 2.0, 3.0, 4.0, 5.0}, new Double[] {1.0, 4.0, 9.0, 16.0, 25.0});
+        testNonTrivialAggregation(new Double[] {1.0, 4.0, 9.0, 16.0, 25.0}, new Double[] {1.0, 2.0, 3.0, 4.0, 5.0});
     }
 
-    private void testNonTrivialAggregation(double[] y, double[] x)
+    private void testNonTrivialAggregation(Double[] y, Double[] x)
     {
-        PearsonsCorrelation corr = new PearsonsCorrelation();
-        double expected = corr.correlation(x, y);
-        checkArgument(Double.isFinite(expected) && expected != 0.0 && expected != 1.0, "Expected result is trivial");
-        testAggregation(expected, createDoublesBlock(box(y)), createDoublesBlock(box(x)));
-    }
-
-    private Double[] box(double[] values)
-    {
-        return DoubleStream.of(values).boxed().toArray(Double[]::new);
+        SimpleRegression regression = new SimpleRegression();
+        for (int i = 0; i < x.length; i++) {
+            regression.addData(x[i], y[i]);
+        }
+        double expected = regression.getIntercept();
+        checkArgument(Double.isFinite(expected) && expected != 0., "Expected result is trivial");
+        testAggregation(expected, createDoublesBlock(y), createDoublesBlock(x));
     }
 }

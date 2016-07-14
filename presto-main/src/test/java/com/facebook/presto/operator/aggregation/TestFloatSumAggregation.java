@@ -14,46 +14,52 @@
 package com.facebook.presto.operator.aggregation;
 
 import com.facebook.presto.spi.block.Block;
+import com.facebook.presto.spi.block.BlockBuilder;
+import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.google.common.collect.ImmutableList;
-import org.apache.commons.math3.stat.correlation.Covariance;
 
 import java.util.List;
 
-import static com.facebook.presto.block.BlockAssertions.createDoubleSequenceBlock;
-import static com.facebook.presto.operator.aggregation.AggregationTestUtils.constructDoublePrimitiveArray;
+import static com.facebook.presto.spi.type.FloatType.FLOAT;
+import static java.lang.Float.floatToRawIntBits;
 
-public class TestCovariancePopAggregation
+public class TestFloatSumAggregation
         extends AbstractTestAggregationFunction
 {
     @Override
     public Block[] getSequenceBlocks(int start, int length)
     {
-        return new Block[]{createDoubleSequenceBlock(start, start + length), createDoubleSequenceBlock(start + 5, start + 5 + length)};
+        BlockBuilder blockBuilder = FLOAT.createBlockBuilder(new BlockBuilderStatus(), length);
+        for (int i = start; i < start + length; i++) {
+            FLOAT.writeLong(blockBuilder, floatToRawIntBits((float) i));
+        }
+        return new Block[] {blockBuilder.build()};
     }
 
     @Override
     protected String getFunctionName()
     {
-        return "covar_pop";
+        return "sum";
     }
 
     @Override
     protected List<String> getFunctionParameterTypes()
     {
-        return ImmutableList.of(StandardTypes.DOUBLE, StandardTypes.DOUBLE);
+        return ImmutableList.of(StandardTypes.FLOAT);
     }
 
     @Override
     public Object getExpectedValue(int start, int length)
     {
-        if (length <= 0) {
+        if (length == 0) {
             return null;
         }
-        else if (length == 1) {
-            return 0.;
+
+        float sum = 0;
+        for (int i = start; i < start + length; i++) {
+            sum += i;
         }
-        Covariance covariance = new Covariance();
-        return covariance.covariance(constructDoublePrimitiveArray(start + 5, length), constructDoublePrimitiveArray(start, length), false);
+        return sum;
     }
 }
