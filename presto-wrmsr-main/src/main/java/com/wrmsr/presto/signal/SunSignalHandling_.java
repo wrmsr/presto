@@ -16,7 +16,7 @@ package com.wrmsr.presto.signal;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
-public class SunSignalHandling
+public class SunSignalHandling_
         implements SignalHandling
 {
     @Override
