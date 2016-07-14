@@ -18,6 +18,7 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.sql.analyzer.QueryExplainer;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.tree.AstVisitor;
+import com.facebook.presto.sql.tree.Expression;
 import com.facebook.presto.sql.tree.Node;
 import com.facebook.presto.sql.tree.Query;
 import com.facebook.presto.sql.tree.QueryBody;
@@ -28,6 +29,7 @@ import com.facebook.presto.sql.tree.WindowName;
 import com.facebook.presto.sql.tree.WindowSpecification;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -91,7 +93,14 @@ final class WindowRewrite
 
     private static WindowSpecification resolveWindowReference(WindowSpecification referrer, WindowSpecification referent)
     {
-        checkArgument(referent.getExistingName().);
+        checkArgument(referrer.getExistingName().isPresent(), "Window specification does not contain reference");
+        checkArgument(!referent.getExistingName().isPresent(), "Cannot chain window specification references");
+
+        checkArgument(referrer.getPartitionBy().isEmpty(), "Referrer window specification musn't contain partition clauses");
+        List<Expression> partitionBy = referent.getPartitionBy();
+
+        if (referrer.)
+
 
     }
 }
