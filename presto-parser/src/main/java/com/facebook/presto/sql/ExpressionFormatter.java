@@ -535,7 +535,7 @@ public final class ExpressionFormatter
                 parts.add(process(node.getFrame().get(), unmangleNames));
             }
 
-            return '(' + Joiner.on(' ').join(parts) + ')';
+            return Joiner.on(' ').join(parts);
         }
 
         @Override
