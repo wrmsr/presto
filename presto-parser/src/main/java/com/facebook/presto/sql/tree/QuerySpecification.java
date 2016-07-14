@@ -85,6 +85,7 @@ public class QuerySpecification
         this.where = where;
         this.groupBy = groupBy;
         this.having = having;
+        this.window = window;
         this.orderBy = orderBy;
         this.limit = limit;
     }
