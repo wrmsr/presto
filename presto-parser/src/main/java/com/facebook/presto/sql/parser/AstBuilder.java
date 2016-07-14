@@ -134,6 +134,7 @@ import com.facebook.presto.sql.tree.Values;
 import com.facebook.presto.sql.tree.WhenClause;
 import com.facebook.presto.sql.tree.Window;
 import com.facebook.presto.sql.tree.WindowFrame;
+import com.facebook.presto.sql.tree.WindowSpecification;
 import com.facebook.presto.sql.tree.With;
 import com.facebook.presto.sql.tree.WithQuery;
 import com.google.common.collect.ImmutableList;
@@ -1196,6 +1197,13 @@ class AstBuilder
     {
         return new Window(
                 getLocation(context),
+                visit(context.windowSpecification(), WindowSpecification.class));
+    }
+
+    @Override
+    public Node visitWindowSpecification(SqlBaseParser.WindowSpecificationContext context)
+    {
+        return new WindowSpecification(
                 visit(context.partition, Expression.class),
                 visit(context.sortItem(), SortItem.class),
                 visitIfPresent(context.windowFrame(), WindowFrame.class));

@@ -337,11 +337,13 @@ whenClause
     ;
 
 over
-    : OVER '('
-        (PARTITION BY partition+=expression (',' partition+=expression)*)?
-        (ORDER BY sortItem (',' sortItem)*)?
-        windowFrame?
-      ')'
+    : OVER '(' windowSpecification ')'
+    ;
+
+windowSpecification
+    : (PARTITION BY partition+=expression (',' partition+=expression)*)?
+      (ORDER BY sortItem (',' sortItem)*)?
+      windowFrame?
     ;
 
 windowFrame
@@ -357,7 +359,6 @@ frameBound
     | CURRENT ROW                                   #currentRowBound
     | expression boundType=(PRECEDING | FOLLOWING)  #boundedFrame // expression should be unsignedLiteral
     ;
-
 
 explainOption
     : FORMAT value=(TEXT | GRAPHVIZ)         #explainFormat

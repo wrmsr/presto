@@ -13,7 +13,6 @@
  */
 package com.facebook.presto.sql.tree;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -23,41 +22,22 @@ import static java.util.Objects.requireNonNull;
 public class Window
         extends Node
 {
-    private final List<Expression> partitionBy;
-    private final List<SortItem> orderBy;
-    private final Optional<WindowFrame> frame;
+    private final WindowSpecification specification;
 
-    public Window(List<Expression> partitionBy, List<SortItem> orderBy, Optional<WindowFrame> frame)
+    public Window(WindowSpecification specification)
     {
-        this(Optional.empty(), partitionBy, orderBy, frame);
+        this(Optional.empty(), specification);
     }
 
-    public Window(NodeLocation location, List<Expression> partitionBy, List<SortItem> orderBy, Optional<WindowFrame> frame)
-    {
-        this(Optional.of(location), partitionBy, orderBy, frame);
-    }
-
-    private Window(Optional<NodeLocation> location, List<Expression> partitionBy, List<SortItem> orderBy, Optional<WindowFrame> frame)
+    private Window(Optional<NodeLocation> location, WindowSpecification specification)
     {
         super(location);
-        this.partitionBy = requireNonNull(partitionBy, "partitionBy is null");
-        this.orderBy = requireNonNull(orderBy, "orderBy is null");
-        this.frame = requireNonNull(frame, "frame is null");
+        this.specification = requireNonNull(specification, "specification is null");
     }
 
-    public List<Expression> getPartitionBy()
+    public WindowSpecification getSpecification()
     {
-        return partitionBy;
-    }
-
-    public List<SortItem> getOrderBy()
-    {
-        return orderBy;
-    }
-
-    public Optional<WindowFrame> getFrame()
-    {
-        return frame;
+        return specification;
     }
 
     @Override
@@ -76,24 +56,20 @@ public class Window
             return false;
         }
         Window o = (Window) obj;
-        return Objects.equals(partitionBy, o.partitionBy) &&
-                Objects.equals(orderBy, o.orderBy) &&
-                Objects.equals(frame, o.frame);
+        return Objects.equals(specification, o.specification);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(partitionBy, orderBy, frame);
+        return Objects.hash(specification);
     }
 
     @Override
     public String toString()
     {
         return toStringHelper(this)
-                .add("partitionBy", partitionBy)
-                .add("orderBy", orderBy)
-                .add("frame", frame)
+                .add("specification", specification)
                 .toString();
     }
 }

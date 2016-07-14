@@ -1517,6 +1517,18 @@ public class TestSqlParser
                                         new ExistsPredicate(simpleQuery(selectList(new LongLiteral("2"))))))));
     }
 
+    @Test
+
+    public void testWindowExpression()
+    {
+        SQL_PARSER.createStatement("SELECT x, sum(x) OVER (ORDER BY x)\n" +
+                "FROM (VALUES (1), (2), (3)) AS t (x)");
+
+        SQL_PARSER.createStatement("SELECT x, sum(x) OVER w\n" +
+                "FROM (VALUES (1), (2), (3)) AS t (x)\n" +
+                "WINDOW w AS (ORDER BY x);");
+    }
+
     private static void assertCast(String type)
     {
         assertCast(type, type);
