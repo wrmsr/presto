@@ -23,8 +23,8 @@ public class SignalModule
     @Override
     public void configurePlugin(ConfigContainer config, Binder binder)
     {
-        binder.bind(SunSignalHandling.class).asEagerSingleton();
-        binder.bind(SignalHandling.class).to(SunSignalHandling.class);
+        binder.bind(SunSignalHandling_.class).asEagerSingleton();
+        binder.bind(SignalHandling.class).to(SunSignalHandling_.class);
 
         binder.bind(SignalManager.class).asEagerSingleton();
     }
