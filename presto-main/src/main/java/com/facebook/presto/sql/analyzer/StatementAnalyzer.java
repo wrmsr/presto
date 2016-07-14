@@ -81,6 +81,7 @@ import com.facebook.presto.sql.tree.Use;
 import com.facebook.presto.sql.tree.Values;
 import com.facebook.presto.sql.tree.Window;
 import com.facebook.presto.sql.tree.WindowFrame;
+import com.facebook.presto.sql.tree.WindowInline;
 import com.facebook.presto.sql.tree.WindowSpecification;
 import com.facebook.presto.sql.tree.With;
 import com.facebook.presto.sql.tree.WithQuery;
@@ -978,7 +979,8 @@ class StatementAnalyzer
         List<FunctionCall> windowFunctions = extractor.getWindowFunctions();
 
         for (FunctionCall windowFunction : windowFunctions) {
-            WindowSpecification windowSpecification = windowFunction.getWindow().get().getSpecification();
+            checkArgument(windowFunction.getWindow().get() instanceof WindowInline, "Window must be inline for window function '%s", windowFunction);
+            WindowSpecification windowSpecification = ((WindowInline) windowFunction.getWindow().get()).getSpecification();
 
             WindowFunctionExtractor nestedExtractor = new WindowFunctionExtractor();
             for (Expression argument : windowFunction.getArguments()) {

@@ -52,6 +52,7 @@ import com.facebook.presto.sql.tree.TryExpression;
 import com.facebook.presto.sql.tree.WhenClause;
 import com.facebook.presto.sql.tree.Window;
 import com.facebook.presto.sql.tree.WindowFrame;
+import com.facebook.presto.sql.tree.WindowInline;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -292,7 +293,7 @@ class AggregationAnalyzer
         }
 
         @Override
-        public Boolean visitWindow(Window node, Void context)
+        public Boolean visitWindowInline(WindowInline node, Void context)
         {
             for (Expression expression : node.getSpecification().getPartitionBy()) {
                 if (!process(expression, context)) {

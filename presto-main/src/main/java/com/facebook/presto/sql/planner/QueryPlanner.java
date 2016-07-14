@@ -503,6 +503,7 @@ class QueryPlanner
             Expression frameStart = null;
             Expression frameEnd = null;
 
+            // FIXME WindowAlias -> WindowInline pls
             if (window.getSpecification().getFrame().isPresent()) {
                 WindowFrame frame = window.getSpecification().getFrame().get();
                 frameType = frame.getType();

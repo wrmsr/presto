@@ -80,6 +80,8 @@ import com.facebook.presto.sql.tree.TimestampLiteral;
 import com.facebook.presto.sql.tree.TryExpression;
 import com.facebook.presto.sql.tree.WhenClause;
 import com.facebook.presto.sql.tree.WindowFrame;
+import com.facebook.presto.sql.tree.WindowInline;
+import com.facebook.presto.sql.tree.WindowSpecification;
 import com.facebook.presto.type.RowType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -134,6 +136,7 @@ import static com.facebook.presto.util.DateTimeUtils.timeHasTimeZone;
 import static com.facebook.presto.util.DateTimeUtils.timestampHasTimeZone;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Sets.newIdentityHashSet;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -736,7 +739,10 @@ public class ExpressionAnalyzer
         protected Type visitFunctionCall(FunctionCall node, StackableAstVisitorContext<AnalysisContext> context)
         {
             if (node.getWindow().isPresent()) {
-                for (Expression expression : node.getWindow().get().getSpecification().getPartitionBy()) {
+                checkArgument(node.getWindow().get() instanceof WindowInline, "Window must be inline for node %s", node.getName());
+                WindowSpecification windowSpecification = ((WindowInline) node.getWindow().get()).getSpecification();
+
+                for (Expression expression : windowSpecification.getPartitionBy()) {
                     process(expression, context);
                     Type type = expressionTypes.get(expression);
                     if (!type.isComparable()) {
@@ -744,7 +750,7 @@ public class ExpressionAnalyzer
                     }
                 }
 
-                for (SortItem sortItem : node.getWindow().get().getSpecification().getOrderBy()) {
+                for (SortItem sortItem : windowSpecification.getOrderBy()) {
                     process(sortItem.getSortKey(), context);
                     Type type = expressionTypes.get(sortItem.getSortKey());
                     if (!type.isOrderable()) {
@@ -752,8 +758,8 @@ public class ExpressionAnalyzer
                     }
                 }
 
-                if (node.getWindow().get().getSpecification().getFrame().isPresent()) {
-                    WindowFrame frame = node.getWindow().get().getSpecification().getFrame().get();
+                if (windowSpecification.getFrame().isPresent()) {
+                    WindowFrame frame = windowSpecification.getFrame().get();
 
                     if (frame.getStart().getValue().isPresent()) {
                         Type type = process(frame.getStart().getValue().get(), context);
