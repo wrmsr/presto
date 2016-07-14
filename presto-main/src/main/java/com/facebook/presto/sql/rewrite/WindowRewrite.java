@@ -19,10 +19,16 @@ import com.facebook.presto.sql.analyzer.QueryExplainer;
 import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.tree.AstVisitor;
 import com.facebook.presto.sql.tree.Node;
+import com.facebook.presto.sql.tree.Query;
+import com.facebook.presto.sql.tree.QueryBody;
 import com.facebook.presto.sql.tree.QuerySpecification;
 import com.facebook.presto.sql.tree.Statement;
 import com.facebook.presto.sql.tree.WindowAlias;
+import com.facebook.presto.sql.tree.WindowInline;
+import com.facebook.presto.sql.tree.WindowSpecification;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 class WindowRewrite
@@ -37,20 +43,34 @@ class WindowRewrite
     private static final class Visitor
             extends AstVisitor<Node, Void>
     {
+        private final Map<String, WindowSpecification> windowSpecifications = new HashMap<>();
+
         public Visitor()
         {
         }
 
         @Override
+        protected Node visitQuery(Query node, Void context)
+        {
+            return new Query(
+                    node.getWith(),
+                    (QueryBody) process(node.getQueryBody(), context),
+                    node.getOrderBy(),
+                    node.getLimit(),
+                    node.getApproximate());
+        }
+
+        @Override
         protected Node visitQuerySpecification(QuerySpecification node, Void context)
         {
-            return super.visitQuerySpecification(node, context);
+            node.getWindow().forEach(wd -> windowSpecifications.put(wd.getAlias(), wd.getSpecification()));
+            return node;
         }
 
         @Override
         protected Node visitWindowAlias(WindowAlias node, Void context)
         {
-            return super.visitWindowAlias(node, context);
+            return new WindowInline(windowSpecifications.get(node.getAlias()));
         }
 
         @Override
