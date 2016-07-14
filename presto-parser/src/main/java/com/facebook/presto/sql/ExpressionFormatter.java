@@ -311,7 +311,7 @@ public final class ExpressionFormatter
                     .append('(').append(arguments).append(')');
 
             if (node.getWindow().isPresent()) {
-                builder.append(" OVER ").append(visitWindow(node.getWindow().get(), unmangleNames));
+                builder.append(" OVER ").append(process(node.getWindow().get(), unmangleNames));
             }
 
             return builder.toString();
