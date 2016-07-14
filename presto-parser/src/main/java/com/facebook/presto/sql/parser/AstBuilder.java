@@ -1197,7 +1197,7 @@ class AstBuilder
     {
         return new Window(
                 getLocation(context),
-                visitWindowSpecification(context.windowSpecification()));
+                (WindowSpecification) visitWindowSpecification(context.windowSpecification()));
     }
 
     @Override
