@@ -479,6 +479,8 @@ public final class ExpressionTreeRewriter<C>
                 }
             }
 
+            Optional<Expression> rewrittenFilter = node.getFilter().map(expr -> rewrite(expr, context.get()));
+
             Optional<Window> rewrittenWindow = node.getWindow();
             if (node.getWindow().isPresent()) {
                 Window window = node.getWindow().get();
@@ -540,8 +542,8 @@ public final class ExpressionTreeRewriter<C>
                 arguments.add(rewrite(expression, context.get()));
             }
 
-            if (!sameElements(node.getArguments(), arguments.build()) || !sameElements(rewrittenWindow, node.getWindow())) {
-                return new FunctionCall(node.getName(), rewrittenWindow, node.isDistinct(), arguments.build());
+            if (!sameElements(rewrittenFilter, node.getFilter()) || !sameElements(node.getArguments(), arguments.build()) || !sameElements(rewrittenWindow, node.getWindow())) {
+                return new FunctionCall(node.getName(), rewrittenFilter, rewrittenWindow, node.isDistinct(), arguments.build());
             }
 
             return node;
