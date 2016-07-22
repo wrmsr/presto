@@ -821,6 +821,7 @@ public class HashGenerationOptimizer
             FunctionCall functionCall = new FunctionCall(
                     QualifiedName.of(HASH_CODE),
                     Optional.empty(),
+                    Optional.empty(),
                     false,
                     ImmutableList.of(symbol.toSymbolReference()));
             List<Expression> arguments = ImmutableList.of(previousHashValue, orNullHashCode(functionCall));
