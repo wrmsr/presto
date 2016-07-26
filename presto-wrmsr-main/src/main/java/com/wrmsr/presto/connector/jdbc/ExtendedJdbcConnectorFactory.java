@@ -136,7 +136,6 @@ public class ExtendedJdbcConnectorFactory
                 binder.bind(JdbcRecordSetProvider.class).to(ExtendedJdbcRecordSetProvider.class).in(Scopes.SINGLETON);
                 binder.bind(JdbcMetadataFactory.class).to(ExtendedJdbcMetadataFactory.class).in(Scopes.SINGLETON);
                 binder.bind(JdbcHandleResolver.class).to(ExtendedJdbcHandleResolver.class).in(Scopes.SINGLETON);
-                binder.bind(JdbcMetadata.class).to(ExtendedJdbcMetadata.class).in(Scopes.SINGLETON);
                 binder.bind(JdbcRecordSinkProvider.class).to(ExtendedJdbcRecordSinkProvider.class).in(Scopes.SINGLETON);
             }
         }));

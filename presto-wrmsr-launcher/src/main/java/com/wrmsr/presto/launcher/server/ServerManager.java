@@ -94,7 +94,7 @@ public class ServerManager
             return;
         }
 
-        File wd = new File(System.getProperty("user.dir"), "presto-main");
+        File wd = new File(System.getProperty("user.dir"), "presto");
         checkState(wd.exists() && wd.isDirectory());
 
         String ap = wd.getAbsolutePath();
@@ -145,7 +145,7 @@ public class ServerManager
         }
 
         configureLoggers();
-        setCwd();
+//        setCwd();
         setServerProperties();
         delay();
 

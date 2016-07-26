@@ -244,10 +244,10 @@ public class MainPlugin
                 connectorManager.addConnectorFactory(cf);
             }
 
-            Set<com.facebook.presto.spi.ConnectorFactory> lcfs = injector.getInstance(Key.get(new TypeLiteral<Set<com.facebook.presto.spi.ConnectorFactory>>() {}));
-            for (com.facebook.presto.spi.ConnectorFactory cf : lcfs) {
-                connectorManager.addConnectorFactory(cf);
-            }
+//            Set<com.facebook.presto.spi.ConnectorFactory> lcfs = injector.getInstance(Key.get(new TypeLiteral<Set<com.facebook.presto.spi.ConnectorFactory>>() {}));
+//            for (com.facebook.presto.spi.ConnectorFactory cf : lcfs) {
+//                connectorManager.addConnectorFactory(cf);
+//            }
 
             MetaconnectorManager mm = injector.getInstance(MetaconnectorManager.class);
             for (Map.Entry<String, MetaconnectorsConfig.Entry> e : config.getMergedNode(MetaconnectorsConfig.class)) {

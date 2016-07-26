@@ -50,9 +50,9 @@ public class FunctionModule
 
         newSetBinder(binder, FunctionRegistration.class).addBinding().toInstance(FunctionRegistration.of(flb -> {
             flb
-                    .scalar(CompressionFunctions.class)
-                    .scalar(GrokFunctions.class)
-                    .scalar(FileFunctions.class);
+                    .scalars(CompressionFunctions.class)
+                    .scalars(GrokFunctions.class)
+                    .scalars(FileFunctions.class);
         }));
     }
 }
