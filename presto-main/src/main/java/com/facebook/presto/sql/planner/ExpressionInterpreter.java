@@ -17,7 +17,6 @@ import com.facebook.presto.Session;
 import com.facebook.presto.client.FailureInfo;
 import com.facebook.presto.metadata.FunctionRegistry;
 import com.facebook.presto.metadata.Metadata;
-import com.facebook.presto.metadata.OperatorType;
 import com.facebook.presto.metadata.Signature;
 import com.facebook.presto.operator.scalar.ArraySubscriptOperator;
 import com.facebook.presto.operator.scalar.ScalarFunctionImplementation;
@@ -28,6 +27,7 @@ import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
 import com.facebook.presto.spi.block.BlockBuilderStatus;
 import com.facebook.presto.spi.block.InterleavedBlockBuilder;
+import com.facebook.presto.spi.function.OperatorType;
 import com.facebook.presto.spi.type.StandardTypes;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.sql.analyzer.AnalysisContext;
@@ -322,6 +322,9 @@ public class ExpressionInterpreter
                 else if (javaType == Slice.class) {
                     return type.getSlice(block, position);
                 }
+                else if (javaType == Block.class) {
+                    return type.getObject(block, position);
+                }
                 else {
                     throw new UnsupportedOperationException("not yet implemented");
                 }
@@ -344,6 +347,9 @@ public class ExpressionInterpreter
                 }
                 else if (javaType == Slice.class) {
                     return cursor.getSlice(channel);
+                }
+                else if (javaType == Block.class) {
+                    return cursor.getObject(channel);
                 }
                 else {
                     throw new UnsupportedOperationException("not yet implemented");
