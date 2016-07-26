@@ -13,16 +13,14 @@
  */
 package com.wrmsr.presto.serialization;
 
+import com.facebook.presto.spi.type.ParametricType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeParameter;
-import com.facebook.presto.type.ParametricType;
 
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 public class SerializedParametricType
-    implements ParametricType
+        implements ParametricType
 {
 //    private final SerializationManager serializationManager;
 //

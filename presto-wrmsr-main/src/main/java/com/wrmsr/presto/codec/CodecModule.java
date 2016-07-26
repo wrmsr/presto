@@ -15,13 +15,11 @@ package com.wrmsr.presto.codec;
 
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.SqlFunction;
+import com.facebook.presto.spi.type.ParametricType;
 import com.facebook.presto.spi.type.TypeManager;
-import com.facebook.presto.type.ParametricType;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
 import com.google.inject.Key;
-import com.google.inject.Module;
-import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.MainModule;
 import com.wrmsr.presto.config.ConfigContainer;
 import com.wrmsr.presto.util.Compression;
@@ -29,7 +27,6 @@ import com.wrmsr.presto.util.Compression;
 import java.util.Set;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
-import static com.wrmsr.presto.util.Serialization.OBJECT_MAPPER;
 
 public class CodecModule
         extends MainModule

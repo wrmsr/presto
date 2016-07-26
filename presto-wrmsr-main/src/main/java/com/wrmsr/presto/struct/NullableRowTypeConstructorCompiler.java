@@ -20,8 +20,8 @@ import com.facebook.presto.bytecode.Variable;
 import com.facebook.presto.bytecode.instruction.LabelNode;
 import com.facebook.presto.spi.block.Block;
 import com.facebook.presto.spi.block.BlockBuilder;
+import com.facebook.presto.spi.function.SqlType;
 import com.facebook.presto.type.RowType;
-import com.facebook.presto.type.SqlType;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 

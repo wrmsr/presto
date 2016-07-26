@@ -15,7 +15,7 @@ package com.wrmsr.presto.codec;
 
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.SqlFunction;
-import com.facebook.presto.type.ParametricType;
+import com.facebook.presto.spi.type.ParametricType;
 import com.facebook.presto.type.TypeRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.MapMaker;
@@ -24,7 +24,6 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;

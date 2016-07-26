@@ -13,14 +13,12 @@
  */
 package com.wrmsr.presto.type;
 
+import com.facebook.presto.spi.type.ParametricType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeManager;
-import com.facebook.presto.type.ParametricType;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Binder;
 import com.google.inject.Key;
-import com.google.inject.Module;
 import com.google.inject.multibindings.Multibinder;
 import com.wrmsr.presto.MainModule;
 import com.wrmsr.presto.config.ConfigContainer;
@@ -29,7 +27,7 @@ import com.wrmsr.presto.function.FunctionRegistration;
 import java.util.Set;
 
 public class TypeModule
-    extends MainModule
+        extends MainModule
 {
     @Override
     public Set<Key> getInjectorForwardings(ConfigContainer config)
@@ -50,6 +48,5 @@ public class TypeModule
 
         binder.bind(PropertiesFunction.class).asEagerSingleton();
         functionRegistrationBinder.addBinding().to(PropertiesFunction.class);
-
     }
 }

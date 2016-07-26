@@ -13,10 +13,10 @@
  */
 package com.wrmsr.presto.codec;
 
+import com.facebook.presto.spi.type.ParametricType;
 import com.facebook.presto.spi.type.Type;
 import com.facebook.presto.spi.type.TypeParameter;
 import com.facebook.presto.spi.type.VarbinaryType;
-import com.facebook.presto.type.ParametricType;
 
 import java.util.List;
 
