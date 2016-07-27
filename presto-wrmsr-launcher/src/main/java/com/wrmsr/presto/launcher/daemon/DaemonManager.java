@@ -13,33 +13,20 @@
  */
 package com.wrmsr.presto.launcher.daemon;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import com.wrmsr.presto.launcher.config.LauncherConfig;
 import com.wrmsr.presto.launcher.jvm.JvmManager;
 import com.wrmsr.presto.launcher.util.DaemonProcess;
-import com.wrmsr.presto.util.Repositories;
-import com.wrmsr.presto.util.config.PrestoConfigs;
 import io.airlift.log.Logger;
 import jnr.posix.POSIX;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.concurrent.GuardedBy;
 
 import java.io.File;
-import java.util.List;
 import java.util.OptionalInt;
-import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.wrmsr.presto.util.Jvm.getThisJarFile;
-import static com.wrmsr.presto.util.ShellUtils.shellEscape;
-import static com.wrmsr.presto.util.collect.ImmutableCollectors.toImmutableList;
 import static java.util.Objects.requireNonNull;
 
 public class DaemonManager
