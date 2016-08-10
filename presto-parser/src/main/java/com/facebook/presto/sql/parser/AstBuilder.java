@@ -1069,6 +1069,8 @@ class AstBuilder
     @Override
     public Node visitFirstOrLastValueFunction(SqlBaseParser.FirstOrLastValueFunctionContext context)
     {
+        Window window = (Window) visit(context.over());
+
         String functionName;
         switch (((TerminalNode) context.firstOrLastValue().getChild(0)).getSymbol().getType()) {
             case SqlBaseLexer.FIRST_VALUE:
@@ -1080,9 +1082,17 @@ class AstBuilder
             default:
                 throw new IllegalStateException();
         }
-        boolean respectsNulls = context.nullTreatment() instanceof SqlBaseParser.RespectNullsContext;
-        // return new FunctionCall(getLocation(context), "first_value")
-        throw new IllegalStateException();
+
+        boolean ignoreNulls = context.nullTreatment() instanceof SqlBaseParser.IgnoreNullsContext;
+
+        Expression arg = (Expression) visit(context.valueExpression());
+
+        return new FunctionCall(
+                getLocation(context),
+                QualifiedName.of(functionName),
+                Optional.of(window),
+                false,
+                ImmutableList.of(arg, new BooleanLiteral(Boolean.toString(ignoreNulls))));
     }
 
     @Override

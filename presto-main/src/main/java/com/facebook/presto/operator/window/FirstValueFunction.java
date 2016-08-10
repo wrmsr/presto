@@ -19,17 +19,18 @@ import com.facebook.presto.spi.function.WindowFunctionSignature;
 
 import java.util.List;
 
-import static com.google.common.collect.Iterables.getOnlyElement;
-
 @WindowFunctionSignature(name = "first_value", typeVariable = "T", returnType = "T", argumentTypes = "T")
+@WindowFunctionSignature(name = "first_value", typeVariable = "T", returnType = "T", argumentTypes = {"T", "boolean"})
 public class FirstValueFunction
         extends ValueWindowFunction
 {
-    private final int argumentChannel;
+    private final int valueChannel;
+    private final int ignoreNullsChannel;
 
     public FirstValueFunction(List<Integer> argumentChannels)
     {
-        this.argumentChannel = getOnlyElement(argumentChannels);
+        this.valueChannel = argumentChannels.get(0);
+        this.ignoreNullsChannel = (argumentChannels.size() > 1) ? argumentChannels.get(1) : -1;
     }
 
     @Override
@@ -40,6 +41,6 @@ public class FirstValueFunction
             return;
         }
 
-        windowIndex.appendTo(argumentChannel, frameStart, output);
+        windowIndex.appendTo(valueChannel, frameStart, output);
     }
 }
