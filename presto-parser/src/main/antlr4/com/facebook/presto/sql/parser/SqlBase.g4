@@ -265,6 +265,7 @@ primaryExpression
     | STRING                                                                         #stringLiteral
     | BINARY_LITERAL                                                                 #binaryLiteral
     | POSITION '(' valueExpression IN valueExpression ')'                            #position
+    | firstOrLastValue '(' valueExpression ')' nullTreatment? over?                  #firstOrLastValueFunction
     | '(' expression (',' expression)+ ')'                                           #rowConstructor
     | ROW '(' expression (',' expression)* ')'                                       #rowConstructor
     | qualifiedName '(' ASTERISK ')' over?                                           #functionCall
@@ -330,6 +331,16 @@ baseType
     : TIME_WITH_TIME_ZONE
     | TIMESTAMP_WITH_TIME_ZONE
     | identifier
+    ;
+
+firstOrLastValue
+    : FIRST_VALUE
+    | LAST_VALUE
+    ;
+
+nullTreatment
+    : RESPECT NULLS   #respectNulls
+    | IGNORE NULLS    #ignoreNulls
     ;
 
 whenClause
@@ -421,6 +432,8 @@ nonReserved
     | TRY
     | normalForm
     | POSITION
+    | FIRST_VALUE | LAST_VALUE
+    | RESPECT | IGNORE
     | NO | DATA
     | START | TRANSACTION | COMMIT | ROLLBACK | WORK | ISOLATION | LEVEL
     | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | ONLY
@@ -474,6 +487,10 @@ ASC: 'ASC';
 DESC: 'DESC';
 SUBSTRING: 'SUBSTRING';
 POSITION: 'POSITION';
+FIRST_VALUE: 'FIRST_VALUE';
+LAST_VALUE: 'LAST_VALUE';
+RESPECT: 'RESPECT';
+IGNORE: 'IGNORE';
 FOR: 'FOR';
 TINYINT: 'TINYINT';
 SMALLINT: 'SMALLINT';

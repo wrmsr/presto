@@ -700,6 +700,13 @@ public class TestSqlParser
         assertExpression("CURRENT_TIMESTAMP", new CurrentTime(CurrentTime.Type.TIMESTAMP));
     }
 
+    @Test
+    public void testFirstOrLastValueFunction()
+        throws Exception
+    {
+        assertStatement("SELECT LAST_VALUE(x) IGNORE NULLS OVER() FROM (VALUES(2), (NULL)) AS T(x)", null);
+    }
+
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:1: expression is too large \\(stack overflow while parsing\\)")
     public void testStackOverflowExpression()
     {

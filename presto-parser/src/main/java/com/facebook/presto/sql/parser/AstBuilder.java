@@ -1067,6 +1067,13 @@ class AstBuilder
     }
 
     @Override
+    public Node visitFirstOrLastValueFunction(SqlBaseParser.FirstOrLastValueFunctionContext context)
+    {
+        throw new IllegalStateException();
+//        return new FunctionCall(getLocation(context), "first_value")
+    }
+
+    @Override
     public Node visitNormalize(SqlBaseParser.NormalizeContext context)
     {
         Expression str = (Expression) visit(context.valueExpression());
