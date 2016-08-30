@@ -260,7 +260,7 @@ public final class SqlFormatter
             }
 
             if (!node.getWindow().isEmpty()) {
-                append(indent, "WINDOW " + node.getWindow().stream().map(wd -> formatWindowDefinition(wd, false)).collect(joining(", "))).append('\n');
+                append(indent, "WINDOW " + node.getWindow().stream().map(wd -> formatWindowDefinition(wd, false, parameters)).collect(joining(", "))).append('\n');
             }
 
             if (!node.getOrderBy().isEmpty()) {
