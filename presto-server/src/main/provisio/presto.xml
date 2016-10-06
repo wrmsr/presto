@@ -151,4 +151,10 @@
             <unpack />
         </artifact>
     </artifactSet>
+
+    <artifactSet to="plugin/fusion">
+        <artifact id="com.wrmsr.presto:presto-fusion:zip:${project.version}">
+            <unpack />
+        </artifact>
+    </artifactSet>
 </runtime>
