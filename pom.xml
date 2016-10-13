@@ -116,7 +116,8 @@
         <module>presto-testing-server-launcher</module>
         <module>presto-plugin-toolkit</module>
         <module>presto-resource-group-managers</module>
-        <module>presto-fusion</module>
+        <module>presto-fusion-launcher</module>
+        <module>presto-fusion-util</module>
     </modules>
 
     <dependencyManagement>
