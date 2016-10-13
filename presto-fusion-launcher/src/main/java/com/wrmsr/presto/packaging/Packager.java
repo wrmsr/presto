@@ -190,7 +190,7 @@ public class Packager
                 ArtifactResolver.USER_LOCAL_REPO,
                 ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
 
-        String wrapperProject = "presto-wrmsr-launcher";
+        String wrapperProject = "presto-fusion-launcher";
         List<String> names = getModuleNames();
         Set<String> localGroups = ImmutableSet.of(
                 "com.facebook.presto",
@@ -219,7 +219,7 @@ public class Packager
         buildJar(gitHead, gitShort, gitTags, wrapperJarFile, entryMap, keys, outPath);
 
         byte[] launcherBytes;
-        try (InputStream launcherStream = Packager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/launcher")) {
+        try (InputStream launcherStream = Packager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/packaging/entrypoint")) {
             launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, StandardCharsets.UTF_8)).getBytes();
         }
 
