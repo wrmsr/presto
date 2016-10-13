@@ -11,24 +11,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.packaging.entries;
+package com.wrmsr.presto.launcher.packaging.entries;
 
-import java.util.Arrays;
+import java.util.jar.JarEntry;
 
-public class BytesEntry
-        extends Entry
+public abstract class Entry
 {
-    public final byte[] bytes;
+    private final String jarPath;
+    private final long time;
 
-    public BytesEntry(String jarPath, byte[] bytes, long time)
+    public Entry(String jarPath, long time)
     {
-        super(jarPath, time);
-        this.bytes = bytes;
+        this.jarPath = jarPath;
+        this.time = time;
     }
 
-    public byte[] getBytes()
+    public void processEntry(JarEntry je)
     {
-        return bytes;
+        je.setTime(time);
+    }
+
+    public String getJarPath()
+    {
+        return jarPath;
     }
 
     @Override
@@ -40,20 +45,15 @@ public class BytesEntry
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) {
-            return false;
-        }
 
-        BytesEntry that = (BytesEntry) o;
+        Entry entry = (Entry) o;
 
-        return Arrays.equals(bytes, that.bytes);
+        return !(jarPath != null ? !jarPath.equals(entry.jarPath) : entry.jarPath != null);
     }
 
     @Override
     public int hashCode()
     {
-        int result = super.hashCode();
-        result = 31 * result + (bytes != null ? Arrays.hashCode(bytes) : 0);
-        return result;
+        return jarPath != null ? jarPath.hashCode() : 0;
     }
 }

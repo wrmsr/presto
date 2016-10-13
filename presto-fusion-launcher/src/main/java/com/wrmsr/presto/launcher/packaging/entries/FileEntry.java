@@ -11,29 +11,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.packaging.entries;
+package com.wrmsr.presto.launcher.packaging.entries;
 
-import java.util.jar.JarEntry;
+import java.io.File;
 
-public abstract class Entry
+public class FileEntry
+        extends Entry
 {
-    private final String jarPath;
-    private final long time;
+    private final File file;
 
-    public Entry(String jarPath, long time)
+    public FileEntry(String jarPath, File file)
     {
-        this.jarPath = jarPath;
-        this.time = time;
+        super(jarPath, file.lastModified());
+        this.file = file;
     }
 
-    public void processEntry(JarEntry je)
+    public File getFile()
     {
-        je.setTime(time);
-    }
-
-    public String getJarPath()
-    {
-        return jarPath;
+        return file;
     }
 
     @Override
@@ -45,15 +40,20 @@ public abstract class Entry
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        if (!super.equals(o)) {
+            return false;
+        }
 
-        Entry entry = (Entry) o;
+        FileEntry fileEntry = (FileEntry) o;
 
-        return !(jarPath != null ? !jarPath.equals(entry.jarPath) : entry.jarPath != null);
+        return !(file != null ? !file.equals(fileEntry.file) : fileEntry.file != null);
     }
 
     @Override
     public int hashCode()
     {
-        return jarPath != null ? jarPath.hashCode() : 0;
+        int result = super.hashCode();
+        result = 31 * result + (file != null ? file.hashCode() : 0);
+        return result;
     }
 }

@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.packaging;
+package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;

@@ -11,16 +11,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.packaging;
+package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.CharStreams;
-import com.wrmsr.presto.packaging.entries.BytesEntry;
-import com.wrmsr.presto.packaging.entries.Entry;
-import com.wrmsr.presto.packaging.entries.FileEntry;
+import com.wrmsr.presto.launcher.packaging.entries.BytesEntry;
+import com.wrmsr.presto.launcher.packaging.entries.Entry;
+import com.wrmsr.presto.launcher.packaging.entries.FileEntry;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 import io.airlift.resolver.ArtifactResolver;
@@ -219,7 +219,7 @@ public class Packager
         buildJar(gitHead, gitShort, gitTags, wrapperJarFile, entryMap, keys, outPath);
 
         byte[] launcherBytes;
-        try (InputStream launcherStream = Packager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/packaging/entrypoint")) {
+        try (InputStream launcherStream = Packager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/packaging/entrypoint")) {
             launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, StandardCharsets.UTF_8)).getBytes();
         }
 

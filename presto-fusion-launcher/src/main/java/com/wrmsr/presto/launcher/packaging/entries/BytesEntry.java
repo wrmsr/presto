@@ -11,24 +11,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.packaging.entries;
+package com.wrmsr.presto.launcher.packaging.entries;
 
-import java.io.File;
+import java.util.Arrays;
 
-public class FileEntry
+public class BytesEntry
         extends Entry
 {
-    private final File file;
+    public final byte[] bytes;
 
-    public FileEntry(String jarPath, File file)
+    public BytesEntry(String jarPath, byte[] bytes, long time)
     {
-        super(jarPath, file.lastModified());
-        this.file = file;
+        super(jarPath, time);
+        this.bytes = bytes;
     }
 
-    public File getFile()
+    public byte[] getBytes()
     {
-        return file;
+        return bytes;
     }
 
     @Override
@@ -44,16 +44,16 @@ public class FileEntry
             return false;
         }
 
-        FileEntry fileEntry = (FileEntry) o;
+        BytesEntry that = (BytesEntry) o;
 
-        return !(file != null ? !file.equals(fileEntry.file) : fileEntry.file != null);
+        return Arrays.equals(bytes, that.bytes);
     }
 
     @Override
     public int hashCode()
     {
         int result = super.hashCode();
-        result = 31 * result + (file != null ? file.hashCode() : 0);
+        result = 31 * result + (bytes != null ? Arrays.hashCode(bytes) : 0);
         return result;
     }
 }
