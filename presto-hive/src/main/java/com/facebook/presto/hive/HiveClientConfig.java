@@ -83,6 +83,8 @@ public class HiveClientConfig
     private boolean s3UseInstanceCredentials = true;
     private boolean s3SslEnabled = true;
     private boolean s3SseEnabled;
+    private String s3EncryptionMaterialsProvider;
+    private String s3KmsKeyId;
     private int s3MaxClientRetries = 3;
     private int s3MaxErrorRetries = 10;
     private Duration s3MaxBackoffTime = new Duration(10, TimeUnit.MINUTES);
@@ -95,6 +97,7 @@ public class HiveClientConfig
     private DataSize s3MultipartMinPartSize = new DataSize(5, MEGABYTE);
     private boolean useParquetColumnNames;
     private boolean pinS3ClientToCurrentRegion;
+    private String s3UserAgentPrefix = "";
 
     private HiveStorageFormat hiveStorageFormat = HiveStorageFormat.RCBINARY;
     private HiveCompressionCodec hiveCompressionCodec = HiveCompressionCodec.GZIP;
@@ -609,6 +612,32 @@ public class HiveClientConfig
         return this;
     }
 
+    public String getS3EncryptionMaterialsProvider()
+    {
+        return s3EncryptionMaterialsProvider;
+    }
+
+    @Config("hive.s3.encryption-materials-provider")
+    @ConfigDescription("Use a custom encryption materials provider for S3 data encryption")
+    public HiveClientConfig setS3EncryptionMaterialsProvider(String s3EncryptionMaterialsProvider)
+    {
+        this.s3EncryptionMaterialsProvider = s3EncryptionMaterialsProvider;
+        return this;
+    }
+
+    public String getS3KmsKeyId()
+    {
+        return s3KmsKeyId;
+    }
+
+    @Config("hive.s3.kms-key-id")
+    @ConfigDescription("Use an AWS KMS key for S3 data encryption")
+    public HiveClientConfig setS3KmsKeyId(String s3KmsKeyId)
+    {
+        this.s3KmsKeyId = s3KmsKeyId;
+        return this;
+    }
+
     public boolean isS3SseEnabled()
     {
         return s3SseEnabled;
@@ -771,6 +800,20 @@ public class HiveClientConfig
     public HiveClientConfig setPinS3ClientToCurrentRegion(boolean pinS3ClientToCurrentRegion)
     {
         this.pinS3ClientToCurrentRegion = pinS3ClientToCurrentRegion;
+        return this;
+    }
+
+    @NotNull
+    public String getS3UserAgentPrefix()
+    {
+        return s3UserAgentPrefix;
+    }
+
+    @Config("hive.s3.user-agent-prefix")
+    @ConfigDescription("The user agent prefix to use for S3 calls")
+    public HiveClientConfig setS3UserAgentPrefix(String s3UserAgentPrefix)
+    {
+        this.s3UserAgentPrefix = s3UserAgentPrefix;
         return this;
     }
 

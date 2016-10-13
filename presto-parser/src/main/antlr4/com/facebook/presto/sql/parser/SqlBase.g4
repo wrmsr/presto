@@ -47,7 +47,7 @@ statement
     | ALTER TABLE tableName=qualifiedName
         RENAME COLUMN from=identifier TO to=identifier                 #renameColumn
     | ALTER TABLE tableName=qualifiedName
-        ADD COLUMN column=tableElement                                 #addColumn
+        ADD COLUMN column=columnDefinition                             #addColumn
     | CREATE (OR REPLACE)? VIEW qualifiedName AS query                 #createView
     | DROP VIEW (IF EXISTS)? qualifiedName                             #dropView
     | CALL qualifiedName '(' (callArgument (',' callArgument)*)? ')'   #call
@@ -94,7 +94,16 @@ with
     ;
 
 tableElement
+    : columnDefinition
+    | likeClause
+    ;
+
+columnDefinition
     : identifier type
+    ;
+
+likeClause
+    : LIKE qualifiedName (optionType=(INCLUDING | EXCLUDING) PROPERTIES)?
     ;
 
 tableProperties
@@ -606,6 +615,9 @@ DEALLOCATE: 'DEALLOCATE';
 EXECUTE: 'EXECUTE';
 CASCADE: 'CASCADE';
 RESTRICT: 'RESTRICT';
+INCLUDING: 'INCLUDING';
+EXCLUDING: 'EXCLUDING';
+PROPERTIES: 'PROPERTIES';
 
 NORMALIZE: 'NORMALIZE';
 NFD : 'NFD';
