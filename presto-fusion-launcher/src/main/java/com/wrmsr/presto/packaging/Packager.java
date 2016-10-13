@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.packaging;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -41,8 +40,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,8 +59,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toMap;
@@ -135,6 +136,7 @@ public class Packager
                 "presto-hive-hadoop2",
 
                 "presto-fusion-launcher", // BOOTSTRAP SELF
+
                 "presto-main",
                 "presto-blackhole",
                 "presto-cli",
@@ -149,10 +151,11 @@ public class Packager
                 "presto-teradata-functions",
                 "presto-local-file",
                 "presto-tpch",
-                "presto-redis",
-                "presto-wrmsr-main",
-                "presto-wrmsr-hadoop",
-                "presto-wrmsr-jython"
+                "presto-redis"
+
+//                "presto-wrmsr-main",
+//                "presto-wrmsr-hadoop",
+//                "presto-wrmsr-jython"
                 // "presto-wrmsr-jruby",
                 // "presto-wrmsr-lucene",
         );
@@ -165,9 +168,9 @@ public class Packager
         String topLevel = shellExec("git", "rev-parse", "--show-toplevel");
         File cwd = new File(topLevel);
 
-        String head = shellExec("git", "rev-parse", "--verify", "HEAD"); // FIXME append -SNAPSHOT if dirty
-        String short_ = shellExec("git", "rev-parse", "--short", "HEAD"); // FIXME append -SNAPSHOT if dirty
-        String tags = shellExec("git", "describe", "--tags");
+        String gitHead = shellExec("git", "rev-parse", "--verify", "HEAD"); // FIXME append -SNAPSHOT if dirty
+        String gitShort = shellExec("git", "rev-parse", "--short", "HEAD"); // FIXME append -SNAPSHOT if dirty
+        String gitTags = shellExec("git", "describe", "--tags");
 
         for (String logName : new String[] {"com.ning.http.client.providers.netty.NettyAsyncHttpProvider"}) {
             java.util.logging.Logger.getLogger(logName).setLevel(Level.WARNING);
@@ -195,29 +198,29 @@ public class Packager
         );
 
         File wrapperJarFile = null;
-        Set<Entry> entries = newHashSet();
-        Set<String> uncachedRepoPaths = newHashSet();
+        Set<Entry> entries = new HashSet<>();
+        Set<String> uncachedRepoPaths = new HashSet<>();
         for (String name : names) {
             wrapperJarFile = processName(cwd, jarRepoBase, classpathBase, repository, resolver, wrapperProject, localGroups, wrapperJarFile, entries, uncachedRepoPaths, name);
         }
 
-        List<String> sortedUncachedRepoPaths = newArrayList(uncachedRepoPaths);
+        List<String> sortedUncachedRepoPaths = new ArrayList<>(uncachedRepoPaths);
         Collections.sort(sortedUncachedRepoPaths);
         String uncachedRepoPathsStr = String.join("\n", sortedUncachedRepoPaths) + "\n";
         entries.add(new BytesEntry("classpaths/.uncached", uncachedRepoPathsStr.getBytes(), System.currentTimeMillis()));
 
         checkState(wrapperJarFile != null);
         Map<String, Entry> entryMap = entries.stream().collect(toMap(Entry::getJarPath, e -> e));
-        List<String> keys = newArrayList(entryMap.keySet());
+        List<String> keys = new ArrayList<>(entryMap.keySet());
         Collections.sort(keys);
-        checkState(keys.size() == newHashSet(keys).size());
+        checkState(keys.size() == new HashSet<>(keys).size());
 
         String outPath = System.getProperty("user.home") + "/presto/presto.jar";
-        buildJar(head, short_, tags, wrapperJarFile, entryMap, keys, outPath);
+        buildJar(gitHead, gitShort, gitTags, wrapperJarFile, entryMap, keys, outPath);
 
         byte[] launcherBytes;
         try (InputStream launcherStream = Packager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/launcher")) {
-            launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, Charsets.UTF_8)).getBytes();
+            launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, StandardCharsets.UTF_8)).getBytes();
         }
 
         // TODO suffix with git sha
@@ -243,11 +246,11 @@ public class Packager
         String pom = name + "/pom.xml";
         // log.info(pom);
 
-        List<String> repoPaths = newArrayList();
+        List<String> repoPaths = new ArrayList<>();
         File pomFile = new File(cwd, pom);
         List<Artifact> artifacts = resolver.resolvePom(pomFile);
         Map<Boolean, List<Artifact>> p = artifacts.stream().collect(Collectors.partitioningBy(a -> "org.slf4j".equals(a.getGroupId())));
-        artifacts = newArrayList(p.getOrDefault(false, ImmutableList.of()));
+        artifacts = new ArrayList<>(p.getOrDefault(false, ImmutableList.of()));
         if (p.containsKey(true)) {
             List<Artifact> as = p.get(true);
             if (!as.isEmpty()) {
@@ -257,7 +260,7 @@ public class Packager
             }
         }
 
-        List<File> files = newArrayList();
+        List<File> files = new ArrayList<>();
         for (Artifact a : artifacts) {
             // if (a.getGroupId().equals("org.slf4j") && a.getArtifactId().equals(("slf4j-log4j12"))) {
             //     continue; // FIXME FUCK YOU
@@ -330,13 +333,13 @@ public class Packager
         return wrapperJarFile;
     }
 
-    private void buildJar(String head, String short_, String tags, File wrapperJarFile, Map<String, Entry> entryMap, List<String> keys, String outPath)
+    private void buildJar(String gitHead, String gitShort, String gitTags, File wrapperJarFile, Map<String, Entry> entryMap, List<String> keys, String outPath)
             throws IOException
     {
         BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outPath));
         JarOutputStream jo = new JarOutputStream(bo);
 
-        Set<String> contents = newHashSet();
+        Set<String> contents = new HashSet<>();
         ZipFile wrapperJarZip = new ZipFile(wrapperJarFile);
         Enumeration<? extends ZipEntry> zipEntries;
         for (zipEntries = wrapperJarZip.entries(); zipEntries.hasMoreElements(); ) {
@@ -360,7 +363,7 @@ public class Packager
             }
             Entry e = entryMap.get(key);
             String p = e.getJarPath();
-            List<String> pathParts = newArrayList(p.split("/"));
+            List<String> pathParts = new ArrayList<>(Arrays.asList(p.split("/")));
             for (int i = 0; i < pathParts.size() - 1; ++i) {
                 String pathPart = Joiner.on("/").join(IntStream.rangeClosed(0, i).boxed().map(j -> pathParts.get(j)).collect(Collectors.toList())) + "/";
                 if (!contents.contains(pathPart)) {
@@ -392,18 +395,17 @@ public class Packager
 
         JarEntry jeHEAD = new JarEntry("HEAD");
         jo.putNextEntry(jeHEAD);
-        jo.write(head.getBytes());
+        jo.write(gitHead.getBytes());
 
         JarEntry jeSHORT = new JarEntry("SHORT");
         jo.putNextEntry(jeSHORT);
-        jo.write(short_.getBytes());
+        jo.write(gitShort.getBytes());
 
         JarEntry jeTAGS = new JarEntry("TAGS");
         jo.putNextEntry(jeTAGS);
-        jo.write(tags.getBytes());
+        jo.write(gitTags.getBytes());
 
         jo.close();
         bo.close();
     }
 }
-

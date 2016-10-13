@@ -126,7 +126,7 @@ public class Repositories
         return System.getProperty(REPOSITORY_PATH_PROPERTY_KEY);
     }
 
-    public static long MAX_UNLOCK_WAIT = 1000L;
+    public static final long MAX_UNLOCK_WAIT = 1000L;
 
     // https://stackoverflow.com/questions/19447444/fatal-errors-from-openjdk-when-running-fresh-jar-files
     public static void unlockFile(String jarFileName, long sz)
@@ -284,7 +284,6 @@ public class Repositories
                     Files.delete(file);
                 }
                 catch (Exception e) {
-
                 }
                 return FileVisitResult.CONTINUE;
             }
@@ -300,7 +299,6 @@ public class Repositories
                     Files.delete(file);
                 }
                 catch (Exception e) {
-
                 }
                 return FileVisitResult.CONTINUE;
             }
@@ -314,7 +312,6 @@ public class Repositories
                         Files.delete(dir);
                     }
                     catch (Exception e) {
-
                     }
                     return FileVisitResult.CONTINUE;
                 }

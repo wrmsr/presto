@@ -70,7 +70,8 @@ public final class MoreMaps
         map.forEach((k, set) -> set.forEach(v -> {
             Set<K> o = ret.get(v);
             if (o == null) {
-                ret.put(v, o = new HashSet<>());
+                o = new HashSet<>();
+                ret.put(v, o);
             }
             o.add(k);
         }));

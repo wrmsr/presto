@@ -17,6 +17,10 @@ import java.io.File;
 
 public class Bootstrap
 {
+    private Bootstrap()
+    {
+    }
+
     public static void main(String[] args)
             throws Throwable
     {
