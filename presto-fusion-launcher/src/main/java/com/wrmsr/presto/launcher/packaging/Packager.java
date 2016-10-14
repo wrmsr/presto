@@ -207,7 +207,7 @@ public class Packager
             throws IOException
     {
         String shortStat = shellExec("git", "diff", "--shortstat");
-        boolean isModified = !shortStat.isEmpty();
+        boolean isModified = !Strings.isNullOrEmpty(shortStat);
         String porcelain = shellExec("git", "status", "--porcelain");
         boolean hasUntracked = Arrays.stream(porcelain.split("\n")).anyMatch(s -> s.startsWith("??"));
 
