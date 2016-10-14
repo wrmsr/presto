@@ -44,7 +44,6 @@ test:
 .PHONY: package
 package:
 	$(MVN) $(MVN_OPTS) package -DskipTests
-	$(MVN) -pl presto-fusion-launcher "exec:java" -Dexec.mainClass=com.wrmsr.presto.launcher.packaging.Packager
 
 .PHONY: fast
 fast:
@@ -63,6 +62,10 @@ fast:
 .PHONY: install
 install:
 	$(MVN) $(MVN_OPTS) install -DskipTests
+
+.PHONY: dist
+dist:
+	$(MVN) -pl presto-fusion-launcher "exec:java" -Dexec.mainClass=com.wrmsr.presto.launcher.packaging.Packager
 
 .PHONY: dummy
 dummy:
