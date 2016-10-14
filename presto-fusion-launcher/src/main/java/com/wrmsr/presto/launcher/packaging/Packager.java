@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -49,6 +50,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -175,6 +177,8 @@ public class Packager
     public void run()
             throws Throwable
     {
+        analyzeJar(new File("/Users/spinlock/.m2/repository/org/apache/hadoop/hadoop-hdfs/2.7.1/hadoop-hdfs-2.7.1.jar"));
+
         GitInfo gitInfo = GitInfo.get();
 
         // File cwd = new File(System.getProperty("user.dir"));
@@ -249,7 +253,7 @@ public class Packager
     }
 
     private File processName(File cwd, File jarRepoBase, File classpathBase, File repository, ArtifactResolver resolver, String wrapperProject, Set<String> localGroups, File wrapperJarFile, Set<Entry> entries, Set<String> uncachedRepoPaths, String name)
-            throws MalformedURLException
+            throws MalformedURLException, IOException
     {
         String pom = name + "/pom.xml";
         // log.info(pom);
@@ -287,6 +291,7 @@ public class Packager
                     rel = repository.toURI().relativize(file.toURI()).getPath();
                 }
                 checkState(file.exists());
+                analyzeJar(file);
                 File localFile = new File(localPath, "target/" + file.getName());
 
                 checkState(!rel.startsWith("/") && !rel.startsWith(".."));
@@ -415,5 +420,31 @@ public class Packager
 
         jo.close();
         bo.close();
+    }
+
+    private void analyzeJar(File jarFile)
+            throws IOException
+    {
+        Map<String, String> manifest = new LinkedHashMap<>();
+        ZipFile zf = new ZipFile(jarFile);
+        for (Enumeration<? extends ZipEntry> zipEntries = zf.entries(); zipEntries.hasMoreElements(); ) {
+            ZipEntry ze = zipEntries.nextElement();
+            if (ze.getName().equals("META-INF/MANIFEST.MF")) {
+                String contents = CharStreams.toString(new InputStreamReader(zf.getInputStream(ze)));
+                List<String> lines = new ArrayList<>(Splitter.on("\r\n").splitToList(contents));
+                for (int i = 0; i < 2; ++i) {
+                    checkState(!lines.isEmpty());
+                    checkState(lines.get(lines.size() - 1).isEmpty());
+                    lines.remove(lines.size() - 1);
+                }
+                for (String line : lines) {
+                    List<String> split = Splitter.on(": ").splitToList(line);
+                    checkState(split.size() == 2);
+                    checkState(!manifest.containsKey(split.get(0)));
+                    manifest.put(split.get(0), split.get(1));
+                }
+            }
+        }
+        System.out.println(manifest);
     }
 }
