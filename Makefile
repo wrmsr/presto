@@ -2,7 +2,6 @@ SPACE :=
 SPACE +=
 COMMA=,
 
-MVN=./mvnw
 MVN_PL=\
 	!presto-docs \
 	!presto-product-tests \
@@ -10,6 +9,8 @@ MVN_PL=\
 	!presto-server-rpm \
 	!presto-testing-server-launcher \
 	!presto-verifier
+
+MVN=./mvnw
 MVN_OPTS="-e -pl $(subst $(SPACE),$(COMMA),$(strip $(MVN_PL)))"
 MVN_REPO="$(HOME)/.m2/repository"
 
