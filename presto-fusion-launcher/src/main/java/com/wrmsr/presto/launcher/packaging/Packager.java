@@ -21,6 +21,8 @@ import com.google.common.io.CharStreams;
 import com.wrmsr.presto.launcher.packaging.entries.BytesEntry;
 import com.wrmsr.presto.launcher.packaging.entries.Entry;
 import com.wrmsr.presto.launcher.packaging.entries.FileEntry;
+import com.wrmsr.presto.util.process.FinalizedProcess;
+import com.wrmsr.presto.util.process.FinalizedProcessBuilder;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 import io.airlift.resolver.ArtifactResolver;
@@ -28,9 +30,10 @@ import io.airlift.resolver.DefaultArtifact;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.artifact.ArtifactType;
 
+import javax.annotation.Nullable;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -118,22 +121,25 @@ public class Packager
         }
     }
 
-    public static String shellExec(String... args)
+    @Nullable
+    public static String shellExec(String... argv)
             throws IOException
     {
-        Runtime rt = Runtime.getRuntime();
-        Process proc = rt.exec(args);
-        BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-        BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-        String ret = stdInput.readLine();
-        try {
-            proc.waitFor(10, TimeUnit.SECONDS);
+        FinalizedProcessBuilder processBuilder = new FinalizedProcessBuilder(argv);
+        processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
+        String output;
+        try (FinalizedProcess process = processBuilder.start()) {
+            process.getOutputStream().close();
+            output = CharStreams.toString(new InputStreamReader(process.getInputStream()));
+            try {
+                process.waitFor(10, TimeUnit.SECONDS);
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            checkState(process.exitValue() == 0);
         }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        checkState(proc.exitValue() == 0);
-        return ret;
+        return output;
     }
 
     public List<String> getModuleNames()
@@ -167,69 +173,13 @@ public class Packager
         );
     }
 
-    private static final class GitInfo
-    {
-        private final String topLevel;
-        private final String revision;
-        private final String shortRevision;
-        private final String tags;
-
-        public GitInfo(String topLevel, String revision, String shortRevision, String tags)
-        {
-            this.topLevel = requireNonNull(topLevel);
-            this.revision = requireNonNull(revision);
-            this.shortRevision = requireNonNull(shortRevision);
-            this.tags = requireNonNull(tags);
-        }
-
-        public String getTopLevel()
-        {
-            return topLevel;
-        }
-
-        public String getRevision()
-        {
-            return revision;
-        }
-
-        public String getShortRevision()
-        {
-            return shortRevision;
-        }
-
-        public String getTags()
-        {
-            return tags;
-        }
-    }
-
-    private GitInfo getGitInfo()
-            throws IOException
-    {
-        String shortStat = shellExec("git", "diff", "--shortstat");
-        boolean isModified = !Strings.isNullOrEmpty(shortStat);
-        String porcelain = shellExec("git", "status", "--porcelain");
-        boolean hasUntracked = Arrays.stream(porcelain.split("\n")).anyMatch(s -> s.startsWith("??"));
-
-        String topLevel = shellExec("git", "rev-parse", "--show-toplevel");
-        String revision = shellExec("git", "rev-parse", "--verify", "HEAD"); // FIXME append -DIRTY if dirty
-        String shortRevision = shellExec("git", "rev-parse", "--short", "HEAD"); // FIXME append -DIRTY if dirty
-        String tags = shellExec("git", "describe", "--tags");
-
-        return new GitInfo(
-                topLevel,
-                revision,
-                shortRevision,
-                tags);
-    }
-
     public void run()
             throws Throwable
     {
-        GitInfo gitInfo = getGitInfo();
+        GitInfo gitInfo = GitInfo.get();
 
         // File cwd = new File(System.getProperty("user.dir"));
-        File cwd = new File(gitInfo.getTopLevel());
+        File cwd = gitInfo.getTopLevel().toFile();
 
         for (String logName : new String[] {"com.ning.http.client.providers.netty.NettyAsyncHttpProvider"}) {
             java.util.logging.Logger.getLogger(logName).setLevel(Level.WARNING);
