@@ -425,12 +425,14 @@ public class Packager
     private void analyzeJar(File jarFile)
             throws IOException
     {
+        // https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html#Manifest_Specification
         Map<String, String> manifest = new LinkedHashMap<>();
         ZipFile zf = new ZipFile(jarFile);
         for (Enumeration<? extends ZipEntry> zipEntries = zf.entries(); zipEntries.hasMoreElements(); ) {
             ZipEntry ze = zipEntries.nextElement();
             if (ze.getName().equals("META-INF/MANIFEST.MF")) {
                 String contents = CharStreams.toString(new InputStreamReader(zf.getInputStream(ze)));
+
                 List<String> lines = new ArrayList<>(Splitter.on("\r\n").splitToList(contents));
                 for (int i = 0; i < 2; ++i) {
                     checkState(!lines.isEmpty());

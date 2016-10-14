@@ -11,8 +11,8 @@ MVN_PL=\
 	!presto-verifier
 
 MVN=./mvnw
-MVN_OPTS="-e -pl $(subst $(SPACE),$(COMMA),$(strip $(MVN_PL)))"
-MVN_REPO="$(HOME)/.m2/repository"
+MVN_OPTS=-e -pl $(subst $(SPACE),$(COMMA),$(strip $(MVN_PL)))
+MVN_REPO=$(HOME)/.m2/repository
 
 .PHONY: all
 all: package
@@ -37,9 +37,28 @@ clean:
 	fi
 	$(MVN) clean
 
+.PHONY: test
+test:
+	$(MVN) $(MVN_OPTS) package
+
 .PHONY: package
 package:
 	$(MVN) $(MVN_OPTS) package -DskipTests
+	$(MVN) -pl presto-fusion-launcher "exec:java" -Dexec.mainClass=com.wrmsr.presto.launcher.packaging.Packager
+
+.PHONY: fast
+fast:
+	$(MVN) $(MVN_OPTS) package -DskipTests \
+		-Dair.check.skip-all=true \
+		-Dair.check.skip-checkstyle=true \
+		-Dair.check.skip-extended=true \
+		-Dair.check.skip-license=true \
+		-Denforcer.skip=true \
+		-DignoreNonCompile=true \
+		-Dlicense.skip=true \
+		-Dmaven.test.skip=true \
+		-Dmdep.analyze.skip=true \
+		-Dmdep.skip=true
 
 .PHONY: install
 install:
