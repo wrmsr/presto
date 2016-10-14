@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package com.wrmsr.presto.util.process;
 
@@ -100,8 +100,11 @@ public interface StreamGobbler
                 throws IOException
         {
             BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
-            String line;
-            while (!Thread.currentThread().isInterrupted() && (line = br.readLine()) != null) {
+            while (!Thread.currentThread().isInterrupted()) {
+                String line = br.readLine();
+                if (line == null) {
+                    break;
+                }
                 if (logLines) {
                     log.info(line);
                 }

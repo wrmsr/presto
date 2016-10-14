@@ -48,4 +48,25 @@
         </dependency>
 
     </dependencies>
+
+    <build>
+
+        <plugins>
+
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/main/java/com/wrmsr/presto/util/process/FinalizedProcess.java</exclude>
+                        <exclude>src/main/java/com/wrmsr/presto/util/process/FinalizedProcessBuilder.java</exclude>
+                        <exclude>src/main/java/com/wrmsr/presto/util/process/StreamGobbler.java</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+        </plugins>
+
+    </build>
+
 </project>

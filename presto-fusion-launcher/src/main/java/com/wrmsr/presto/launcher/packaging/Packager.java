@@ -64,7 +64,6 @@ import java.util.zip.ZipFile;
 import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableList;
 import static java.util.Comparator.comparing;
-import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
 
 // FIXME this is a pile of shit.

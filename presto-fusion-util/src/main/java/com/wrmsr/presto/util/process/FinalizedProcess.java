@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package com.wrmsr.presto.util.process;
 
@@ -63,7 +63,7 @@ import java.util.concurrent.TimeUnit;
  * {@code
  * FinalizedProcessBuilder pb = new FinalizedProcessBuilder("myCommand", "myArg");
  * try (FinalizedProcess process = pb.start()) {
- * 		int returnVal = process.waitFor(5000);
+ *   int returnVal = process.waitFor(5000);
  * }}
  * </pre>
  *

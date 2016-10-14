@@ -11,7 +11,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package com.wrmsr.presto.util.process;
 
@@ -48,8 +48,8 @@ import java.util.Set;
  * <p>
  * <pre>
  * {
- * 	&#064;code
- * 	FinalizedProcess process = new ProcessBuilder(&quot;myCommand&quot;, &quot;myArg&quot;).start();
+ * &#064;code
+ *   FinalizedProcess process = new ProcessBuilder(&quot;myCommand&quot;, &quot;myArg&quot;).start();
  * }
  * </pre>
  * <p>
@@ -59,11 +59,11 @@ import java.util.Set;
  * <p>
  * <pre>
  * {
- * 	&#064;code
- * 	FinalizedProcessBuilder pb = new FinalizedProcessBuilder(&quot;myCommand&quot;, &quot;myArg&quot;);
- * 	pb.redirectErrorStream(true);
- * 	pb.keepProcess();
- * 	FinalizedProcess process = pb.start();
+ * &#064;code
+ *   FinalizedProcessBuilder pb = new FinalizedProcessBuilder(&quot;myCommand&quot;, &quot;myArg&quot;);
+ *   pb.redirectErrorStream(true);
+ *   pb.keepProcess();
+ *   FinalizedProcess process = pb.start();
  * }
  * </pre>
  *
