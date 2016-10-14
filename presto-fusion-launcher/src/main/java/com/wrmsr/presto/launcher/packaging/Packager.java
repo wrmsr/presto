@@ -61,6 +61,7 @@ import java.util.zip.ZipFile;
 import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableList;
 import static java.util.Comparator.comparing;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
 
 // FIXME this is a pile of shit.
@@ -118,14 +119,19 @@ public class Packager
     }
 
     public static String shellExec(String... args)
-            throws Throwable
+            throws IOException
     {
         Runtime rt = Runtime.getRuntime();
         Process proc = rt.exec(args);
         BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
         BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
         String ret = stdInput.readLine();
-        proc.waitFor(10, TimeUnit.SECONDS);
+        try {
+            proc.waitFor(10, TimeUnit.SECONDS);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         checkState(proc.exitValue() == 0);
         return ret;
     }
@@ -161,16 +167,69 @@ public class Packager
         );
     }
 
+    private static final class GitInfo
+    {
+        private final String topLevel;
+        private final String revision;
+        private final String shortRevision;
+        private final String tags;
+
+        public GitInfo(String topLevel, String revision, String shortRevision, String tags)
+        {
+            this.topLevel = requireNonNull(topLevel);
+            this.revision = requireNonNull(revision);
+            this.shortRevision = requireNonNull(shortRevision);
+            this.tags = requireNonNull(tags);
+        }
+
+        public String getTopLevel()
+        {
+            return topLevel;
+        }
+
+        public String getRevision()
+        {
+            return revision;
+        }
+
+        public String getShortRevision()
+        {
+            return shortRevision;
+        }
+
+        public String getTags()
+        {
+            return tags;
+        }
+    }
+
+    private GitInfo getGitInfo()
+            throws IOException
+    {
+        String shortStat = shellExec("git", "diff", "--shortstat");
+        boolean isModified = !shortStat.isEmpty();
+        String porcelain = shellExec("git", "status", "--porcelain");
+        boolean hasUntracked = Arrays.stream(porcelain.split("\n")).anyMatch(s -> s.startsWith("??"));
+
+        String topLevel = shellExec("git", "rev-parse", "--show-toplevel");
+        String revision = shellExec("git", "rev-parse", "--verify", "HEAD"); // FIXME append -DIRTY if dirty
+        String shortRevision = shellExec("git", "rev-parse", "--short", "HEAD"); // FIXME append -DIRTY if dirty
+        String tags = shellExec("git", "describe", "--tags");
+
+        return new GitInfo(
+                topLevel,
+                revision,
+                shortRevision,
+                tags);
+    }
+
     public void run()
             throws Throwable
     {
-        // File cwd = new File(System.getProperty("user.dir"));
-        String topLevel = shellExec("git", "rev-parse", "--show-toplevel");
-        File cwd = new File(topLevel);
+        GitInfo gitInfo = getGitInfo();
 
-        String gitHead = shellExec("git", "rev-parse", "--verify", "HEAD"); // FIXME append -SNAPSHOT if dirty
-        String gitShort = shellExec("git", "rev-parse", "--short", "HEAD"); // FIXME append -SNAPSHOT if dirty
-        String gitTags = shellExec("git", "describe", "--tags");
+        // File cwd = new File(System.getProperty("user.dir"));
+        File cwd = new File(gitInfo.getTopLevel());
 
         for (String logName : new String[] {"com.ning.http.client.providers.netty.NettyAsyncHttpProvider"}) {
             java.util.logging.Logger.getLogger(logName).setLevel(Level.WARNING);
@@ -216,7 +275,7 @@ public class Packager
         checkState(keys.size() == new HashSet<>(keys).size());
 
         String outPath = System.getProperty("user.home") + "/presto/presto.jar";
-        buildJar(gitHead, gitShort, gitTags, wrapperJarFile, entryMap, keys, outPath);
+        buildJar(gitInfo, wrapperJarFile, entryMap, keys, outPath);
 
         byte[] launcherBytes;
         try (InputStream launcherStream = Packager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/packaging/entrypoint")) {
@@ -333,7 +392,7 @@ public class Packager
         return wrapperJarFile;
     }
 
-    private void buildJar(String gitHead, String gitShort, String gitTags, File wrapperJarFile, Map<String, Entry> entryMap, List<String> keys, String outPath)
+    private void buildJar(GitInfo gitInfo, File wrapperJarFile, Map<String, Entry> entryMap, List<String> keys, String outPath)
             throws IOException
     {
         BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outPath));
@@ -395,15 +454,15 @@ public class Packager
 
         JarEntry jeHEAD = new JarEntry("HEAD");
         jo.putNextEntry(jeHEAD);
-        jo.write(gitHead.getBytes());
+        jo.write(gitInfo.getRevision().getBytes());
 
         JarEntry jeSHORT = new JarEntry("SHORT");
         jo.putNextEntry(jeSHORT);
-        jo.write(gitShort.getBytes());
+        jo.write(gitInfo.getShortRevision().getBytes());
 
         JarEntry jeTAGS = new JarEntry("TAGS");
         jo.putNextEntry(jeTAGS);
-        jo.write(gitTags.getBytes());
+        jo.write(gitInfo.getTags().getBytes());
 
         jo.close();
         bo.close();
