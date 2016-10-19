@@ -89,12 +89,12 @@ public class AccumuloClient
     private static final Logger LOG = Logger.get(AccumuloClient.class);
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').omitEmptyStrings().trimResults();
 
-    private final AccumuloConfig conf;
     private final ZooKeeperMetadataManager metaManager;
     private final Authorizations auths;
     private final AccumuloTableManager tableManager;
     private final Connector connector;
     private final IndexLookup indexLookup;
+    private final String username;
 
     @Inject
     public AccumuloClient(
@@ -104,14 +104,14 @@ public class AccumuloClient
             AccumuloTableManager tableManager)
             throws AccumuloException, AccumuloSecurityException
     {
-        this.conf = requireNonNull(config, "config is null");
         this.connector = requireNonNull(connector, "connector is null");
+        this.username = requireNonNull(config, "config is null").getUsername();
         this.metaManager = requireNonNull(metaManager, "metaManager is null");
         this.tableManager = requireNonNull(tableManager, "tableManager is null");
-        this.auths = connector.securityOperations().getUserAuthorizations(conf.getUsername());
+        this.auths = connector.securityOperations().getUserAuthorizations(username);
 
         // Create the index lookup utility
-        this.indexLookup = new IndexLookup(connector, conf, this.auths);
+        this.indexLookup = new IndexLookup(connector, config, this.auths);
     }
 
     public AccumuloTable createTable(ConnectorTableMetadata meta)
@@ -566,24 +566,41 @@ public class AccumuloClient
 
     public void renameColumn(AccumuloTable table, String source, String target)
     {
-        if (table.getRowId().equalsIgnoreCase(source)) {
-            table.setRowId(target);
+        if (!table.getColumns().stream().anyMatch(columnHandle -> columnHandle.getName().equalsIgnoreCase(source))) {
+            throw new PrestoException(NOT_FOUND, format("Failed to find source column %s to rename to %s", source, target));
         }
 
-        // Locate the column to rename
+        // Copy existing column list, replacing the old column name with the new
+        ImmutableList.Builder<AccumuloColumnHandle> newColumnList = ImmutableList.builder();
         for (AccumuloColumnHandle columnHandle : table.getColumns()) {
             if (columnHandle.getName().equalsIgnoreCase(source)) {
-                // Rename the column
-                columnHandle.setName(target);
-
-                // Recreate the table metadata with the new name and exit
-                metaManager.deleteTableMetadata(new SchemaTableName(table.getSchema(), table.getTable()));
-                metaManager.createTableMetadata(table);
-                return;
+                newColumnList.add(new AccumuloColumnHandle(
+                        target,
+                        columnHandle.getFamily(),
+                        columnHandle.getQualifier(),
+                        columnHandle.getType(),
+                        columnHandle.getOrdinal(),
+                        columnHandle.getComment(),
+                        columnHandle.isIndexed()));
+            }
+            else {
+                newColumnList.add(columnHandle);
             }
         }
 
-        throw new PrestoException(NOT_FOUND, format("Failed to find source column %s to rename to %s", source, target));
+        // Create new table metadata
+        AccumuloTable newTable = new AccumuloTable(
+                table.getSchema(),
+                table.getTable(),
+                newColumnList.build(),
+                table.getRowId().equalsIgnoreCase(source) ? target : table.getRowId(),
+                table.isExternal(),
+                table.getSerializerClassName(),
+                table.getScanAuthorizations());
+
+        // Replace the table metadata
+        metaManager.deleteTableMetadata(new SchemaTableName(table.getSchema(), table.getTable()));
+        metaManager.createTableMetadata(newTable);
     }
 
     public Set<String> getSchemaNames()
@@ -839,7 +856,7 @@ public class AccumuloClient
             String tableId = connector.tableOperations().tableIdMap().get(fulltable);
 
             // Create a scanner over the metadata table, fetching the 'loc' column of the default tablet row
-            Scanner scan = connector.createScanner("accumulo.metadata", connector.securityOperations().getUserAuthorizations(conf.getUsername()));
+            Scanner scan = connector.createScanner("accumulo.metadata", connector.securityOperations().getUserAuthorizations(username));
             scan.fetchColumnFamily(new Text("loc"));
             scan.setRange(new Range(tableId + '<'));
 

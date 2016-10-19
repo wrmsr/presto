@@ -30,7 +30,6 @@ import com.facebook.presto.spi.type.TypeManager;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
@@ -40,7 +39,6 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -48,6 +46,7 @@ import org.apache.hadoop.hive.ql.exec.FileSinkOperator.RecordWriter;
 import org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.Serializer;
+import org.apache.hadoop.hive.serde2.columnar.LazyBinaryColumnarSerDe;
 import org.apache.hadoop.hive.serde2.columnar.OptimizedLazyBinaryColumnarSerde;
 import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
@@ -70,7 +69,6 @@ import java.util.OptionalInt;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import static com.facebook.presto.hive.HiveColumnHandle.SAMPLE_WEIGHT_COLUMN_NAME;
 import static com.facebook.presto.hive.HiveErrorCode.HIVE_INVALID_METADATA;
@@ -84,8 +82,10 @@ import static com.facebook.presto.hive.HiveErrorCode.HIVE_WRITER_DATA_ERROR;
 import static com.facebook.presto.hive.HivePartitionKey.HIVE_DEFAULT_DYNAMIC_PARTITION;
 import static com.facebook.presto.hive.HiveType.toHiveTypes;
 import static com.facebook.presto.hive.HiveWriteUtils.createFieldSetter;
+import static com.facebook.presto.hive.HiveWriteUtils.createRecordWriter;
 import static com.facebook.presto.hive.HiveWriteUtils.getField;
 import static com.facebook.presto.hive.HiveWriteUtils.getRowColumnInspectors;
+import static com.facebook.presto.hive.HiveWriteUtils.initializeSerializer;
 import static com.facebook.presto.hive.metastore.MetastoreUtil.getHiveSchema;
 import static com.facebook.presto.spi.StandardErrorCode.NOT_FOUND;
 import static com.google.common.base.MoreObjects.toStringHelper;
@@ -147,7 +147,7 @@ public class HivePageSink
 
     private HiveRecordWriter[] writers;
     private final List<Int2ObjectMap<HiveRecordWriter>> bucketWriters;
-    private int bucketWriterCount = 0;
+    private int bucketWriterCount;
 
     private final ConnectorSession session;
 
@@ -247,7 +247,7 @@ public class HivePageSink
             this.bucketColumnTypes = bucketProperty.get().getBucketedBy().stream()
                     .map(dataColumnNameToTypeMap::get)
                     .map(HiveType::getTypeInfo)
-                    .collect(Collectors.toList());
+                    .collect(toList());
             bucketWriters = new ArrayList<>();
         }
         else {
@@ -696,11 +696,11 @@ public class HivePageSink
 
             fieldCount = fileColumnNames.size();
 
-            if (serDe.equals(org.apache.hadoop.hive.serde2.columnar.LazyBinaryColumnarSerDe.class.getName())) {
+            if (serDe.equals(LazyBinaryColumnarSerDe.class.getName())) {
                 serDe = OptimizedLazyBinaryColumnarSerde.class.getName();
             }
             serializer = initializeSerializer(conf, schema, serDe);
-            recordWriter = HiveWriteUtils.createRecordWriter(new Path(writePath, fileName), conf, compress, schema, outputFormat);
+            recordWriter = createRecordWriter(new Path(writePath, fileName), conf, compress, schema, outputFormat);
 
             List<Type> fileColumnTypes = fileColumnHiveTypes.stream()
                     .map(hiveType -> hiveType.getType(typeManager))
@@ -768,19 +768,6 @@ public class HivePageSink
                     writePath,
                     targetPath,
                     ImmutableList.of(fileName));
-        }
-
-        @SuppressWarnings("deprecation")
-        private static Serializer initializeSerializer(Configuration conf, Properties properties, String serializerName)
-        {
-            try {
-                Serializer result = (Serializer) Class.forName(serializerName).getConstructor().newInstance();
-                result.initialize(conf, properties);
-                return result;
-            }
-            catch (SerDeException | ReflectiveOperationException e) {
-                throw Throwables.propagate(e);
-            }
         }
 
         @Override
