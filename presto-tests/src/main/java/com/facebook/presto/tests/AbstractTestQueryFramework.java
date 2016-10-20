@@ -182,16 +182,6 @@ public abstract class AbstractTestQueryFramework
         }
     }
 
-    public void assertApproximateQuery(Session session, @Language("SQL") String actual, @Language("SQL") String expected)
-            throws Exception
-    {
-        QueryAssertions.assertApproximateQuery(queryRunner,
-                session,
-                actual,
-                h2QueryRunner,
-                expected);
-    }
-
     protected void assertAccessAllowed(@Language("SQL") String sql, TestingPrivilege... deniedPrivileges)
             throws Exception
     {
@@ -290,7 +280,7 @@ public abstract class AbstractTestQueryFramework
     private QueryExplainer getQueryExplainer()
     {
         Metadata metadata = queryRunner.getMetadata();
-        FeaturesConfig featuresConfig = new FeaturesConfig().setExperimentalSyntaxEnabled(true).setOptimizeHashGeneration(true);
+        FeaturesConfig featuresConfig = new FeaturesConfig().setOptimizeHashGeneration(true);
         boolean forceSingleNode = queryRunner.getNodeCount() == 1;
         List<PlanOptimizer> optimizers = new PlanOptimizers(metadata, sqlParser, featuresConfig, forceSingleNode).get();
         return new QueryExplainer(
@@ -298,7 +288,6 @@ public abstract class AbstractTestQueryFramework
                 metadata,
                 queryRunner.getAccessControl(),
                 sqlParser,
-                ImmutableMap.of(),
-                featuresConfig.isExperimentalSyntaxEnabled());
+                ImmutableMap.of());
     }
 }

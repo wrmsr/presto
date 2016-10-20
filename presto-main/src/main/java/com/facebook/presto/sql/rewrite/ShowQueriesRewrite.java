@@ -83,7 +83,6 @@ import static com.facebook.presto.connector.informationSchema.InformationSchemaM
 import static com.facebook.presto.connector.informationSchema.InformationSchemaMetadata.TABLE_INTERNAL_PARTITIONS;
 import static com.facebook.presto.connector.informationSchema.InformationSchemaMetadata.TABLE_SCHEMATA;
 import static com.facebook.presto.connector.informationSchema.InformationSchemaMetadata.TABLE_TABLES;
-import static com.facebook.presto.metadata.FunctionKind.APPROXIMATE_AGGREGATE;
 import static com.facebook.presto.metadata.MetadataUtil.createCatalogSchemaName;
 import static com.facebook.presto.metadata.MetadataUtil.createQualifiedName;
 import static com.facebook.presto.metadata.MetadataUtil.createQualifiedObjectName;
@@ -135,8 +134,7 @@ final class ShowQueriesRewrite
             Optional<QueryExplainer> queryExplainer,
             Statement node,
             List<Expression> parameters,
-            AccessControl accessControl,
-            boolean experimentalSyntaxEnabled)
+            AccessControl accessControl)
     {
         return (Statement) new Visitor(metadata, parser, session, parameters).process(node, null);
     }
@@ -434,9 +432,6 @@ final class ShowQueriesRewrite
         {
             ImmutableList.Builder<Expression> rows = ImmutableList.builder();
             for (SqlFunction function : metadata.listFunctions()) {
-                if (function.getSignature().getKind() == APPROXIMATE_AGGREGATE) {
-                    continue;
-                }
                 rows.add(row(
                         new StringLiteral(function.getSignature().getName()),
                         new StringLiteral(function.getSignature().getReturnType().toString()),
@@ -472,7 +467,6 @@ final class ShowQueriesRewrite
             FunctionKind kind = function.getSignature().getKind();
             switch (kind) {
                 case AGGREGATE:
-                case APPROXIMATE_AGGREGATE:
                     return "aggregate";
                 case WINDOW:
                     return "window";
