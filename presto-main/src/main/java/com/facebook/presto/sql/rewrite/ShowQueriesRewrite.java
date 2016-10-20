@@ -215,7 +215,7 @@ final class ShowQueriesRewrite
         @Override
         protected Node visitShowCatalogs(ShowCatalogs node, Void context)
         {
-            List<Expression> rows = metadata.getCatalogNames().keySet().stream()
+            List<Expression> rows = metadata.getCatalogNames(session).keySet().stream()
                     .map(name -> row(new StringLiteral(name)))
                     .collect(toList());
 
@@ -398,7 +398,7 @@ final class ShowQueriesRewrite
                         .collect(toImmutableList());
 
                 Map<String, Object> properties = connectorTableMetadata.getProperties();
-                Map<String, PropertyMetadata<?>> allTableProperties = metadata.getTablePropertyManager().getAllProperties().get(objectName.getCatalogName());
+                Map<String, PropertyMetadata<?>> allTableProperties = metadata.getTablePropertyManager().getAllProperties().get(tableHandle.get().getConnectorId());
                 Map<String, Expression> sqlProperties = new HashMap<>();
 
                 for (Map.Entry<String, Object> propertyEntry : properties.entrySet()) {
@@ -486,7 +486,7 @@ final class ShowQueriesRewrite
         protected Node visitShowSession(ShowSession node, Void context)
         {
             ImmutableList.Builder<Expression> rows = ImmutableList.builder();
-            List<SessionPropertyValue> sessionProperties = metadata.getSessionPropertyManager().getAllSessionProperties(session);
+            List<SessionPropertyValue> sessionProperties = metadata.getSessionPropertyManager().getAllSessionProperties(session, metadata.getCatalogNames(session));
             for (SessionPropertyValue sessionProperty : sessionProperties) {
                 if (sessionProperty.isHidden()) {
                     continue;

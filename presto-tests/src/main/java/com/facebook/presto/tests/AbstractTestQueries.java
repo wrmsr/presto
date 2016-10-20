@@ -46,6 +46,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
@@ -69,6 +70,7 @@ import static com.facebook.presto.testing.TestingAccessControlManager.TestingPri
 import static com.facebook.presto.testing.TestingAccessControlManager.TestingPrivilegeType.INSERT_TABLE;
 import static com.facebook.presto.testing.TestingAccessControlManager.TestingPrivilegeType.SELECT_TABLE;
 import static com.facebook.presto.testing.TestingAccessControlManager.privilege;
+import static com.facebook.presto.testing.TestingSession.TESTING_CATALOG;
 import static com.facebook.presto.tests.QueryAssertions.assertContains;
 import static com.facebook.presto.tests.QueryAssertions.assertEqualsIgnoreOrder;
 import static com.google.common.collect.Iterables.getOnlyElement;
@@ -5091,7 +5093,9 @@ public abstract class AbstractTestQueries
     @Test
     public void testExplainExecute()
     {
-        Session session = getSession().withPreparedStatement("my_query", "SELECT * FROM orders");
+        Session session = Session.builder(getSession())
+                .addPreparedStatement("my_query", "SELECT * FROM orders")
+                .build();
         MaterializedResult result = computeActual(session, "EXPLAIN (TYPE LOGICAL) EXECUTE my_query");
         assertEquals(getOnlyElement(result.getOnlyColumnAsSet()), getExplainPlan("SELECT * FROM orders", LOGICAL));
     }
@@ -5099,7 +5103,9 @@ public abstract class AbstractTestQueries
     @Test
     public void testExplainExecuteWithUsing()
     {
-        Session session = getSession().withPreparedStatement("my_query", "SELECT * FROM orders where orderkey < ?");
+        Session session = Session.builder(getSession())
+                .addPreparedStatement("my_query", "SELECT * FROM orders where orderkey < ?")
+                .build();
         MaterializedResult result = computeActual(session, "EXPLAIN (TYPE LOGICAL) EXECUTE my_query USING 7");
         assertEquals(getOnlyElement(result.getOnlyColumnAsSet()), getExplainPlan("SELECT * FROM orders where orderkey < 7", LOGICAL));
     }
@@ -5107,7 +5113,9 @@ public abstract class AbstractTestQueries
     @Test
     public void testExplainSetSessionWithUsing()
     {
-        Session session = getSession().withPreparedStatement("my_query", "SET SESSION foo = ?");
+        Session session = Session.builder(getSession())
+                .addPreparedStatement("my_query", "SET SESSION foo = ?")
+                .build();
         MaterializedResult result = computeActual(session, "EXPLAIN (TYPE LOGICAL) EXECUTE my_query USING 7");
         assertEquals(getOnlyElement(result.getOnlyColumnAsSet()), "SET SESSION foo = 7");
     }
@@ -5334,13 +5342,31 @@ public abstract class AbstractTestQueries
     public void testShowSession()
             throws Exception
     {
-        MaterializedResult result = computeActual(
-                getSession()
-                        .withSystemProperty("test_string", "foo string")
-                        .withSystemProperty("test_long", "424242")
-                        .withCatalogProperty("connector", "connector_string", "bar string")
-                        .withCatalogProperty("connector", "connector_long", "11"),
-                "SHOW SESSION");
+        Session session = new Session(
+                getSession().getQueryId(),
+                Optional.empty(),
+                getSession().isClientTransactionSupport(),
+                getSession().getIdentity(),
+                getSession().getSource(),
+                getSession().getCatalog(),
+                getSession().getSchema(),
+                getSession().getTimeZoneKey(),
+                getSession().getLocale(),
+                getSession().getRemoteUserAddress(),
+                getSession().getUserAgent(),
+                getSession().getStartTime(),
+                ImmutableMap.<String, String>builder()
+                        .put("test_string", "foo string")
+                        .put("test_long", "424242")
+                        .build(),
+                ImmutableMap.of(),
+                ImmutableMap.of(TESTING_CATALOG, ImmutableMap.<String, String>builder()
+                        .put("connector_string", "bar string")
+                        .put("connector_long", "11")
+                        .build()),
+                queryRunner.getMetadata().getSessionPropertyManager(),
+                getSession().getPreparedStatements());
+        MaterializedResult result = computeActual(session, "SHOW SESSION");
 
         ImmutableMap<String, MaterializedRow> properties = Maps.uniqueIndex(result.getMaterializedRows(), input -> {
             assertEquals(input.getFieldCount(), 5);
@@ -5349,8 +5375,10 @@ public abstract class AbstractTestQueries
 
         assertEquals(properties.get("test_string"), new MaterializedRow(1, "test_string", "foo string", "test default", "varchar", "test string property"));
         assertEquals(properties.get("test_long"), new MaterializedRow(1, "test_long", "424242", "42", "bigint", "test long property"));
-        assertEquals(properties.get("connector.connector_string"), new MaterializedRow(1, "connector.connector_string", "bar string", "connector default", "varchar", "connector string property"));
-        assertEquals(properties.get("connector.connector_long"), new MaterializedRow(1, "connector.connector_long", "11", "33", "bigint", "connector long property"));
+        assertEquals(properties.get(TESTING_CATALOG + ".connector_string"),
+                new MaterializedRow(1, TESTING_CATALOG + ".connector_string", "bar string", "connector default", "varchar", "connector string property"));
+        assertEquals(properties.get(TESTING_CATALOG + ".connector_long"),
+                new MaterializedRow(1, TESTING_CATALOG + ".connector_long", "11", "33", "bigint", "connector long property"));
     }
 
     @Test
@@ -7837,7 +7865,9 @@ public abstract class AbstractTestQueries
     @Test
     public void testExecute() throws Exception
     {
-        Session session = getSession().withPreparedStatement("my_query", "SELECT 123, 'abc'");
+        Session session = Session.builder(getSession())
+                .addPreparedStatement("my_query", "SELECT 123, 'abc'")
+                .build();
         assertQuery(session, "EXECUTE my_query", "SELECT 123, 'abc'");
     }
 
@@ -7846,7 +7876,9 @@ public abstract class AbstractTestQueries
             throws Exception
     {
         String query = "SELECT a + 1, count(?) FROM (VALUES 1, 2, 3, 2) t1(a) JOIN (VALUES 1, 2, 3, 4) t2(b) ON b < ? WHERE a < ? GROUP BY a + 1 HAVING count(1) > ?";
-        Session session = getSession().withPreparedStatement("my_query", query);
+        Session session = Session.builder(getSession())
+                .addPreparedStatement("my_query", query)
+                .build();
         assertQuery(session,
                 "EXECUTE my_query USING 1, 5, 4, 0",
                 "VALUES (2, 4), (3, 8), (4, 4)");
@@ -7857,7 +7889,9 @@ public abstract class AbstractTestQueries
             throws Exception
     {
         String query = "SELECT ? in (SELECT orderkey FROM orders)";
-        Session session = getSession().withPreparedStatement("my_query", query);
+        Session session = Session.builder(getSession())
+                .addPreparedStatement("my_query", query)
+                .build();
 
         assertQuery(session,
                 "EXECUTE my_query USING 10",
@@ -7877,7 +7911,9 @@ public abstract class AbstractTestQueries
                 "  ON "  +
                 "(x in (VALUES 1,2,?)) = (y in (VALUES 1,2,3)) AND (x in (VALUES 1,?)) = (y in (VALUES 1,2))";
 
-        Session session = getSession().withPreparedStatement("my_query", query);
+        Session session = Session.builder(getSession())
+                .addPreparedStatement("my_query", query)
+                .build();
         assertQuery(session,
                 "EXECUTE my_query USING 1, 3, 2",
                 "VALUES (1,1), (1,2), (2,2), (2,1), (3,3)");
@@ -7889,7 +7925,9 @@ public abstract class AbstractTestQueries
     {
         try {
             String query = "SELECT a + ?, count(1) FROM (VALUES 1, 2, 3, 2) t(a) GROUP BY a + ?";
-            Session session = getSession().withPreparedStatement("my_query", query);
+            Session session = Session.builder(getSession())
+                    .addPreparedStatement("my_query", query)
+                    .build();
             computeActual(session, "EXECUTE my_query USING 1, 1");
             fail("parameters in group by and select should fail");
         }
@@ -7925,7 +7963,9 @@ public abstract class AbstractTestQueries
     @Test
     public void testDescribeInput()
     {
-        Session session = getSession().withPreparedStatement("my_query", "select ? from nation where nationkey = ? and name < ?");
+        Session session = Session.builder(getSession())
+                .addPreparedStatement("my_query", "select ? from nation where nationkey = ? and name < ?")
+                .build();
         MaterializedResult actual = computeActual(session, "DESCRIBE INPUT my_query");
         MaterializedResult expected = resultBuilder(session, BIGINT, VARCHAR)
                 .row(0, "unknown")
@@ -7938,7 +7978,9 @@ public abstract class AbstractTestQueries
     @Test
     public void testDescribeInputNoParameters()
     {
-        Session session = getSession().withPreparedStatement("my_query", "select * from nation");
+        Session session = Session.builder(getSession())
+                .addPreparedStatement("my_query", "select * from nation")
+                .build();
         MaterializedResult actual = computeActual(session, "DESCRIBE INPUT my_query");
         MaterializedResult expected = resultBuilder(session, BIGINT, VARCHAR).build();
         assertEquals(actual, expected);

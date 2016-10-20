@@ -56,7 +56,6 @@ import com.facebook.presto.memory.MemoryResource;
 import com.facebook.presto.memory.NodeMemoryConfig;
 import com.facebook.presto.memory.ReservedSystemMemoryConfig;
 import com.facebook.presto.metadata.CatalogManager;
-import com.facebook.presto.metadata.CatalogManagerConfig;
 import com.facebook.presto.metadata.DiscoveryNodeManager;
 import com.facebook.presto.metadata.ForNodeManager;
 import com.facebook.presto.metadata.HandleJsonModule;
@@ -65,6 +64,8 @@ import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.MetadataManager;
 import com.facebook.presto.metadata.SchemaPropertyManager;
 import com.facebook.presto.metadata.SessionPropertyManager;
+import com.facebook.presto.metadata.StaticCatalogStore;
+import com.facebook.presto.metadata.StaticCatalogStoreConfig;
 import com.facebook.presto.metadata.TablePropertyManager;
 import com.facebook.presto.metadata.ViewDefinition;
 import com.facebook.presto.operator.ExchangeClientConfig;
@@ -310,8 +311,8 @@ public class ServerMainModule
         newSetBinder(binder, ConnectorPageSinkProvider.class);
 
         // metadata
-        binder.bind(CatalogManager.class).in(Scopes.SINGLETON);
-        configBinder(binder).bindConfig(CatalogManagerConfig.class);
+        binder.bind(StaticCatalogStore.class).in(Scopes.SINGLETON);
+        configBinder(binder).bindConfig(StaticCatalogStoreConfig.class);
         binder.bind(MetadataManager.class).in(Scopes.SINGLETON);
         binder.bind(Metadata.class).to(MetadataManager.class).in(Scopes.SINGLETON);
 
@@ -374,6 +375,8 @@ public class ServerMainModule
         // plugin manager
         binder.bind(PluginManager.class).in(Scopes.SINGLETON);
         configBinder(binder).bindConfig(PluginManagerConfig.class);
+
+        binder.bind(CatalogManager.class).in(Scopes.SINGLETON);
 
         // optimizers
         binder.bind(PlanOptimizers.class).in(Scopes.SINGLETON);
@@ -460,10 +463,11 @@ public class ServerMainModule
     @Singleton
     public static TransactionManager createTransactionManager(
             TransactionManagerConfig config,
+            CatalogManager catalogManager,
             @ForTransactionManager ScheduledExecutorService idleCheckExecutor,
             @ForTransactionManager ExecutorService finishingExecutor)
     {
-        return TransactionManager.create(config, idleCheckExecutor, finishingExecutor);
+        return TransactionManager.create(config, idleCheckExecutor, catalogManager, finishingExecutor);
     }
 
     private static void bindFailureDetector(Binder binder, boolean coordinator)

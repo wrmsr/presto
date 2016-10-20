@@ -595,7 +595,7 @@ public class TestHiveIntegrationSmokeTest
 
         assertUpdate(
                 // make sure that we will get one file per bucket regardless of writer count configured
-                session.withSystemProperty("task_writer_count", "4"),
+                getParallelWriteSession(),
                 createTable,
                 3);
 
@@ -639,7 +639,7 @@ public class TestHiveIntegrationSmokeTest
 
         assertUpdate(
                 // make sure that we will get one file per bucket regardless of writer count configured
-                getSession().withSystemProperty("task_writer_count", "4"),
+                getParallelWriteSession(),
                 createTable,
                 "SELECT count(*) from orders");
 
@@ -680,7 +680,7 @@ public class TestHiveIntegrationSmokeTest
 
         assertUpdate(
                 // make sure that we will get one file per bucket regardless of writer count configured
-                getSession().withSystemProperty("task_writer_count", "4"),
+                getParallelWriteSession(),
                 createTable,
                 "SELECT count(*) from orders");
 
@@ -754,7 +754,7 @@ public class TestHiveIntegrationSmokeTest
 
         assertUpdate(
                 // make sure that we will get one file per bucket regardless of writer count configured
-                session.withSystemProperty("task_writer_count", "4"),
+                getParallelWriteSession(),
                 "INSERT INTO " + tableName + " " +
                         "VALUES " +
                         "  (VARCHAR 'a', VARCHAR 'b', VARCHAR 'c'), " +
@@ -832,7 +832,7 @@ public class TestHiveIntegrationSmokeTest
             String orderStatus = orderStatusList.get(i);
             assertUpdate(
                     // make sure that we will get one file per bucket regardless of writer count configured
-                    getSession().withSystemProperty("task_writer_count", "4"),
+                    getParallelWriteSession(),
                     format(
                             "INSERT INTO " + tableName + " " +
                                     "SELECT custkey, custkey AS custkey2, comment, orderstatus " +
@@ -877,7 +877,7 @@ public class TestHiveIntegrationSmokeTest
             String orderStatus = orderStatusList.get(i);
             assertUpdate(
                     // make sure that we will get one file per bucket regardless of writer count configured
-                    getSession().withSystemProperty("task_writer_count", "4"),
+                    getParallelWriteSession(),
                     format(
                             "INSERT INTO " + tableName + " " +
                                     "SELECT custkey, custkey AS custkey2, comment, orderstatus " +
@@ -1234,7 +1234,7 @@ public class TestHiveIntegrationSmokeTest
         Session session = getSession();
         Metadata metadata = ((DistributedQueryRunner) queryRunner).getCoordinator().getMetadata();
 
-        return transaction(queryRunner.getTransactionManager())
+        return transaction(queryRunner.getTransactionManager(), queryRunner.getAccessControl())
                 .readOnly()
                 .execute(session, transactionSession -> {
                     Optional<TableHandle> tableHandle = metadata.getTableHandle(transactionSession, new QualifiedObjectName(catalog, schema, tableName));
@@ -1248,7 +1248,7 @@ public class TestHiveIntegrationSmokeTest
         Session session = getSession();
         Metadata metadata = ((DistributedQueryRunner) queryRunner).getCoordinator().getMetadata();
 
-        return transaction(queryRunner.getTransactionManager())
+        return transaction(queryRunner.getTransactionManager(), queryRunner.getAccessControl())
                 .readOnly()
                 .execute(session, transactionSession -> {
                     Optional<TableHandle> tableHandle = metadata.getTableHandle(transactionSession, new QualifiedObjectName(catalog, TPCH_SCHEMA, tableName));
@@ -1423,10 +1423,10 @@ public class TestHiveIntegrationSmokeTest
         assertQuery(bucketedSession, "select count(distinct custkey) from orders");
 
         assertQuery(
-                bucketedSession.withSystemProperty("task_concurrency", "1"),
+                Session.builder(bucketedSession).setSystemProperty("task_writer_count", "1").build(),
                 "SELECT custkey, COUNT(*) FROM orders GROUP BY custkey");
         assertQuery(
-                bucketedSession.withSystemProperty("task_concurrency", "4"),
+                Session.builder(bucketedSession).setSystemProperty("task_writer_count", "4").build(),
                 "SELECT custkey, COUNT(*) FROM orders GROUP BY custkey");
     }
 
@@ -1573,7 +1573,7 @@ public class TestHiveIntegrationSmokeTest
                 .getMaterializedRows();
 
         try {
-            transaction(queryRunner.getTransactionManager())
+            transaction(queryRunner.getTransactionManager(), queryRunner.getAccessControl())
                     .execute(session, transactionSession -> {
                         assertUpdate(transactionSession, "DELETE FROM tmp_delete_insert WHERE z >= 2");
                         assertUpdate(transactionSession, "INSERT INTO tmp_delete_insert VALUES (203, 2), (204, 2), (205, 2), (301, 2), (302, 3)", 5);
@@ -1591,7 +1591,7 @@ public class TestHiveIntegrationSmokeTest
         MaterializedResult actualAfterRollback = computeActual(session, "SELECT * FROM tmp_delete_insert");
         assertEqualsIgnoreOrder(actualAfterRollback, expectedBefore);
 
-        transaction(queryRunner.getTransactionManager())
+        transaction(queryRunner.getTransactionManager(), queryRunner.getAccessControl())
                 .execute(session, transactionSession -> {
                     assertUpdate(transactionSession, "DELETE FROM tmp_delete_insert WHERE z >= 2");
                     assertUpdate(transactionSession, "INSERT INTO tmp_delete_insert VALUES (203, 2), (204, 2), (205, 2), (301, 2), (302, 3)", 5);
@@ -1619,7 +1619,7 @@ public class TestHiveIntegrationSmokeTest
                 .build()
                 .getMaterializedRows();
 
-        transaction(queryRunner.getTransactionManager())
+        transaction(queryRunner.getTransactionManager(), queryRunner.getAccessControl())
                 .execute(session, transactionSession -> {
                     assertUpdate(
                             transactionSession,
@@ -1650,7 +1650,9 @@ public class TestHiveIntegrationSmokeTest
         assertUpdate(createTable, "SELECT count(*) FROM orders");
         assertUpdate("ALTER TABLE test_rename_column RENAME COLUMN orderkey TO new_orderkey");
         assertQuery("SELECT new_orderkey, orderstatus FROM test_rename_column", "SELECT orderkey, orderstatus FROM orders");
-        assertQueryFails("ALTER TABLE test_rename_column RENAME COLUMN orderstatus TO new_orderstatus", "com.facebook.presto.spi.PrestoException: Renaming partition columns is not supported");
+        assertQueryFails(
+                "ALTER TABLE test_rename_column RENAME COLUMN orderstatus TO new_orderstatus",
+                "com.facebook.presto.spi.PrestoException: Renaming partition columns is not supported");
         assertQuery("SELECT new_orderkey, orderstatus FROM test_rename_column", "SELECT orderkey, orderstatus FROM orders");
         assertUpdate("DROP TABLE test_rename_column");
     }
@@ -1663,6 +1665,13 @@ public class TestHiveIntegrationSmokeTest
         assertQueryFails("CREATE TABLE test_avro_types (x smallint) WITH (format = 'AVRO')", "Column x is smallint, which is not supported by Avro. Use integer instead.");
 
         assertQueryFails("CREATE TABLE test_avro_types WITH (format = 'AVRO') AS SELECT cast(42 AS smallint) z", "Column z is smallint, which is not supported by Avro. Use integer instead.");
+    }
+
+    private Session getParallelWriteSession()
+    {
+        return Session.builder(getSession())
+                .setSystemProperty("task_writer_count", "4")
+                .build();
     }
 
     private void assertOneNotNullResult(@Language("SQL") String query)
@@ -1728,10 +1737,10 @@ public class TestHiveIntegrationSmokeTest
             formats.add(new TestingHiveStorageFormat(session, hiveStorageFormat));
         }
         formats.add(new TestingHiveStorageFormat(
-                session.withCatalogProperty(session.getCatalog().get(), "rcfile_optimized_reader_enabled", "true"),
+                Session.builder(session).setCatalogSessionProperty(session.getCatalog().get(), "rcfile_optimized_reader_enabled", "true").build(),
                 HiveStorageFormat.RCBINARY));
         formats.add(new TestingHiveStorageFormat(
-                session.withCatalogProperty(session.getCatalog().get(), "rcfile_optimized_reader_enabled", "true"),
+                Session.builder(session).setCatalogSessionProperty(session.getCatalog().get(), "rcfile_optimized_reader_enabled", "true").build(),
                 HiveStorageFormat.RCTEXT));
         return formats.build();
     }

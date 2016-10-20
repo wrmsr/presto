@@ -49,6 +49,7 @@ import com.facebook.presto.execution.scheduler.LegacyNetworkTopology;
 import com.facebook.presto.execution.scheduler.NodeScheduler;
 import com.facebook.presto.execution.scheduler.NodeSchedulerConfig;
 import com.facebook.presto.index.IndexManager;
+import com.facebook.presto.metadata.CatalogManager;
 import com.facebook.presto.metadata.HandleResolver;
 import com.facebook.presto.metadata.InMemoryNodeManager;
 import com.facebook.presto.metadata.Metadata;
@@ -174,6 +175,8 @@ import static com.facebook.presto.execution.SqlQueryManager.unwrapExecuteStateme
 import static com.facebook.presto.execution.SqlQueryManager.validateParameters;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.sql.testing.TreeAssertions.assertFormattedSql;
+import static com.facebook.presto.testing.TestingSession.TESTING_CATALOG;
+import static com.facebook.presto.testing.TestingSession.createBogusTestingCatalog;
 import static com.facebook.presto.testing.TestingTaskContext.createTaskContext;
 import static com.facebook.presto.transaction.TransactionBuilder.transaction;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -253,9 +256,11 @@ public class LocalQueryRunner
                 new NodeSchedulerConfig().setIncludeCoordinator(true),
                 new NodeTaskMap(finalizerService));
         this.pageSinkManager = new PageSinkManager();
+        CatalogManager catalogManager = new CatalogManager();
         this.transactionManager = TransactionManager.create(
                 new TransactionManagerConfig().setIdleTimeout(new Duration(1, TimeUnit.DAYS)),
                 transactionCheckExecutor,
+                catalogManager,
                 executor);
         this.nodePartitioningManager = new NodePartitioningManager(nodeScheduler);
 
@@ -278,6 +283,7 @@ public class LocalQueryRunner
 
         this.connectorManager = new ConnectorManager(
                 metadata,
+                catalogManager,
                 accessControl,
                 splitManager,
                 pageSourceManager,
@@ -294,14 +300,17 @@ public class LocalQueryRunner
 
         GlobalSystemConnectorFactory globalSystemConnectorFactory = new GlobalSystemConnectorFactory(ImmutableSet.of(
                 new NodeSystemTable(nodeManager),
-                new CatalogSystemTable(metadata),
-                new SchemaPropertiesSystemTable(metadata),
-                new TablePropertiesSystemTable(metadata),
+                new CatalogSystemTable(transactionManager),
+                new SchemaPropertiesSystemTable(transactionManager, metadata),
+                new TablePropertiesSystemTable(transactionManager, metadata),
                 new TransactionsSystemTable(typeRegistry, transactionManager)),
                 ImmutableSet.of());
 
         connectorManager.addConnectorFactory(globalSystemConnectorFactory);
         connectorManager.createConnection(GlobalSystemConnector.NAME, GlobalSystemConnector.NAME, ImmutableMap.of());
+
+        // add bogus connector for testing session properties
+        catalogManager.registerCatalog(createBogusTestingCatalog(TESTING_CATALOG));
 
         // rewrite session to use managed SessionPropertyMetadata
         this.defaultSession = new Session(
@@ -318,7 +327,8 @@ public class LocalQueryRunner
                 defaultSession.getUserAgent(),
                 defaultSession.getStartTime(),
                 defaultSession.getSystemProperties(),
-                defaultSession.getCatalogProperties(),
+                defaultSession.getConnectorProperties(),
+                defaultSession.getUnprocessedCatalogProperties(),
                 metadata.getSessionPropertyManager(),
                 defaultSession.getPreparedStatements());
 
@@ -439,7 +449,7 @@ public class LocalQueryRunner
     {
         lock.readLock().lock();
         try {
-            return transaction(transactionManager)
+            return transaction(transactionManager, accessControl)
                     .readOnly()
                     .execute(session, transactionSession -> {
                         return getMetadata().listTables(transactionSession, new QualifiedTablePrefix(catalog, schema));
@@ -455,7 +465,7 @@ public class LocalQueryRunner
     {
         lock.readLock().lock();
         try {
-            return transaction(transactionManager)
+            return transaction(transactionManager, accessControl)
                     .readOnly()
                     .execute(session, transactionSession -> {
                         return MetadataUtil.tableExists(getMetadata(), transactionSession, table);
@@ -485,7 +495,7 @@ public class LocalQueryRunner
 
     public <T> T inTransaction(Session session, Function<Session, T> transactionSessionConsumer)
     {
-        return transaction(transactionManager)
+        return transaction(transactionManager, accessControl)
                 .singleStatement()
                 .execute(session, transactionSessionConsumer);
     }
@@ -681,11 +691,6 @@ public class LocalQueryRunner
 
         Analysis analysis = analyzer.analyze(statement);
         return logicalPlanner.plan(analysis, stage);
-    }
-
-    public OperatorFactory createTableScanOperator(int operatorId, PlanNodeId planNodeId, String tableName, String... columnNames)
-    {
-        return createTableScanOperator(defaultSession, operatorId, planNodeId, tableName, columnNames);
     }
 
     public OperatorFactory createTableScanOperator(

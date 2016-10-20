@@ -16,6 +16,12 @@ package com.facebook.presto.sql.analyzer;
 import com.facebook.presto.Session;
 import com.facebook.presto.block.BlockEncodingManager;
 import com.facebook.presto.connector.ConnectorId;
+import com.facebook.presto.connector.informationSchema.InformationSchemaConnector;
+import com.facebook.presto.connector.system.SystemConnector;
+import com.facebook.presto.metadata.Catalog;
+import com.facebook.presto.metadata.CatalogManager;
+import com.facebook.presto.metadata.InMemoryNodeManager;
+import com.facebook.presto.metadata.InternalNodeManager;
 import com.facebook.presto.metadata.Metadata;
 import com.facebook.presto.metadata.MetadataManager;
 import com.facebook.presto.metadata.QualifiedObjectName;
@@ -24,6 +30,8 @@ import com.facebook.presto.metadata.SessionPropertyManager;
 import com.facebook.presto.metadata.TablePropertyManager;
 import com.facebook.presto.metadata.TestingMetadata;
 import com.facebook.presto.metadata.ViewDefinition;
+import com.facebook.presto.security.AccessControl;
+import com.facebook.presto.security.AccessControlManager;
 import com.facebook.presto.security.AllowAllAccessControl;
 import com.facebook.presto.spi.ColumnMetadata;
 import com.facebook.presto.spi.ConnectorMetadata;
@@ -47,6 +55,8 @@ import org.testng.annotations.Test;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import static com.facebook.presto.connector.ConnectorId.createInformationSchemaConnectorId;
+import static com.facebook.presto.connector.ConnectorId.createSystemTablesConnectorId;
 import static com.facebook.presto.metadata.ViewDefinition.ViewColumn;
 import static com.facebook.presto.spi.type.BigintType.BIGINT;
 import static com.facebook.presto.spi.type.DoubleType.DOUBLE;
@@ -86,7 +96,6 @@ import static com.facebook.presto.transaction.TransactionBuilder.transaction;
 import static com.facebook.presto.transaction.TransactionManager.createTestTransactionManager;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
-import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.fail;
 
 @Test(singleThreaded = true)
@@ -110,6 +119,7 @@ public class TestAnalyzer
     private static final SqlParser SQL_PARSER = new SqlParser();
 
     private TransactionManager transactionManager;
+    private AccessControl accessControl;
     private Metadata metadata;
 
     @Test
@@ -973,14 +983,14 @@ public class TestAnalyzer
                 .build();
         assertFails(session, CATALOG_NOT_SPECIFIED, "SHOW TABLES");
         assertFails(session, CATALOG_NOT_SPECIFIED, "SHOW TABLES FROM a");
-        assertMissingInformationSchema(session, "SHOW TABLES FROM c2.s2");
+        assertFails(session, MISSING_SCHEMA, "SHOW TABLES FROM c2.unknown");
 
         session = testSessionBuilder()
                 .setCatalog(SECOND_CATALOG)
                 .setSchema(null)
                 .build();
         assertFails(session, SCHEMA_NOT_SPECIFIED, "SHOW TABLES");
-        assertMissingInformationSchema(session, "SHOW TABLES FROM s2");
+        assertFails(session, MISSING_SCHEMA, "SHOW TABLES FROM unknown");
     }
 
     @Test
@@ -1010,30 +1020,16 @@ public class TestAnalyzer
         assertFails(TYPE_MISMATCH, "SELECT * FROM (VALUES (2, 2)) a(x,y) JOIN (VALUES (2, 2)) b(x,y) ON (a.x=b.x, a.y=b.y)");
     }
 
-    private void assertMissingInformationSchema(Session session, @Language("SQL") String query)
-    {
-        try {
-            analyze(session, query);
-            fail("expected exception");
-        }
-        catch (SemanticException e) {
-            assertEquals(e.getCode(), MISSING_SCHEMA);
-            assertEquals(e.getMessage(), "Schema information_schema does not exist");
-        }
-    }
-
     @BeforeMethod(alwaysRun = true)
     public void setup()
             throws Exception
     {
         TypeManager typeManager = new TypeRegistry();
+        CatalogManager catalogManager = new CatalogManager();
+        transactionManager = createTestTransactionManager(catalogManager);
+        accessControl = new AccessControlManager(transactionManager);
 
-        transactionManager = createTestTransactionManager();
-        transactionManager.addConnector(TPCH_CONNECTOR_ID, createTestingConnector());
-        transactionManager.addConnector(SECOND_CONNECTOR_ID, createTestingConnector());
-        transactionManager.addConnector(THIRD_CONNECTOR_ID, createTestingConnector());
-
-        MetadataManager metadata = new MetadataManager(
+        metadata = new MetadataManager(
                 new FeaturesConfig().setExperimentalSyntaxEnabled(true),
                 typeManager,
                 new BlockEncodingManager(typeManager),
@@ -1041,9 +1037,10 @@ public class TestAnalyzer
                 new SchemaPropertyManager(),
                 new TablePropertyManager(),
                 transactionManager);
-        metadata.registerConnectorCatalog(TPCH_CONNECTOR_ID, TPCH_CATALOG);
-        metadata.registerConnectorCatalog(SECOND_CONNECTOR_ID, SECOND_CATALOG);
-        metadata.registerConnectorCatalog(THIRD_CONNECTOR_ID, THIRD_CATALOG);
+
+        catalogManager.registerCatalog(createTestingCatalog(TPCH_CATALOG, TPCH_CONNECTOR_ID));
+        catalogManager.registerCatalog(createTestingCatalog(SECOND_CATALOG, SECOND_CONNECTOR_ID));
+        catalogManager.registerCatalog(createTestingCatalog(THIRD_CATALOG, THIRD_CONNECTOR_ID));
 
         SchemaTableName table1 = new SchemaTableName("s1", "t1");
         inSetupTransaction(session -> metadata.createTable(session, TPCH_CATALOG, new ConnectorTableMetadata(table1,
@@ -1142,7 +1139,7 @@ public class TestAnalyzer
 
     private void inSetupTransaction(Consumer<Session> consumer)
     {
-        transaction(transactionManager)
+        transaction(transactionManager, accessControl)
                 .singleStatement()
                 .readUncommitted()
                 .execute(SETUP_SESSION, consumer);
@@ -1167,7 +1164,7 @@ public class TestAnalyzer
 
     private void analyze(Session clientSession, @Language("SQL") String query)
     {
-        transaction(transactionManager)
+        transaction(transactionManager, accessControl)
                 .singleStatement()
                 .readUncommitted()
                 .readOnly()
@@ -1180,7 +1177,7 @@ public class TestAnalyzer
 
     private void analyzeWithoutExperimentalSyntax(@Language("SQL") String query)
     {
-        transaction(transactionManager)
+        transaction(transactionManager, accessControl)
                 .singleStatement()
                 .readUncommitted()
                 .readOnly()
@@ -1220,6 +1217,25 @@ public class TestAnalyzer
                 fail(format("Expected error %s, but found %s: %s", error, e.getCode(), e.getMessage()), e);
             }
         }
+    }
+
+    private Catalog createTestingCatalog(String catalogName, ConnectorId connectorId)
+    {
+        ConnectorId systemId = createSystemTablesConnectorId(connectorId);
+        Connector connector = createTestingConnector();
+        InternalNodeManager nodeManager = new InMemoryNodeManager();
+        return new Catalog(
+                catalogName,
+                connectorId,
+                connector,
+                createInformationSchemaConnectorId(connectorId),
+                new InformationSchemaConnector(catalogName, nodeManager, metadata),
+                systemId,
+                new SystemConnector(
+                        systemId,
+                        nodeManager,
+                        connector.getSystemTables(),
+                        transactionId -> transactionManager.getConnectorTransaction(transactionId, connectorId)));
     }
 
     @SuppressWarnings("deprecation")
