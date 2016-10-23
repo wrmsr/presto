@@ -13,27 +13,28 @@
  */
 package com.wrmsr.presto.launcher.packaging.entries;
 
+import java.util.Objects;
 import java.util.jar.JarEntry;
 
 public abstract class Entry
 {
-    private final String jarPath;
+    private final String name;
     private final long time;
 
-    public Entry(String jarPath, long time)
+    public Entry(String name, long time)
     {
-        this.jarPath = jarPath;
+        this.name = name;
         this.time = time;
     }
 
-    public void processEntry(JarEntry je)
+    public void bestowJarEntryAttributes(JarEntry je)
     {
         je.setTime(time);
     }
 
-    public String getJarPath()
+    public String getName()
     {
-        return jarPath;
+        return name;
     }
 
     @Override
@@ -45,15 +46,16 @@ public abstract class Entry
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         Entry entry = (Entry) o;
-
-        return !(jarPath != null ? !jarPath.equals(entry.jarPath) : entry.jarPath != null);
+        return time == entry.time &&
+                Objects.equals(name, entry.name);
     }
 
     @Override
     public int hashCode()
     {
-        return jarPath != null ? jarPath.hashCode() : 0;
+        return Objects.hash(name, time);
     }
+
+    public abstract <C, R> R accept(EntryVisitor<C, R> visitor, C context);
 }

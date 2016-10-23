@@ -38,10 +38,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -175,7 +173,7 @@ public class Packager
         entries.add(new BytesEntry("classpaths/.uncached", uncachedRepoPathsStr.getBytes(), System.currentTimeMillis()));
 
         checkState(wrapperJarFile != null);
-        Map<String, Entry> entryMap = entries.stream().collect(toMap(Entry::getJarPath, e -> e));
+        Map<String, Entry> entryMap = entries.stream().collect(toMap(Entry::getName, e -> e));
         List<String> keys = new ArrayList<>(entryMap.keySet());
         Collections.sort(keys);
         checkState(keys.size() == new HashSet<>(keys).size());
@@ -281,7 +279,7 @@ public class Packager
         return wrapperJarFile;
     }
 
-    private void buildJar(GitInfo gitInfo, File wrapperJarFile, Map<String, Entry> entryMap, List<String> keys, String outPath)
+    private void buildJar(File wrapperJarFile, Map<String, Entry> entryMap, List<String> keys, String outPath)
             throws IOException
     {
         BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outPath));
@@ -310,7 +308,7 @@ public class Packager
                 continue;
             }
             Entry e = entryMap.get(key);
-            String p = e.getJarPath();
+            String p = e.getName();
             List<String> pathParts = new ArrayList<>(Arrays.asList(p.split("/")));
             for (int i = 0; i < pathParts.size() - 1; ++i) {
                 String pathPart = Joiner.on("/").join(IntStream.rangeClosed(0, i).boxed().map(j -> pathParts.get(j)).collect(Collectors.toList())) + "/";
@@ -322,7 +320,7 @@ public class Packager
                 }
             }
             JarEntry je = new JarEntry(p);
-            e.processEntry(je);
+            e.bestowJarEntryAttributes(je);
             jo.putNextEntry(je);
             if (e instanceof FileEntry) {
                 FileEntry f = (FileEntry) e;
@@ -340,18 +338,6 @@ public class Packager
             }
             contents.add(key);
         }
-
-        JarEntry jeHEAD = new JarEntry("HEAD");
-        jo.putNextEntry(jeHEAD);
-        jo.write(gitInfo.getRevision().getBytes());
-
-        JarEntry jeSHORT = new JarEntry("SHORT");
-        jo.putNextEntry(jeSHORT);
-        jo.write(gitInfo.getShortRevision().getBytes());
-
-        JarEntry jeTAGS = new JarEntry("TAGS");
-        jo.putNextEntry(jeTAGS);
-        jo.write(gitInfo.getTags().getBytes());
 
         jo.close();
         bo.close();

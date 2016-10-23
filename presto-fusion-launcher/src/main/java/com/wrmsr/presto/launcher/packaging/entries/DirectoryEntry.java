@@ -15,51 +15,18 @@ package com.wrmsr.presto.launcher.packaging.entries;
 
 import javax.annotation.concurrent.Immutable;
 
-import java.util.Arrays;
-import java.util.Objects;
-
 @Immutable
-public final class BytesEntry
+public final class DirectoryEntry
         extends Entry
 {
-    public final byte[] bytes;
-
-    public BytesEntry(String name, long time, byte[] bytes)
+    public DirectoryEntry(String name, long time)
     {
         super(name, time);
-        this.bytes = bytes;
-    }
-
-    public byte[] getBytes()
-    {
-        return bytes;
-    }
-
-    @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        if (!super.equals(o)) {
-            return false;
-        }
-        BytesEntry that = (BytesEntry) o;
-        return Arrays.equals(bytes, that.bytes);
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(super.hashCode(), bytes);
     }
 
     @Override
     public <C, R> R accept(EntryVisitor<C, R> visitor, C context)
     {
-        return visitor.visitBytesEntry(this, context);
+        return visitor.visitDirectoryEntry(this, context);
     }
 }

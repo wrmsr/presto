@@ -13,16 +13,20 @@
  */
 package com.wrmsr.presto.launcher.packaging.entries;
 
-import java.io.File;
+import javax.annotation.concurrent.Immutable;
 
-public class FileEntry
+import java.io.File;
+import java.util.Objects;
+
+@Immutable
+public final class FileEntry
         extends Entry
 {
     private final File file;
 
-    public FileEntry(String jarPath, File file)
+    public FileEntry(String name, File file)
     {
-        super(jarPath, file.lastModified());
+        super(name, file.lastModified());
         this.file = file;
     }
 
@@ -43,17 +47,19 @@ public class FileEntry
         if (!super.equals(o)) {
             return false;
         }
-
         FileEntry fileEntry = (FileEntry) o;
-
-        return !(file != null ? !file.equals(fileEntry.file) : fileEntry.file != null);
+        return Objects.equals(file, fileEntry.file);
     }
 
     @Override
     public int hashCode()
     {
-        int result = super.hashCode();
-        result = 31 * result + (file != null ? file.hashCode() : 0);
-        return result;
+        return Objects.hash(super.hashCode(), file);
+    }
+
+    @Override
+    public <C, R> R accept(EntryVisitor<C, R> visitor, C context)
+    {
+        return visitor.visitFileEntry(this, context);
     }
 }
