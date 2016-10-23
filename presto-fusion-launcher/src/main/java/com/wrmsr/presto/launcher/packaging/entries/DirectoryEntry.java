@@ -15,6 +15,8 @@ package com.wrmsr.presto.launcher.packaging.entries;
 
 import javax.annotation.concurrent.Immutable;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 @Immutable
 public final class DirectoryEntry
         extends Entry
@@ -22,6 +24,7 @@ public final class DirectoryEntry
     public DirectoryEntry(String name, long time)
     {
         super(name, time);
+        checkArgument(name.startsWith("/"));
     }
 
     @Override

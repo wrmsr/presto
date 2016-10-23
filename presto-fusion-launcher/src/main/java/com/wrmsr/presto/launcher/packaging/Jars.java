@@ -14,11 +14,13 @@
 package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
 import com.wrmsr.presto.launcher.packaging.entries.BytesEntry;
 import com.wrmsr.presto.launcher.packaging.entries.DirectoryEntry;
 import com.wrmsr.presto.launcher.packaging.entries.Entry;
+import com.wrmsr.presto.launcher.packaging.entries.EntryVisitor;
 import com.wrmsr.presto.launcher.packaging.entries.FileEntry;
 
 import java.io.BufferedInputStream;
@@ -34,13 +36,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.jar.JarEntry;
-import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -48,7 +48,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static com.google.common.base.Preconditions.checkState;
-import static java.util.Objects.requireNonNull;
 
 public final class Jars
 {
@@ -84,59 +83,100 @@ public final class Jars
     public static List<Entry> getJarEntries(File inFile)
             throws IOException
     {
-        Map<String, byte[]> entryContents = new HashMap<>();
+        List<Entry> entries = new ArrayList<>();
+        Set<String> seenNames = new HashSet<>();
         try (ZipFile zipFile = new ZipFile(inFile)) {
             Enumeration<? extends ZipEntry> zipEntries;
             for (zipEntries = zipFile.entries(); zipEntries.hasMoreElements(); ) {
                 ZipEntry zipEntry = zipEntries.nextElement();
-                checkState(!entryContents.containsKey(zipEntry.getName()));
-                byte[] bytes;
-                try (InputStream is = zipFile.getInputStream(zipEntry);
-                        BufferedInputStream bi = new BufferedInputStream(is)) {
-                    bytes = new byte[(int) zipEntry.getSize()];
-                    ByteStreams.readFully(bi, bytes);
-                    checkState(bi.read() == -1);
-                }
-                entryContents.put(zipEntry.getName(), bytes);
-            }
-        }
-
-        Set<String> seenNames = new HashSet<>();
-        List<Entry> entries = new ArrayList<>();
-        try (InputStream is = new FileInputStream(inFile);
-                JarInputStream jarFile = new JarInputStream(is)) {
-            while (true) {
-                JarEntry jarEntry = jarFile.getNextJarEntry();
-                if (jarEntry == null) {
-                    break;
-                }
-                checkState(!seenNames.contains(jarEntry.getName()));
-                seenNames.add(jarEntry.getName());
-                if (jarEntry.isDirectory()) {
+                checkState(!seenNames.contains(zipEntry.getName()));
+                seenNames.add(zipEntry.getName());
+                if (zipEntry.isDirectory()) {
                     entries.add(
                             new DirectoryEntry(
-                                    jarEntry.getComment(),
-                                    jarEntry.getTime()));
+                                    zipEntry.getComment(),
+                                    zipEntry.getTime()));
                 }
                 else {
-                    byte[] bytes = requireNonNull(entryContents.get(jarEntry.getName()));
-                    entryContents.remove(jarEntry.getName());
+                    byte[] bytes;
+                    try (InputStream is = zipFile.getInputStream(zipEntry);
+                            BufferedInputStream bi = new BufferedInputStream(is)) {
+                        bytes = new byte[(int) zipEntry.getSize()];
+                        ByteStreams.readFully(bi, bytes);
+                        checkState(bi.read() == -1);
+                    }
                     entries.add(
                             new BytesEntry(
-                                    jarEntry.getName(),
-                                    jarEntry.getTime(),
+                                    zipEntry.getName(),
+                                    zipEntry.getTime(),
                                     bytes));
                 }
             }
         }
-        checkState(entryContents.isEmpty());
+        return entries;
     }
 
-    public static void buildJar(File wrapperJarFile, Map<String, Entry> entryMap, List<String> keys, String outPath)
+    public static List<String> getNameDirectories(String name)
+    {
+
+    }
+
+    public static void buildJar(List<Entry> entries, File outFile)
             throws IOException
     {
-        BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outPath));
-        JarOutputStream jo = new JarOutputStream(bo);
+        Set<String> seenNames = new HashSet<>();
+        Set<String> seenDirectories = new HashSet<>();
+        try (BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outFile));
+                JarOutputStream jo = new JarOutputStream(bo)) {
+            Consumer<String> ensureDirectoryExists = (name) -> {
+                List<String> pathParts = new ArrayList<>(Arrays.asList(name.split("/")));
+                for (int i = 0; i < pathParts.size() - 1; ++i) {
+                    String pathPart = Joiner.on("/").join(IntStream.rangeClosed(0, i).boxed().map(j -> pathParts.get(j)).collect(Collectors.toList())) + "/";
+                    if (!seenDirectories.contains(pathPart)) {
+                        seenDirectories.add(pathPart);
+                        try {
+                            JarEntry jarEntry = new JarEntry(pathPart);
+                            jo.putNextEntry(jarEntry);
+                            jo.write(new byte[] {}, 0, 0);
+                        }
+                        catch (IOException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
+                }
+            };
+            for (Entry entry : entries) {
+                checkState(!seenNames.contains(entry.getName()));
+                seenNames.add(entry.getName());
+                entry.accept(new EntryVisitor<Void, Void>()
+                {
+                    @Override
+                    public Void visitEntry(Entry entry, Void context)
+                    {
+                        throw new IllegalStateException();
+                    }
+
+                    @Override
+                    public Void visitBytesEntry(Entry entry, Void context)
+                    {
+                        return super.visitBytesEntry(entry, context);
+                    }
+
+                    @Override
+                    public Void visitDirectoryEntry(Entry entry, Void context)
+                    {
+                        ensureDirectoryExists.accept(entry.getName());
+                        return null;
+                    }
+
+                    @Override
+                    public Void visitFileEntry(Entry entry, Void context)
+                    {
+                        return super.visitFileEntry(entry, context);
+                    }
+                }, null);
+            }
+        }
 
         Set<String> contents = new HashSet<>();
         ZipFile wrapperJarZip = new ZipFile(wrapperJarFile);

@@ -16,6 +16,8 @@ package com.wrmsr.presto.launcher.packaging.entries;
 import java.util.Objects;
 import java.util.jar.JarEntry;
 
+import static java.util.Objects.requireNonNull;
+
 public abstract class Entry
 {
     private final String name;
@@ -23,7 +25,7 @@ public abstract class Entry
 
     public Entry(String name, long time)
     {
-        this.name = name;
+        this.name = requireNonNull(name);
         this.time = time;
     }
 
