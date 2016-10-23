@@ -40,8 +40,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -82,42 +80,6 @@ public class Packager
         Logging.initialize();
 
         new Packager().run();
-    }
-
-    private void add(File source, JarOutputStream target)
-            throws IOException
-    {
-        if (source.isDirectory()) {
-            String name = source.getPath().replace("\\", "/");
-            if (!name.isEmpty()) {
-                if (!name.endsWith("/")) {
-                    name += "/";
-                }
-                JarEntry entry = new JarEntry(name);
-                entry.setTime(source.lastModified());
-                target.putNextEntry(entry);
-                target.closeEntry();
-            }
-            for (File nestedFile : source.listFiles()) {
-                add(nestedFile, target);
-            }
-            return;
-        }
-
-        JarEntry entry = new JarEntry(source.getPath().replace("\\", "/"));
-        entry.setTime(source.lastModified());
-        target.putNextEntry(entry);
-        try (InputStream in = new BufferedInputStream(new FileInputStream(source))) {
-            byte[] buffer = new byte[1024];
-            while (true) {
-                int count = in.read(buffer);
-                if (count == -1) {
-                    break;
-                }
-                target.write(buffer, 0, count);
-            }
-            target.closeEntry();
-        }
     }
 
     @Nullable
@@ -163,19 +125,12 @@ public class Packager
                 "presto-local-file",
                 "presto-tpch",
                 "presto-redis"
-
-//                "presto-wrmsr-main",
-//                "presto-wrmsr-hadoop",
-//                "presto-wrmsr-jython"
-                // "presto-wrmsr-jruby",
-                // "presto-wrmsr-lucene",
         );
     }
 
     public void run()
             throws Throwable
     {
-//        analyzeJar(new File("/Users/spinlock/.m2/repository/org/apache/hadoop/hadoop-hdfs/2.7.1/hadoop-hdfs-2.7.1.jar"));
 
         GitInfo gitInfo = GitInfo.get();
 
@@ -228,33 +183,16 @@ public class Packager
         String outPath = System.getProperty("user.home") + "/presto/presto.jar";
         buildJar(gitInfo, wrapperJarFile, entryMap, keys, outPath);
 
-        byte[] launcherBytes;
-        try (InputStream launcherStream = Packager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/packaging/entrypoint")) {
-            launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, StandardCharsets.UTF_8)).getBytes();
-        }
-
         // TODO suffix with git sha
         String exePath = System.getProperty("user.home") + "/presto/presto";
-        try (InputStream fi = new BufferedInputStream(new FileInputStream(outPath));
-                OutputStream fo = new BufferedOutputStream(new FileOutputStream(exePath))) {
-            fo.write(launcherBytes, 0, launcherBytes.length);
-            fo.write(new byte[] {'\n', '\n'});
-            byte[] buf = new byte[65536];
-            int anz;
-            while ((anz = fi.read(buf)) != -1) {
-                fo.write(buf, 0, anz);
-            }
-        }
-        new File(exePath).setExecutable(true, false);
-
+        Jars.makeExecutableJar(new File(outPath), new File(exePath));
         new File(outPath).delete();
     }
 
     private File processName(File cwd, File jarRepoBase, File classpathBase, File repository, ArtifactResolver resolver, String wrapperProject, Set<String> localGroups, File wrapperJarFile, Set<Entry> entries, Set<String> uncachedRepoPaths, String name)
-            throws MalformedURLException, IOException
+            throws IOException
     {
         String pom = name + "/pom.xml";
-        // log.info(pom);
 
         List<String> repoPaths = new ArrayList<>();
         File pomFile = new File(cwd, pom);
@@ -289,7 +227,6 @@ public class Packager
                     rel = repository.toURI().relativize(file.toURI()).getPath();
                 }
                 checkState(file.exists());
-//                analyzeJar(file);
                 File localFile = new File(localPath, "target/" + file.getName());
 
                 checkState(!rel.startsWith("/") && !rel.startsWith(".."));
