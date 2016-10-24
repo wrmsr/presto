@@ -170,7 +170,7 @@ public class Packager
         List<String> sortedUncachedRepoPaths = new ArrayList<>(uncachedRepoPaths);
         Collections.sort(sortedUncachedRepoPaths);
         String uncachedRepoPathsStr = String.join("\n", sortedUncachedRepoPaths) + "\n";
-        entries.add(new BytesEntry("classpaths/.uncached", uncachedRepoPathsStr.getBytes(), System.currentTimeMillis()));
+        entries.add(new BytesEntry("classpaths/.uncached", System.currentTimeMillis(), uncachedRepoPathsStr.getBytes()));
 
         checkState(wrapperJarFile != null);
         Map<String, Entry> entryMap = entries.stream().collect(toMap(Entry::getName, e -> e));
@@ -179,7 +179,7 @@ public class Packager
         checkState(keys.size() == new HashSet<>(keys).size());
 
         String outPath = System.getProperty("user.home") + "/presto/presto.jar";
-        buildJar(gitInfo, wrapperJarFile, entryMap, keys, outPath);
+        buildJar(wrapperJarFile, entryMap, keys, outPath);
 
         // TODO suffix with git sha
         String exePath = System.getProperty("user.home") + "/presto/presto";
@@ -190,6 +190,8 @@ public class Packager
     private File processName(File cwd, File jarRepoBase, File classpathBase, File repository, ArtifactResolver resolver, String wrapperProject, Set<String> localGroups, File wrapperJarFile, Set<Entry> entries, Set<String> uncachedRepoPaths, String name)
             throws IOException
     {
+        Jars.getJarEntries(new File(System.getProperty("user.home") + "/presto/presto"));
+
         String pom = name + "/pom.xml";
 
         List<String> repoPaths = new ArrayList<>();
@@ -275,7 +277,7 @@ public class Packager
         String classpathPath = new File(classpathBase, name).toString();
         checkState(classpathPath.startsWith("/"));
         classpathPath = classpathPath.substring(1);
-        entries.add(new BytesEntry(classpathPath, repoPathsStr.getBytes(), System.currentTimeMillis()));
+        entries.add(new BytesEntry(classpathPath, System.currentTimeMillis(), repoPathsStr.getBytes()));
         return wrapperJarFile;
     }
 

@@ -44,36 +44,12 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.wrmsr.presto.util.MoreIO.readFullyAndClose;
 
 public final class Jars
 {
     private Jars()
     {
-    }
-
-    public static void makeExecutableJar(File inputFile, File outputFile)
-            throws IOException
-    {
-        checkState(inputFile.isFile());
-        checkState(outputFile.getParentFile().isDirectory());
-
-        byte[] launcherBytes;
-        try (InputStream launcherStream = Packager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/packaging/entrypoint")) {
-            launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, StandardCharsets.UTF_8)).getBytes();
-        }
-
-        try (InputStream fi = new BufferedInputStream(new FileInputStream(inputFile));
-                OutputStream fo = new BufferedOutputStream(new FileOutputStream(outputFile))) {
-            fo.write(launcherBytes, 0, launcherBytes.length);
-            fo.write(new byte[] {'\n', '\n'});
-            byte[] buf = new byte[65536];
-            int anz;
-            while ((anz = fi.read(buf)) != -1) {
-                fo.write(buf, 0, anz);
-            }
-        }
-
-        checkState(outputFile.setExecutable(true, false));
     }
 
     public static List<Entry> getJarEntries(File inFile)
@@ -90,17 +66,11 @@ public final class Jars
                 if (zipEntry.isDirectory()) {
                     entries.add(
                             new DirectoryEntry(
-                                    zipEntry.getComment(),
+                                    zipEntry.getName(),
                                     zipEntry.getTime()));
                 }
                 else {
-                    byte[] bytes;
-                    try (InputStream is = zipFile.getInputStream(zipEntry);
-                            BufferedInputStream bi = new BufferedInputStream(is)) {
-                        bytes = new byte[(int) zipEntry.getSize()];
-                        ByteStreams.readFully(bi, bytes);
-                        checkState(bi.read() == -1);
-                    }
+                    byte[] bytes = readFullyAndClose(zipFile.getInputStream(zipEntry), (int) zipEntry.getSize());
                     entries.add(
                             new BytesEntry(
                                     zipEntry.getName(),
@@ -197,5 +167,30 @@ public final class Jars
                 }
             }
         }
+    }
+
+    public static void makeExecutableJar(File inputFile, File outputFile)
+            throws IOException
+    {
+        checkState(inputFile.isFile());
+        checkState(outputFile.getParentFile().isDirectory());
+
+        byte[] launcherBytes;
+        try (InputStream launcherStream = Packager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/packaging/entrypoint")) {
+            launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, StandardCharsets.UTF_8)).getBytes();
+        }
+
+        try (InputStream fi = new BufferedInputStream(new FileInputStream(inputFile));
+                OutputStream fo = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+            fo.write(launcherBytes, 0, launcherBytes.length);
+            fo.write(new byte[] {'\n', '\n'});
+            byte[] buf = new byte[65536];
+            int anz;
+            while ((anz = fi.read(buf)) != -1) {
+                fo.write(buf, 0, anz);
+            }
+        }
+
+        checkState(outputFile.setExecutable(true, false));
     }
 }
