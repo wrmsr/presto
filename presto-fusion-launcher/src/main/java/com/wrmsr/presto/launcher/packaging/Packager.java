@@ -17,12 +17,9 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.CharStreams;
 import com.wrmsr.presto.launcher.packaging.entries.BytesEntry;
 import com.wrmsr.presto.launcher.packaging.entries.Entry;
 import com.wrmsr.presto.launcher.packaging.entries.FileEntry;
-import com.wrmsr.presto.util.process.FinalizedProcess;
-import com.wrmsr.presto.util.process.FinalizedProcessBuilder;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 import io.airlift.resolver.ArtifactResolver;
@@ -30,15 +27,12 @@ import io.airlift.resolver.DefaultArtifact;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.artifact.ArtifactType;
 
-import javax.annotation.Nullable;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,7 +42,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.logging.Level;
@@ -78,27 +71,6 @@ public class Packager
         Logging.initialize();
 
         new Packager().run();
-    }
-
-    @Nullable
-    public static String shellExec(String... argv)
-            throws IOException
-    {
-        FinalizedProcessBuilder processBuilder = new FinalizedProcessBuilder(argv);
-        processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
-        String output;
-        try (FinalizedProcess process = processBuilder.start()) {
-            process.getOutputStream().close();
-            output = CharStreams.toString(new InputStreamReader(process.getInputStream()));
-            try {
-                process.waitFor(10, TimeUnit.SECONDS);
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            checkState(process.exitValue() == 0);
-        }
-        return output;
     }
 
     public List<String> getModuleNames()
@@ -154,7 +126,6 @@ public class Packager
                 ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
 
         String wrapperProject = "presto-fusion-launcher";
-        List<String> names = getModuleNames();
         Set<String> localGroups = ImmutableSet.of(
                 "com.facebook.presto",
                 "com.wrmsr.presto"
@@ -163,7 +134,7 @@ public class Packager
         File wrapperJarFile = null;
         Set<Entry> entries = new HashSet<>();
         Set<String> uncachedRepoPaths = new HashSet<>();
-        for (String name : names) {
+        for (String name : getModuleNames()) {
             wrapperJarFile = processName(cwd, jarRepoBase, classpathBase, repository, resolver, wrapperProject, localGroups, wrapperJarFile, entries, uncachedRepoPaths, name);
         }
 
@@ -181,7 +152,6 @@ public class Packager
         String outPath = System.getProperty("user.home") + "/presto/presto.jar";
         buildJar(wrapperJarFile, entryMap, keys, outPath);
 
-        // TODO suffix with git sha
         String exePath = System.getProperty("user.home") + "/presto/presto";
         Jars.makeExecutableJar(new File(outPath), new File(exePath));
         new File(outPath).delete();
@@ -191,7 +161,6 @@ public class Packager
             throws IOException
     {
         Jars.getJarEntries(new File(System.getProperty("user.home") + "/presto/presto"));
-
         String pom = name + "/pom.xml";
 
         List<String> repoPaths = new ArrayList<>();

@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.wrmsr.presto.util.ShellUtils.shellExec;
 import static com.wrmsr.presto.util.Strings.stripString;
 import static java.util.Objects.requireNonNull;
 
@@ -80,14 +81,14 @@ public final class GitInfo
     public static GitInfo get()
             throws IOException
     {
-        Path topLevel = Paths.get(stripString(requireNonNull(Packager.shellExec("git", "rev-parse", "--show-toplevel"))));
+        Path topLevel = Paths.get(stripString(requireNonNull(shellExec("git", "rev-parse", "--show-toplevel"))));
         checkState(topLevel.toFile().exists() && topLevel.toFile().isDirectory());
-        String revision = stripString(requireNonNull(Packager.shellExec("git", "rev-parse", "--verify", "HEAD"))); // FIXME append -DIRTY if dirty
-        String shortRevision = stripString(requireNonNull(Packager.shellExec("git", "rev-parse", "--short", "HEAD"))); // FIXME append -DIRTY if dirty
-        String tags = stripString(requireNonNull(Packager.shellExec("git", "describe", "--tags")));
-        String shortStat = Packager.shellExec("git", "diff", "--shortstat");
+        String revision = stripString(requireNonNull(shellExec("git", "rev-parse", "--verify", "HEAD"))); // FIXME append -DIRTY if dirty
+        String shortRevision = stripString(requireNonNull(shellExec("git", "rev-parse", "--short", "HEAD"))); // FIXME append -DIRTY if dirty
+        String tags = stripString(requireNonNull(shellExec("git", "describe", "--tags")));
+        String shortStat = shellExec("git", "diff", "--shortstat");
         boolean isModified = shortStat != null && !stripString(shortStat).isEmpty();
-        String porcelain = Packager.shellExec("git", "status", "--porcelain");
+        String porcelain = shellExec("git", "status", "--porcelain");
         boolean hasUntracked = porcelain != null && Arrays.stream(porcelain.split("\n")).anyMatch(s -> s.startsWith("??"));
 
         return new GitInfo(
