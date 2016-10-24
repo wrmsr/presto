@@ -18,6 +18,8 @@ import javax.annotation.concurrent.Immutable;
 import java.io.File;
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 @Immutable
 public final class FileEntry
         extends Entry
@@ -27,6 +29,7 @@ public final class FileEntry
     public FileEntry(String name, File file)
     {
         super(name, file.lastModified());
+        checkArgument(!name.endsWith("/"));
         this.file = file;
     }
 

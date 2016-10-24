@@ -13,7 +13,6 @@
  */
 package com.wrmsr.presto.launcher.packaging;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
@@ -39,11 +38,8 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -118,7 +114,16 @@ public final class Jars
 
     public static List<String> getNameDirectories(String name)
     {
-
+        List<String> pathParts = new ArrayList<>(Arrays.asList(name.split("/")));
+        StringBuilder sb = new StringBuilder(name.length());
+        pathParts.remove(pathParts.size() - 1);
+        List<String> ret = new ArrayList<>();
+        for (String pathPart : pathParts) {
+            sb.append(pathPart);
+            sb.append("/");
+            ret.add(sb.toString());
+        }
+        return ret;
     }
 
     public static void buildJar(List<Entry> entries, File outFile)
@@ -128,111 +133,69 @@ public final class Jars
         Set<String> seenDirectories = new HashSet<>();
         try (BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outFile));
                 JarOutputStream jo = new JarOutputStream(bo)) {
-            Consumer<String> ensureDirectoryExists = (name) -> {
-                List<String> pathParts = new ArrayList<>(Arrays.asList(name.split("/")));
-                for (int i = 0; i < pathParts.size() - 1; ++i) {
-                    String pathPart = Joiner.on("/").join(IntStream.rangeClosed(0, i).boxed().map(j -> pathParts.get(j)).collect(Collectors.toList())) + "/";
-                    if (!seenDirectories.contains(pathPart)) {
-                        seenDirectories.add(pathPart);
+            for (Entry entry : entries) {
+                checkState(!seenNames.contains(entry.getName()));
+                seenNames.add(entry.getName());
+
+                for (String directory : getNameDirectories((entry.getName()))) {
+                    if (!seenDirectories.contains(directory)) {
+                        seenDirectories.add(directory);
                         try {
-                            JarEntry jarEntry = new JarEntry(pathPart);
+                            JarEntry jarEntry = new JarEntry(directory);
                             jo.putNextEntry(jarEntry);
-                            jo.write(new byte[] {}, 0, 0);
+                            jo.write(new byte[0], 0, 0);
                         }
                         catch (IOException e) {
                             throw Throwables.propagate(e);
                         }
                     }
-                }
-            };
-            for (Entry entry : entries) {
-                checkState(!seenNames.contains(entry.getName()));
-                seenNames.add(entry.getName());
-                entry.accept(new EntryVisitor<Void, Void>()
-                {
-                    @Override
-                    public Void visitEntry(Entry entry, Void context)
+
+                    entry.accept(new EntryVisitor<Void, Void>()
                     {
-                        throw new IllegalStateException();
-                    }
+                        @Override
+                        public Void visitEntry(Entry entry, Void context)
+                        {
+                            throw new IllegalStateException();
+                        }
 
-                    @Override
-                    public Void visitBytesEntry(Entry entry, Void context)
-                    {
-                        return super.visitBytesEntry(entry, context);
-                    }
+                        @Override
+                        public Void visitBytesEntry(BytesEntry entry, Void context)
+                        {
+                            try {
+                                JarEntry jarEntry = new JarEntry(entry.getName());
+                                entry.bestowJarEntryAttributes(jarEntry);
+                                jo.write(entry.getBytes(), 0, entry.getBytes().length);
+                            }
+                            catch (IOException e) {
+                                throw Throwables.propagate(e);
+                            }
+                            return null;
+                        }
 
-                    @Override
-                    public Void visitDirectoryEntry(Entry entry, Void context)
-                    {
-                        ensureDirectoryExists.accept(entry.getName());
-                        return null;
-                    }
+                        @Override
+                        public Void visitDirectoryEntry(DirectoryEntry entry, Void context)
+                        {
+                            return null;
+                        }
 
-                    @Override
-                    public Void visitFileEntry(Entry entry, Void context)
-                    {
-                        return super.visitFileEntry(entry, context);
-                    }
-                }, null);
-            }
-        }
-
-        Set<String> contents = new HashSet<>();
-        ZipFile wrapperJarZip = new ZipFile(wrapperJarFile);
-        Enumeration<? extends ZipEntry> zipEntries;
-        for (zipEntries = wrapperJarZip.entries(); zipEntries.hasMoreElements(); ) {
-            ZipEntry zipEntry = zipEntries.nextElement();
-            BufferedInputStream bi = new BufferedInputStream(wrapperJarZip.getInputStream(zipEntry));
-            JarEntry je = new JarEntry(zipEntry.getName());
-            jo.putNextEntry(je);
-            byte[] buf = new byte[1024];
-            int anz;
-            while ((anz = bi.read(buf)) != -1) {
-                jo.write(buf, 0, anz);
-            }
-            bi.close();
-            contents.add(zipEntry.getName());
-        }
-
-        for (String key : keys) {
-            if (contents.contains(key)) {
-                log.warn(key);
-                continue;
-            }
-            Entry e = entryMap.get(key);
-            String p = e.getName();
-            List<String> pathParts = new ArrayList<>(Arrays.asList(p.split("/")));
-            for (int i = 0; i < pathParts.size() - 1; ++i) {
-                String pathPart = Joiner.on("/").join(IntStream.rangeClosed(0, i).boxed().map(j -> pathParts.get(j)).collect(Collectors.toList())) + "/";
-                if (!contents.contains(pathPart)) {
-                    JarEntry je = new JarEntry(pathPart);
-                    jo.putNextEntry(je);
-                    jo.write(new byte[] {}, 0, 0);
-                    contents.add(pathPart);
+                        @Override
+                        public Void visitFileEntry(FileEntry entry, Void context)
+                        {
+                            try {
+                                JarEntry jarEntry = new JarEntry(entry.getName());
+                                entry.bestowJarEntryAttributes(jarEntry);
+                                try (BufferedInputStream bi = new BufferedInputStream(new FileInputStream(entry.getFile()))) {
+                                    ByteStreams.copy(bi, jo);
+                                }
+                            }
+                            catch (IOException e) {
+                                throw Throwables.propagate(e);
+                            }
+                            return null;
+                        }
+                    }, null);
                 }
             }
-            JarEntry je = new JarEntry(p);
-            e.bestowJarEntryAttributes(je);
-            jo.putNextEntry(je);
-            if (e instanceof FileEntry) {
-                FileEntry f = (FileEntry) e;
-                BufferedInputStream bi = new BufferedInputStream(new FileInputStream(f.getFile()));
-                byte[] buf = new byte[1024];
-                int anz;
-                while ((anz = bi.read(buf)) != -1) {
-                    jo.write(buf, 0, anz);
-                }
-                bi.close();
-            }
-            else if (e instanceof BytesEntry) {
-                BytesEntry b = (BytesEntry) e;
-                jo.write(b.getBytes(), 0, b.getBytes().length);
-            }
-            contents.add(key);
         }
-
-        jo.close();
-        bo.close();
     }
 }

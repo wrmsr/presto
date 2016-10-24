@@ -16,6 +16,7 @@ package com.wrmsr.presto.launcher.packaging.entries;
 import java.util.Objects;
 import java.util.jar.JarEntry;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 public abstract class Entry
@@ -25,7 +26,9 @@ public abstract class Entry
 
     public Entry(String name, long time)
     {
-        this.name = requireNonNull(name);
+        requireNonNull(name);
+        checkArgument(!name.startsWith("/"));
+        this.name = name;
         this.time = time;
     }
 

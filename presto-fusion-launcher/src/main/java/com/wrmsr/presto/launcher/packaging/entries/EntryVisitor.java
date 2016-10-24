@@ -20,17 +20,17 @@ public abstract class EntryVisitor<C, R>
         return null;
     }
 
-    public R visitBytesEntry(Entry entry, C context)
+    public R visitBytesEntry(BytesEntry entry, C context)
     {
         return visitEntry(entry, context);
     }
 
-    public R visitDirectoryEntry(Entry entry, C context)
+    public R visitDirectoryEntry(DirectoryEntry entry, C context)
     {
         return visitEntry(entry, context);
     }
 
-    public R visitFileEntry(Entry entry, C context)
+    public R visitFileEntry(FileEntry entry, C context)
     {
         return visitEntry(entry, context);
     }

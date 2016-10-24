@@ -18,6 +18,8 @@ import javax.annotation.concurrent.Immutable;
 import java.util.Arrays;
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 @Immutable
 public final class BytesEntry
         extends Entry
@@ -27,6 +29,7 @@ public final class BytesEntry
     public BytesEntry(String name, long time, byte[] bytes)
     {
         super(name, time);
+        checkArgument(!name.endsWith("/"));
         this.bytes = bytes;
     }
 

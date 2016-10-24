@@ -24,7 +24,7 @@ public final class DirectoryEntry
     public DirectoryEntry(String name, long time)
     {
         super(name, time);
-        checkArgument(name.startsWith("/"));
+        checkArgument(name.endsWith("/"));
     }
 
     @Override
