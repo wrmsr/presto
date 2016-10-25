@@ -28,7 +28,7 @@ public class TestNestedJarFileSystem
     public void testPathsGetAndDirectoryStream()
             throws IOException
     {
-        Path root = Paths.get(URI.create("nestedjar:apache/karaf?revision=master!/"));
+        Path root = Paths.get(URI.create("nestedjar:file://apache/kafka?revision=master!/"));
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(root)) {
             for (Path p : stream) {
                 if (Files.isRegularFile(p)) {
