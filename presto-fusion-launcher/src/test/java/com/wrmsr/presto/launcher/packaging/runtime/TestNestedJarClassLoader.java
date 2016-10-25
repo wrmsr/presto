@@ -13,6 +13,20 @@
  */
 package com.wrmsr.presto.launcher.packaging.runtime;
 
-public class NestedJarClassPaths
+import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+public class TestNestedJarClassLoader
 {
+    @Test
+    public void test()
+            throws IOException
+    {
+    }
 }
