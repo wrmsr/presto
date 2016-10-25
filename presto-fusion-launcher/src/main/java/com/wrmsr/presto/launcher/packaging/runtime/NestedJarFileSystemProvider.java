@@ -77,28 +77,24 @@ public class NestedJarFileSystemProvider
     public void createDirectory(Path dir, FileAttribute<?>... attrs)
             throws IOException
     {
-
     }
 
     @Override
     public void delete(Path path)
             throws IOException
     {
-
     }
 
     @Override
     public void copy(Path source, Path target, CopyOption... options)
             throws IOException
     {
-
     }
 
     @Override
     public void move(Path source, Path target, CopyOption... options)
             throws IOException
     {
-
     }
 
     @Override
@@ -126,7 +122,6 @@ public class NestedJarFileSystemProvider
     public void checkAccess(Path path, AccessMode... modes)
             throws IOException
     {
-
     }
 
     @Override
@@ -153,6 +148,5 @@ public class NestedJarFileSystemProvider
     public void setAttribute(Path path, String attribute, Object value, LinkOption... options)
             throws IOException
     {
-
     }
 }
