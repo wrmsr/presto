@@ -554,7 +554,7 @@ public class NestedJarFileSystem
                 uc.setRequestProperty("Authorization", encodedAuthorization);
                 uc.setRequestProperty("Accept-Encoding", "gzip");
                 try (Reader r = new InputStreamReader(wrapStream(uc, uc.getInputStream()), StandardCharsets.UTF_8)) {
-                    content = JsonReader.read(r);
+                    content = "{\"lol\": null}"; // JsonReader.read(r);
                     contents.putIfAbsent(path, content);
                 }
             }
