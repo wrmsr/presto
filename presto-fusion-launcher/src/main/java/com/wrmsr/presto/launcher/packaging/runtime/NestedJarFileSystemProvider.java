@@ -14,94 +14,165 @@
 package com.wrmsr.presto.launcher.packaging.runtime;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileStore;
-import java.nio.file.FileSystem;
+import java.nio.file.FileSystemAlreadyExistsException;
+import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.LinkOption;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.ProviderMismatchException;
+import java.nio.file.ReadOnlyFileSystemException;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
 import java.nio.file.spi.FileSystemProvider;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class NestedJarFileSystemProvider
-    extends FileSystemProvider
+        extends FileSystemProvider
 {
+    final Map<String, NestedJarFileSystem> fileSystems = new HashMap<>();
+
     @Override
     public String getScheme()
     {
-        return null;
+        return "nestedjar";
     }
 
     @Override
-    public FileSystem newFileSystem(URI uri, Map<String, ?> env)
+    public NestedJarFileSystem newFileSystem(URI uri, Map<String, ?> env)
             throws IOException
     {
-        return null;
+        synchronized (fileSystems) {
+            String schemeSpecificPart = uri.getSchemeSpecificPart();
+            int i = schemeSpecificPart.indexOf("!/");
+            if (i >= 0) {
+                schemeSpecificPart = schemeSpecificPart.substring(0, i);
+            }
+            NestedJarFileSystem fileSystem = fileSystems.get(schemeSpecificPart);
+            if (fileSystem != null) {
+                throw new FileSystemAlreadyExistsException(schemeSpecificPart);
+            }
+            fileSystem = new NestedJarFileSystem(this, schemeSpecificPart, env);
+            fileSystems.put(schemeSpecificPart, fileSystem);
+            return fileSystem;
+        }
     }
 
     @Override
-    public FileSystem getFileSystem(URI uri)
+    public NestedJarFileSystem getFileSystem(URI uri)
     {
-        return null;
+        return getFileSystem(uri, false);
+    }
+
+    public NestedJarFileSystem getFileSystem(URI uri, boolean create)
+    {
+        synchronized (fileSystems) {
+            String schemeSpecificPart = uri.getSchemeSpecificPart();
+            int i = schemeSpecificPart.indexOf("!/");
+            if (i >= 0) {
+                schemeSpecificPart = schemeSpecificPart.substring(0, i);
+            }
+            NestedJarFileSystem fileSystem = fileSystems.get(schemeSpecificPart);
+            if (fileSystem == null) {
+                if (create) {
+                    try {
+                        fileSystem = newFileSystem(uri, null);
+                    }
+                    catch (IOException e) {
+                        throw (FileSystemNotFoundException) new FileSystemNotFoundException(schemeSpecificPart).initCause(e);
+                    }
+                }
+                else {
+                    throw new FileSystemNotFoundException(schemeSpecificPart);
+                }
+            }
+            return fileSystem;
+        }
     }
 
     @Override
     public Path getPath(URI uri)
     {
-        return null;
+        String str = uri.getSchemeSpecificPart();
+        int i = str.indexOf("!/");
+        if (i == -1) {
+            throw new IllegalArgumentException("URI: " + uri + " does not contain path info ex. github:apache/karaf#master!/");
+        }
+        return getFileSystem(uri, true).getPath(str.substring(i + 1));
     }
 
     @Override
-    public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
+    public InputStream newInputStream(Path path, OpenOption... options)
             throws IOException
     {
-        return null;
+        if (!(path instanceof NestedJarPath)) {
+            throw new ProviderMismatchException();
+        }
+        return ((NestedJarPath) path).getFileSystem().newInputStream(path, options);
     }
 
     @Override
     public DirectoryStream<Path> newDirectoryStream(Path dir, DirectoryStream.Filter<? super Path> filter)
             throws IOException
     {
-        return null;
+        if (!(dir instanceof NestedJarPath)) {
+            throw new ProviderMismatchException();
+        }
+        return ((NestedJarPath) dir).getFileSystem().newDirectoryStream(dir, filter);
+    }
+
+    @Override
+    public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
+            throws IOException
+    {
+        if (!(path instanceof NestedJarPath)) {
+            throw new ProviderMismatchException();
+        }
+        return ((NestedJarPath) path).getFileSystem().newByteChannel(path, options, attrs);
     }
 
     @Override
     public void createDirectory(Path dir, FileAttribute<?>... attrs)
             throws IOException
     {
+        throw new ReadOnlyFileSystemException();
     }
 
     @Override
     public void delete(Path path)
             throws IOException
     {
+        throw new ReadOnlyFileSystemException();
     }
 
     @Override
     public void copy(Path source, Path target, CopyOption... options)
             throws IOException
     {
+        throw new ReadOnlyFileSystemException();
     }
 
     @Override
     public void move(Path source, Path target, CopyOption... options)
             throws IOException
     {
+        throw new ReadOnlyFileSystemException();
     }
 
     @Override
     public boolean isSameFile(Path path, Path path2)
             throws IOException
     {
-        return false;
+        return path.toAbsolutePath().equals(path2.toAbsolutePath());
     }
 
     @Override
@@ -134,7 +205,10 @@ public class NestedJarFileSystemProvider
     public <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> type, LinkOption... options)
             throws IOException
     {
-        return null;
+        if (!(path instanceof NestedJarPath)) {
+            throw new ProviderMismatchException();
+        }
+        return ((NestedJarPath) path).getFileSystem().readAttributes(path, type, options);
     }
 
     @Override
@@ -148,5 +222,6 @@ public class NestedJarFileSystemProvider
     public void setAttribute(Path path, String attribute, Object value, LinkOption... options)
             throws IOException
     {
+        throw new ReadOnlyFileSystemException();
     }
 }
