@@ -29,7 +29,6 @@ public final class ShellUtils
 {
     private ShellUtils()
     {
-
     }
 
     public static String shellEscape(String s)

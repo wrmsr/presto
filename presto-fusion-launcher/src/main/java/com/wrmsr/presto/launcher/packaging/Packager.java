@@ -101,7 +101,6 @@ public class Packager
     public void run()
             throws Throwable
     {
-
         GitInfo gitInfo = GitInfo.get();
 
         // File cwd = new File(System.getProperty("user.dir"));
