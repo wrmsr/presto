@@ -313,6 +313,9 @@ public final class Packager2
     public static void main(String[] args)
             throws Exception
     {
+        File parentPomFile = new File(System.getProperty("user.home") + "/src/wrmsr/presto/pom.xml");
+        Model parentModel = readModel(parentPomFile);
+
         ArtifactResolver resolver = new CachingArtifactResolver(
                 new AirliftArtifactResolver());
 
@@ -320,8 +323,6 @@ public final class Packager2
                 new MatchVersionsArtifactTransform(
                         artifact -> "org.slf4j".equals(artifact.getGroupId()),
                         MatchVersionsArtifactTransform.MAX_BY_STRING_VERSION));
-
-        Model parentModel = readModel(new File(System.getProperty("user.home") + "/src/wrmsr/presto/pom.xml"));
 
         Packager2 p = new Packager2(resolver, artifactTransforms);
 
