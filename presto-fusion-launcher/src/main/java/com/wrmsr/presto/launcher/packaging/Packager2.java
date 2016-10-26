@@ -35,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,13 +52,85 @@ import static java.util.Objects.requireNonNull;
 
 public final class Packager2
 {
+    public interface ArtifactResolver
+    {
+        List<Artifact> resolveArtifacts(Iterable<? extends Artifact> sourceArtifacts);
+
+        List<Artifact> resolvePom(File pomFile);
+    }
+
+    public static final class CachingArtifactResolver
+            implements ArtifactResolver
+    {
+        private final ArtifactResolver wrapped;
+
+        private final Map<File, List<Artifact>> resolvePomCache = new HashMap<>();
+
+        public CachingArtifactResolver(ArtifactResolver wrapped)
+        {
+            this.wrapped = requireNonNull(wrapped);
+        }
+
+        @Override
+        public List<Artifact> resolveArtifacts(Iterable<? extends Artifact> sourceArtifacts)
+        {
+            return wrapped.resolveArtifacts(sourceArtifacts);
+        }
+
+        @Override
+        public List<Artifact> resolvePom(File pomFile)
+        {
+            if (!resolvePomCache.containsKey(pomFile)) {
+                List<Artifact> artifacts = ImmutableList.copyOf(wrapped.resolvePom(pomFile));
+                resolvePomCache.put(pomFile, artifacts);
+            }
+            return requireNonNull(resolvePomCache.get(pomFile));
+        }
+    }
+
+    public static final class AirliftArtifactResolver
+            implements ArtifactResolver
+    {
+        private final io.airlift.resolver.ArtifactResolver airliftArtifactResolver;
+
+        public AirliftArtifactResolver(io.airlift.resolver.ArtifactResolver airliftArtifactResolver)
+        {
+            this.airliftArtifactResolver = requireNonNull(airliftArtifactResolver);
+        }
+
+        public AirliftArtifactResolver(String localRepositoryDir, List<String> remoteRepositoryUris)
+        {
+            this(new io.airlift.resolver.ArtifactResolver(localRepositoryDir, remoteRepositoryUris));
+        }
+
+        public AirliftArtifactResolver()
+        {
+            this(
+                    io.airlift.resolver.ArtifactResolver.USER_LOCAL_REPO,
+                    ImmutableList.of(io.airlift.resolver.ArtifactResolver.MAVEN_CENTRAL_URI));
+        }
+
+        @Override
+        public List<Artifact> resolveArtifacts(Iterable<? extends Artifact> sourceArtifacts)
+        {
+            return airliftArtifactResolver.resolveArtifacts(sourceArtifacts);
+        }
+
+        @Override
+        public List<Artifact> resolvePom(File pomFile)
+        {
+            return airliftArtifactResolver.resolvePom(pomFile);
+        }
+    }
+
     private final ArtifactResolver artifactResolver;
     private final List<ArtifactTransform> artifactTransforms;
 
     @FunctionalInterface
     public interface ArtifactTransform
     {
-        List<Artifact> apply(Packager2 packager, List<Artifact> artifacts);
+        List<Artifact> apply(Packager2 packager, List<Artifact> artifacts)
+                throws IOException;
     }
 
     @Immutable
@@ -107,7 +180,14 @@ public final class Packager2
                 if (!matchingArtifacts.isEmpty()) {
                     String version = versionFunciton.apply(matchingArtifacts);
                     List<Artifact> newArtifacts = matchingArtifacts.stream()
-                            .map(a -> new DefaultArtifact(a.getGroupId(), a.getArtifactId(), a.getClassifier(), a.getExtension(), version, a.getProperties(), (ArtifactType) null))
+                            .map(artifact -> new DefaultArtifact(
+                                    artifact.getGroupId(),
+                                    artifact.getArtifactId(),
+                                    artifact.getClassifier(),
+                                    artifact.getExtension(),
+                                    version,
+                                    artifact.getProperties(),
+                                    (ArtifactType) null))
                             .collect(toImmutableList());
                     List<Artifact> resolvedNewArtifacts = packager.artifactResolver.resolveArtifacts(newArtifacts);
                     artifacts.addAll(resolvedNewArtifacts);
@@ -119,18 +199,32 @@ public final class Packager2
     }
 
     @Immutable
+    public static final class ProjectModuleArtifactTransform
+            implements ArtifactTransform
+    {
+        private final Model parentModel;
+
+        public ProjectModuleArtifactTransform(Model parentModel)
+        {
+            this.parentModel = requireNonNull(parentModel);
+        }
+
+        @Override
+        public List<Artifact> apply(Packager2 packager, List<Artifact> artifacts)
+        {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    @Immutable
     private static final class Module
     {
-        private final File pomFile;
         private final Model model;
-        private final String name;
         private final Set<String> classPath;
 
-        public Module(File pomFile, Model model, String name, Set<String> classPath)
+        public Module(Model model, Set<String> classPath)
         {
-            this.pomFile = pomFile;
             this.model = model;
-            this.name = name;
             this.classPath = classPath;
         }
     }
@@ -180,17 +274,38 @@ public final class Packager2
         }
     }
 
-    private Module addModuleInternal(File pomFile)
+    public static Model readModel(File pomFile)
             throws IOException
     {
         checkArgument(pomFile.isFile());
+        return new DefaultModelReader().read(pomFile, ImmutableMap.of(ModelReader.IS_STRICT, true));
+    }
 
-        Model model = new DefaultModelReader().read(pomFile, ImmutableMap.of(ModelReader.IS_STRICT, true));
+    public static Model getSubmodule(Model model, String name)
+            throws IOException
+    {
+        checkArgument(model.getModules().stream().anyMatch(name::equals));
+        return readModel(new File(model.getProjectDirectory(), name));
+    }
 
-        List<Artifact> artifacts = artifactResolver.resolvePom(pomFile).stream().collect(toArrayList());
+    private Module addModuleInternal(File pomFile)
+            throws IOException
+    {
+        return addModuleInternal(readModel(pomFile));
+    }
+
+    private Module addModuleInternal(Model model)
+            throws IOException
+    {
+        List<Artifact> artifacts = artifactResolver.resolvePom(model.getPomFile()).stream().collect(toArrayList());
         for (ArtifactTransform artifactTransform : artifactTransforms) {
             artifacts = artifactTransform.apply(this, artifacts);
         }
+
+        List<String> artifactStrings = artifacts.stream()
+                .map(artifact -> String.format("%s-%s", artifact.getGroupId(), artifact.getArtifactId()))
+                .collect(toImmutableList());
+        checkState(new HashSet<>(artifactStrings).size() == artifactStrings.size());
 
         throw new IllegalArgumentException();
     }
@@ -198,16 +313,18 @@ public final class Packager2
     public static void main(String[] args)
             throws Exception
     {
-        ArtifactResolver resolver = new ArtifactResolver(
-                ArtifactResolver.USER_LOCAL_REPO,
-                ImmutableList.of(ArtifactResolver.MAVEN_CENTRAL_URI));
+        ArtifactResolver resolver = new CachingArtifactResolver(
+                new AirliftArtifactResolver());
 
         List<ArtifactTransform> artifactTransforms = ImmutableList.of(
                 new MatchVersionsArtifactTransform(
-                        a -> "org.slf4j".equals(a.getGroupId()),
+                        artifact -> "org.slf4j".equals(artifact.getGroupId()),
                         MatchVersionsArtifactTransform.MAX_BY_STRING_VERSION));
 
+        Model parentModel = readModel(new File(System.getProperty("user.home") + "/src/wrmsr/presto/pom.xml"));
+
         Packager2 p = new Packager2(resolver, artifactTransforms);
-        p.addMainModule(new File("/Users/spinlock/src/wrmsr/presto/presto-fusion-launcher/pom.xml"));
+
+        p.addMainModule(new File(System.getProperty("user.home") + "/src/wrmsr/presto/presto-fusion-launcher/pom.xml"));
     }
 }

@@ -13,6 +13,25 @@
  */
 package com.wrmsr.presto.launcher.packaging.runtime;
 
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.URLStreamHandlerFactory;
+
 public class NestedJarClassLoader
+    extends URLClassLoader
 {
+    public NestedJarClassLoader(URL[] urls, ClassLoader parent)
+    {
+        super(urls, parent);
+    }
+
+    public NestedJarClassLoader(URL[] urls)
+    {
+        super(urls);
+    }
+
+    public NestedJarClassLoader(URL[] urls, ClassLoader parent, URLStreamHandlerFactory factory)
+    {
+        super(urls, parent, factory);
+    }
 }
