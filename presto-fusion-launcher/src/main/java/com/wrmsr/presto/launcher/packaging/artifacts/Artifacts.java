@@ -35,7 +35,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class Artifacts
+public final class Artifacts
 {
     private Artifacts()
     {
@@ -49,6 +49,20 @@ public class Artifacts
         else {
             return Stream.empty();
         }
+    }
+
+    public static ArtifactName getArtifactName(Artifact artifact)
+    {
+        return new ArtifactName(
+                artifact.getGroupId(),
+                artifact.getArtifactId());
+    }
+
+    public static ArtifactCoordinate getArtifactCoordinate(Artifact artifact)
+    {
+        return new ArtifactCoordinate(
+                getArtifactName(artifact),
+                artifact.getVersion());
     }
 
     public static List<Artifact> sortedArtifacts(List<Artifact> artifacts)

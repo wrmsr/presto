@@ -14,15 +14,14 @@
 package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.wrmsr.presto.launcher.packaging.artifacts.ArtifactName;
+import com.wrmsr.presto.launcher.packaging.artifacts.Artifacts;
 import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.AirliftArtifactResolver;
 import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.ArtifactResolver;
 import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.CachingArtifactResolver;
 import com.wrmsr.presto.launcher.packaging.artifacts.transforms.ArtifactTransform;
 import com.wrmsr.presto.launcher.packaging.artifacts.transforms.MatchVersionsArtifactTransform;
 import org.apache.maven.model.Model;
-import org.apache.maven.model.io.DefaultModelReader;
-import org.apache.maven.model.io.ModelReader;
 import org.sonatype.aether.artifact.Artifact;
 
 import javax.annotation.concurrent.Immutable;
@@ -84,35 +83,10 @@ public final class Packager
         addModuleInternal(pomFile);
     }
 
-    public static Model readModel(File pomFile)
-            throws IOException
-    {
-        checkArgument(pomFile.isFile());
-        return new DefaultModelReader().read(pomFile, ImmutableMap.of(ModelReader.IS_STRICT, true));
-    }
-
-    public static Model readModule(Model model, String name)
-            throws IOException
-    {
-        checkArgument(model.getModules().stream().anyMatch(name::equals));
-        return readModel(new File(model.getProjectDirectory(), name));
-    }
-
-    public static Map<String, Model> readModules(Model model)
-            throws IOException
-    {
-        Map<String, Model> modules = new LinkedHashMap<>();
-        for (String module : model.getModules()) {
-            checkState(!modules.containsKey(module));
-            modules.put(module, readModule(model, module));
-        }
-        return modules;
-    }
-
     private Module addModuleInternal(File pomFile)
             throws IOException
     {
-        return addModuleInternal(readModel(pomFile));
+        return addModuleInternal(Models.readModel(pomFile));
     }
 
     private Module addModuleInternal(Model model)
@@ -123,10 +97,10 @@ public final class Packager
             artifacts = artifactTransform.apply(artifactResolver, artifacts);
         }
 
-        List<String> artifactStrings = artifacts.stream()
-                .map(artifact -> String.format("%s-%s", artifact.getGroupId(), artifact.getArtifactId()))
+        List<ArtifactName> artifactNames = artifacts.stream()
+                .map(Artifacts::getArtifactName)
                 .collect(toImmutableList());
-        checkState(new HashSet<>(artifactStrings).size() == artifactStrings.size());
+        checkState(new HashSet<>(artifactNames).size() == artifactNames.size());
 
         throw new IllegalArgumentException();
     }
@@ -135,7 +109,7 @@ public final class Packager
             throws Exception
     {
         File parentPomFile = new File(System.getProperty("user.home") + "/src/wrmsr/presto/pom.xml");
-        Model parentModel = readModel(parentPomFile);
+        Model parentModel = Models.readModel(parentPomFile);
 
         ArtifactResolver resolver = new CachingArtifactResolver(
                 new AirliftArtifactResolver());

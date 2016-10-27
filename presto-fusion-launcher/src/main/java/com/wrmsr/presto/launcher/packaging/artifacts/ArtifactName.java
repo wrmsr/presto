@@ -13,12 +13,11 @@
  */
 package com.wrmsr.presto.launcher.packaging.artifacts;
 
-import com.google.common.base.MoreObjects;
-
 import javax.annotation.concurrent.Immutable;
 
 import java.util.Objects;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 @Immutable
@@ -56,7 +55,7 @@ public final class ArtifactName
     @Override
     public String toString()
     {
-        return MoreObjects.toStringHelper(this)
+        return toStringHelper(this)
                 .add("groupId", groupId)
                 .add("artifactId", artifactId)
                 .toString();

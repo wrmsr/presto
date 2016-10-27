@@ -15,7 +15,7 @@ package com.wrmsr.presto.launcher.packaging;
 
 import java.io.File;
 
-public class Bootstrap
+public final class Bootstrap
 {
     private Bootstrap()
     {

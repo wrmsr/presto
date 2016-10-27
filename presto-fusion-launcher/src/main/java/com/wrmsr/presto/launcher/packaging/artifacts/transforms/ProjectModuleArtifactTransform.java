@@ -13,16 +13,14 @@
  */
 package com.wrmsr.presto.launcher.packaging.artifacts.transforms;
 
-import com.wrmsr.presto.launcher.packaging.Packager;
+import com.wrmsr.presto.launcher.packaging.Models;
 import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.ArtifactResolver;
-import com.wrmsr.presto.launcher.packaging.artifacts.transforms.ArtifactTransform;
 import org.apache.maven.model.Model;
 import org.sonatype.aether.artifact.Artifact;
 
 import javax.annotation.concurrent.Immutable;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableList;
@@ -46,13 +44,12 @@ public final class ProjectModuleArtifactTransform
             throws IOException
     {
         if (modules == null) {
-            modules = Packager.readModules(parentModel).values().stream().collect(toImmutableList());
+            modules = Models.readModelModules(parentModel).values().stream().collect(toImmutableList());
         }
-        List<Artifact> newArtifacts = new ArrayList<>();
-        for (Artifact artifact : artifacts) {
-
-        }
+        // List<Artifact> newArtifacts = new ArrayList<>();
+        // for (Artifact artifact : artifacts) {
+        // }
         throw new IllegalArgumentException();
-//        return newArtifacts;
+        // return newArtifacts;
     }
 }
