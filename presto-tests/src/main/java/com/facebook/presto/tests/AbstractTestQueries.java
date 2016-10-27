@@ -1517,6 +1517,19 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testGroupingSetsAliasedGroupingColumns()
+            throws Exception
+    {
+        assertQuery("SELECT lna, lnb, SUM(quantity) " +
+                        "FROM (SELECT linenumber lna, linenumber lnb, CAST(quantity AS BIGINT) quantity FROM lineitem) " +
+                        "GROUP BY GROUPING SETS ((lna, lnb), (lna), (lnb), ())",
+                "SELECT linenumber, linenumber, SUM(CAST(quantity AS BIGINT)) FROM lineitem GROUP BY linenumber UNION ALL " +
+                        "SELECT linenumber, NULL, SUM(CAST(quantity AS BIGINT)) FROM lineitem GROUP BY linenumber UNION ALL " +
+                        "SELECT NULL, linenumber, SUM(CAST(quantity AS BIGINT)) FROM lineitem GROUP BY linenumber UNION ALL " +
+                        "SELECT NULL, NULL, SUM(CAST(quantity AS BIGINT)) FROM lineitem");
+    }
+
+    @Test
     public void testGroupingSetMixedExpressionAndColumn()
             throws Exception
     {
@@ -3302,6 +3315,17 @@ public abstract class AbstractTestQueries
     {
         assertQuery("SELECT * FROM orders JOIN orders USING (orderkey)", "SELECT * FROM orders o1 JOIN orders o2 ON o1.orderkey = o2.orderkey");
         assertQuery("SELECT * FROM lineitem x JOIN orders x USING (orderkey)", "SELECT * FROM lineitem l JOIN orders o ON l.orderkey = o.orderkey");
+    }
+
+    @Test
+    public void testJoinWithStatefulFilterFunction()
+            throws Exception
+    {
+        assertQuery("SELECT *\n" +
+                "FROM (VALUES 1, 2) a(id)\n" +
+                "FULL JOIN (VALUES 2, 3) b(id)\n" +
+                "ON (array_intersect(array[a.id], array[b.id]) = array[a.id])",
+                "VALUES (1, null), (2, 2), (null, 3)");
     }
 
     @Test
