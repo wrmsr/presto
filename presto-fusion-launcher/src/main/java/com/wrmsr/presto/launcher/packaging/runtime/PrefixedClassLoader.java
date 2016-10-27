@@ -16,8 +16,6 @@ package com.wrmsr.presto.launcher.packaging.runtime;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLStreamHandlerFactory;
 import java.util.Enumeration;
 
 public class PrefixedClassLoader

@@ -11,17 +11,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.packaging.runtime;
+package com.wrmsr.presto.launcher.packaging.artifacts.transforms;
 
-import org.testng.annotations.Test;
+import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.ArtifactResolver;
+import org.sonatype.aether.artifact.Artifact;
 
 import java.io.IOException;
+import java.util.List;
 
-public class TestNestedJarClassLoader
+@FunctionalInterface
+public interface ArtifactTransform
 {
-    @Test
-    public void test()
-            throws IOException
-    {
-    }
+    List<Artifact> apply(ArtifactResolver artifactResolver, List<Artifact> artifacts)
+            throws IOException;
 }

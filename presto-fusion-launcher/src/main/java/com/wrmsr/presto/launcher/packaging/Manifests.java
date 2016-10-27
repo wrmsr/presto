@@ -13,21 +13,16 @@
  */
 package com.wrmsr.presto.launcher.packaging;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Throwables;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.MoreIO.readFullyAndClose;
 
 public final class Manifests
@@ -36,54 +31,41 @@ public final class Manifests
     {
     }
 
-    public static Map<String, String> getManifest(File file)
+    public static Manifest getManifest(File file)
             throws IOException
     {
         byte[] bytes;
         try (ZipFile zipFile = new ZipFile(file)) {
             ZipEntry zipEntry = zipFile.getEntry("META-INF/MANIFEST.MF");
             if (zipEntry == null) {
-                return new HashMap<>();
+                return new Manifest();
             }
             bytes = readFullyAndClose(zipFile.getInputStream(zipEntry), (int) zipEntry.getSize());
         }
         return parseManifest(bytes);
     }
 
-    public static Map<String, String> parseManifest(byte[] bytes)
+    public static Manifest parseManifest(byte[] bytes)
     {
-        // https://docs.oracle.com/javase/8/docs/technotes/guides/jar/jar.html#Manifest_Specification
-        Map<String, String> manifest = new LinkedHashMap<>();
-
-        String contents = new String(bytes, StandardCharsets.UTF_8);
-        List<String> lines = new ArrayList<>(Splitter.on("\r\n").splitToList(contents));
-        for (int i = 0; i < 2; ++i) {
-            checkState(!lines.isEmpty());
-            checkState(lines.get(lines.size() - 1).isEmpty());
-            lines.remove(lines.size() - 1);
+        Manifest manifest = new Manifest();
+        try {
+            manifest.read(new ByteArrayInputStream(bytes));
         }
-        for (String line : lines) {
-            List<String> split = Splitter.on(": ").splitToList(line);
-            checkState(split.size() == 2);
-            checkState(!manifest.containsKey(split.get(0)));
-            manifest.put(split.get(0), split.get(1));
+        catch (IOException e) {
+            throw Throwables.propagate(e);
         }
-
         return manifest;
     }
 
-    private static final List<Character> BAD_CHARS = ImmutableList.of(':', '\r', '\n');
-
-    public static byte[] renderManifest(Map<String, String> manifest)
+    public static byte[] renderManifest(Manifest manifest)
     {
-        StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> entry : manifest.entrySet()) {
-            for (char c : BAD_CHARS) {
-                checkState(entry.getKey().indexOf(c) < 0);
-                checkState(entry.getValue().indexOf(c) < 0);
-            }
-            sb.append(String.format("%s: %s\r\n", entry.getKey(), entry.getValue()));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            manifest.write(out);
         }
-        return sb.toString().getBytes(StandardCharsets.UTF_8);
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+        return out.toByteArray();
     }
 }

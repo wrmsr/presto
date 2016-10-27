@@ -11,17 +11,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.packaging.runtime;
+package com.wrmsr.presto.launcher.packaging.artifacts.resolvers;
 
-import org.testng.annotations.Test;
+import org.sonatype.aether.artifact.Artifact;
 
-import java.io.IOException;
+import java.io.File;
+import java.util.List;
 
-public class TestNestedJarClassLoader
+public interface ArtifactResolver
 {
-    @Test
-    public void test()
-            throws IOException
-    {
-    }
+    List<Artifact> resolveArtifacts(Iterable<? extends Artifact> sourceArtifacts);
+
+    List<Artifact> resolvePom(File pomFile);
 }
