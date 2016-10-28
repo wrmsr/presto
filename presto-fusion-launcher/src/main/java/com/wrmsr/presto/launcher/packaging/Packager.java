@@ -41,6 +41,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toArrayList;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toOnly;
+import static com.wrmsr.presto.util.collect.MoreOptionals.firstOrSameOptional;
 import static java.util.Objects.requireNonNull;
 
 public final class Packager
@@ -113,8 +114,22 @@ public final class Packager
                 .collect(toOnly());
 
         for (PackagerModule packagerModule : packagerModules) {
-            checkState(!modulesByName.containsKey(packagerModule.getName()));
-            modulesByName.put(packagerModule.getName(), packagerModule);
+            checkState(packagerModule.getJarFile().isPresent());
+            if (packagerModule != modulePackagerModule) {
+                if (modulesByName.containsKey(packagerModule.getName())) {
+                    PackagerModule existingPackagerModule = modulesByName.get(packagerModule.getName());
+                    checkState(packagerModule.getArtifactCoordinate().equals(existingPackagerModule.getArtifactCoordinate()));
+                    modulesByName.put(
+                            packagerModule.getName(),
+                            new PackagerModule(
+                                    packagerModule.getArtifactCoordinate(),
+                                    firstOrSameOptional(packagerModule.getJarFile(), existingPackagerModule.getJarFile()),
+                                    firstOrSameOptional(packagerModule.getClassPath(), existingPackagerModule.getClassPath())));
+                }
+                else {
+                    modulesByName.put(packagerModule.getName(), packagerModule);
+                }
+            }
         }
 
         return modulePackagerModule;

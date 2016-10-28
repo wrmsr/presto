@@ -27,6 +27,8 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 public final class MoreOptionals
 {
     private MoreOptionals()
@@ -113,6 +115,20 @@ public final class MoreOptionals
     {
         if (!optional.isPresent()) {
             fn.run();
+        }
+    }
+
+    public static <T> Optional<T> firstOrSameOptional(Optional<T> left, Optional<T> right)
+    {
+        if (left.isPresent() && right.isPresent()) {
+            checkArgument(left.get().equals(right.get()));
+            return left;
+        }
+        else if (left.isPresent()) {
+            return left;
+        }
+        else {
+            return right;
         }
     }
 }
