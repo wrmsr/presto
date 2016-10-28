@@ -60,10 +60,20 @@ public final class Models
         return modules;
     }
 
+    public static String getModelOrParentGroupId(Model model)
+    {
+        return model.getGroupId() != null ? model.getGroupId() : model.getParent() != null ? model.getParent().getGroupId() : null;
+    }
+
+    public static String getModelOrParentVersion(Model model)
+    {
+        return model.getVersion() != null ? model.getVersion() : model.getParent() != null ? model.getParent().getVersion() : null;
+    }
+
     public static ArtifactName getModelArtifactName(Model model)
     {
         return new ArtifactName(
-                model.getGroupId() != null ? model.getGroupId() : model.getParent() != null ? model.getParent().getGroupId() : null,
+                getModelOrParentGroupId(model),
                 model.getArtifactId());
     }
 
@@ -71,6 +81,6 @@ public final class Models
     {
         return new ArtifactCoordinate(
                 getModelArtifactName(model),
-                model.getVersion() != null ? model.getVersion() : model.getParent() != null ? model.getParent().getVersion() : null);
+                getModelOrParentVersion(model));
     }
 }

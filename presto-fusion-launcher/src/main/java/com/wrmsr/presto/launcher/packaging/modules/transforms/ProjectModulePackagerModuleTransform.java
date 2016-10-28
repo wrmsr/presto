@@ -58,7 +58,7 @@ public final class ProjectModulePackagerModuleTransform
         for (PackagerModule packagerModule : packagerModules) {
             Model moduleModel = modules.get(packagerModule.getArtifactCoordinate().getName());
             if (moduleModel != null) {
-                String jarFileName = moduleModel.getArtifactId() + "-" + moduleModel.getVersion() + ".jar";
+                String jarFileName = moduleModel.getArtifactId() + "-" + Models.getModelOrParentVersion(moduleModel) + ".jar";
                 File jarFile = new File(moduleModel.getPomFile().getParentFile(), "target/" + jarFileName);
                 checkState(jarFile.isFile());
                 newPackagerModules.add(new PackagerModule(
