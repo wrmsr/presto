@@ -67,22 +67,10 @@ public final class Packager
         return artifactResolver;
     }
 
-    public void addModule(File pomFile)
-            throws IOException
-    {
-        addModuleInternal(pomFile);
-    }
-
     public void addModule(Model model)
             throws IOException
     {
         addModuleInternal(model);
-    }
-
-    private PackagerModule addModuleInternal(File pomFile)
-            throws IOException
-    {
-        return addModuleInternal(Models.readModel(pomFile));
     }
 
     private PackagerModule addModuleInternal(Model model)
@@ -135,6 +123,11 @@ public final class Packager
         return modulePackagerModule;
     }
 
+    private void buildJar(Model mainModel)
+    {
+
+    }
+
     public static void main(String[] args)
             throws Exception
     {
@@ -184,5 +177,8 @@ public final class Packager
         for (String moduleName : moduleNames) {
             packager.addModule(Models.readModelModule(parentModel, moduleName));
         }
+
+        File outputJarFile = new File(System.getProperty("user.home") + "/fusion/fusion");
+        packager.buildJar(Models.readModelModule(parentModel, mainModuleName));
     }
 }
