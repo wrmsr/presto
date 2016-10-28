@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.collect.ImmutableList;
+import com.wrmsr.presto.launcher.packaging.artifacts.ArtifactCoordinate;
 import com.wrmsr.presto.launcher.packaging.artifacts.ArtifactName;
 import com.wrmsr.presto.launcher.packaging.artifacts.Artifacts;
 import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.AirliftArtifactResolver;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toArrayList;
@@ -83,6 +85,8 @@ public final class Packager
     private PackagerModule addModuleInternal(Model model)
             throws IOException
     {
+        ArtifactCoordinate moduleArtifactCoordinate = Models.getModelArtifactCoordinate(model);
+
         List<Artifact> artifacts = artifactResolver.resolvePom(model.getPomFile()).stream().collect(toArrayList());
         for (ArtifactTransform artifactTransform : artifactTransforms) {
             artifacts = artifactTransform.apply(artifactResolver, artifacts);
@@ -92,6 +96,13 @@ public final class Packager
                 .map(Artifacts::getArtifactName)
                 .collect(toImmutableList());
         checkState(new HashSet<>(artifactNames).size() == artifactNames.size());
+
+        List<PackagerModule> packagerModules = artifacts.stream()
+                .map(artifact -> new PackagerModule(
+                        Artifacts.getArtifactCoordinate(artifact),
+                        null,
+                        Optional.empty()))
+                .collect(toImmutableList());
 
         throw new IllegalArgumentException();
     }

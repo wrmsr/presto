@@ -22,6 +22,7 @@ import java.io.File;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 @Immutable
@@ -33,6 +34,9 @@ public final class PackagerModule
 
     public PackagerModule(ArtifactCoordinate artifactCoordinate, File jarFile, Optional<Set<String>> classPath)
     {
+        checkArgument(artifactCoordinate.getName().getGroupId().indexOf('/') < 0);
+        checkArgument(artifactCoordinate.getName().getArtifactId().indexOf('/') < 0);
+        checkArgument(artifactCoordinate.getName().getArtifactId().indexOf('-') < 0);
         this.artifactCoordinate = requireNonNull(artifactCoordinate);
         this.jarFile = requireNonNull(jarFile);
         this.classPath = requireNonNull(classPath).map(ImmutableSet::copyOf);
@@ -51,5 +55,14 @@ public final class PackagerModule
     public Optional<Set<String>> getClassPath()
     {
         return classPath;
+    }
+
+    public String getName()
+    {
+        return String.format(
+                "%s/%s-%s.jar",
+                artifactCoordinate.getName().getGroupId().replaceAll("\\.", "/"),
+                artifactCoordinate.getName().getArtifactId(),
+                artifactCoordinate.getVersion());
     }
 }
