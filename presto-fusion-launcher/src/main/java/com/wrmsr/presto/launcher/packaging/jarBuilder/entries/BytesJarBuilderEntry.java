@@ -11,31 +11,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.packaging.entries;
+package com.wrmsr.presto.launcher.packaging.jarBuilder.entries;
 
 import javax.annotation.concurrent.Immutable;
 
-import java.io.File;
+import java.util.Arrays;
 import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 @Immutable
-public final class FileEntry
-        extends Entry
+public final class BytesJarBuilderEntry
+        extends JarBuilderEntry
 {
-    private final File file;
+    public final byte[] bytes;
 
-    public FileEntry(String name, File file)
+    public BytesJarBuilderEntry(String name, long time, byte[] bytes)
     {
-        super(name, file.lastModified());
+        super(name, time);
         checkArgument(!name.endsWith("/"));
-        this.file = file;
+        this.bytes = bytes;
     }
 
-    public File getFile()
+    public byte[] getBytes()
     {
-        return file;
+        return bytes;
     }
 
     @Override
@@ -50,19 +50,19 @@ public final class FileEntry
         if (!super.equals(o)) {
             return false;
         }
-        FileEntry fileEntry = (FileEntry) o;
-        return Objects.equals(file, fileEntry.file);
+        BytesJarBuilderEntry that = (BytesJarBuilderEntry) o;
+        return Arrays.equals(bytes, that.bytes);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(super.hashCode(), file);
+        return Objects.hash(super.hashCode(), bytes);
     }
 
     @Override
-    public <C, R> R accept(EntryVisitor<C, R> visitor, C context)
+    public <C, R> R accept(JarBuilderEntryVisitor<C, R> visitor, C context)
     {
-        return visitor.visitFileEntry(this, context);
+        return visitor.visitBytesEntry(this, context);
     }
 }

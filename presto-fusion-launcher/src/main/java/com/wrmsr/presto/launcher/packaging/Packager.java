@@ -21,6 +21,7 @@ import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.ArtifactResolver;
 import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.CachingArtifactResolver;
 import com.wrmsr.presto.launcher.packaging.artifacts.transforms.ArtifactTransform;
 import com.wrmsr.presto.launcher.packaging.artifacts.transforms.MatchVersionsArtifactTransform;
+import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.JarBuilderEntry;
 import org.apache.maven.model.Model;
 import org.sonatype.aether.artifact.Artifact;
 
@@ -30,7 +31,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,16 +47,25 @@ public final class Packager
     private final List<ArtifactTransform> artifactTransforms;
 
     @Immutable
-    private static final class Module
+    private static class PackageEntry
     {
-        private final Model model;
+        private final String name;
+        private final File jarFile;
+
+        public Entry(String name, File jarFile)
+        {
+            this.name = name;
+            this.jarFile = jarFile;
+        }
+    }
+
+    @Immutable
+    private static class Module
+        extends JarBuilderEntry
+    {
         private final Set<String> classPath;
 
-        public Module(Model model, Set<String> classPath)
-        {
-            this.model = model;
-            this.classPath = classPath;
-        }
+
     }
 
     private final Map<String, Module> modules = new HashMap<>();

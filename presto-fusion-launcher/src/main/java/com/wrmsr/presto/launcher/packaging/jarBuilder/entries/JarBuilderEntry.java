@@ -11,31 +11,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.packaging.entries;
+package com.wrmsr.presto.launcher.packaging.jarBuilder.entries;
 
-import javax.annotation.concurrent.Immutable;
-
-import java.util.Arrays;
 import java.util.Objects;
+import java.util.jar.JarEntry;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
-@Immutable
-public final class BytesEntry
-        extends Entry
+public abstract class JarBuilderEntry
 {
-    public final byte[] bytes;
+    private final String name;
+    private final long time;
 
-    public BytesEntry(String name, long time, byte[] bytes)
+    public JarBuilderEntry(String name, long time)
     {
-        super(name, time);
-        checkArgument(!name.endsWith("/"));
-        this.bytes = bytes;
+        requireNonNull(name);
+        checkArgument(!name.startsWith("/"));
+        this.name = name;
+        this.time = time;
     }
 
-    public byte[] getBytes()
+    public void bestowJarEntryAttributes(JarEntry je)
     {
-        return bytes;
+        je.setTime(time);
+    }
+
+    public String getName()
+    {
+        return name;
     }
 
     @Override
@@ -47,22 +51,16 @@ public final class BytesEntry
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) {
-            return false;
-        }
-        BytesEntry that = (BytesEntry) o;
-        return Arrays.equals(bytes, that.bytes);
+        JarBuilderEntry jarBuilderEntry = (JarBuilderEntry) o;
+        return time == jarBuilderEntry.time &&
+                Objects.equals(name, jarBuilderEntry.name);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(super.hashCode(), bytes);
+        return Objects.hash(name, time);
     }
 
-    @Override
-    public <C, R> R accept(EntryVisitor<C, R> visitor, C context)
-    {
-        return visitor.visitBytesEntry(this, context);
-    }
+    public abstract <C, R> R accept(JarBuilderEntryVisitor<C, R> visitor, C context);
 }

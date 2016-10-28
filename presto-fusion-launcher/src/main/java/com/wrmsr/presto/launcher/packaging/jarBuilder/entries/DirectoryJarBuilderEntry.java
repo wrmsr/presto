@@ -11,27 +11,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.packaging.entries;
+package com.wrmsr.presto.launcher.packaging.jarBuilder.entries;
 
-public abstract class EntryVisitor<C, R>
+import javax.annotation.concurrent.Immutable;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+@Immutable
+public final class DirectoryJarBuilderEntry
+        extends JarBuilderEntry
 {
-    public R visitEntry(Entry entry, C context)
+    public DirectoryJarBuilderEntry(String name, long time)
     {
-        return null;
+        super(name, time);
+        checkArgument(name.endsWith("/"));
     }
 
-    public R visitBytesEntry(BytesEntry entry, C context)
+    @Override
+    public <C, R> R accept(JarBuilderEntryVisitor<C, R> visitor, C context)
     {
-        return visitEntry(entry, context);
-    }
-
-    public R visitDirectoryEntry(DirectoryEntry entry, C context)
-    {
-        return visitEntry(entry, context);
-    }
-
-    public R visitFileEntry(FileEntry entry, C context)
-    {
-        return visitEntry(entry, context);
+        return visitor.visitDirectoryEntry(this, context);
     }
 }

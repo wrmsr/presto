@@ -17,9 +17,9 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.wrmsr.presto.launcher.packaging.entries.BytesEntry;
-import com.wrmsr.presto.launcher.packaging.entries.Entry;
-import com.wrmsr.presto.launcher.packaging.entries.FileEntry;
+import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.BytesJarBuilderEntry;
+import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.FileJarBuilderEntry;
+import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.JarBuilderEntry;
 import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 import io.airlift.resolver.ArtifactResolver;
@@ -131,7 +131,7 @@ public class OldPackager
         );
 
         File wrapperJarFile = null;
-        Set<Entry> entries = new HashSet<>();
+        Set<JarBuilderEntry> entries = new HashSet<>();
         Set<String> uncachedRepoPaths = new HashSet<>();
         for (String name : getModuleNames()) {
             wrapperJarFile = processName(cwd, jarRepoBase, classpathBase, repository, resolver, wrapperProject, localGroups, wrapperJarFile, entries, uncachedRepoPaths, name);
@@ -140,10 +140,10 @@ public class OldPackager
         List<String> sortedUncachedRepoPaths = new ArrayList<>(uncachedRepoPaths);
         Collections.sort(sortedUncachedRepoPaths);
         String uncachedRepoPathsStr = String.join("\n", sortedUncachedRepoPaths) + "\n";
-        entries.add(new BytesEntry("classpaths/.uncached", System.currentTimeMillis(), uncachedRepoPathsStr.getBytes()));
+        entries.add(new BytesJarBuilderEntry("classpaths/.uncached", System.currentTimeMillis(), uncachedRepoPathsStr.getBytes()));
 
         checkState(wrapperJarFile != null);
-        Map<String, Entry> entryMap = entries.stream().collect(toMap(Entry::getName, e -> e));
+        Map<String, JarBuilderEntry> entryMap = entries.stream().collect(toMap(JarBuilderEntry::getName, e -> e));
         List<String> keys = new ArrayList<>(entryMap.keySet());
         Collections.sort(keys);
         checkState(keys.size() == new HashSet<>(keys).size());
@@ -156,10 +156,9 @@ public class OldPackager
         new File(outPath).delete();
     }
 
-    private File processName(File cwd, File jarRepoBase, File classpathBase, File repository, ArtifactResolver resolver, String wrapperProject, Set<String> localGroups, File wrapperJarFile, Set<Entry> entries, Set<String> uncachedRepoPaths, String name)
+    private File processName(File cwd, File jarRepoBase, File classpathBase, File repository, ArtifactResolver resolver, String wrapperProject, Set<String> localGroups, File wrapperJarFile, Set<JarBuilderEntry> entries, Set<String> uncachedRepoPaths, String name)
             throws IOException
     {
-        Jars.getJarEntries(new File(System.getProperty("user.home") + "/presto/presto"));
         String pom = name + "/pom.xml";
 
         List<String> repoPaths = new ArrayList<>();
@@ -209,7 +208,7 @@ public class OldPackager
                     wrapperJarFile = localFile;
                 }
                 else {
-                    entries.add(new FileEntry(jarPathStr, localFile));
+                    entries.add(new FileJarBuilderEntry(jarPathStr, localFile));
                     checkState(jarPathStr.startsWith("repository/"));
                     repoPaths.add(jarPathStr.substring("repository/".length()));
                     uncachedRepoPaths.add(jarPathStr.substring("repository/".length()));
@@ -234,7 +233,7 @@ public class OldPackager
             checkState(jarPathStr.startsWith("/"));
             jarPathStr = jarPathStr.substring(1);
 
-            entries.add(new FileEntry(jarPathStr, file));
+            entries.add(new FileJarBuilderEntry(jarPathStr, file));
 
             //log.info(jarPathStr);
             checkState(jarPathStr.startsWith("repository/"));
@@ -245,11 +244,11 @@ public class OldPackager
         String classpathPath = new File(classpathBase, name).toString();
         checkState(classpathPath.startsWith("/"));
         classpathPath = classpathPath.substring(1);
-        entries.add(new BytesEntry(classpathPath, System.currentTimeMillis(), repoPathsStr.getBytes()));
+        entries.add(new BytesJarBuilderEntry(classpathPath, System.currentTimeMillis(), repoPathsStr.getBytes()));
         return wrapperJarFile;
     }
 
-    private void buildJar(File wrapperJarFile, Map<String, Entry> entryMap, List<String> keys, String outPath)
+    private void buildJar(File wrapperJarFile, Map<String, JarBuilderEntry> entryMap, List<String> keys, String outPath)
             throws IOException
     {
         BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outPath));
@@ -277,7 +276,7 @@ public class OldPackager
                 log.warn(key);
                 continue;
             }
-            Entry e = entryMap.get(key);
+            JarBuilderEntry e = entryMap.get(key);
             String p = e.getName();
             List<String> pathParts = new ArrayList<>(Arrays.asList(p.split("/")));
             for (int i = 0; i < pathParts.size() - 1; ++i) {
@@ -292,8 +291,8 @@ public class OldPackager
             JarEntry je = new JarEntry(p);
             e.bestowJarEntryAttributes(je);
             jo.putNextEntry(je);
-            if (e instanceof FileEntry) {
-                FileEntry f = (FileEntry) e;
+            if (e instanceof FileJarBuilderEntry) {
+                FileJarBuilderEntry f = (FileJarBuilderEntry) e;
                 BufferedInputStream bi = new BufferedInputStream(new FileInputStream(f.getFile()));
                 byte[] buf = new byte[1024];
                 int anz;
@@ -302,8 +301,8 @@ public class OldPackager
                 }
                 bi.close();
             }
-            else if (e instanceof BytesEntry) {
-                BytesEntry b = (BytesEntry) e;
+            else if (e instanceof BytesJarBuilderEntry) {
+                BytesJarBuilderEntry b = (BytesJarBuilderEntry) e;
                 jo.write(b.getBytes(), 0, b.getBytes().length);
             }
             contents.add(key);

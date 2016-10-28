@@ -11,35 +11,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wrmsr.presto.launcher.packaging.entries;
+package com.wrmsr.presto.launcher.packaging.jarBuilder.entries;
 
+import javax.annotation.concurrent.Immutable;
+
+import java.io.File;
 import java.util.Objects;
-import java.util.jar.JarEntry;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
 
-public abstract class Entry
+@Immutable
+public final class FileJarBuilderEntry
+        extends JarBuilderEntry
 {
-    private final String name;
-    private final long time;
+    private final File file;
 
-    public Entry(String name, long time)
+    public FileJarBuilderEntry(String name, File file)
     {
-        requireNonNull(name);
-        checkArgument(!name.startsWith("/"));
-        this.name = name;
-        this.time = time;
+        super(name, file.lastModified());
+        checkArgument(!name.endsWith("/"));
+        this.file = file;
     }
 
-    public void bestowJarEntryAttributes(JarEntry je)
+    public File getFile()
     {
-        je.setTime(time);
-    }
-
-    public String getName()
-    {
-        return name;
+        return file;
     }
 
     @Override
@@ -51,16 +47,22 @@ public abstract class Entry
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Entry entry = (Entry) o;
-        return time == entry.time &&
-                Objects.equals(name, entry.name);
+        if (!super.equals(o)) {
+            return false;
+        }
+        FileJarBuilderEntry fileEntry = (FileJarBuilderEntry) o;
+        return Objects.equals(file, fileEntry.file);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hash(name, time);
+        return Objects.hash(super.hashCode(), file);
     }
 
-    public abstract <C, R> R accept(EntryVisitor<C, R> visitor, C context);
+    @Override
+    public <C, R> R accept(JarBuilderEntryVisitor<C, R> visitor, C context)
+    {
+        return visitor.visitFileEntry(this, context);
+    }
 }
