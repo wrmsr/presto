@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Files;
 import com.wrmsr.presto.launcher.packaging.artifacts.ArtifactCoordinate;
 import com.wrmsr.presto.launcher.packaging.artifacts.ArtifactName;
 import com.wrmsr.presto.launcher.packaging.artifacts.Artifacts;
@@ -22,17 +23,20 @@ import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.ArtifactResolver;
 import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.CachingArtifactResolver;
 import com.wrmsr.presto.launcher.packaging.artifacts.transforms.ArtifactTransform;
 import com.wrmsr.presto.launcher.packaging.artifacts.transforms.MatchVersionsArtifactTransform;
+import com.wrmsr.presto.launcher.packaging.jarBuilder.JarBuilder;
+import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.JarBuilderEntry;
+import com.wrmsr.presto.launcher.packaging.modules.PackagerModule;
 import com.wrmsr.presto.launcher.packaging.modules.transforms.PackagerModuleTransform;
 import com.wrmsr.presto.launcher.packaging.modules.transforms.ProjectModulePackagerModuleTransform;
-import com.wrmsr.presto.launcher.packaging.modules.PackagerModule;
+import io.airlift.log.Logger;
 import io.airlift.log.Logging;
 import org.apache.maven.model.Model;
 import org.sonatype.aether.artifact.Artifact;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,11 +50,13 @@ import static java.util.Objects.requireNonNull;
 
 public final class Packager
 {
+    private static final Logger log = Logger.get(Packager.class);
+
     private final ArtifactResolver artifactResolver;
     private final List<ArtifactTransform> artifactTransforms;
     private final List<PackagerModuleTransform> packagerModuleTransforms;
 
-    private final Map<String, PackagerModule> modulesByName = new HashMap<>();
+    private final Map<String, PackagerModule> modulesByName = new LinkedHashMap<>();
 
     public Packager(
             ArtifactResolver artifactResolver,
@@ -126,8 +132,37 @@ public final class Packager
     private void buildJar(Model mainModel)
             throws IOException
     {
+        Map<String, JarBuilderEntry> jarBuilderEntries = new LinkedHashMap<>();
 
+        File tmpDir = Files.createTempDir();
+        tmpDir.deleteOnExit();
+        try {
+            for (PackagerModule packagerModule : modulesByName.values()) {
+                File moduleDir;
 
+                if (packagerModule.getArtifactCoordinate().getName().equals(Models.getModelArtifactName(mainModel))) {
+                    moduleDir = tmpDir;
+                }
+                else {
+                    moduleDir = new File(tmpDir, packagerModule.getName());
+                    checkState(!moduleDir.exists());
+                    java.nio.file.Files.createDirectories(moduleDir.toPath());
+                }
+
+                List<JarBuilderEntry> moduleJarBuilderEntries = JarBuilder.getEntriesAsFiles(
+                        packagerModule.getJarFile().get(),
+                        moduleDir);
+                checkState(!moduleJarBuilderEntries.stream().anyMatch(jarBuilderEntry -> jarBuilderEntries.containsKey(jarBuilderEntry.getName())));
+                moduleJarBuilderEntries.forEach(jarBuilderEntry -> jarBuilderEntries.put(jarBuilderEntry.getName(), jarBuilderEntry));
+            }
+
+            System.out.println(jarBuilderEntries.size());
+        }
+        finally {
+            if (!tmpDir.delete()) {
+                log.warn("Failed to delete temp dir: " + tmpDir);
+            }
+        }
     }
 
     public static void main(String[] args)

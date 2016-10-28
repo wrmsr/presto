@@ -27,17 +27,22 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.MoreIO.readFullyAndClose;
 
@@ -47,10 +52,17 @@ public final class JarBuilder
     {
     }
 
-    public static List<JarBuilderEntry> getEntries(File inFile)
+    @FunctionalInterface
+    public interface ZipEntryConsumer
+    {
+        void accept(ZipFile zipFile, ZipEntry zipEntry)
+                throws IOException;
+    }
+
+    public static void enumerateZipEntries(File inFile, ZipEntryConsumer consumer)
             throws IOException
     {
-        List<JarBuilderEntry> entries = new ArrayList<>();
+        checkArgument(inFile.isFile());
         Set<String> seenNames = new HashSet<>();
         try (ZipFile zipFile = new ZipFile(inFile)) {
             Enumeration<? extends ZipEntry> zipEntries;
@@ -58,22 +70,60 @@ public final class JarBuilder
                 ZipEntry zipEntry = zipEntries.nextElement();
                 checkState(!seenNames.contains(zipEntry.getName()));
                 seenNames.add(zipEntry.getName());
-                if (zipEntry.isDirectory()) {
-                    entries.add(
-                            new DirectoryJarBuilderEntry(
-                                    zipEntry.getName(),
-                                    zipEntry.getTime()));
-                }
-                else {
-                    byte[] bytes = readFullyAndClose(zipFile.getInputStream(zipEntry), (int) zipEntry.getSize());
-                    entries.add(
-                            new BytesJarBuilderEntry(
-                                    zipEntry.getName(),
-                                    zipEntry.getTime(),
-                                    bytes));
-                }
+                consumer.accept(zipFile, zipEntry);
             }
         }
+    }
+
+    public static List<JarBuilderEntry> getEntriesAsBytes(File inFile)
+            throws IOException
+    {
+        List<JarBuilderEntry> entries = new ArrayList<>();
+        enumerateZipEntries(inFile, (zipFile, zipEntry) -> {
+            if (zipEntry.isDirectory()) {
+                entries.add(
+                        new DirectoryJarBuilderEntry(
+                                zipEntry.getName(),
+                                zipEntry.getTime()));
+            }
+            else {
+                byte[] bytes = readFullyAndClose(zipFile.getInputStream(zipEntry), (int) zipEntry.getSize());
+                entries.add(
+                        new BytesJarBuilderEntry(
+                                zipEntry.getName(),
+                                zipEntry.getTime(),
+                                bytes));
+            }
+        });
+        return entries;
+    }
+
+    public static List<JarBuilderEntry> getEntriesAsFiles(File inFile, File outDir)
+            throws IOException
+    {
+        checkArgument(outDir.isDirectory());
+        List<JarBuilderEntry> entries = new ArrayList<>();
+        enumerateZipEntries(inFile, (zipFile, zipEntry) -> {
+            if (zipEntry.isDirectory()) {
+                entries.add(
+                        new DirectoryJarBuilderEntry(
+                                zipEntry.getName(),
+                                zipEntry.getTime()));
+            }
+            else {
+                byte[] bytes = readFullyAndClose(zipFile.getInputStream(zipEntry), (int) zipEntry.getSize());
+                Path entryPath = new File(outDir, zipEntry.getName()).toPath();
+                checkState(!entryPath.toFile().exists());
+                checkState(entryPath.toAbsolutePath().startsWith(outDir.toPath()));
+                Files.createDirectories(entryPath.getParent());
+                Files.write(entryPath, bytes);
+                Files.setLastModifiedTime(entryPath, FileTime.from(zipEntry.getTime(), TimeUnit.SECONDS));
+                entries.add(
+                        new FileJarBuilderEntry(
+                                zipEntry.getName(),
+                                entryPath.toFile()));
+            }
+        });
         return entries;
     }
 

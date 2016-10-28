@@ -78,8 +78,10 @@ public final class PackagerModule
     {
         checkValidName(artifactCoordinate);
         return String.format(
-                "%s/%s-%s.jar",
+                "%s/%s/%s/%s-%s.jar",
                 artifactCoordinate.getName().getGroupId().replaceAll("\\.", "/"),
+                artifactCoordinate.getName().getArtifactId(),
+                artifactCoordinate.getVersion(),
                 artifactCoordinate.getName().getArtifactId(),
                 artifactCoordinate.getVersion());
     }

@@ -13,26 +13,16 @@
  */
 package com.wrmsr.presto.launcher.packaging.artifacts;
 
-import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.wrmsr.presto.launcher.runtime.Repositories;
 import io.airlift.resolver.ArtifactResolver;
-import io.airlift.resolver.DefaultArtifact;
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
 import org.sonatype.aether.artifact.Artifact;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Field;
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class Artifacts
