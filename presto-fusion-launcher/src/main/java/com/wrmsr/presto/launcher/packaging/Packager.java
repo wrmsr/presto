@@ -25,6 +25,7 @@ import com.wrmsr.presto.launcher.packaging.artifacts.transforms.MatchVersionsArt
 import com.wrmsr.presto.launcher.packaging.modules.transforms.PackagerModuleTransform;
 import com.wrmsr.presto.launcher.packaging.modules.transforms.ProjectModulePackagerModuleTransform;
 import com.wrmsr.presto.launcher.packaging.modules.PackagerModule;
+import io.airlift.log.Logging;
 import org.apache.maven.model.Model;
 import org.sonatype.aether.artifact.Artifact;
 
@@ -122,6 +123,8 @@ public final class Packager
     public static void main(String[] args)
             throws Exception
     {
+        Logging.initialize();
+
         File parentPomFile = new File(System.getProperty("user.home") + "/src/wrmsr/presto/pom.xml");
         Model parentModel = Models.readModel(parentPomFile);
 
