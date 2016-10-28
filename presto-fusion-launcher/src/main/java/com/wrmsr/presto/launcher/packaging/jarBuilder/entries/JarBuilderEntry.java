@@ -42,6 +42,11 @@ public abstract class JarBuilderEntry
         return name;
     }
 
+    public long getTime()
+    {
+        return time;
+    }
+
     @Override
     public boolean equals(Object o)
     {

@@ -24,6 +24,7 @@ import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.CachingArtifactRe
 import com.wrmsr.presto.launcher.packaging.artifacts.transforms.ArtifactTransform;
 import com.wrmsr.presto.launcher.packaging.artifacts.transforms.MatchVersionsArtifactTransform;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.JarBuilder;
+import com.wrmsr.presto.launcher.packaging.jarBuilder.JarBuilderEntries;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.JarBuilderEntry;
 import com.wrmsr.presto.launcher.packaging.modules.PackagerModule;
 import com.wrmsr.presto.launcher.packaging.modules.transforms.PackagerModuleTransform;
@@ -152,8 +153,14 @@ public final class Packager
                 List<JarBuilderEntry> moduleJarBuilderEntries = JarBuilder.getEntriesAsFiles(
                         packagerModule.getJarFile().get(),
                         moduleDir);
-                checkState(!moduleJarBuilderEntries.stream().anyMatch(jarBuilderEntry -> jarBuilderEntries.containsKey(jarBuilderEntry.getName())));
-                moduleJarBuilderEntries.forEach(jarBuilderEntry -> jarBuilderEntries.put(jarBuilderEntry.getName(), jarBuilderEntry));
+                for (JarBuilderEntry jarBuilderEntry : moduleJarBuilderEntries) {
+                    JarBuilderEntry renamedJarBuilderEntry = JarBuilderEntries.renameJarBuilderEntry(
+                            jarBuilderEntry,
+                            packagerModule.getName() + "/" + jarBuilderEntry.getName());
+
+                    checkState(!jarBuilderEntries.containsKey(renamedJarBuilderEntry.getName()));
+                    jarBuilderEntries.put(renamedJarBuilderEntry.getName(), renamedJarBuilderEntry);
+                }
             }
 
             System.out.println(jarBuilderEntries.size());
