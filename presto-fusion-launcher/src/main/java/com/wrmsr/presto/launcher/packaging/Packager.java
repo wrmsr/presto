@@ -13,6 +13,7 @@
  */
 package com.wrmsr.presto.launcher.packaging;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import com.wrmsr.presto.launcher.packaging.artifacts.ArtifactCoordinate;
@@ -25,6 +26,7 @@ import com.wrmsr.presto.launcher.packaging.artifacts.transforms.ArtifactTransfor
 import com.wrmsr.presto.launcher.packaging.artifacts.transforms.MatchVersionsArtifactTransform;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.JarBuilder;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.JarBuilderEntries;
+import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.FileJarBuilderEntry;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.JarBuilderEntry;
 import com.wrmsr.presto.launcher.packaging.modules.PackagerModule;
 import com.wrmsr.presto.launcher.packaging.modules.transforms.PackagerModuleTransform;
@@ -36,15 +38,21 @@ import org.sonatype.aether.artifact.Artifact;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toArrayList;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableList;
+import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableSet;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toOnly;
 import static com.wrmsr.presto.util.collect.MoreOptionals.firstOrSameOptional;
 import static java.util.Objects.requireNonNull;
@@ -108,6 +116,16 @@ public final class Packager
                 .filter(packagerModule -> moduleArtifactCoordinate.getName().equals(packagerModule.getArtifactCoordinate().getName()))
                 .collect(toOnly());
 
+        checkState(!modulePackagerModule.getClassPath().isPresent());
+        Set<String> moduleClassPath = packagerModules.stream()
+                .filter(packagerModule -> !moduleArtifactCoordinate.getName().equals(packagerModule.getArtifactCoordinate().getName()))
+                .map(PackagerModule::getName)
+                .collect(toImmutableSet());
+        modulePackagerModule = new PackagerModule(
+                modulePackagerModule.getArtifactCoordinate(),
+                modulePackagerModule.getJarFile(),
+                Optional.of(moduleClassPath));
+
         for (PackagerModule packagerModule : packagerModules) {
             checkState(packagerModule.getJarFile().isPresent());
             if (packagerModule != modulePackagerModule) {
@@ -140,7 +158,6 @@ public final class Packager
         try {
             for (PackagerModule packagerModule : modulesByName.values()) {
                 File moduleDir;
-
                 if (packagerModule.getArtifactCoordinate().getName().equals(Models.getModelArtifactName(mainModel))) {
                     moduleDir = tmpDir;
                 }
@@ -150,16 +167,10 @@ public final class Packager
                     java.nio.file.Files.createDirectories(moduleDir.toPath());
                 }
 
-                List<JarBuilderEntry> moduleJarBuilderEntries = JarBuilder.getEntriesAsFiles(
-                        packagerModule.getJarFile().get(),
-                        moduleDir);
-                for (JarBuilderEntry jarBuilderEntry : moduleJarBuilderEntries) {
-                    JarBuilderEntry renamedJarBuilderEntry = JarBuilderEntries.renameJarBuilderEntry(
-                            jarBuilderEntry,
-                            packagerModule.getName() + "/" + jarBuilderEntry.getName());
-
-                    checkState(!jarBuilderEntries.containsKey(renamedJarBuilderEntry.getName()));
-                    jarBuilderEntries.put(renamedJarBuilderEntry.getName(), renamedJarBuilderEntry);
+                Map<String, JarBuilderEntry> moduleJarBuilderEntries = buildModuleJarBuilderEntries(packagerModule, moduleDir);
+                for (Map.Entry<String, JarBuilderEntry> entry : moduleJarBuilderEntries.entrySet()) {
+                    checkState(!jarBuilderEntries.containsKey(entry.getKey()));
+                    jarBuilderEntries.put(entry.getKey(), entry.getValue());
                 }
             }
 
@@ -170,6 +181,46 @@ public final class Packager
                 log.warn("Failed to delete temp dir: " + tmpDir);
             }
         }
+    }
+
+    private Map<String, JarBuilderEntry> buildModuleJarBuilderEntries(PackagerModule packagerModule, File moduleDir)
+            throws IOException
+    {
+        Map<String, JarBuilderEntry> jarBuilderEntries = new LinkedHashMap<>();
+
+        List<JarBuilderEntry> moduleJarBuilderEntries = JarBuilder.getEntriesAsFiles(
+                packagerModule.getJarFile().get(),
+                moduleDir);
+        for (JarBuilderEntry jarBuilderEntry : moduleJarBuilderEntries) {
+            JarBuilderEntry renamedJarBuilderEntry = JarBuilderEntries.renameJarBuilderEntry(
+                    jarBuilderEntry,
+                    packagerModule.getName() + "/" + jarBuilderEntry.getName());
+
+            checkState(!jarBuilderEntries.containsKey(renamedJarBuilderEntry.getName()));
+            jarBuilderEntries.put(renamedJarBuilderEntry.getName(), renamedJarBuilderEntry);
+        }
+
+        if (packagerModule.getClassPath().isPresent()) {
+            String pomJarBuilderEntryName = packagerModule.getName() + "/" + Manifests.MANIFEST_PATH;
+            FileJarBuilderEntry pomJarBuilderEntry = (FileJarBuilderEntry) jarBuilderEntries.get(pomJarBuilderEntryName);
+            if (pomJarBuilderEntry == null) {
+                File pomFile = new File(moduleDir, "/" + Manifests.MANIFEST_PATH);
+                checkState(!pomFile.exists());
+                pomJarBuilderEntry = new FileJarBuilderEntry(
+                        packagerModule.getName() + "/" + Manifests.MANIFEST_PATH,
+                        pomFile);
+            }
+
+            List<String> classPath = new ArrayList<>(packagerModule.getClassPath().get());
+            Collections.sort(classPath);
+            String moduleClassPath = Joiner.on(":").join(classPath);
+
+            Manifest manifest = Manifests.parseManifest(Files.toByteArray(pomJarBuilderEntry.getFile()));
+            Attributes classPathAttributes = manifest.getAttributes(Manifests.MANIFEST_CLASS_PATH_KEY);
+            // manifest.getEntries().put(, moduleClassPath);
+        }
+
+        return jarBuilderEntries;
     }
 
     public static void main(String[] args)

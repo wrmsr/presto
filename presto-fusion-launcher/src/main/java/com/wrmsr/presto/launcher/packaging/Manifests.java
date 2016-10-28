@@ -31,12 +31,15 @@ public final class Manifests
     {
     }
 
+    public static final String MANIFEST_PATH = "META-INF/MANIFEST.MF";
+    public static final String MANIFEST_CLASS_PATH_KEY = "Class-Path";
+
     public static Manifest getManifest(File file)
             throws IOException
     {
         byte[] bytes;
         try (ZipFile zipFile = new ZipFile(file)) {
-            ZipEntry zipEntry = zipFile.getEntry("META-INF/MANIFEST.MF");
+            ZipEntry zipEntry = zipFile.getEntry(MANIFEST_PATH);
             if (zipEntry == null) {
                 return new Manifest();
             }

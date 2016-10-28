@@ -70,6 +70,7 @@ public final class PackagerModule
                 artifactCoordinate.getName().getArtifactId(),
                 artifactCoordinate.getVersion()}) {
             checkArgument(part.indexOf('/') < 0);
+            checkArgument(part.indexOf(':') < 0);
             checkArgument(!part.contains("\\.\\."));
         }
     }
