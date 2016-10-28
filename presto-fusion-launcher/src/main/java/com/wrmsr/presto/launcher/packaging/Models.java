@@ -71,6 +71,6 @@ public final class Models
     {
         return new ArtifactCoordinate(
                 getModelArtifactName(model),
-                model.getVersion());
+                model.getVersion() != null ? model.getVersion() : model.getParent() != null ? model.getParent().getVersion() : null);
     }
 }

@@ -29,12 +29,12 @@ import static java.util.Objects.requireNonNull;
 public final class PackagerModule
 {
     private final ArtifactCoordinate artifactCoordinate;
-    private final File jarFile;
+    private final Optional<File> jarFile;
     private final Optional<Set<String>> classPath;
 
     private final String name;
 
-    public PackagerModule(ArtifactCoordinate artifactCoordinate, File jarFile, Optional<Set<String>> classPath)
+    public PackagerModule(ArtifactCoordinate artifactCoordinate, Optional<File> jarFile, Optional<Set<String>> classPath)
     {
         this.artifactCoordinate = requireNonNull(artifactCoordinate);
         this.jarFile = requireNonNull(jarFile);
@@ -48,7 +48,7 @@ public final class PackagerModule
         return artifactCoordinate;
     }
 
-    public File getJarFile()
+    public Optional<File> getJarFile()
     {
         return jarFile;
     }
@@ -72,7 +72,6 @@ public final class PackagerModule
             checkArgument(part.indexOf('/') < 0);
             checkArgument(!part.contains("\\.\\."));
         }
-        checkArgument(artifactCoordinate.getName().getArtifactId().indexOf('-') < 0);
     }
 
     public static String getName(ArtifactCoordinate artifactCoordinate)

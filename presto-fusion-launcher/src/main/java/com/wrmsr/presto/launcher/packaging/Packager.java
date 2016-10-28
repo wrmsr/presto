@@ -99,7 +99,7 @@ public final class Packager
         List<PackagerModule> packagerModules = artifacts.stream()
                 .map(artifact -> new PackagerModule(
                         Artifacts.getArtifactCoordinate(artifact),
-                        artifact.getFile(),
+                        Optional.ofNullable(artifact.getFile()),
                         Optional.empty()))
                 .collect(toImmutableList());
         for (PackagerModuleTransform packagerModuleTransform : packagerModuleTransforms) {
