@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.launcher.packaging.artifacts.ArtifactName;
 import com.wrmsr.presto.launcher.packaging.artifacts.Artifacts;
 import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.AirliftArtifactResolver;
@@ -47,25 +48,29 @@ public final class Packager
     private final List<ArtifactTransform> artifactTransforms;
 
     @Immutable
-    private static class PackageEntry
+    private static final class Entry
     {
         private final String name;
         private final File jarFile;
 
         public Entry(String name, File jarFile)
         {
-            this.name = name;
-            this.jarFile = jarFile;
+            this.name = requireNonNull(name);
+            this.jarFile = requireNonNull(jarFile);
         }
     }
 
     @Immutable
-    private static class Module
-        extends JarBuilderEntry
+    private static final class Module
     {
+        private final Entry entry;
         private final Set<String> classPath;
 
-
+        public Module(Entry entry, Set<String> classPath)
+        {
+            this.entry = requireNonNull(entry);
+            this.classPath = ImmutableSet.copyOf(classPath);
+        }
     }
 
     private final Map<String, Module> modules = new HashMap<>();
