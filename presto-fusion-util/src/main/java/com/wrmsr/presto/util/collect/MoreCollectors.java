@@ -28,12 +28,14 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.function.Function.identity;
 
 public final class MoreCollectors
@@ -197,5 +199,23 @@ public final class MoreCollectors
     public static <K, V> Collector<Map.Entry<K, V>, SetMultimap<K, V>, SetMultimap<K, V>> toHashMultimap()
     {
         return toHashMultimap(Map.Entry::getKey, Map.Entry::getValue);
+    }
+
+    public static <T> Collector<T, List<T>, T> toOnly()
+    {
+        return Collector.of(
+                ArrayList::new,
+                List::add,
+                (left, right) -> {
+                    left.addAll(right);
+                    return left;
+                },
+                list -> {
+                    if (list.size() != 1) {
+                        throw new IllegalStateException();
+                    }
+                    return list.get(0);
+                }
+        );
     }
 }

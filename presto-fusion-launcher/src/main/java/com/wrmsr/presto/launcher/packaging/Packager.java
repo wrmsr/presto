@@ -39,6 +39,7 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toArrayList;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableList;
+import static com.wrmsr.presto.util.collect.MoreCollectors.toOnly;
 import static java.util.Objects.requireNonNull;
 
 public final class Packager
@@ -47,7 +48,7 @@ public final class Packager
     private final List<ArtifactTransform> artifactTransforms;
     private final List<PackagerModuleTransform> packagerModuleTransforms;
 
-    private final Map<String, PackagerModule> modules = new HashMap<>();
+    private final Map<String, PackagerModule> modulesByName = new HashMap<>();
 
     public Packager(
             ArtifactResolver artifactResolver,
@@ -85,8 +86,6 @@ public final class Packager
     private PackagerModule addModuleInternal(Model model)
             throws IOException
     {
-        ArtifactCoordinate moduleArtifactCoordinate = Models.getModelArtifactCoordinate(model);
-
         List<Artifact> artifacts = artifactResolver.resolvePom(model.getPomFile()).stream().collect(toArrayList());
         for (ArtifactTransform artifactTransform : artifactTransforms) {
             artifacts = artifactTransform.apply(artifactResolver, artifacts);
@@ -100,11 +99,24 @@ public final class Packager
         List<PackagerModule> packagerModules = artifacts.stream()
                 .map(artifact -> new PackagerModule(
                         Artifacts.getArtifactCoordinate(artifact),
-                        null,
+                        artifact.getFile(),
                         Optional.empty()))
                 .collect(toImmutableList());
+        for (PackagerModuleTransform packagerModuleTransform : packagerModuleTransforms) {
+            packagerModules = packagerModuleTransform.apply(this, packagerModules);
+        }
 
-        throw new IllegalArgumentException();
+        ArtifactCoordinate moduleArtifactCoordinate = Models.getModelArtifactCoordinate(model);
+        PackagerModule modulePackagerModule = packagerModules.stream()
+                .filter(packagerModule -> moduleArtifactCoordinate.getName().equals(packagerModule.getArtifactCoordinate().getName()))
+                .collect(toOnly());
+
+        for (PackagerModule packagerModule : packagerModules) {
+            checkState(!modulesByName.containsKey(packagerModule.getName()));
+            modulesByName.put(packagerModule.getName(), packagerModule);
+        }
+
+        return modulePackagerModule;
     }
 
     public static void main(String[] args)

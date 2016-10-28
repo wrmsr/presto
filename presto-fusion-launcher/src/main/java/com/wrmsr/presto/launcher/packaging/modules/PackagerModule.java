@@ -32,14 +32,15 @@ public final class PackagerModule
     private final File jarFile;
     private final Optional<Set<String>> classPath;
 
+    private final String name;
+
     public PackagerModule(ArtifactCoordinate artifactCoordinate, File jarFile, Optional<Set<String>> classPath)
     {
-        checkArgument(artifactCoordinate.getName().getGroupId().indexOf('/') < 0);
-        checkArgument(artifactCoordinate.getName().getArtifactId().indexOf('/') < 0);
-        checkArgument(artifactCoordinate.getName().getArtifactId().indexOf('-') < 0);
         this.artifactCoordinate = requireNonNull(artifactCoordinate);
         this.jarFile = requireNonNull(jarFile);
         this.classPath = requireNonNull(classPath).map(ImmutableSet::copyOf);
+
+        this.name = getName(artifactCoordinate);
     }
 
     public ArtifactCoordinate getArtifactCoordinate()
@@ -59,6 +60,24 @@ public final class PackagerModule
 
     public String getName()
     {
+        return name;
+    }
+
+    public static void checkValidName(ArtifactCoordinate artifactCoordinate)
+    {
+        for (String part : new String[] {
+                artifactCoordinate.getName().getGroupId(),
+                artifactCoordinate.getName().getArtifactId(),
+                artifactCoordinate.getVersion()}) {
+            checkArgument(part.indexOf('/') < 0);
+            checkArgument(!part.contains("\\.\\."));
+        }
+        checkArgument(artifactCoordinate.getName().getArtifactId().indexOf('-') < 0);
+    }
+
+    public static String getName(ArtifactCoordinate artifactCoordinate)
+    {
+        checkValidName(artifactCoordinate);
         return String.format(
                 "%s/%s-%s.jar",
                 artifactCoordinate.getName().getGroupId().replaceAll("\\.", "/"),
