@@ -21,11 +21,14 @@ import org.apache.maven.model.Model;
 
 import javax.annotation.concurrent.Immutable;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableMap;
 import static java.util.Objects.requireNonNull;
 import static java.util.function.Function.identity;
@@ -55,8 +58,13 @@ public final class ProjectModulePackagerModuleTransform
         for (PackagerModule packagerModule : packagerModules) {
             Model moduleModel = modules.get(packagerModule.getArtifactCoordinate().getName());
             if (moduleModel != null) {
-                newPackagerModules.add(packagerModule);
-                // throw new IllegalStateException();
+                String jarFileName = moduleModel.getArtifactId() + "-" + moduleModel.getVersion() + ".jar";
+                File jarFile = new File(moduleModel.getPomFile().getParentFile(), "target/" + jarFileName);
+                checkState(jarFile.isFile());
+                newPackagerModules.add(new PackagerModule(
+                        packagerModule.getArtifactCoordinate(),
+                        Optional.of(jarFile),
+                        packagerModule.getClassPath()));
             }
             else {
                 newPackagerModules.add(packagerModule);
