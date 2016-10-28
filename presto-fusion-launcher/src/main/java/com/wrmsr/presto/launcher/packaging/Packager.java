@@ -124,7 +124,9 @@ public final class Packager
     }
 
     private void buildJar(Model mainModel)
+            throws IOException
     {
+
 
     }
 
