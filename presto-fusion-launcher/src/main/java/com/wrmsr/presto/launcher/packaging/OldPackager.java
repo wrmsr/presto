@@ -76,25 +76,24 @@ public class OldPackager
     public List<String> getModuleNames()
     {
         return ImmutableList.of(
-                "presto-hive-hadoop2",
-
                 "presto-fusion-launcher", // BOOTSTRAP SELF
 
-                "presto-main",
                 "presto-blackhole",
-                "presto-cli",
                 "presto-cassandra",
+                "presto-cli",
                 "presto-example-http",
+                "presto-hive-hadoop2",
                 "presto-jmx",
                 "presto-kafka",
+                "presto-local-file",
+                "presto-main",
                 "presto-ml",
                 "presto-mysql",
                 "presto-postgresql",
                 "presto-raptor",
+                "presto-redis",
                 "presto-teradata-functions",
-                "presto-local-file",
-                "presto-tpch",
-                "presto-redis"
+                "presto-tpch"
         );
     }
 

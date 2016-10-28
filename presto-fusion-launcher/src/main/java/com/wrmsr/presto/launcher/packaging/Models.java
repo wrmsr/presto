@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -45,7 +46,7 @@ public final class Models
             throws IOException
     {
         checkArgument(model.getModules().stream().anyMatch(name::equals));
-        return readModel(new File(model.getProjectDirectory(), name));
+        return readModel(new File(model.getProjectDirectory(), name + "/pom.xml"));
     }
 
     public static Map<String, Model> readModelModules(Model model)
@@ -62,7 +63,7 @@ public final class Models
     public static ArtifactName getModelArtifactName(Model model)
     {
         return new ArtifactName(
-                model.getGroupId(),
+                model.getGroupId() != null ? model.getGroupId() : model.getParent() != null ? model.getParent().getGroupId() : null,
                 model.getArtifactId());
     }
 

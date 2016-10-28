@@ -14,7 +14,6 @@
 package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.wrmsr.presto.launcher.packaging.artifacts.ArtifactName;
 import com.wrmsr.presto.launcher.packaging.artifacts.Artifacts;
 import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.AirliftArtifactResolver;
@@ -22,11 +21,11 @@ import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.ArtifactResolver;
 import com.wrmsr.presto.launcher.packaging.artifacts.resolvers.CachingArtifactResolver;
 import com.wrmsr.presto.launcher.packaging.artifacts.transforms.ArtifactTransform;
 import com.wrmsr.presto.launcher.packaging.artifacts.transforms.MatchVersionsArtifactTransform;
-import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.JarBuilderEntry;
+import com.wrmsr.presto.launcher.packaging.modules.transforms.PackagerModuleTransform;
+import com.wrmsr.presto.launcher.packaging.modules.transforms.ProjectModulePackagerModuleTransform;
+import com.wrmsr.presto.launcher.packaging.modules.PackagerModule;
 import org.apache.maven.model.Model;
 import org.sonatype.aether.artifact.Artifact;
-
-import javax.annotation.concurrent.Immutable;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,9 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toArrayList;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableList;
@@ -46,49 +43,23 @@ public final class Packager
 {
     private final ArtifactResolver artifactResolver;
     private final List<ArtifactTransform> artifactTransforms;
+    private final List<PackagerModuleTransform> packagerModuleTransforms;
 
-    @Immutable
-    private static final class Entry
-    {
-        private final String name;
-        private final File jarFile;
-
-        public Entry(String name, File jarFile)
-        {
-            this.name = requireNonNull(name);
-            this.jarFile = requireNonNull(jarFile);
-        }
-    }
-
-    @Immutable
-    private static final class Module
-    {
-        private final Entry entry;
-        private final Set<String> classPath;
-
-        public Module(Entry entry, Set<String> classPath)
-        {
-            this.entry = requireNonNull(entry);
-            this.classPath = ImmutableSet.copyOf(classPath);
-        }
-    }
-
-    private final Map<String, Module> modules = new HashMap<>();
-    private Module mainModule;
+    private final Map<String, PackagerModule> modules = new HashMap<>();
 
     public Packager(
             ArtifactResolver artifactResolver,
-            List<ArtifactTransform> artifactTransforms)
+            List<ArtifactTransform> artifactTransforms,
+            List<PackagerModuleTransform> packagerModuleTransforms)
     {
         this.artifactResolver = requireNonNull(artifactResolver);
         this.artifactTransforms = ImmutableList.copyOf(artifactTransforms);
+        this.packagerModuleTransforms = ImmutableList.copyOf(packagerModuleTransforms);
     }
 
-    public void addMainModule(File pomFile)
-            throws IOException
+    public ArtifactResolver getArtifactResolver()
     {
-        checkState(mainModule == null);
-        mainModule = addModuleInternal(pomFile);
+        return artifactResolver;
     }
 
     public void addModule(File pomFile)
@@ -97,13 +68,19 @@ public final class Packager
         addModuleInternal(pomFile);
     }
 
-    private Module addModuleInternal(File pomFile)
+    public void addModule(Model model)
+            throws IOException
+    {
+        addModuleInternal(model);
+    }
+
+    private PackagerModule addModuleInternal(File pomFile)
             throws IOException
     {
         return addModuleInternal(Models.readModel(pomFile));
     }
 
-    private Module addModuleInternal(Model model)
+    private PackagerModule addModuleInternal(Model model)
             throws IOException
     {
         List<Artifact> artifacts = artifactResolver.resolvePom(model.getPomFile()).stream().collect(toArrayList());
@@ -133,8 +110,38 @@ public final class Packager
                         artifact -> "org.slf4j".equals(artifact.getGroupId()),
                         MatchVersionsArtifactTransform.MAX_BY_STRING_VERSION));
 
-        Packager p = new Packager(resolver, artifactTransforms);
+        List<PackagerModuleTransform> packagerModuleTransforms = ImmutableList.of(
+                new ProjectModulePackagerModuleTransform(parentModel));
 
-        p.addMainModule(new File(System.getProperty("user.home") + "/src/wrmsr/presto/presto-fusion-launcher/pom.xml"));
+        Packager packager = new Packager(
+                resolver,
+                artifactTransforms,
+                packagerModuleTransforms);
+
+        String mainModuleName = "presto-fusion-launcher";
+        List<String> moduleNames = ImmutableList.of(
+                mainModuleName,
+
+                "presto-blackhole",
+                "presto-cassandra",
+                "presto-cli",
+                "presto-example-http",
+                "presto-hive-hadoop2",
+                "presto-jmx",
+                "presto-kafka",
+                "presto-local-file",
+                "presto-main",
+                "presto-ml",
+                "presto-mysql",
+                "presto-postgresql",
+                "presto-raptor",
+                "presto-redis",
+                "presto-teradata-functions",
+                "presto-tpch"
+        );
+
+        for (String moduleName : moduleNames) {
+            packager.addModule(Models.readModelModule(parentModel, moduleName));
+        }
     }
 }
