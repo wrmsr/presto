@@ -159,16 +159,27 @@ public final class Packager
         File tmpDir = Files.createTempDir();
         tmpDir.deleteOnExit();
         try {
+            PackagerModule mainPackagerModule = null;
             for (PackagerModule packagerModule : modulesByName.values()) {
-                File moduleDir;
-                if (packagerModule.getArtifactCoordinate().getName().equals(Models.getModelArtifactName(mainModel))) {
-                    moduleDir = tmpDir;
+                if (!packagerModule.getArtifactCoordinate().getName().equals(Models.getModelArtifactName(mainModel))) {
+                    continue;
                 }
-                else {
-                    moduleDir = new File(tmpDir, packagerModule.getName());
-                    checkState(!moduleDir.exists());
-                    java.nio.file.Files.createDirectories(moduleDir.toPath());
+                checkState(mainPackagerModule == null);
+                mainPackagerModule = packagerModule;
+
+                Map<String, JarBuilderEntry> moduleJarBuilderEntries = buildModuleJarBuilderEntries(packagerModule, tmpDir);
+                for (Map.Entry<String, JarBuilderEntry> entry : moduleJarBuilderEntries.entrySet()) {
+                    jarBuilderEntries.put(entry.getKey(), entry.getValue());
                 }
+            }
+
+            for (PackagerModule packagerModule : modulesByName.values()) {
+                if (packagerModule == mainPackagerModule) {
+                    continue;
+                }
+                File moduleDir = new File(tmpDir, packagerModule.getName());
+                checkState(!moduleDir.exists());
+                java.nio.file.Files.createDirectories(moduleDir.toPath());
 
                 Map<String, JarBuilderEntry> moduleJarBuilderEntries = buildModuleJarBuilderEntries(packagerModule, moduleDir);
                 for (Map.Entry<String, JarBuilderEntry> entry : moduleJarBuilderEntries.entrySet()) {
