@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher.packaging.jarBuilder;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteStreams;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.BytesJarBuilderEntry;
@@ -33,9 +34,12 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
@@ -53,9 +57,11 @@ public final class JarBuilder
     {
     }
 
-    public static final Set<String> SPECIAL_NAMES = ImmutableSet.of(
-            "META-INF/MANIFEST.MF"
-    );
+    public static final Set<String> SPECIAL_NAMES = Collections.unmodifiableSet(
+            new LinkedHashSet<>(
+                    ImmutableList.of(
+                            "META-INF/MANIFEST.MF"
+                    )));
 
     @FunctionalInterface
     public interface ZipEntryConsumer
@@ -146,79 +152,86 @@ public final class JarBuilder
         return ret;
     }
 
-    public static void buildJar(List<JarBuilderEntry> entries, File outFile)
+    public static void buildJar(Map<String, JarBuilderEntry> entries, File outFile)
             throws IOException
     {
-        Set<String> seenNames = new HashSet<>();
         Set<String> seenDirectories = new HashSet<>();
         try (BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outFile));
                 JarOutputStream jo = new JarOutputStream(bo)) {
-            for (JarBuilderEntry jarBuilderEntry : entries) {
-                checkState(!seenNames.contains(jarBuilderEntry.getName()));
-                seenNames.add(jarBuilderEntry.getName());
+            JarBuilderEntryVisitor<Void, Void> addingVisitor = new JarBuilderEntryVisitor<Void, Void>()
+            {
+                @Override
+                public Void visitEntry(JarBuilderEntry jarBuilderEntry, Void context)
+                {
+                    throw new IllegalStateException();
+                }
 
-                if (!SPECIAL_NAMES.contains(jarBuilderEntry.getName())) {
-                    for (String directory : getNameDirectories(jarBuilderEntry.getName())) {
-                        if (!seenDirectories.contains(directory)) {
-                            seenDirectories.add(directory);
-                            try {
-                                JarEntry jarEntry = new JarEntry(directory);
-                                jo.putNextEntry(jarEntry);
-                                jo.write(new byte[0], 0, 0);
-                            }
-                            catch (IOException e) {
-                                throw Throwables.propagate(e);
-                            }
+                @Override
+                public Void visitBytesEntry(BytesJarBuilderEntry entry, Void context)
+                {
+                    try {
+                        JarEntry jarEntry = new JarEntry(entry.getName());
+                        entry.bestowJarEntryAttributes(jarEntry);
+                        jo.putNextEntry(jarEntry);
+                        jo.write(entry.getBytes(), 0, entry.getBytes().length);
+                    }
+                    catch (IOException e) {
+                        throw Throwables.propagate(e);
+                    }
+                    return null;
+                }
+
+                @Override
+                public Void visitDirectoryEntry(DirectoryJarBuilderEntry entry, Void context)
+                {
+                    return null;
+                }
+
+                @Override
+                public Void visitFileEntry(FileJarBuilderEntry entry, Void context)
+                {
+                    try {
+                        JarEntry jarEntry = new JarEntry(entry.getName());
+                        entry.bestowJarEntryAttributes(jarEntry);
+                        jo.putNextEntry(jarEntry);
+                        try (BufferedInputStream bi = new BufferedInputStream(new FileInputStream(entry.getFile()))) {
+                            ByteStreams.copy(bi, jo);
+                        }
+                    }
+                    catch (IOException e) {
+                        throw Throwables.propagate(e);
+                    }
+                    return null;
+                }
+            };
+
+            for (String name : SPECIAL_NAMES) {
+                JarBuilderEntry jarBuilderEntry = entries.get(name);
+                if (jarBuilderEntry != null) {
+                    jarBuilderEntry.accept(addingVisitor, null);
+                }
+            }
+
+            for (JarBuilderEntry jarBuilderEntry : entries.values()) {
+                if (SPECIAL_NAMES.contains(jarBuilderEntry.getName())) {
+                    continue;
+                }
+
+                for (String directory : getNameDirectories(jarBuilderEntry.getName())) {
+                    if (!seenDirectories.contains(directory)) {
+                        seenDirectories.add(directory);
+                        try {
+                            JarEntry jarEntry = new JarEntry(directory);
+                            jo.putNextEntry(jarEntry);
+                            jo.write(new byte[0], 0, 0);
+                        }
+                        catch (IOException e) {
+                            throw Throwables.propagate(e);
                         }
                     }
                 }
 
-                jarBuilderEntry.accept(new JarBuilderEntryVisitor<Void, Void>()
-                {
-                    @Override
-                    public Void visitEntry(JarBuilderEntry jarBuilderEntry, Void context)
-                    {
-                        throw new IllegalStateException();
-                    }
-
-                    @Override
-                    public Void visitBytesEntry(BytesJarBuilderEntry entry, Void context)
-                    {
-                        try {
-                            JarEntry jarEntry = new JarEntry(entry.getName());
-                            entry.bestowJarEntryAttributes(jarEntry);
-                            jo.putNextEntry(jarEntry);
-                            jo.write(entry.getBytes(), 0, entry.getBytes().length);
-                        }
-                        catch (IOException e) {
-                            throw Throwables.propagate(e);
-                        }
-                        return null;
-                    }
-
-                    @Override
-                    public Void visitDirectoryEntry(DirectoryJarBuilderEntry entry, Void context)
-                    {
-                        return null;
-                    }
-
-                    @Override
-                    public Void visitFileEntry(FileJarBuilderEntry entry, Void context)
-                    {
-                        try {
-                            JarEntry jarEntry = new JarEntry(entry.getName());
-                            entry.bestowJarEntryAttributes(jarEntry);
-                            jo.putNextEntry(jarEntry);
-                            try (BufferedInputStream bi = new BufferedInputStream(new FileInputStream(entry.getFile()))) {
-                                ByteStreams.copy(bi, jo);
-                            }
-                        }
-                        catch (IOException e) {
-                            throw Throwables.propagate(e);
-                        }
-                        return null;
-                    }
-                }, null);
+                jarBuilderEntry.accept(addingVisitor, null);
             }
         }
     }
