@@ -211,7 +211,7 @@ public final class JarBuilder
                 @Override
                 public Void visitDirectoryEntry(DirectoryJarBuilderEntry entry, Void context)
                 {
-                    directoryCreator.accept(entry);
+                    directoryCreator.accept(entry.getName());
                     return null;
                 }
 
