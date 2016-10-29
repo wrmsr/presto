@@ -65,7 +65,7 @@ public final class JarBuilder
                             System.currentTimeMillis(),
                             new byte[0]),
                     new DirectoryJarBuilderEntry(
-                            "META-INF",
+                            "META-INF/",
                             System.currentTimeMillis()));
 
     public static final Set<String> DEFAULT_ENTRY_NAMES = DEFAULT_ENTRIES.stream()
