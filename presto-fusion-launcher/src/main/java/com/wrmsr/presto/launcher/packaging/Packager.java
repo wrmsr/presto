@@ -196,14 +196,8 @@ public final class Packager
                 }
             }
 
-            List<JarBuilderEntry> jarBuilderEntryList = ImmutableList.<JarBuilderEntry>builder()
-                    .add(requireNonNull(jarBuilderEntries.get(Manifests.MANIFEST_PATH)))
-                    .addAll(jarBuilderEntries.values().stream()
-                            .filter(jarBuilderEntry -> !Manifests.MANIFEST_PATH.equals(jarBuilderEntry.getName()))
-                            .iterator())
-                    .build();
             File tmpJarFile = new File(tmpDir, "jar");
-            JarBuilder.buildJar(jarBuilderEntryList, tmpJarFile);
+            JarBuilder.buildJar(jarBuilderEntries, tmpJarFile);
             Jars.makeExecutableJar(tmpJarFile, jarFile);
         }
         finally {
