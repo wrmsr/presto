@@ -15,8 +15,8 @@ package com.wrmsr.presto.launcher.packaging.jarBuilder;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteStreams;
+import com.wrmsr.presto.launcher.packaging.Manifests;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.BytesJarBuilderEntry;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.DirectoryJarBuilderEntry;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.FileJarBuilderEntry;
@@ -50,6 +50,7 @@ import java.util.zip.ZipFile;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.wrmsr.presto.util.MoreIO.readFullyAndClose;
+import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableSet;
 
 public final class JarBuilder
 {
@@ -57,11 +58,19 @@ public final class JarBuilder
     {
     }
 
-    public static final Set<String> SPECIAL_NAMES = Collections.unmodifiableSet(
-            new LinkedHashSet<>(
-                    ImmutableList.of(
-                            "META-INF/MANIFEST.MF"
-                    )));
+    public static final List<JarBuilderEntry> DEFAULT_ENTRIES =
+            ImmutableList.of(
+                    new BytesJarBuilderEntry(
+                            "META-INF/MANIFEST.MF",
+                            System.currentTimeMillis(),
+                            new byte[0]),
+                    new DirectoryJarBuilderEntry(
+                            "META-INF",
+                            System.currentTimeMillis()));
+
+    public static final Set<String> DEFAULT_ENTRY_NAMES = DEFAULT_ENTRIES.stream()
+            .map(JarBuilderEntry::getName)
+            .collect(toImmutableSet());
 
     @FunctionalInterface
     public interface ZipEntryConsumer
@@ -205,15 +214,16 @@ public final class JarBuilder
                 }
             };
 
-            for (String name : SPECIAL_NAMES) {
-                JarBuilderEntry jarBuilderEntry = entries.get(name);
-                if (jarBuilderEntry != null) {
-                    jarBuilderEntry.accept(addingVisitor, null);
+            for (JarBuilderEntry defaultJarBuilderEntry : DEFAULT_ENTRIES) {
+                JarBuilderEntry jarBuilderEntry = entries.get(defaultJarBuilderEntry.getName());
+                if (jarBuilderEntry == null) {
+                    jarBuilderEntry = defaultJarBuilderEntry;
                 }
+                jarBuilderEntry.accept(addingVisitor, null);
             }
 
             for (JarBuilderEntry jarBuilderEntry : entries.values()) {
-                if (SPECIAL_NAMES.contains(jarBuilderEntry.getName())) {
+                if (DEFAULT_ENTRY_NAMES.contains(jarBuilderEntry.getName())) {
                     continue;
                 }
 
