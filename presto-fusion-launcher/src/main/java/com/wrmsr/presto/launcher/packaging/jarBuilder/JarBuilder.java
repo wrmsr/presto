@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher.packaging.jarBuilder;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteStreams;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.BytesJarBuilderEntry;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.DirectoryJarBuilderEntry;
@@ -51,6 +52,10 @@ public final class JarBuilder
     private JarBuilder()
     {
     }
+
+    public static final Set<String> SPECIAL_NAMES = ImmutableSet.of(
+            "META-INF/MANIFEST.MF"
+    );
 
     @FunctionalInterface
     public interface ZipEntryConsumer
@@ -152,16 +157,18 @@ public final class JarBuilder
                 checkState(!seenNames.contains(jarBuilderEntry.getName()));
                 seenNames.add(jarBuilderEntry.getName());
 
-                for (String directory : getNameDirectories((jarBuilderEntry.getName()))) {
-                    if (!seenDirectories.contains(directory)) {
-                        seenDirectories.add(directory);
-                        try {
-                            JarEntry jarEntry = new JarEntry(directory);
-                            jo.putNextEntry(jarEntry);
-                            jo.write(new byte[0], 0, 0);
-                        }
-                        catch (IOException e) {
-                            throw Throwables.propagate(e);
+                if (!SPECIAL_NAMES.contains(jarBuilderEntry.getName())) {
+                    for (String directory : getNameDirectories(jarBuilderEntry.getName())) {
+                        if (!seenDirectories.contains(directory)) {
+                            seenDirectories.add(directory);
+                            try {
+                                JarEntry jarEntry = new JarEntry(directory);
+                                jo.putNextEntry(jarEntry);
+                                jo.write(new byte[0], 0, 0);
+                            }
+                            catch (IOException e) {
+                                throw Throwables.propagate(e);
+                            }
                         }
                     }
                 }
