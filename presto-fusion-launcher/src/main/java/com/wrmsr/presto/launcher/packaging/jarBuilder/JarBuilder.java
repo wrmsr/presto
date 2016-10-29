@@ -16,7 +16,6 @@ package com.wrmsr.presto.launcher.packaging.jarBuilder;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
-import com.wrmsr.presto.launcher.packaging.Manifests;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.BytesJarBuilderEntry;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.DirectoryJarBuilderEntry;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.entries.FileJarBuilderEntry;
@@ -34,14 +33,13 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
@@ -167,6 +165,22 @@ public final class JarBuilder
         Set<String> seenDirectories = new HashSet<>();
         try (BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outFile));
                 JarOutputStream jo = new JarOutputStream(bo)) {
+            Consumer<String> directoryCreator = name -> {
+                for (String directory : getNameDirectories(name)) {
+                    if (!seenDirectories.contains(directory)) {
+                        seenDirectories.add(directory);
+                        try {
+                            JarEntry jarEntry = new JarEntry(directory);
+                            jo.putNextEntry(jarEntry);
+                            jo.write(new byte[0], 0, 0);
+                        }
+                        catch (IOException e) {
+                            throw Throwables.propagate(e);
+                        }
+                    }
+                }
+            }
+
             JarBuilderEntryVisitor<Void, Void> addingVisitor = new JarBuilderEntryVisitor<Void, Void>()
             {
                 @Override
@@ -219,6 +233,7 @@ public final class JarBuilder
                 if (jarBuilderEntry == null) {
                     jarBuilderEntry = defaultJarBuilderEntry;
                 }
+                directoryCreator.accept(jarBuilderEntry.getName());
                 jarBuilderEntry.accept(addingVisitor, null);
             }
 
@@ -226,21 +241,7 @@ public final class JarBuilder
                 if (DEFAULT_ENTRY_NAMES.contains(jarBuilderEntry.getName())) {
                     continue;
                 }
-
-                for (String directory : getNameDirectories(jarBuilderEntry.getName())) {
-                    if (!seenDirectories.contains(directory)) {
-                        seenDirectories.add(directory);
-                        try {
-                            JarEntry jarEntry = new JarEntry(directory);
-                            jo.putNextEntry(jarEntry);
-                            jo.write(new byte[0], 0, 0);
-                        }
-                        catch (IOException e) {
-                            throw Throwables.propagate(e);
-                        }
-                    }
-                }
-
+                directoryCreator.accept(jarBuilderEntry.getName());
                 jarBuilderEntry.accept(addingVisitor, null);
             }
         }
