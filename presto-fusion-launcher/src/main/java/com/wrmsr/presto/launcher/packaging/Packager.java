@@ -159,7 +159,11 @@ public final class Packager
 
         File tmpDir = Files.createTempDir();
         tmpDir.deleteOnExit();
+
         try {
+            File tmpContentsDir = new File(tmpDir, "contents");
+            checkState(tmpContentsDir.mkdir());
+
             PackagerModule mainPackagerModule = null;
             for (PackagerModule packagerModule : modulesByName.values()) {
                 if (!packagerModule.getArtifactCoordinate().getName().equals(Models.getModelArtifactName(mainModel))) {
@@ -168,7 +172,7 @@ public final class Packager
                 checkState(mainPackagerModule == null);
                 mainPackagerModule = packagerModule;
 
-                Map<String, JarBuilderEntry> moduleJarBuilderEntries = buildModuleJarBuilderEntries(packagerModule, tmpDir, "");
+                Map<String, JarBuilderEntry> moduleJarBuilderEntries = buildModuleJarBuilderEntries(packagerModule, tmpContentsDir, "");
                 for (Map.Entry<String, JarBuilderEntry> entry : moduleJarBuilderEntries.entrySet()) {
                     jarBuilderEntries.put(entry.getKey(), entry.getValue());
                 }
@@ -180,7 +184,7 @@ public final class Packager
                 if (packagerModule == mainPackagerModule) {
                     continue;
                 }
-                File moduleDir = new File(tmpDir, packagerModule.getName());
+                File moduleDir = new File(tmpContentsDir, packagerModule.getName());
                 checkState(!moduleDir.exists());
                 java.nio.file.Files.createDirectories(moduleDir.toPath());
 
@@ -192,9 +196,12 @@ public final class Packager
                 }
             }
 
+            File tmpJarFile = new File(tmpDir, "jar");
             JarBuilder.buildJar(
                     jarBuilderEntries.values().stream().collect(toImmutableList()),
-                    jarFile);
+                    tmpJarFile);
+
+            Jars.makeExecutableJar(tmpJarFile, jarFile);
         }
         finally {
             if (!tmpDir.delete()) {
