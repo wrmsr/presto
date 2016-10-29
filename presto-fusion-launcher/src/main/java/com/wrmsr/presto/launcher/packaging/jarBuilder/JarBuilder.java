@@ -233,8 +233,21 @@ public final class JarBuilder
                 if (jarBuilderEntry == null) {
                     jarBuilderEntry = defaultJarBuilderEntry;
                 }
-                directoryCreator.accept(jarBuilderEntry.getName());
-                jarBuilderEntry.accept(addingVisitor, null);
+                jarBuilderEntry.accept(new JarBuilderEntryVisitor<Void, Void>() {
+                    @Override
+                    public Void visitEntry(JarBuilderEntry entry, Void context)
+                    {
+                        entry.accept(addingVisitor, null);
+                        return null;
+                    }
+
+                    @Override
+                    public Void visitDirectoryEntry(DirectoryJarBuilderEntry entry, Void context)
+                    {
+                        directoryCreator.accept(entry.getName());
+                        return null;
+                    }
+                }, null);
             }
 
             for (JarBuilderEntry jarBuilderEntry : entries.values()) {
