@@ -126,9 +126,12 @@ public final class Packager
                 modulePackagerModule.getJarFile(),
                 Optional.of(moduleClassPath));
 
+        checkState(modulePackagerModule.getJarFile().isPresent());
+        modulesByName.put(modulePackagerModule.getName(), modulePackagerModule);
+
         for (PackagerModule packagerModule : packagerModules) {
             checkState(packagerModule.getJarFile().isPresent());
-            if (packagerModule != modulePackagerModule) {
+            if (!packagerModule.getName().equals(modulePackagerModule.getName())) {
                 if (modulesByName.containsKey(packagerModule.getName())) {
                     PackagerModule existingPackagerModule = modulesByName.get(packagerModule.getName());
                     checkState(packagerModule.getArtifactCoordinate().equals(existingPackagerModule.getArtifactCoordinate()));
@@ -201,12 +204,12 @@ public final class Packager
         }
 
         if (packagerModule.getClassPath().isPresent()) {
-            String pomJarBuilderEntryName = packagerModule.getName() + "/" + Manifests.MANIFEST_PATH;
-            FileJarBuilderEntry pomJarBuilderEntry = (FileJarBuilderEntry) jarBuilderEntries.get(pomJarBuilderEntryName);
-            if (pomJarBuilderEntry == null) {
+            String manifestJarBuilderEntryName = packagerModule.getName() + "/" + Manifests.MANIFEST_PATH;
+            FileJarBuilderEntry manifestJarBuilderEntry = (FileJarBuilderEntry) jarBuilderEntries.get(manifestJarBuilderEntryName);
+            if (manifestJarBuilderEntry == null) {
                 File pomFile = new File(moduleDir, "/" + Manifests.MANIFEST_PATH);
                 checkState(!pomFile.exists());
-                pomJarBuilderEntry = new FileJarBuilderEntry(
+                manifestJarBuilderEntry = new FileJarBuilderEntry(
                         packagerModule.getName() + "/" + Manifests.MANIFEST_PATH,
                         pomFile);
             }
@@ -215,9 +218,9 @@ public final class Packager
             Collections.sort(classPath);
             String moduleClassPath = Joiner.on(":").join(classPath);
 
-            Manifest manifest = Manifests.parseManifest(Files.toByteArray(pomJarBuilderEntry.getFile()));
-            Attributes classPathAttributes = manifest.getAttributes(Manifests.MANIFEST_CLASS_PATH_KEY);
-            // manifest.getEntries().put(, moduleClassPath);
+            Manifest manifest = Manifests.parseManifest(Files.toByteArray(manifestJarBuilderEntry.getFile()));
+            manifest.getMainAttributes().put(new Attributes.Name(Manifests.MANIFEST_CLASS_PATH_KEY), moduleClassPath);
+            Files.write(Manifests.renderManifest(manifest), manifestJarBuilderEntry.getFile());
         }
 
         return jarBuilderEntries;
