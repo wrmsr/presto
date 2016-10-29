@@ -165,19 +165,23 @@ public final class JarBuilder
         Set<String> seenDirectories = new HashSet<>();
         try (BufferedOutputStream bo = new BufferedOutputStream(new FileOutputStream(outFile));
                 JarOutputStream jo = new JarOutputStream(bo)) {
-            Consumer<String> directoryCreator = name -> {
-                for (String directory : getNameDirectories(name)) {
-                    if (!seenDirectories.contains(directory)) {
-                        seenDirectories.add(directory);
-                        try {
-                            JarEntry jarEntry = new JarEntry(directory);
-                            jo.putNextEntry(jarEntry);
-                            jo.write(new byte[0], 0, 0);
-                        }
-                        catch (IOException e) {
-                            throw Throwables.propagate(e);
-                        }
+            Consumer<String> directoryCreator = directory -> {
+                if (!seenDirectories.contains(directory)) {
+                    seenDirectories.add(directory);
+                    try {
+                        JarEntry jarEntry = new JarEntry(directory);
+                        jo.putNextEntry(jarEntry);
+                        jo.write(new byte[0], 0, 0);
                     }
+                    catch (IOException e) {
+                        throw Throwables.propagate(e);
+                    }
+                }
+            };
+
+            Consumer<String> parentDirectoriesCreator = name -> {
+                for (String directory : getNameDirectories(name)) {
+                    directoryCreator.accept(directory);
                 }
             };
 
@@ -207,6 +211,7 @@ public final class JarBuilder
                 @Override
                 public Void visitDirectoryEntry(DirectoryJarBuilderEntry entry, Void context)
                 {
+                    directoryCreator.accept(entry);
                     return null;
                 }
 
@@ -233,28 +238,14 @@ public final class JarBuilder
                 if (jarBuilderEntry == null) {
                     jarBuilderEntry = defaultJarBuilderEntry;
                 }
-                jarBuilderEntry.accept(new JarBuilderEntryVisitor<Void, Void>() {
-                    @Override
-                    public Void visitEntry(JarBuilderEntry entry, Void context)
-                    {
-                        entry.accept(addingVisitor, null);
-                        return null;
-                    }
-
-                    @Override
-                    public Void visitDirectoryEntry(DirectoryJarBuilderEntry entry, Void context)
-                    {
-                        directoryCreator.accept(entry.getName());
-                        return null;
-                    }
-                }, null);
+                jarBuilderEntry.accept(addingVisitor, null);
             }
 
             for (JarBuilderEntry jarBuilderEntry : entries.values()) {
                 if (DEFAULT_ENTRY_NAMES.contains(jarBuilderEntry.getName())) {
                     continue;
                 }
-                directoryCreator.accept(jarBuilderEntry.getName());
+                parentDirectoriesCreator.accept(jarBuilderEntry.getName());
                 jarBuilderEntry.accept(addingVisitor, null);
             }
         }
