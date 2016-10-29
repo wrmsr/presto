@@ -179,7 +179,7 @@ public final class JarBuilder
                         }
                     }
                 }
-            }
+            };
 
             JarBuilderEntryVisitor<Void, Void> addingVisitor = new JarBuilderEntryVisitor<Void, Void>()
             {
