@@ -14,6 +14,7 @@
 package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import com.wrmsr.presto.launcher.packaging.artifacts.ArtifactCoordinate;
@@ -151,7 +152,7 @@ public final class Packager
         return modulePackagerModule;
     }
 
-    private void buildJar(Model mainModel)
+    private void buildJar(Model mainModel, File jarFile)
             throws IOException
     {
         Map<String, JarBuilderEntry> jarBuilderEntries = new LinkedHashMap<>();
@@ -167,11 +168,13 @@ public final class Packager
                 checkState(mainPackagerModule == null);
                 mainPackagerModule = packagerModule;
 
-                Map<String, JarBuilderEntry> moduleJarBuilderEntries = buildModuleJarBuilderEntries(packagerModule, tmpDir);
+                Map<String, JarBuilderEntry> moduleJarBuilderEntries = buildModuleJarBuilderEntries(packagerModule, tmpDir, "");
                 for (Map.Entry<String, JarBuilderEntry> entry : moduleJarBuilderEntries.entrySet()) {
                     jarBuilderEntries.put(entry.getKey(), entry.getValue());
                 }
             }
+
+            checkState(mainPackagerModule != null);
 
             for (PackagerModule packagerModule : modulesByName.values()) {
                 if (packagerModule == mainPackagerModule) {
@@ -181,14 +184,17 @@ public final class Packager
                 checkState(!moduleDir.exists());
                 java.nio.file.Files.createDirectories(moduleDir.toPath());
 
-                Map<String, JarBuilderEntry> moduleJarBuilderEntries = buildModuleJarBuilderEntries(packagerModule, moduleDir);
+                String prefix = Strings.isNullOrEmpty(packagerModule.getName()) ? "" : packagerModule.getName() + "/";
+                Map<String, JarBuilderEntry> moduleJarBuilderEntries = buildModuleJarBuilderEntries(packagerModule, moduleDir, prefix);
                 for (Map.Entry<String, JarBuilderEntry> entry : moduleJarBuilderEntries.entrySet()) {
                     checkState(!jarBuilderEntries.containsKey(entry.getKey()));
                     jarBuilderEntries.put(entry.getKey(), entry.getValue());
                 }
             }
 
-            System.out.println(jarBuilderEntries.size());
+            JarBuilder.buildJar(
+                    jarBuilderEntries.values().stream().collect(toImmutableList()),
+                    jarFile);
         }
         finally {
             if (!tmpDir.delete()) {
@@ -197,7 +203,7 @@ public final class Packager
         }
     }
 
-    private Map<String, JarBuilderEntry> buildModuleJarBuilderEntries(PackagerModule packagerModule, File moduleDir)
+    private Map<String, JarBuilderEntry> buildModuleJarBuilderEntries(PackagerModule packagerModule, File moduleDir, String namePrefix)
             throws IOException
     {
         Map<String, JarBuilderEntry> jarBuilderEntries = new LinkedHashMap<>();
@@ -208,20 +214,20 @@ public final class Packager
         for (JarBuilderEntry jarBuilderEntry : moduleJarBuilderEntries) {
             JarBuilderEntry renamedJarBuilderEntry = JarBuilderEntries.renameJarBuilderEntry(
                     jarBuilderEntry,
-                    packagerModule.getName() + "/" + jarBuilderEntry.getName());
+                    namePrefix + jarBuilderEntry.getName());
 
             checkState(!jarBuilderEntries.containsKey(renamedJarBuilderEntry.getName()));
             jarBuilderEntries.put(renamedJarBuilderEntry.getName(), renamedJarBuilderEntry);
         }
 
         if (packagerModule.getClassPath().isPresent()) {
-            String manifestJarBuilderEntryName = packagerModule.getName() + "/" + Manifests.MANIFEST_PATH;
+            String manifestJarBuilderEntryName = namePrefix + Manifests.MANIFEST_PATH;
             FileJarBuilderEntry manifestJarBuilderEntry = (FileJarBuilderEntry) jarBuilderEntries.get(manifestJarBuilderEntryName);
             if (manifestJarBuilderEntry == null) {
                 File pomFile = new File(moduleDir, "/" + Manifests.MANIFEST_PATH);
                 checkState(!pomFile.exists());
                 manifestJarBuilderEntry = new FileJarBuilderEntry(
-                        packagerModule.getName() + "/" + Manifests.MANIFEST_PATH,
+                        namePrefix + Manifests.MANIFEST_PATH,
                         pomFile);
             }
 
@@ -288,6 +294,6 @@ public final class Packager
         }
 
         File outputJarFile = new File(System.getProperty("user.home") + "/fusion/fusion");
-        packager.buildJar(Models.readModelModule(parentModel, mainModuleName));
+        packager.buildJar(Models.readModelModule(parentModel, mainModuleName), outputJarFile);
     }
 }

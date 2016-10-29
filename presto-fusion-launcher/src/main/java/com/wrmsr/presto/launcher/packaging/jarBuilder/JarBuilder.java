@@ -164,52 +164,54 @@ public final class JarBuilder
                             throw Throwables.propagate(e);
                         }
                     }
-
-                    jarBuilderEntry.accept(new JarBuilderEntryVisitor<Void, Void>()
-                    {
-                        @Override
-                        public Void visitEntry(JarBuilderEntry jarBuilderEntry, Void context)
-                        {
-                            throw new IllegalStateException();
-                        }
-
-                        @Override
-                        public Void visitBytesEntry(BytesJarBuilderEntry entry, Void context)
-                        {
-                            try {
-                                JarEntry jarEntry = new JarEntry(entry.getName());
-                                entry.bestowJarEntryAttributes(jarEntry);
-                                jo.write(entry.getBytes(), 0, entry.getBytes().length);
-                            }
-                            catch (IOException e) {
-                                throw Throwables.propagate(e);
-                            }
-                            return null;
-                        }
-
-                        @Override
-                        public Void visitDirectoryEntry(DirectoryJarBuilderEntry entry, Void context)
-                        {
-                            return null;
-                        }
-
-                        @Override
-                        public Void visitFileEntry(FileJarBuilderEntry entry, Void context)
-                        {
-                            try {
-                                JarEntry jarEntry = new JarEntry(entry.getName());
-                                entry.bestowJarEntryAttributes(jarEntry);
-                                try (BufferedInputStream bi = new BufferedInputStream(new FileInputStream(entry.getFile()))) {
-                                    ByteStreams.copy(bi, jo);
-                                }
-                            }
-                            catch (IOException e) {
-                                throw Throwables.propagate(e);
-                            }
-                            return null;
-                        }
-                    }, null);
                 }
+
+                jarBuilderEntry.accept(new JarBuilderEntryVisitor<Void, Void>()
+                {
+                    @Override
+                    public Void visitEntry(JarBuilderEntry jarBuilderEntry, Void context)
+                    {
+                        throw new IllegalStateException();
+                    }
+
+                    @Override
+                    public Void visitBytesEntry(BytesJarBuilderEntry entry, Void context)
+                    {
+                        try {
+                            JarEntry jarEntry = new JarEntry(entry.getName());
+                            entry.bestowJarEntryAttributes(jarEntry);
+                            jo.putNextEntry(jarEntry);
+                            jo.write(entry.getBytes(), 0, entry.getBytes().length);
+                        }
+                        catch (IOException e) {
+                            throw Throwables.propagate(e);
+                        }
+                        return null;
+                    }
+
+                    @Override
+                    public Void visitDirectoryEntry(DirectoryJarBuilderEntry entry, Void context)
+                    {
+                        return null;
+                    }
+
+                    @Override
+                    public Void visitFileEntry(FileJarBuilderEntry entry, Void context)
+                    {
+                        try {
+                            JarEntry jarEntry = new JarEntry(entry.getName());
+                            entry.bestowJarEntryAttributes(jarEntry);
+                            jo.putNextEntry(jarEntry);
+                            try (BufferedInputStream bi = new BufferedInputStream(new FileInputStream(entry.getFile()))) {
+                                ByteStreams.copy(bi, jo);
+                            }
+                        }
+                        catch (IOException e) {
+                            throw Throwables.propagate(e);
+                        }
+                        return null;
+                    }
+                }, null);
             }
         }
     }
