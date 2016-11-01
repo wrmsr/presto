@@ -71,7 +71,7 @@ dist:
 		-Dexec.mainClass=com.wrmsr.presto.launcher.packaging.Packager
 
 .PHONY: pull-updates
-update:
+pull-updates:
 	git update-index -q --ignore-submodules --refresh
 	git diff-files --quiet --ignore-submodules -- ; \
 	if [ $$? -ne 0 ] ; then \
