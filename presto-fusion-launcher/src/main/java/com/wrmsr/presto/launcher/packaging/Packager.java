@@ -56,6 +56,7 @@ import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableSet;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toOnly;
 import static com.wrmsr.presto.util.collect.MoreOptionals.firstOrSameOptional;
+import static java.nio.file.Files.readAllBytes;
 import static java.util.Objects.requireNonNull;
 
 public final class Packager
@@ -239,7 +240,7 @@ public final class Packager
             Collections.sort(classPath);
             String moduleClassPath = Joiner.on(":").join(classPath);
 
-            Manifest manifest = Manifests.parseManifest(Files.toByteArray(manifestJarBuilderEntry.getFile()));
+            Manifest manifest = Manifests.parseManifest(readAllBytes(manifestJarBuilderEntry.getFile().toPath()));
             manifest.getMainAttributes().put(new Attributes.Name(Manifests.MANIFEST_CLASS_PATH_KEY), moduleClassPath);
             Files.write(Manifests.renderManifest(manifest), manifestJarBuilderEntry.getFile());
         }
