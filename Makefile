@@ -104,7 +104,11 @@ pull-updates:
 			's/^([ ]{8}<version>)0\.[0-9]+-SNAPSHOT(<\/version>)/\1$(VERSION)\2/'
 	find . -mindepth 2 -maxdepth 2 -name 'pom.xml' -type f | \
 		xargs -n 1 git add
-	git commit -m "Update to version $(VERSION)"
+	git diff-index --cached --quiet HEAD --ignore-submodules -- ; \
+	if [ $$? -ne 0 ] ; then \
+		set -e
+		git commit -m "Update to version $(VERSION)" ; \
+	fi
 
 .PHONY: update
 update: | pull-updates clean install
