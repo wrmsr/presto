@@ -106,7 +106,7 @@ pull-updates:
 		xargs -n 1 git add
 	git diff-index --cached --quiet HEAD --ignore-submodules -- ; \
 	if [ $$? -ne 0 ] ; then \
-		set -e
+		set -e ; \
 		git commit -m "Update to version $(VERSION)" ; \
 	fi
 
