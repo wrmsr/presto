@@ -51,6 +51,20 @@
             <artifactId>resolver</artifactId>
         </dependency>
 
+        <!--
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-loader</artifactId>
+            <version>1.4.1.RELEASE</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-loader-tools</artifactId>
+            <version>1.4.1.RELEASE</version>
+        </dependency>
+        -->
+
         <dependency>
             <groupId>org.sonatype.aether</groupId>
             <artifactId>aether-api</artifactId>

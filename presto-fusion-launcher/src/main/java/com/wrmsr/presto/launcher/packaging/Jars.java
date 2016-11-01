@@ -13,7 +13,9 @@
  */
 package com.wrmsr.presto.launcher.packaging;
 
+import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
+import com.wrmsr.presto.launcher.packaging.jarBuilder.JarBuilder;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -24,6 +26,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
+import java.nio.ByteOrder;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -38,6 +44,7 @@ public final class Jars
             throws IOException
     {
         checkState(inputFile.isFile());
+        checkState(inputFile.length() < Integer.MAX_VALUE);
         checkState(outputFile.getParentFile().isDirectory());
 
         byte[] launcherBytes;
@@ -48,13 +55,37 @@ public final class Jars
         try (InputStream fi = new BufferedInputStream(new FileInputStream(inputFile));
                 OutputStream fo = new BufferedOutputStream(new FileOutputStream(outputFile))) {
             fo.write(launcherBytes, 0, launcherBytes.length);
-            fo.write(new byte[] {'\n', '\n'});
-            byte[] buf = new byte[65536];
-            int anz;
-            while ((anz = fi.read(buf)) != -1) {
-                fo.write(buf, 0, anz);
+            ByteStreams.copy(fi, fo);
+        }
+
+        try (RandomAccessFile file = new RandomAccessFile(outputFile, "rws")) {
+            MappedByteBuffer buf = file.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, file.length());
+            buf.order(ByteOrder.nativeOrder());
+
+            // https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
+
+            int endOfCentralDirectoryPos = -1;
+            for (int pos = buf.capacity() - 4; pos > buf.capacity() - 65536; --pos) {
+                int i = buf.getInt(pos);
+                if (i == 0x06054b50) {
+                    endOfCentralDirectoryPos = pos;
+                    break;
+                }
+            }
+            checkState(endOfCentralDirectoryPos >= 0);
+
+            int zip64EndOfCentralDirectoryLocatorPos = endOfCentralDirectoryPos - 20;
+            if (buf.getInt(zip64EndOfCentralDirectoryLocatorPos) == 0x07064b50) {
+                int locoffPos = zip64EndOfCentralDirectoryLocatorPos + 8;
+                long oldLocoff = buf.getLong(locoffPos);
+                checkState(oldLocoff < file.length());
+                buf.putLong(locoffPos, oldLocoff + launcherBytes.length);
             }
         }
+
+        JarBuilder.enumerateZipEntries(outputFile, (zipFile, zipEntry) -> {
+            System.out.println(zipEntry);
+        });
 
         checkState(outputFile.setExecutable(true, false));
     }

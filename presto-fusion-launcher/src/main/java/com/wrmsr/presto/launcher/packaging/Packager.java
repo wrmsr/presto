@@ -156,6 +156,8 @@ public final class Packager
     private void buildJar(Model mainModel, File jarFile)
             throws IOException
     {
+        checkState(jarFile.getParentFile().isDirectory());
+
         Map<String, JarBuilderEntry> jarBuilderEntries = new LinkedHashMap<>();
 
         File tmpDir = Files.createTempDir();
@@ -248,7 +250,7 @@ public final class Packager
         return jarBuilderEntries;
     }
 
-    public static void main(String[] args)
+    public static void main2(String[] args)
             throws Exception
     {
         Logging.initialize();
@@ -300,5 +302,11 @@ public final class Packager
 
         File outputJarFile = new File(System.getProperty("user.home") + "/fusion/fusion");
         packager.buildJar(Models.readModelModule(parentModel, mainModuleName), outputJarFile);
+    }
+
+    public static void main(String[] args)
+            throws Exception
+    {
+        Jars.makeExecutableJar(new File("/var/folders/nn/lv5tgk0x59vc4mb7bn7w47j40000gn/T/1477999882558-0/jar"), new File("/Users/spinlock/fusion/fusion2"));
     }
 }
