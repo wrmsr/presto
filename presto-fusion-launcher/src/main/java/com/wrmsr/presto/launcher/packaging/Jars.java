@@ -91,7 +91,10 @@ public final class Jars
                 long zip64OffsetOfStartOfCentralDirectory = buf.getLong(zip64OffsetOfStartOfCentralDirectoryPos);
                 checkState(zip64OffsetOfStartOfCentralDirectory < zip64EndOfCentralDirectoryOffset);
                 zip64OffsetOfStartOfCentralDirectory += launcherBytes.length;
-//                buf.putLong(zip64OffsetOfStartOfCentralDirectoryPos, zip64OffsetOfStartOfCentralDirectory);
+
+                checkState(buf.getInt((int) zip64OffsetOfStartOfCentralDirectory) == 0x02014b50);
+
+                buf.putLong(zip64OffsetOfStartOfCentralDirectoryPos, zip64OffsetOfStartOfCentralDirectory);
             }
         }
 
