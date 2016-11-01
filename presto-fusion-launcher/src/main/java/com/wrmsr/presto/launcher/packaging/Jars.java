@@ -79,10 +79,19 @@ public final class Jars
 
             int zip64EndOfCentralDirectoryLocatorPos = endOfCentralDirectoryPos - 20;
             if (buf.getInt(zip64EndOfCentralDirectoryLocatorPos) == 0x07064b50) {
-                int locoffPos = zip64EndOfCentralDirectoryLocatorPos + 8;
-                long oldLocoff = buf.getLong(locoffPos);
-                checkState(oldLocoff < file.length());
-                buf.putLong(locoffPos, oldLocoff + launcherBytes.length);
+                int zip64EndOfCentralDirectoryOffsetPos = zip64EndOfCentralDirectoryLocatorPos + 8;
+                long zip64EndOfCentralDirectoryOffset = buf.getLong(zip64EndOfCentralDirectoryOffsetPos);
+                checkState(zip64EndOfCentralDirectoryOffset < file.length());
+                zip64EndOfCentralDirectoryOffset += launcherBytes.length;
+
+                checkState(buf.getInt((int) zip64EndOfCentralDirectoryOffset) == 0x06064b50);
+                buf.putLong(zip64EndOfCentralDirectoryOffsetPos, zip64EndOfCentralDirectoryOffset);
+
+                int zip64OffsetOfStartOfCentralDirectoryPos = (int) zip64EndOfCentralDirectoryOffset + 48;
+                long zip64OffsetOfStartOfCentralDirectory = buf.getLong(zip64OffsetOfStartOfCentralDirectoryPos);
+                checkState(zip64OffsetOfStartOfCentralDirectory < zip64EndOfCentralDirectoryOffset);
+                zip64OffsetOfStartOfCentralDirectory += launcherBytes.length;
+//                buf.putLong(zip64OffsetOfStartOfCentralDirectoryPos, zip64OffsetOfStartOfCentralDirectory);
             }
         }
 
