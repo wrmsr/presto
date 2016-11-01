@@ -93,6 +93,14 @@ public final class JarBuilder
         }
     }
 
+    public static Set<String> getZipEntryNames(File inFile)
+            throws IOException
+    {
+        Set<String> names = new HashSet<>();
+        enumerateZipEntries(inFile, (zipFile, zipEntry) -> names.add(zipEntry.getName()));
+        return names;
+    }
+
     public static List<JarBuilderEntry> getEntriesAsBytes(File inFile)
             throws IOException
     {

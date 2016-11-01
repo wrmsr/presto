@@ -31,6 +31,7 @@ import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -46,6 +47,8 @@ public final class Jars
         checkState(inputFile.isFile());
         checkState(inputFile.length() < Integer.MAX_VALUE);
         checkState(outputFile.getParentFile().isDirectory());
+
+        Set<String> beforeNames = JarBuilder.getZipEntryNames(inputFile);
 
         byte[] launcherBytes;
         try (InputStream launcherStream = OldPackager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/packaging/entrypoint")) {
@@ -83,9 +86,8 @@ public final class Jars
             }
         }
 
-        JarBuilder.enumerateZipEntries(outputFile, (zipFile, zipEntry) -> {
-            System.out.println(zipEntry);
-        });
+        Set<String> afterNames = JarBuilder.getZipEntryNames(outputFile);
+        checkState(beforeNames.equals(afterNames));
 
         checkState(outputFile.setExecutable(true, false));
     }
