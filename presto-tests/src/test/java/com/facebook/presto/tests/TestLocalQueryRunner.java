@@ -11,27 +11,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.raptor.storage;
+package com.facebook.presto.tests;
 
-import com.facebook.presto.raptor.metadata.ShardInfo;
-import com.facebook.presto.spi.Page;
+import org.testng.annotations.Test;
 
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-
-public interface StoragePageSink
+public class TestLocalQueryRunner
+        extends AbstractTestQueryFramework
 {
-    void appendPages(List<Page> pages);
+    public TestLocalQueryRunner()
+    {
+        super(TestLocalQueries.createLocalQueryRunner());
+    }
 
-    void appendPages(List<Page> pages, int[] pageIndexes, int[] positionIndexes);
-
-    void appendRow(Row row);
-
-    boolean isFull();
-
-    void flush();
-
-    CompletableFuture<List<ShardInfo>> commit();
-
-    void rollback();
+    @Test
+    public void testSimpleQuery()
+            throws Exception
+    {
+        assertQuery("SELECT * FROM nation");
+    }
 }
