@@ -92,8 +92,10 @@ public final class Jars
                 checkState(zip64OffsetOfStartOfCentralDirectory < zip64EndOfCentralDirectoryOffset);
                 zip64OffsetOfStartOfCentralDirectory += launcherBytes.length;
 
+                checkState(buf.getInt(endOfCentralDirectoryPos + 16) == (int) zip64OffsetOfStartOfCentralDirectory);
                 checkState(buf.getInt((int) zip64OffsetOfStartOfCentralDirectory) == 0x02014b50);
 
+                buf.putInt(endOfCentralDirectoryPos + 16, (int) zip64OffsetOfStartOfCentralDirectory);
                 buf.putLong(zip64OffsetOfStartOfCentralDirectoryPos, zip64OffsetOfStartOfCentralDirectory);
             }
         }
