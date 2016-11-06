@@ -100,7 +100,7 @@ pull-updates:
 	echo VERSION=$$VERSION ; \
 	find . -mindepth 2 -maxdepth 2 -name 'pom.xml' -type f | \
 		xargs -n 1 sed -E -i '' \
-			's/^([ ]{8}<version>)0\.[0-9]+-SNAPSHOT(<\/version>)/\1$$VERSION\2/' ; \
+			's/^([ ]{8}<version>)0\.[0-9]+-SNAPSHOT(<\/version>)/\1'"$$VERSION"'\2/' ; \
 	find . -mindepth 2 -maxdepth 2 -name 'pom.xml' -type f | \
 		xargs -n 1 git add ; \
 	git diff-index --cached --quiet HEAD --ignore-submodules -- ; \
