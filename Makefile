@@ -90,10 +90,10 @@ pull-updates:
 		exit 1 ; \
 	fi
 	git pull upstream master --no-edit
-	$(eval VERSION=$$(shell \
+	VERSION=$$(shell \
 		egrep -o '^[ ]{4}<version>0\.[0-9]+-SNAPSHOT</version>' pom.xml | \
 		head -n 1 | \
-		egrep -o '0\.[0-9]+-SNAPSHOT' ))
+		egrep -o '0\.[0-9]+-SNAPSHOT' )
 	if [ -z "$(VERSION)" ] ; then \
 		echo >&2 "Failed to find version" ; \
 		exit 1 ; \
