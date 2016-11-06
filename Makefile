@@ -90,24 +90,24 @@ pull-updates:
 		exit 1 ; \
 	fi
 	git pull upstream master --no-edit
-	VERSION=$(shell \
-		egrep -o '^[ ]{4}<version>0\.[0-9]+-SNAPSHOT</version>' pom.xml | \
+	set -e ; \
+	VERSION=$$(egrep -o '^[ ]{4}<version>0\.[0-9]+-SNAPSHOT</version>' pom.xml | \
 		head -n 1 | \
-		egrep -o '0\.[0-9]+-SNAPSHOT' )
-	if [ -z "$(VERSION)" ] ; then \
+		egrep -o '0\.[0-9]+-SNAPSHOT') ; \
+	if [ -z "$$VERSION" ] ; then \
 		echo >&2 "Failed to find version" ; \
 		exit 1 ; \
-	fi
-	@echo VERSION=$(VERSION)
+	fi \
+	echo VERSION=$$VERSION ; \
 	find . -mindepth 2 -maxdepth 2 -name 'pom.xml' -type f | \
 		xargs -n 1 sed -E -i '' \
-			's/^([ ]{8}<version>)0\.[0-9]+-SNAPSHOT(<\/version>)/\1$(VERSION)\2/'
+			's/^([ ]{8}<version>)0\.[0-9]+-SNAPSHOT(<\/version>)/\1$$VERSION\2/' ; \
 	find . -mindepth 2 -maxdepth 2 -name 'pom.xml' -type f | \
-		xargs -n 1 git add
+		xargs -n 1 git add ; \
 	git diff-index --cached --quiet HEAD --ignore-submodules -- ; \
 	if [ $$? -ne 0 ] ; then \
 		set -e ; \
-		git commit -m "Update to version $(VERSION)" ; \
+		git commit -m "Update to version $$VERSION" ; \
 	fi
 
 .PHONY: update
