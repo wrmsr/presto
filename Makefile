@@ -97,7 +97,7 @@ pull-updates:
 	if [ -z "$$VERSION" ] ; then \
 		echo >&2 "Failed to find version" ; \
 		exit 1 ; \
-	fi \
+	fi ; \
 	echo VERSION=$$VERSION ; \
 	find . -mindepth 2 -maxdepth 2 -name 'pom.xml' -type f | \
 		xargs -n 1 sed -E -i '' \
