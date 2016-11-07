@@ -15,6 +15,7 @@ package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
+import com.google.common.io.Files;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.JarBuilder;
 
 import java.io.BufferedInputStream;
@@ -48,6 +49,10 @@ public final class Jars
         checkState(inputFile.length() < Integer.MAX_VALUE);
         checkState(outputFile.getParentFile().isDirectory());
 
+        File tmpDir = Files.createTempDir();
+        tmpDir.deleteOnExit();
+        File tmpOutputFile = new File(tmpDir, "jar");
+
         Set<String> beforeNames = JarBuilder.getZipEntryNames(inputFile);
 
         byte[] launcherBytes;
@@ -56,12 +61,12 @@ public final class Jars
         }
 
         try (InputStream fi = new BufferedInputStream(new FileInputStream(inputFile));
-                OutputStream fo = new BufferedOutputStream(new FileOutputStream(outputFile))) {
+                OutputStream fo = new BufferedOutputStream(new FileOutputStream(tmpOutputFile))) {
             fo.write(launcherBytes, 0, launcherBytes.length);
             ByteStreams.copy(fi, fo);
         }
 
-        try (RandomAccessFile file = new RandomAccessFile(outputFile, "rws")) {
+        try (RandomAccessFile file = new RandomAccessFile(tmpOutputFile, "rws")) {
             MappedByteBuffer buf = file.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, file.length());
             buf.order(ByteOrder.nativeOrder());
 
@@ -98,9 +103,9 @@ public final class Jars
             }
         }
 
-        Set<String> afterNames = JarBuilder.getZipEntryNames(outputFile);
+        Set<String> afterNames = JarBuilder.getZipEntryNames(tmpOutputFile);
         checkState(beforeNames.equals(afterNames));
-
-        checkState(outputFile.setExecutable(true, false));
+        checkState(tmpOutputFile.setExecutable(true, false));
+        checkState(tmpOutputFile.renameTo(outputFile));
     }
 }
