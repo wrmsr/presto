@@ -85,7 +85,7 @@ public final class Jars
             int zip64EndOfCentralDirectoryLocatorPos = endOfCentralDirectoryPos - 20;
             if (buf.getInt(zip64EndOfCentralDirectoryLocatorPos) == 0x07064b50) {
                 int zip64EndOfCentralDirectoryOffsetPos = zip64EndOfCentralDirectoryLocatorPos + 8;
-                long zip64EndOfCentralDirectoryOffset = buf.getLong(zip64EndOfCentralDirectoryOffsetPos);
+                long zip64EndOfCentralDirectoryOffset = buf.getLong(zip64EndOfCentralDirectoryOffsetPos); // ecrec
                 checkState(zip64EndOfCentralDirectoryOffset < file.length());
                 zip64EndOfCentralDirectoryOffset += launcherBytes.length;
 
