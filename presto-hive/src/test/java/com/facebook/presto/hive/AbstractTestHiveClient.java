@@ -516,7 +516,7 @@ public abstract class AbstractTestHiveClient
         }
 
         HiveCluster hiveCluster = new TestingHiveCluster(hiveClientConfig, host, port);
-        metastoreClient = new CachingHiveMetastore(new BridgingHiveMetastore(new ThriftHiveMetastore(hiveCluster)), executor, Duration.valueOf("1m"), Duration.valueOf("15s"));
+        metastoreClient = new CachingHiveMetastore(new BridgingHiveMetastore(new ThriftHiveMetastore(hiveCluster)), executor, Duration.valueOf("1m"), Duration.valueOf("15s"), 10000);
         HiveConnectorId connectorId = new HiveConnectorId(connectorName);
         HdfsConfiguration hdfsConfiguration = new HiveHdfsConfiguration(new HdfsConfigurationUpdater(hiveClientConfig));
 
@@ -537,6 +537,7 @@ public abstract class AbstractTestHiveClient
                 true,
                 true,
                 HiveStorageFormat.RCBINARY,
+                1000,
                 typeManager,
                 locationService,
                 new TableParameterCodec(),
@@ -945,7 +946,6 @@ public abstract class AbstractTestHiveClient
             assertEquals(actualPartition.getKeys(), expectedPartition.getKeys());
             assertEquals(actualPartition.getTableName(), expectedPartition.getTableName());
             assertEquals(actualPartition.getBuckets(), expectedPartition.getBuckets());
-            assertEquals(actualPartition.getTupleDomain(), expectedPartition.getTupleDomain());
         }
     }
 
