@@ -139,6 +139,8 @@ public class HiveClientConfig
     private boolean bucketExecutionEnabled = true;
     private boolean bucketWritingEnabled = true;
 
+    private int fileSystemMaxCacheSize = 1000;
+
     public int getMaxInitialSplits()
     {
         return maxInitialSplits;
@@ -1126,7 +1128,7 @@ public class HiveClientConfig
     }
 
     @Config("hive.bucket-execution")
-    @ConfigDescription("Use bucketing to speed up execution")
+    @ConfigDescription("Enable bucket-aware execution: only use a single worker per bucket")
     public HiveClientConfig setBucketExecutionEnabled(boolean bucketExecutionEnabled)
     {
         this.bucketExecutionEnabled = bucketExecutionEnabled;
@@ -1143,6 +1145,19 @@ public class HiveClientConfig
     public HiveClientConfig setBucketWritingEnabled(boolean bucketWritingEnabled)
     {
         this.bucketWritingEnabled = bucketWritingEnabled;
+        return this;
+    }
+
+    public int getFileSystemMaxCacheSize()
+    {
+        return fileSystemMaxCacheSize;
+    }
+
+    @Config("hive.fs.cache.max-size")
+    @ConfigDescription("Hadoop FileSystem cache size")
+    public HiveClientConfig setFileSystemMaxCacheSize(int fileSystemMaxCacheSize)
+    {
+        this.fileSystemMaxCacheSize = fileSystemMaxCacheSize;
         return this;
     }
 }
