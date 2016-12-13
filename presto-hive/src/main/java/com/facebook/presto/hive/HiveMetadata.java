@@ -105,7 +105,7 @@ import static com.facebook.presto.hive.HiveTableProperties.getPartitionedBy;
 import static com.facebook.presto.hive.HiveType.HIVE_STRING;
 import static com.facebook.presto.hive.HiveType.toHiveType;
 import static com.facebook.presto.hive.HiveUtil.PRESTO_VIEW_FLAG;
-import static com.facebook.presto.hive.HiveUtil.annotateColumnComment;
+import static com.facebook.presto.hive.HiveUtil.columnExtraInfo;
 import static com.facebook.presto.hive.HiveUtil.decodeViewData;
 import static com.facebook.presto.hive.HiveUtil.encodeViewData;
 import static com.facebook.presto.hive.HiveUtil.hiveColumnHandles;
@@ -155,7 +155,6 @@ public class HiveMetadata
     private final TableParameterCodec tableParameterCodec;
     private final JsonCodec<PartitionUpdate> partitionUpdateCodec;
     private final boolean respectTableFormat;
-    private final boolean bucketExecutionEnabled;
     private final boolean bucketWritingEnabled;
     private final HiveStorageFormat defaultStorageFormat;
     private final TypeTranslator typeTranslator;
@@ -169,7 +168,6 @@ public class HiveMetadata
             DateTimeZone timeZone,
             boolean allowCorruptWritesForTesting,
             boolean respectTableFormat,
-            boolean bucketExecutionEnabled,
             boolean bucketWritingEnabled,
             HiveStorageFormat defaultStorageFormat,
             TypeManager typeManager,
@@ -192,7 +190,6 @@ public class HiveMetadata
         this.tableParameterCodec = requireNonNull(tableParameterCodec, "tableParameterCodec is null");
         this.partitionUpdateCodec = requireNonNull(partitionUpdateCodec, "partitionUpdateCodec is null");
         this.respectTableFormat = respectTableFormat;
-        this.bucketExecutionEnabled = bucketExecutionEnabled;
         this.bucketWritingEnabled = bucketWritingEnabled;
         this.defaultStorageFormat = requireNonNull(defaultStorageFormat, "defaultStorageFormat is null");
         this.typeTranslator = requireNonNull(typeTranslator, "typeTranslator is null");
@@ -272,7 +269,7 @@ public class HiveMetadata
     public Optional<Object> getInfo(ConnectorTableLayoutHandle layoutHandle)
     {
         HiveTableLayoutHandle tableLayoutHandle = checkType(layoutHandle, HiveTableLayoutHandle.class, "layoutHandle");
-        if (!tableLayoutHandle.getPartitions().isPresent()) {
+        if (tableLayoutHandle.getPartitions().isPresent()) {
             return Optional.of(new HiveInputInfo(tableLayoutHandle.getPartitions().get().stream()
                     .map(HivePartition::getPartitionId)
                     .collect(Collectors.toList())));
@@ -489,6 +486,16 @@ public class HiveMetadata
             }
         }
 
+        ImmutableMap.Builder<String, String> tableParameters = ImmutableMap.<String, String>builder()
+                .put("comment", "Created by Presto")
+                .put(PRESTO_VERSION_NAME, prestoVersion)
+                .put(PRESTO_QUERY_ID_NAME, queryId)
+                .putAll(additionalTableParameters);
+
+        if (external) {
+            tableParameters.put("EXTERNAL", "TRUE");
+        }
+
         Table.Builder tableBuilder = Table.builder()
                 .setDatabaseName(schemaName)
                 .setTableName(tableName)
@@ -496,12 +503,8 @@ public class HiveMetadata
                 .setTableType((external ? EXTERNAL_TABLE : MANAGED_TABLE).name())
                 .setDataColumns(columns.build())
                 .setPartitionColumns(partitionColumns)
-                .setParameters(ImmutableMap.<String, String>builder()
-                        .put("comment", "Created by Presto")
-                        .put(PRESTO_VERSION_NAME, prestoVersion)
-                        .put(PRESTO_QUERY_ID_NAME, queryId)
-                        .putAll(additionalTableParameters)
-                        .build());
+                .setParameters(tableParameters.build());
+
         tableBuilder.getStorageBuilder()
                 .setStorageFormat(fromHiveStorageFormat(hiveStorageFormat))
                 .setBucketProperty(bucketProperty)
@@ -1327,7 +1330,8 @@ public class HiveMetadata
         return handle -> new ColumnMetadata(
                 handle.getName(),
                 typeManager.getType(handle.getTypeSignature()),
-                annotateColumnComment(columnComment.get(handle.getName()), handle.isPartitionKey()),
+                columnComment.get(handle.getName()).orElse(null),
+                columnExtraInfo(handle.isPartitionKey()),
                 handle.isHidden());
     }
 

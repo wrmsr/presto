@@ -138,7 +138,7 @@ public class TestLogicalPlanner
                 countOfMatchingNodes(
                         plan("SELECT * FROM orders o1 JOIN orders o2 ON o1.orderkey = (SELECT 1) AND o2.orderkey = (SELECT 1) AND o1.orderkey + o2.orderkey = (SELECT 1)"),
                         EnforceSingleRowNode.class::isInstance),
-                2);
+                1);
 
         // one subquery used for "1 IN (SELECT 1)", one subquery used for "2 IN (SELECT 1)"
         assertEquals(
@@ -197,11 +197,37 @@ public class TestLogicalPlanner
                 anyTree(
                         filter("3 = X",
                                 apply(ImmutableList.of("X"),
+                                        ImmutableMap.of(),
                                         tableScan("orders", ImmutableMap.of("X", "orderkey")),
                                         node(EnforceSingleRowNode.class,
                                                 project(
                                                         node(ValuesNode.class)
                                                 ))))));
+    }
+
+    @Test
+    public void testDoubleNestedCorrelatedSubqueries()
+    {
+        assertPlan(
+                "SELECT orderkey FROM orders o " +
+                        "WHERE 3 IN (SELECT o.custkey FROM lineitem l WHERE (SELECT l.orderkey = o.orderkey))",
+                LogicalPlanner.Stage.OPTIMIZED,
+                anyTree(
+                        filter("OUTER_FILTER",
+                                apply(ImmutableList.of("C", "O"),
+                                        ImmutableMap.of("OUTER_FILTER", expression("THREE IN (C)")),
+                                        project(ImmutableMap.of("THREE", expression("3")),
+                                                tableScan("orders", ImmutableMap.of(
+                                                        "O", "orderkey",
+                                                        "C", "custkey"))),
+                                        anyTree(
+                                                apply(ImmutableList.of("L"),
+                                                        ImmutableMap.of(),
+                                                        tableScan("lineitem", ImmutableMap.of("L", "orderkey")),
+                                                        node(EnforceSingleRowNode.class,
+                                                                project(
+                                                                        node(ValuesNode.class)
+                                                                ))))))));
     }
 
     @Test

@@ -188,6 +188,21 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testLambdaInAggregationContext()
+    {
+        assertQuery("SELECT apply(sum(x), i -> i * i) FROM (VALUES 1, 2, 3, 4, 5) t(x)", "SELECT 225");
+        assertQuery("SELECT apply(x, i -> i - 1), sum(y) FROM (VALUES (1, 10), (1, 20), (2, 50)) t(x,y) group by x", "VALUES (0, 30), (1, 50)");
+        assertQuery("SELECT x, apply(sum(y), i -> i * 10) FROM (VALUES (1, 10), (1, 20), (2, 50)) t(x,y) group by x", "VALUES (1, 300), (2, 500)");
+    }
+
+    @Test
+    public void testLambdaInSubqueryContext()
+    {
+        assertQuery("SELECT apply(x, i -> i * i) FROM (SELECT 10 x)", "SELECT 100");
+        assertQuery("SELECT apply((SELECT 10), i -> i * i)", "SELECT 100");
+    }
+
+    @Test
     public void testNonDeterministicFilter()
     {
         MaterializedResult materializedResult = computeActual("SELECT u FROM ( SELECT if(rand() > 0.5, 0, 1) AS u ) WHERE u <> u");
@@ -978,6 +993,24 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testOrderByWithOutputColumnReference()
+    {
+        assertQueryOrdered("SELECT a*2 AS b FROM (VALUES -1, 0, 2) t(a) ORDER BY b*-1", "VALUES 4, 0, -2");
+        assertQueryOrdered("SELECT a*2 AS b FROM (VALUES -1, 0, 2) t(a) ORDER BY b", "VALUES -2, 0, 4");
+        assertQueryOrdered("SELECT a*-2 AS a FROM (VALUES -1, 0, 2) t(a) ORDER BY a*-1", "VALUES 2, 0, -4");
+        assertQueryOrdered("SELECT a*-2 AS a FROM (VALUES -1, 0, 2) t(a) ORDER BY t.a*-1", "VALUES -4, 0, 2");
+        assertQueryOrdered("SELECT a*-2 FROM (VALUES -1, 0, 2) t(a) ORDER BY a*-1", "VALUES -4, 0, 2");
+        assertQueryOrdered("SELECT a*-2 FROM (VALUES -1, 0, 2) t(a) ORDER BY t.a*-1", "VALUES -4, 0, 2");
+        assertQueryOrdered("SELECT a, a* -1 AS a FROM (VALUES -1, 0, 2) t(a) ORDER BY t.a", "VALUES (-1, 1), (0, 0), (2, -2)");
+        assertQueryOrdered("SELECT a, a* -2 AS b FROM (VALUES -1, 0, 2) t(a) ORDER BY a + b", "VALUES (2, -4), (0, 0), (-1, 2)");
+        assertQueryOrdered("SELECT a as b, a* -2 AS a FROM (VALUES -1, 0, 2) t(a) ORDER BY a + b", "VALUES (2, -4), (0, 0), (-1, 2)");
+        assertQueryOrdered("SELECT a* -2 AS a FROM (VALUES -1, 0, 2) t(a) ORDER BY a + t.a", "VALUES -4, 0, 2");
+        assertQueryOrdered("SELECT a* -2 AS a, a* -2 AS a FROM (VALUES -1, 0, 2) t(a) ORDER BY a", "VALUES (-4, -4), (0, 0), (2, 2)");
+
+        assertQueryFails("SELECT a, a* -1 AS a FROM (VALUES -1, 0, 2) t(a) ORDER BY a", ".*'a' in ORDER BY is ambiguous");
+    }
+
+    @Test
     public void testGroupByOrderByLimit()
     {
         assertQueryOrdered("SELECT custkey, SUM(totalprice) FROM ORDERS GROUP BY custkey ORDER BY SUM(totalprice) DESC LIMIT 10");
@@ -1739,6 +1772,10 @@ public abstract class AbstractTestQueries
                 "SELECT * FROM (VALUES 1, 2) " +
                         "EXCEPT SELECT * FROM (VALUES 3.0, 2)");
         assertQuery("SELECT NULL, NULL EXCEPT SELECT NULL, NULL FROM nation");
+
+        assertQuery(
+                "(SELECT * FROM (VALUES 1) EXCEPT SELECT * FROM (VALUES 0))" +
+                        "EXCEPT (SELECT * FROM (VALUES 1) EXCEPT SELECT * FROM (VALUES 1))");
 
         MaterializedResult emptyResult = computeActual("SELECT 0 EXCEPT (SELECT regionkey FROM nation WHERE nationkey <10)");
         assertEquals(emptyResult.getMaterializedRows().size(), 0);
@@ -2684,6 +2721,9 @@ public abstract class AbstractTestQueries
         assertQuery(
                 "SELECT x FROM (VALUES 2) t(x) where MAP(ARRAY[8589934592], ARRAY[x]) IN (VALUES MAP(ARRAY[8589934592],ARRAY[2]))",
                 "SELECT 2");
+        assertQuery(
+                "SELECT a IN (VALUES 2), a FROM (VALUES (2)) t(a)",
+                "SELECT TRUE, 2");
     }
 
     @Test
@@ -4957,28 +4997,28 @@ public abstract class AbstractTestQueries
     {
         MaterializedResult actual = computeActual("SHOW COLUMNS FROM orders");
 
-        MaterializedResult expectedUnparametrizedVarchar = resultBuilder(getSession(), VARCHAR, VARCHAR, VARCHAR)
-                .row("orderkey", "bigint", "")
-                .row("custkey", "bigint", "")
-                .row("orderstatus", "varchar", "")
-                .row("totalprice", "double", "")
-                .row("orderdate", "date", "")
-                .row("orderpriority", "varchar", "")
-                .row("clerk", "varchar", "")
-                .row("shippriority", "integer", "")
-                .row("comment", "varchar", "")
+        MaterializedResult expectedUnparametrizedVarchar = resultBuilder(getSession(), VARCHAR, VARCHAR, VARCHAR, VARCHAR)
+                .row("orderkey", "bigint", "", "")
+                .row("custkey", "bigint", "", "")
+                .row("orderstatus", "varchar", "", "")
+                .row("totalprice", "double", "", "")
+                .row("orderdate", "date", "", "")
+                .row("orderpriority", "varchar", "", "")
+                .row("clerk", "varchar", "", "")
+                .row("shippriority", "integer", "", "")
+                .row("comment", "varchar", "", "")
                 .build();
 
-        MaterializedResult expectedParametrizedVarchar = resultBuilder(getSession(), VARCHAR, VARCHAR, VARCHAR)
-                .row("orderkey", "bigint", "")
-                .row("custkey", "bigint", "")
-                .row("orderstatus", "varchar(1)", "")
-                .row("totalprice", "double", "")
-                .row("orderdate", "date", "")
-                .row("orderpriority", "varchar(15)", "")
-                .row("clerk", "varchar(15)", "")
-                .row("shippriority", "integer", "")
-                .row("comment", "varchar(79)", "")
+        MaterializedResult expectedParametrizedVarchar = resultBuilder(getSession(), VARCHAR, VARCHAR, VARCHAR, VARCHAR)
+                .row("orderkey", "bigint", "", "")
+                .row("custkey", "bigint", "", "")
+                .row("orderstatus", "varchar(1)", "", "")
+                .row("totalprice", "double", "", "")
+                .row("orderdate", "date", "", "")
+                .row("orderpriority", "varchar(15)", "", "")
+                .row("clerk", "varchar(15)", "", "")
+                .row("shippriority", "integer", "", "")
+                .row("comment", "varchar(79)", "", "")
                 .build();
 
         // Until we migrate all connectors to parametrized varchar we check two options
@@ -7476,6 +7516,18 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testExecuteUsingComplexJoinCriteria()
+    {
+        String query = "SELECT * FROM (VALUES 1) t(a) JOIN (VALUES 2) u(a) ON t.a + u.a < ?";
+        Session session = Session.builder(getSession())
+                .addPreparedStatement("my_query", query)
+                .build();
+        assertQuery(session,
+                "EXECUTE my_query USING 5",
+                "VALUES (1, 2)");
+    }
+
+    @Test
     public void testExecuteUsingWithSubquery()
     {
         String query = "SELECT ? in (SELECT orderkey FROM orders)";
@@ -7564,6 +7616,19 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testDescribeInputWithAggregation()
+    {
+        Session session = Session.builder(getSession())
+                .addPreparedStatement("my_query", "select count(*) + ? from nation")
+                .build();
+        MaterializedResult actual = computeActual(session, "DESCRIBE INPUT my_query");
+        MaterializedResult expected = resultBuilder(session, BIGINT, VARCHAR)
+                .row(0, "bigint")
+                .build();
+        assertEqualsIgnoreOrder(actual, expected);
+    }
+
+    @Test
     public void testDescribeInputNoParameters()
     {
         Session session = Session.builder(getSession())
@@ -7640,10 +7705,37 @@ public abstract class AbstractTestQueries
     }
 
     @Test
-    public void testDescribeOutputRowCountQuery()
+    public void testDescribeOutputNonSelect()
+    {
+        assertDescribeOutputRowCount("CREATE TABLE foo AS SELECT * FROM nation");
+        assertDescribeOutputRowCount("DELETE FROM orders");
+
+        assertDescribeOutputEmpty("CALL foo()");
+        assertDescribeOutputEmpty("SET SESSION optimize_hash_generation=false");
+        assertDescribeOutputEmpty("RESET SESSION optimize_hash_generation");
+        assertDescribeOutputEmpty("START TRANSACTION");
+        assertDescribeOutputEmpty("COMMIT");
+        assertDescribeOutputEmpty("ROLLBACK");
+        assertDescribeOutputEmpty("GRANT INSERT ON foo TO bar");
+        assertDescribeOutputEmpty("REVOKE INSERT ON foo FROM bar");
+        assertDescribeOutputEmpty("CREATE SCHEMA foo");
+        assertDescribeOutputEmpty("ALTER SCHEMA foo RENAME TO bar");
+        assertDescribeOutputEmpty("DROP SCHEMA foo");
+        assertDescribeOutputEmpty("CREATE TABLE foo (x bigint)");
+        assertDescribeOutputEmpty("ALTER TABLE foo ADD COLUMN y bigint");
+        assertDescribeOutputEmpty("ALTER TABLE foo RENAME TO bar");
+        assertDescribeOutputEmpty("DROP TABLE foo");
+        assertDescribeOutputEmpty("CREATE VIEW foo AS SELECT * FROM nation");
+        assertDescribeOutputEmpty("DROP VIEW foo");
+        assertDescribeOutputEmpty("PREPARE test FROM SELECT * FROM orders");
+        assertDescribeOutputEmpty("EXECUTE test");
+        assertDescribeOutputEmpty("DEALLOCATE PREPARE test");
+    }
+
+    private void assertDescribeOutputRowCount(@Language("SQL") String sql)
     {
         Session session = Session.builder(getSession())
-                .addPreparedStatement("my_query", "CREATE TABLE foo AS SELECT * FROM nation")
+                .addPreparedStatement("my_query", sql)
                 .build();
 
         MaterializedResult actual = computeActual(session, "DESCRIBE OUTPUT my_query");
@@ -7653,11 +7745,10 @@ public abstract class AbstractTestQueries
         assertEqualsIgnoreOrder(actual, expected);
     }
 
-    @Test
-    public void testDescribeOutputDataDefinitionQuery()
+    private void assertDescribeOutputEmpty(@Language("SQL") String sql)
     {
         Session session = Session.builder(getSession())
-                .addPreparedStatement("my_query", "SET SESSION optimize_hash_generation=false")
+                .addPreparedStatement("my_query", sql)
                 .build();
 
         MaterializedResult actual = computeActual(session, "DESCRIBE OUTPUT my_query");
