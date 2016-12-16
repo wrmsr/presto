@@ -17,6 +17,7 @@ import com.facebook.presto.Session;
 import com.facebook.presto.metadata.FunctionListBuilder;
 import com.facebook.presto.metadata.SqlFunction;
 import com.facebook.presto.spi.session.PropertyMetadata;
+import com.facebook.presto.spi.type.Decimals;
 import com.facebook.presto.spi.type.TimeZoneKey;
 import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.testing.MaterializedResult;
@@ -2077,6 +2078,33 @@ public abstract class AbstractTestQueries
                 "SELECT * FROM (VALUES (1, 2)) x (a, b) JOIN (VALUES (SMALLINT '1', SMALLINT '3')) y (a, b) ON x.a = y.a",
                 "VALUES (1, 2, 1, 3)"
         );
+
+        // short decimal, long decimal
+        assertQuery(
+                format("SELECT * FROM " +
+                        "   (VALUES (CAST(1 AS DECIMAL(%1$d,0)), 2)) x (a, b) , " +
+                        "   (VALUES (CAST(0 AS DECIMAL(%1$d,0)), SMALLINT '3')) y (a, b) " +
+                        " WHERE x.a = y.a + 1", Decimals.MAX_SHORT_PRECISION),
+                "VALUES (1, 2, 0, 3)");
+        assertQuery(
+                format("SELECT * FROM " +
+                        "   (VALUES (CAST(1 AS DECIMAL(%1$d,0)), 2)) x (a, b) " +
+                        "   INNER JOIN " +
+                        "   (VALUES (CAST(0 AS DECIMAL(%1$d,0)), SMALLINT '3')) y (a, b) " +
+                        "   ON x.a = y.a + 1", Decimals.MAX_SHORT_PRECISION),
+                "VALUES (1, 2, 0, 3)");
+        assertQuery(
+                format("SELECT * FROM " +
+                        "   (VALUES (CAST(1 AS DECIMAL(%1$d,0)), 2)) x (a, b) " +
+                        "   LEFT JOIN (VALUES (CAST(0 AS DECIMAL(%1$d,0)), SMALLINT '3')) y (a, b) " +
+                        "   ON x.a = y.a + 1", Decimals.MAX_SHORT_PRECISION),
+                "VALUES (1, 2, 0, 3)");
+        assertQuery(
+                format("SELECT * FROM " +
+                        "   (VALUES CAST(1 as decimal(%d,0))) t1 (a), " +
+                        "   (VALUES CAST(1 as decimal(%d,0))) t2 (b) " +
+                        "   WHERE a = b", Decimals.MAX_SHORT_PRECISION, Decimals.MAX_SHORT_PRECISION + 1),
+                "VALUES (1, 1)");
     }
 
     @Test
@@ -3546,6 +3574,115 @@ public abstract class AbstractTestQueries
         MaterializedResult expected = resultBuilder(getSession(), BIGINT, DOUBLE)
                 .row(1L, 1.0)
                 .row(2L, 0.5)
+                .build();
+
+        assertEquals(actual, expected);
+    }
+
+    @Test
+    public void testWindowsSameOrdering()
+            throws Exception
+    {
+        MaterializedResult actual = computeActual("SELECT " +
+                    "sum(quantity) OVER(PARTITION BY suppkey ORDER BY orderkey)," +
+                    "min(tax) OVER(PARTITION BY suppkey ORDER BY shipdate)" +
+                    "FROM lineitem " +
+                    "ORDER BY 1 " +
+                    "LIMIT 10");
+
+        MaterializedResult expected = resultBuilder(getSession(), DOUBLE, DOUBLE)
+                .row(1.0, 0.0)
+                .row(2.0, 0.0)
+                .row(2.0, 0.0)
+                .row(3.0, 0.0)
+                .row(3.0, 0.0)
+                .row(4.0, 0.0)
+                .row(4.0, 0.0)
+                .row(5.0, 0.0)
+                .row(5.0, 0.0)
+                .row(5.0, 0.0)
+                .build();
+
+        assertEquals(actual, expected);
+    }
+
+    @Test
+    public void testWindowsPrefixPartitioning()
+            throws Exception
+    {
+        MaterializedResult actual = computeActual("SELECT " +
+                    "max(tax) OVER(PARTITION BY suppkey, tax ORDER BY receiptdate)," +
+                    "sum(quantity) OVER(PARTITION BY suppkey ORDER BY orderkey)" +
+                    "FROM lineitem " +
+                    "ORDER BY 2, 1 " +
+                    "LIMIT 10");
+
+        MaterializedResult expected = resultBuilder(getSession(), DOUBLE, DOUBLE)
+                .row(0.06, 1.0)
+                .row(0.02, 2.0)
+                .row(0.06, 2.0)
+                .row(0.02, 3.0)
+                .row(0.08, 3.0)
+                .row(0.03, 4.0)
+                .row(0.03, 4.0)
+                .row(0.02, 5.0)
+                .row(0.03, 5.0)
+                .row(0.07, 5.0)
+                .build();
+
+        assertEquals(actual, expected);
+    }
+
+    @Test
+    public void testWindowsDifferentPartitions()
+            throws Exception
+    {
+        MaterializedResult actual = computeActual("SELECT " +
+                "sum(quantity) OVER(PARTITION BY suppkey ORDER BY orderkey)," +
+                "count(discount) OVER(PARTITION BY partkey ORDER BY receiptdate)," +
+                "min(tax) OVER(PARTITION BY suppkey, tax ORDER BY receiptdate)" +
+                "FROM lineitem " +
+                "ORDER BY 1, 2 " +
+                "LIMIT 10");
+
+        MaterializedResult expected = resultBuilder(getSession(), DOUBLE, BIGINT, DOUBLE)
+                .row(1.0, 10L, 0.06)
+                .row(2.0, 4L, 0.06)
+                .row(2.0, 16L, 0.02)
+                .row(3.0, 3L, 0.08)
+                .row(3.0, 38L, 0.02)
+                .row(4.0, 10L, 0.03)
+                .row(4.0, 10L, 0.03)
+                .row(5.0, 9L, 0.03)
+                .row(5.0, 13L, 0.07)
+                .row(5.0, 15L, 0.02)
+                .build();
+
+        assertEquals(actual, expected);
+    }
+
+    @Test
+    public void testWindowsConstantExpression()
+            throws Exception
+    {
+        MaterializedResult actual = computeActual("SELECT " +
+                "sum(discount) OVER(PARTITION BY suppkey ORDER BY receiptdate)," +
+                "lag(quantity, 1) OVER(PARTITION BY suppkey ORDER BY orderkey)" +
+                "FROM lineitem " +
+                "ORDER BY 1, 2 " +
+                "LIMIT 10");
+
+        MaterializedResult expected = resultBuilder(getSession(), DOUBLE, DOUBLE)
+                .row(0.0, 8.0)
+                .row(0.0, 13.0)
+                .row(0.0, 17.0)
+                .row(0.0, 33.0)
+                .row(0.0, 33.0)
+                .row(0.0, 40.0)
+                .row(0.0, 42.0)
+                .row(0.01, 6.0)
+                .row(0.01, 8.0)
+                .row(0.01, 18.0)
                 .build();
 
         assertEquals(actual, expected);
