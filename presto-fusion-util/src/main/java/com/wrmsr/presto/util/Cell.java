@@ -60,6 +60,21 @@ public interface Cell<T>
         }
 
         @Override
+        public boolean equals(Object o)
+        {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            Impl<?> impl = (Impl<?>) o;
+
+            return value != null ? value.equals(impl.value) : impl.value == null;
+        }
+
+        @Override
         public final int hashCode()
         {
             return value != null ? value.hashCode() : 0;
