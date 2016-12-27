@@ -46,10 +46,12 @@ public class FeaturesConfig
     private boolean distributedIndexJoinsEnabled;
     private boolean distributedJoinsEnabled = true;
     private boolean colocatedJoinsEnabled;
+    private boolean reorderJoins;
     private boolean redistributeWrites = true;
     private boolean optimizeMetadataQueries;
     private boolean optimizeHashGeneration = true;
     private boolean optimizeSingleDistinct = true;
+    private boolean optimizerReorderWindows = true;
     private boolean pushTableWriteThroughUnion = true;
     private boolean legacyArrayAgg;
     private boolean legacyOrderBy;
@@ -140,6 +142,19 @@ public class FeaturesConfig
         return this;
     }
 
+    public boolean isJoinReorderingEnabled()
+    {
+        return reorderJoins;
+    }
+
+    @Config("reorder-joins")
+    @ConfigDescription("Experimental: Reorder joins to optimize plan")
+    public FeaturesConfig setJoinReorderingEnabled(boolean reorderJoins)
+    {
+        this.reorderJoins = reorderJoins;
+        return this;
+    }
+
     public boolean isRedistributeWrites()
     {
         return redistributeWrites;
@@ -185,6 +200,18 @@ public class FeaturesConfig
     public FeaturesConfig setOptimizeSingleDistinct(boolean optimizeSingleDistinct)
     {
         this.optimizeSingleDistinct = optimizeSingleDistinct;
+        return this;
+    }
+
+    public boolean isReorderWindows()
+    {
+        return optimizerReorderWindows;
+    }
+
+    @Config("optimizer.reorder-windows")
+    public FeaturesConfig setReorderWindows(boolean reorderWindows)
+    {
+        this.optimizerReorderWindows = reorderWindows;
         return this;
     }
 

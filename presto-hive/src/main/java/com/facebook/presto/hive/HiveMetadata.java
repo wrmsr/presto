@@ -40,6 +40,7 @@ import com.facebook.presto.spi.SchemaTablePrefix;
 import com.facebook.presto.spi.TableNotFoundException;
 import com.facebook.presto.spi.ViewNotFoundException;
 import com.facebook.presto.spi.connector.ConnectorMetadata;
+import com.facebook.presto.spi.connector.ConnectorOutputMetadata;
 import com.facebook.presto.spi.predicate.Domain;
 import com.facebook.presto.spi.predicate.NullableValue;
 import com.facebook.presto.spi.predicate.TupleDomain;
@@ -468,7 +469,7 @@ public class HiveMetadata
         Map<String, HiveColumnHandle> columnHandlesByName = Maps.uniqueIndex(columnHandles, HiveColumnHandle::getName);
         List<Column> partitionColumns = partitionedBy.stream()
                 .map(columnHandlesByName::get)
-                .map(column -> new Column(column.getName(), column.getHiveType(), Optional.empty()))
+                .map(column -> new Column(column.getName(), column.getHiveType(), column.getComment()))
                 .collect(toList());
 
         Set<String> partitionColumnNames = ImmutableSet.copyOf(partitionedBy);
@@ -479,7 +480,7 @@ public class HiveMetadata
             HiveType type = columnHandle.getHiveType();
             if (!partitionColumnNames.contains(name)) {
                 verify(!columnHandle.isPartitionKey(), "Column handles are not consistent with partitioned by property");
-                columns.add(new Column(name, type, Optional.empty()));
+                columns.add(new Column(name, type, columnHandle.getComment()));
             }
             else {
                 verify(columnHandle.isPartitionKey(), "Column handles are not consistent with partitioned by property");
@@ -614,7 +615,7 @@ public class HiveMetadata
     }
 
     @Override
-    public void finishCreateTable(ConnectorSession session, ConnectorOutputTableHandle tableHandle, Collection<Slice> fragments)
+    public Optional<ConnectorOutputMetadata> finishCreateTable(ConnectorSession session, ConnectorOutputTableHandle tableHandle, Collection<Slice> fragments)
     {
         HiveOutputTableHandle handle = checkType(tableHandle, HiveOutputTableHandle.class, "tableHandle");
 
@@ -662,6 +663,11 @@ public class HiveMetadata
             partitionUpdates.forEach(partitionUpdate ->
                     metastore.addPartition(session, handle.getSchemaName(), handle.getTableName(), buildPartitionObject(session.getQueryId(), table, partitionUpdate), partitionUpdate.getWritePath()));
         }
+
+        return Optional.of(new HiveWrittenPartitions(
+                partitionUpdates.stream()
+                        .map(PartitionUpdate::getName)
+                        .collect(Collectors.toList())));
     }
 
     private ImmutableList<PartitionUpdate> computePartitionUpdatesForMissingBuckets(HiveWritableTableHandle handle, Table table, List<PartitionUpdate> partitionUpdates)
@@ -797,7 +803,7 @@ public class HiveMetadata
     }
 
     @Override
-    public void finishInsert(ConnectorSession session, ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
+    public Optional<ConnectorOutputMetadata> finishInsert(ConnectorSession session, ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments)
     {
         HiveInsertTableHandle handle = checkType(insertHandle, HiveInsertTableHandle.class, "invalid insertTableHandle");
 
@@ -856,6 +862,11 @@ public class HiveMetadata
                 metastore.addPartition(session, handle.getSchemaName(), handle.getTableName(), partition, partitionUpdate.getWritePath());
             }
         }
+
+        return Optional.of(new HiveWrittenPartitions(
+                partitionUpdates.stream()
+                        .map(PartitionUpdate::getName)
+                        .collect(Collectors.toList())));
     }
 
     private Partition buildPartitionObject(String queryId, Table table, PartitionUpdate partitionUpdate)
@@ -1291,7 +1302,8 @@ public class HiveMetadata
                     toHiveType(typeTranslator, column.getType()),
                     column.getType().getTypeSignature(),
                     ordinal,
-                    columnType));
+                    columnType,
+                    Optional.ofNullable(column.getComment())));
             ordinal++;
         }
 
