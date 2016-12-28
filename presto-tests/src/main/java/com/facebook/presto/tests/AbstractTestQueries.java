@@ -76,6 +76,8 @@ import static com.facebook.presto.testing.TestingAccessControlManager.privilege;
 import static com.facebook.presto.testing.TestingSession.TESTING_CATALOG;
 import static com.facebook.presto.tests.QueryAssertions.assertContains;
 import static com.facebook.presto.tests.QueryAssertions.assertEqualsIgnoreOrder;
+import static com.facebook.presto.tests.QueryTemplate.parameter;
+import static com.facebook.presto.tests.QueryTemplate.queryTemplate;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.collect.Iterables.transform;
 import static io.airlift.tpch.TpchTable.ORDERS;
@@ -5337,6 +5339,10 @@ public abstract class AbstractTestQueries
 
         // missing function argument
         assertQueryFails("SELECT TRY()", "line 1:8: The 'try' function must have exactly one argument");
+
+        // check that TRY is not pushed down
+        assertQueryFails("SELECT TRY(x) IS NULL FROM (SELECT 1/y as x FROM (VALUES 1, 2, 3, 0, 4) t(y))", "/ by zero");
+        assertQuery("SELECT x IS NULL FROM (SELECT TRY(1/y) as x FROM (VALUES 3, 0, 4) t(y))", "VALUES false, true, false");
     }
 
     @Test
@@ -6423,8 +6429,12 @@ public abstract class AbstractTestQueries
 
         // order by
         assertQuery(
-                "SELECT orderkey FROM orders o ORDER BY " +
-                        "(SELECT avg(i.orderkey) FROM orders i WHERE o.orderkey < i.orderkey AND i.orderkey % 10000 = 0)");
+                "SELECT orderkey FROM orders o " +
+                        "ORDER BY " +
+                        "   (SELECT avg(i.orderkey) FROM orders i WHERE o.orderkey < i.orderkey AND i.orderkey % 10000 = 0), " +
+                        "   orderkey " +
+                        "LIMIT 1",
+                "VALUES 1"); // h2 is slow
 
         // group by
         assertQuery(
@@ -6654,21 +6664,21 @@ public abstract class AbstractTestQueries
         assertQuery("SELECT\n" +
                         "  count(*) AS numwait\n" +
                         "FROM\n" +
-                        "  orders l1\n" +
+                        "  nation l1\n" +
                         "WHERE\n" +
                         "  EXISTS(\n" +
                         "    SELECT *\n" +
                         "    FROM\n" +
-                        "      orders l2\n" +
+                        "      nation l2\n" +
                         "    WHERE\n" +
-                        "      l2.orderkey = l1.orderkey\n" +
+                        "      l2.nationkey = l1.nationkey\n" +
                         "  )\n" +
                         "  AND NOT EXISTS(\n" +
                         "    SELECT *\n" +
                         "    FROM\n" +
-                        "      orders l3\n" +
+                        "      nation l3\n" +
                         "    WHERE\n" +
-                        "      l3.orderkey = l1.orderkey\n" +
+                        "      l3.nationkey= l1.nationkey\n" +
                         "  )\n",
                 "VALUES 0"); // EXISTS predicates are contradictory
     }
@@ -7860,6 +7870,28 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testPreparedStatementWithSubqueries()
+    {
+        List<QueryTemplate.Parameter> leftValues = parameter("left").of(
+                "", "1 = ",
+                "EXISTS",
+                "1 IN",
+                "1 = ANY", "1 = ALL",
+                "2 <> ANY", "2 <> ALL",
+                "0 < ALL", "0 < ANY",
+                "1 <= ALL", "1 <= ANY");
+
+        queryTemplate("SELECT %left% (SELECT 1 WHERE 2 = ?)")
+                .replaceAll(leftValues)
+                .forEach(query -> {
+                    Session session = Session.builder(getSession())
+                            .addPreparedStatement("my_query", query)
+                            .build();
+                    assertQuery(session, "EXECUTE my_query USING 2", "SELECT true");
+                });
+    }
+
+    @Test
     public void testDescribeOutput()
     {
         Session session = Session.builder(getSession())
@@ -7988,19 +8020,13 @@ public abstract class AbstractTestQueries
                 "nationkey IN (SELECT 1) OR TRUE",
                 "EXISTS(SELECT 1) OR TRUE");
 
-        QueryTemplate queryTemplate = new QueryTemplate("SELECT %projection% FROM nation WHERE %condition%");
-        for (QueryTemplate.Parameter projection : projections) {
-            for (QueryTemplate.Parameter condition : conditions) {
-                assertQuery(queryTemplate.replace(projection, condition));
-            }
-        }
+        queryTemplate("SELECT %projection% FROM nation WHERE %condition%")
+                .replaceAll(projections, conditions)
+                .forEach(this::assertQuery);
 
-        queryTemplate = new QueryTemplate("SELECT %projection% FROM nation WHERE (%condition%) AND nationkey <3");
-        for (QueryTemplate.Parameter projection : projections) {
-            for (QueryTemplate.Parameter condition : conditions) {
-                assertQuery(queryTemplate.replace(projection, condition));
-            }
-        }
+        queryTemplate("SELECT %projection% FROM nation WHERE (%condition%) AND nationkey <3")
+                .replaceAll(projections, conditions)
+                .forEach(this::assertQuery);
 
         assertQuery(
                 "SELECT count(*) FROM nation WHERE (SELECT true FROM (SELECT 1) t(a) WHERE a = nationkey) OR TRUE",

@@ -39,7 +39,6 @@ import com.facebook.presto.sql.tree.NotExpression;
 import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.sql.tree.QuantifiedComparisonExpression;
 import com.facebook.presto.sql.tree.QuantifiedComparisonExpression.Quantifier;
-import com.facebook.presto.sql.tree.Query;
 import com.facebook.presto.sql.tree.SubqueryExpression;
 import com.facebook.presto.sql.tree.SymbolReference;
 import com.google.common.collect.ImmutableList;
@@ -265,18 +264,21 @@ class SubqueryPlanner
 
         PlanBuilder subqueryPlan = createPlanBuilder(existsPredicate.getSubquery());
 
-        if (isAggregationWithEmptyGroupBy(subqueryPlan.getRoot())) {
+        PlanNode subqueryPlanRoot = subqueryPlan.getRoot();
+        if (isAggregationWithEmptyGroupBy(subqueryPlanRoot)) {
             subPlan.getTranslations().put(existsPredicate, BooleanLiteral.TRUE_LITERAL);
             return subPlan;
         }
 
         Symbol exists = symbolAllocator.newSymbol("exists", BOOLEAN);
         subPlan.getTranslations().put(existsPredicate, exists);
+        ExistsPredicate rewrittenExistsPredicate = new ExistsPredicate(
+                subqueryPlanRoot.getOutputSymbols().get(0).toSymbolReference());
         return appendApplyNode(
                 subPlan,
                 existsPredicate.getSubquery(),
                 subqueryPlan,
-                Assignments.of(exists, existsPredicate),
+                Assignments.of(exists, rewrittenExistsPredicate),
                 correlationAllowed);
     }
 
@@ -457,30 +459,19 @@ class SubqueryPlanner
         return Optional.empty();
     }
 
-    private PlanBuilder createPlanBuilder(Expression expression)
+    private PlanBuilder createPlanBuilder(Node node)
     {
         RelationPlan relationPlan = new RelationPlanner(analysis, symbolAllocator, idAllocator, lambdaDeclarationToSymbolMap, metadata, session)
-                .process(expression, null);
+                .process(node, null);
         TranslationMap translations = new TranslationMap(relationPlan, analysis, lambdaDeclarationToSymbolMap);
 
         // Make field->symbol mapping from underlying relation plan available for translations
         // This makes it possible to rewrite FieldOrExpressions that reference fields from the FROM clause directly
         translations.setFieldMappings(relationPlan.getOutputSymbols());
 
-        translations.put(expression, getOnlyElement(relationPlan.getOutputSymbols()));
-
-        return new PlanBuilder(translations, relationPlan.getRoot(), analysis.getParameters());
-    }
-
-    private PlanBuilder createPlanBuilder(Query query)
-    {
-        RelationPlan relationPlan = new RelationPlanner(analysis, symbolAllocator, idAllocator, lambdaDeclarationToSymbolMap, metadata, session)
-                .process(query, null);
-        TranslationMap translations = new TranslationMap(relationPlan, analysis, lambdaDeclarationToSymbolMap);
-
-        // Make field->symbol mapping from underlying relation plan available for translations
-        // This makes it possible to rewrite FieldOrExpressions that reference fields from the FROM clause directly
-        translations.setFieldMappings(relationPlan.getOutputSymbols());
+        if (node instanceof Expression && relationPlan.getOutputSymbols().size() == 1) {
+            translations.put((Expression) node, getOnlyElement(relationPlan.getOutputSymbols()));
+        }
 
         return new PlanBuilder(translations, relationPlan.getRoot(), analysis.getParameters());
     }
