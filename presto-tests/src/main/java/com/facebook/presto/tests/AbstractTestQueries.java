@@ -20,6 +20,7 @@ import com.facebook.presto.spi.session.PropertyMetadata;
 import com.facebook.presto.spi.type.Decimals;
 import com.facebook.presto.spi.type.TimeZoneKey;
 import com.facebook.presto.sql.analyzer.SemanticException;
+import com.facebook.presto.testing.Arguments;
 import com.facebook.presto.testing.MaterializedResult;
 import com.facebook.presto.testing.MaterializedRow;
 import com.facebook.presto.testing.QueryRunner;
@@ -40,6 +41,7 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.intellij.lang.annotations.Language;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.sql.Date;
@@ -49,7 +51,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static com.facebook.presto.connector.informationSchema.InformationSchemaMetadata.INFORMATION_SCHEMA;
 import static com.facebook.presto.operator.scalar.ApplyFunction.APPLY_FUNCTION;
@@ -67,6 +71,7 @@ import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MISSING_SCHEMA;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.MUST_BE_AGGREGATE_OR_GROUP_BY;
 import static com.facebook.presto.sql.tree.ExplainType.Type.DISTRIBUTED;
 import static com.facebook.presto.sql.tree.ExplainType.Type.LOGICAL;
+import static com.facebook.presto.testing.Arguments.toArgumentsArrays;
 import static com.facebook.presto.testing.MaterializedResult.resultBuilder;
 import static com.facebook.presto.testing.TestingAccessControlManager.TestingPrivilegeType.CREATE_TABLE;
 import static com.facebook.presto.testing.TestingAccessControlManager.TestingPrivilegeType.DELETE_TABLE;
@@ -4812,6 +4817,14 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testNullOnLhsOfInPredicateDisallowed()
+    {
+        String errorMessage = "\\QNULL values are not allowed on the probe side of SemiJoin operator\\E.*";
+        assertQueryFails("SELECT NULL IN (SELECT 1)", errorMessage);
+        assertQueryFails("SELECT x FROM (VALUES NULL) t(x) WHERE x IN (SELECT 1)", errorMessage);
+    }
+
+    @Test
     public void testInSubqueryWithCrossJoin()
     {
         assertQuery("SELECT a FROM (VALUES (1),(2)) t(a) WHERE a IN " +
@@ -5913,7 +5926,8 @@ public abstract class AbstractTestQueries
                 "  LIMIT 10)");
     }
 
-    @Test
+    //Disabled till #6622 is fixed
+    @Test(enabled = false)
     public void testSemiJoinNullHandling()
     {
         assertQuery("" +
@@ -7867,6 +7881,39 @@ public abstract class AbstractTestQueries
         assertQuery("SELECT cast(1 as decimal(3,2)) = ANY(SELECT cast(1 as decimal(3,1)))", "SELECT true");
         assertQuery("SELECT cast(1 as decimal(3,2)) <> ALL(SELECT cast(1 as decimal(3,1)))");
         assertQuery("SELECT cast(1 as decimal(3,2)) <> ANY(SELECT cast(1 as decimal(3,1)))");
+    }
+
+    @Test(dataProvider = "quantified_comparisons_corner_cases")
+    public void testQuantifiedComparisonCornerCases(String query)
+    {
+        assertQuery(query);
+    }
+
+    @DataProvider(name = "quantified_comparisons_corner_cases")
+    public Object[][] qualifiedComparisonsCornerCases()
+    {
+        //the %subquery% is wrapped in a SELECT so that H2 does not blow up on the VALUES subquery
+        Stream<String> queries = queryTemplate("SELECT %value% %operator% %quantifier% (SELECT * FROM (%subquery%))")
+                .replaceAll(
+                        parameter("subquery").of(
+                                "SELECT 1 WHERE false",
+                                "SELECT CAST(NULL AS INTEGER)",
+                                "VALUES (1), (NULL)"
+                        ),
+                        parameter("quantifier").of("ALL", "ANY"),
+                        parameter("value").of("1", "NULL"),
+                        parameter("operator").of("=", "!=", "<", ">", "<=", ">="));
+        //the following are disabled till #6622 is fixed
+        List<String> excludedInPredicateQueries = ImmutableList.of(
+                "SELECT NULL != ALL (SELECT * FROM (SELECT 1 WHERE false))",
+                "SELECT NULL = ANY (SELECT * FROM (SELECT 1 WHERE false))",
+                "SELECT NULL != ALL (SELECT * FROM (SELECT CAST(NULL AS INTEGER)))",
+                "SELECT NULL = ANY (SELECT * FROM (SELECT CAST(NULL AS INTEGER)))",
+                "SELECT NULL = ANY (SELECT * FROM (VALUES (1), (NULL)))",
+                "SELECT NULL != ALL (SELECT * FROM (VALUES (1), (NULL)))"
+        );
+        Predicate<String> isExcluded = excludedInPredicateQueries::contains;
+        return toArgumentsArrays(queries.filter(isExcluded.negate()).map(Arguments::of));
     }
 
     @Test
