@@ -11,28 +11,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.raptor.backup;
+package com.facebook.presto.cassandra;
 
-import javax.inject.Inject;
+import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
 
-import java.util.Optional;
-
-import static java.util.Objects.requireNonNull;
-
-public class BackupServiceManager
-        implements BackupService
+public final class EmbeddedCassandra
 {
-    private final Optional<BackupStore> backupStore;
+    private EmbeddedCassandra() {}
 
-    @Inject
-    public BackupServiceManager(Optional<BackupStore> backupStore)
+    public static synchronized void start()
+            throws Exception
     {
-        this.backupStore = requireNonNull(backupStore, "backupStore is null");
-    }
-
-    @Override
-    public boolean isBackupAvailable()
-    {
-        return backupStore.isPresent();
+        EmbeddedCassandraServerHelper.startEmbeddedCassandra();
     }
 }

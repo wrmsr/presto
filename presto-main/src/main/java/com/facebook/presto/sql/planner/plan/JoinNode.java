@@ -19,13 +19,16 @@ import com.facebook.presto.sql.tree.Join;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import javax.annotation.concurrent.Immutable;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
+import static com.facebook.presto.sql.planner.plan.JoinNode.Type.INNER;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
@@ -37,6 +40,13 @@ public class JoinNode
     private final PlanNode left;
     private final PlanNode right;
     private final List<EquiJoinClause> criteria;
+    /**
+     * List of output symbols produced by join. Output symbols
+     * must be from either left or right side of join. Symbols
+     * from left join side must precede symbols from right side
+     * of join.
+     */
+    private final List<Symbol> outputSymbols;
     private final Optional<Expression> filter;
     private final Optional<Symbol> leftHashSymbol;
     private final Optional<Symbol> rightHashSymbol;
@@ -47,6 +57,7 @@ public class JoinNode
             @JsonProperty("left") PlanNode left,
             @JsonProperty("right") PlanNode right,
             @JsonProperty("criteria") List<EquiJoinClause> criteria,
+            @JsonProperty("outputSymbols") List<Symbol> outputSymbols,
             @JsonProperty("filter") Optional<Expression> filter,
             @JsonProperty("leftHashSymbol") Optional<Symbol> leftHashSymbol,
             @JsonProperty("rightHashSymbol") Optional<Symbol> rightHashSymbol)
@@ -56,14 +67,22 @@ public class JoinNode
         requireNonNull(left, "left is null");
         requireNonNull(right, "right is null");
         requireNonNull(criteria, "criteria is null");
+        requireNonNull(outputSymbols, "outputSymbols is null");
         requireNonNull(filter, "filter is null");
         requireNonNull(leftHashSymbol, "leftHashSymbol is null");
         requireNonNull(rightHashSymbol, "rightHashSymbol is null");
+
+        Set<Symbol> inputSymbols = ImmutableSet.<Symbol>builder()
+                .addAll(left.getOutputSymbols())
+                .addAll(right.getOutputSymbols())
+                .build();
+        checkArgument(inputSymbols.containsAll(outputSymbols), "Left and right join inputs do not contain all output symbols");
 
         this.type = type;
         this.left = left;
         this.right = right;
         this.criteria = ImmutableList.copyOf(criteria);
+        this.outputSymbols = ImmutableList.copyOf(outputSymbols);
         this.filter = filter;
         this.leftHashSymbol = leftHashSymbol;
         this.rightHashSymbol = rightHashSymbol;
@@ -160,10 +179,7 @@ public class JoinNode
     @JsonProperty("outputSymbols")
     public List<Symbol> getOutputSymbols()
     {
-        return ImmutableList.<Symbol>builder()
-                .addAll(left.getOutputSymbols())
-                .addAll(right.getOutputSymbols())
-                .build();
+        return outputSymbols;
     }
 
     @Override
@@ -176,7 +192,12 @@ public class JoinNode
     public PlanNode replaceChildren(List<PlanNode> newChildren)
     {
         checkArgument(newChildren.size() == 2, "expected newChildren to contain 2 nodes");
-        return new JoinNode(getId(), type, newChildren.get(0), newChildren.get(1), criteria, filter, leftHashSymbol, rightHashSymbol);
+        return new JoinNode(getId(), type, newChildren.get(0), newChildren.get(1), criteria, outputSymbols, filter, leftHashSymbol, rightHashSymbol);
+    }
+
+    public boolean isCrossJoin()
+    {
+        return criteria.isEmpty() && !filter.isPresent() && type == INNER;
     }
 
     public static class EquiJoinClause
