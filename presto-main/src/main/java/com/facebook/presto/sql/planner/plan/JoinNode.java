@@ -19,16 +19,16 @@ import com.facebook.presto.sql.tree.Join;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 import javax.annotation.concurrent.Immutable;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
+import java.util.stream.Stream;
 
 import static com.facebook.presto.sql.planner.plan.JoinNode.Type.INNER;
+import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
@@ -72,12 +72,6 @@ public class JoinNode
         requireNonNull(leftHashSymbol, "leftHashSymbol is null");
         requireNonNull(rightHashSymbol, "rightHashSymbol is null");
 
-        Set<Symbol> inputSymbols = ImmutableSet.<Symbol>builder()
-                .addAll(left.getOutputSymbols())
-                .addAll(right.getOutputSymbols())
-                .build();
-        checkArgument(inputSymbols.containsAll(outputSymbols), "Left and right join inputs do not contain all output symbols");
-
         this.type = type;
         this.left = left;
         this.right = right;
@@ -86,6 +80,36 @@ public class JoinNode
         this.filter = filter;
         this.leftHashSymbol = leftHashSymbol;
         this.rightHashSymbol = rightHashSymbol;
+
+        List<Symbol> inputSymbols = ImmutableList.<Symbol>builder()
+                .addAll(left.getOutputSymbols())
+                .addAll(right.getOutputSymbols())
+                .build();
+        checkArgument(inputSymbols.containsAll(outputSymbols), "Left and right join inputs do not contain all output symbols");
+        checkArgument(!isCrossJoin() || inputSymbols.equals(outputSymbols), "Cross join does not support output symbols pruning or reordering");
+    }
+
+    public JoinNode(PlanNodeId id,
+            Type type,
+            PlanNode left,
+            PlanNode right,
+            List<EquiJoinClause> criteria,
+            Optional<Expression> filter,
+            Optional<Symbol> leftHashSymbol,
+            Optional<Symbol> rightHashSymbol)
+    {
+        this(id,
+                type,
+                left,
+                right,
+                criteria,
+                ImmutableList.<Symbol>builder()
+                        .addAll(left.getOutputSymbols())
+                        .addAll(right.getOutputSymbols())
+                        .build(),
+                filter,
+                leftHashSymbol,
+                rightHashSymbol);
     }
 
     public enum Type
@@ -192,7 +216,13 @@ public class JoinNode
     public PlanNode replaceChildren(List<PlanNode> newChildren)
     {
         checkArgument(newChildren.size() == 2, "expected newChildren to contain 2 nodes");
-        return new JoinNode(getId(), type, newChildren.get(0), newChildren.get(1), criteria, outputSymbols, filter, leftHashSymbol, rightHashSymbol);
+        PlanNode newLeft = newChildren.get(0);
+        PlanNode newRight = newChildren.get(1);
+        // Reshuffle join output symbols (for cross joins) since order of symbols in child nodes might have changed
+        List<Symbol> newOutputSymbols = Stream.concat(newLeft.getOutputSymbols().stream(), newRight.getOutputSymbols().stream())
+                .filter(outputSymbols::contains)
+                .collect(toImmutableList());
+        return new JoinNode(getId(), type, newLeft, newRight, criteria, newOutputSymbols, filter, leftHashSymbol, rightHashSymbol);
     }
 
     public boolean isCrossJoin()
