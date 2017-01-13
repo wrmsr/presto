@@ -217,6 +217,16 @@ public abstract class AbstractTestQueries
     }
 
     @Test
+    public void testTryLambdaRepeated()
+    {
+        assertQuery("SELECT x + x FROM (SELECT apply(a, i -> i * i) x FROM (VALUES 3) t(a))", "SELECT 18");
+        assertQuery("SELECT apply(a, i -> i * i) + apply(a, i -> i * i) FROM (VALUES 3) t(a)", "SELECT 18");
+        assertQuery("SELECT apply(a, i -> i * i), apply(a, i -> i * i) FROM (VALUES 3) t(a)", "SELECT 9, 9");
+        assertQuery("SELECT try(10 / a) + try(10 / a) FROM (VALUES 5) t(a)", "SELECT 4");
+        assertQuery("SELECT try(10 / a), try(10 / a) FROM (VALUES 5) t(a)", "SELECT 2, 2");
+    }
+
+    @Test
     public void testNonDeterministicFilter()
     {
         MaterializedResult materializedResult = computeActual("SELECT u FROM ( SELECT if(rand() > 0.5, 0, 1) AS u ) WHERE u <> u");
@@ -6486,6 +6496,24 @@ public abstract class AbstractTestQueries
                         "WHERE 100 < (SELECT * " +
                         "FROM (SELECT (SELECT avg(i.orderkey) FROM orders i WHERE o.orderkey < i.orderkey AND i.orderkey % 10000 = 0)))",
                 "VALUES 14999"); // h2 is slow
+
+        // consecutive correlated subqueries with scalar aggregation
+        assertQuery("SELECT " +
+                "(SELECT avg(regionkey) " +
+                " FROM nation n2" +
+                " WHERE n2.nationkey = n1.nationkey)," +
+                "(SELECT avg(regionkey)" +
+                " FROM nation n3" +
+                " WHERE n3.nationkey = n1.nationkey)" +
+                "FROM nation n1");
+        assertQuery("SELECT" +
+                "(SELECT avg(regionkey)" +
+                " FROM nation n2 " +
+                " WHERE n2.nationkey = n1.nationkey)," +
+                "(SELECT avg(regionkey)+1 " +
+                " FROM nation n3 " +
+                " WHERE n3.nationkey = n1.nationkey)" +
+                "FROM nation n1");
     }
 
     @Test
