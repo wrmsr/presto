@@ -14,7 +14,6 @@
 package com.wrmsr.presto.launcher.packaging;
 
 import com.google.common.io.ByteStreams;
-import com.google.common.io.CharStreams;
 import com.google.common.io.Files;
 import com.wrmsr.presto.launcher.packaging.jarBuilder.JarBuilder;
 
@@ -25,13 +24,11 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -56,10 +53,10 @@ public final class Jars
         Set<String> beforeNames = JarBuilder.getZipEntryNames(inputFile);
 
         byte[] launcherBytes;
-        try (InputStream launcherStream = OldPackager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/packaging/entrypoint")) {
-            launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, StandardCharsets.UTF_8)).getBytes();
-        }
-        launcherBytes = new byte[] { (byte) 0xFF } ;
+//        try (InputStream launcherStream = OldPackager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/packaging/entrypoint")) {
+//            launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, StandardCharsets.UTF_8)).getBytes();
+//        }
+        launcherBytes = new byte[] {(byte) 0xFF};
 
         try (InputStream fi = new BufferedInputStream(new FileInputStream(inputFile));
                 OutputStream fo = new BufferedOutputStream(new FileOutputStream(tmpOutputFile))) {
