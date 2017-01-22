@@ -15,8 +15,13 @@ package com.wrmsr.presto.util;
 
 import com.google.common.io.ByteStreams;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -39,5 +44,14 @@ public final class MoreIO
         finally {
             is.close();
         }
+    }
+
+    public static void deleteDirectory(Path rootPath)
+            throws IOException
+    {
+        Files.walk(rootPath)
+                .sorted(Comparator.reverseOrder())
+                .map(Path::toFile)
+                .forEach(File::delete);
     }
 }

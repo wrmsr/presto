@@ -51,6 +51,7 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.wrmsr.presto.util.MoreIO.deleteDirectory;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toArrayList;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableList;
 import static com.wrmsr.presto.util.collect.MoreCollectors.toImmutableSet;
@@ -204,8 +205,11 @@ public final class Packager
             Jars.makeExecutableJar(tmpJarFile, jarFile);
         }
         finally {
-            if (!tmpDir.delete()) {
-                log.warn("Failed to delete temp dir: " + tmpDir);
+            try {
+                deleteDirectory(tmpDir.toPath());
+            }
+            catch (IOException e) {
+                log.warn("Failed to delete temp dir", e);
             }
         }
     }
@@ -250,7 +254,7 @@ public final class Packager
         return jarBuilderEntries;
     }
 
-    public static void main2(String[] args)
+    public static void main(String[] args)
             throws Exception
     {
         Logging.initialize();
@@ -302,11 +306,5 @@ public final class Packager
 
         File outputJarFile = new File(System.getProperty("user.home") + "/fusion/fusion");
         packager.buildJar(Models.readModelModule(parentModel, mainModuleName), outputJarFile);
-    }
-
-    public static void main(String[] args)
-            throws Exception
-    {
-        Jars.makeExecutableJar(new File("/Users/spinlock/fusion/fusion.jar"), new File("/Users/spinlock/fusion/fusion2"));
     }
 }

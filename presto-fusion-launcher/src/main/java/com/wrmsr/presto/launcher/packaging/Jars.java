@@ -59,6 +59,7 @@ public final class Jars
         try (InputStream launcherStream = OldPackager.class.getClassLoader().getResourceAsStream("com/wrmsr/presto/launcher/packaging/entrypoint")) {
             launcherBytes = CharStreams.toString(new InputStreamReader(launcherStream, StandardCharsets.UTF_8)).getBytes();
         }
+        launcherBytes = new byte[] { (byte) 0xFF } ;
 
         try (InputStream fi = new BufferedInputStream(new FileInputStream(inputFile));
                 OutputStream fo = new BufferedOutputStream(new FileOutputStream(tmpOutputFile))) {
