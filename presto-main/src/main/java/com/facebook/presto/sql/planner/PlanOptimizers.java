@@ -19,10 +19,16 @@ import com.facebook.presto.sql.parser.SqlParser;
 import com.facebook.presto.sql.planner.iterative.IterativeOptimizer;
 import com.facebook.presto.sql.planner.iterative.rule.EvaluateZeroLimit;
 import com.facebook.presto.sql.planner.iterative.rule.ImplementBernoulliSampleAsFilter;
+import com.facebook.presto.sql.planner.iterative.rule.MergeLimitWithDistinct;
+import com.facebook.presto.sql.planner.iterative.rule.MergeLimitWithSort;
+import com.facebook.presto.sql.planner.iterative.rule.MergeLimitWithTopN;
 import com.facebook.presto.sql.planner.iterative.rule.MergeLimits;
 import com.facebook.presto.sql.planner.iterative.rule.PruneTableScanColumns;
 import com.facebook.presto.sql.planner.iterative.rule.PruneValuesColumns;
+import com.facebook.presto.sql.planner.iterative.rule.PushLimitThroughMarkDistinct;
 import com.facebook.presto.sql.planner.iterative.rule.PushLimitThroughProject;
+import com.facebook.presto.sql.planner.iterative.rule.PushLimitThroughSemiJoin;
+import com.facebook.presto.sql.planner.iterative.rule.RemoveRedundantIdentityProjections;
 import com.facebook.presto.sql.planner.iterative.rule.SimplifyCountOverConstant;
 import com.facebook.presto.sql.planner.iterative.rule.SingleMarkDistinctToGroupBy;
 import com.facebook.presto.sql.planner.optimizations.AddExchanges;
@@ -66,7 +72,10 @@ import com.facebook.presto.sql.planner.optimizations.UnaliasSymbolReferences;
 import com.facebook.presto.sql.planner.optimizations.WindowFilterPushDown;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.weakref.jmx.MBeanExporter;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 
 import java.util.List;
@@ -74,38 +83,66 @@ import java.util.List;
 public class PlanOptimizers
 {
     private final List<PlanOptimizer> optimizers;
+    private final StatsRecorder stats = new StatsRecorder();
+    private final MBeanExporter exporter;
 
     @Inject
-    public PlanOptimizers(Metadata metadata, SqlParser sqlParser, FeaturesConfig featuresConfig)
+    public PlanOptimizers(Metadata metadata, SqlParser sqlParser, FeaturesConfig featuresConfig, MBeanExporter exporter)
     {
-        this(metadata, sqlParser, featuresConfig, false);
+        this(metadata, sqlParser, featuresConfig, false, exporter);
     }
 
-    public PlanOptimizers(Metadata metadata, SqlParser sqlParser, FeaturesConfig featuresConfig, boolean forceSingleNode)
+    @PostConstruct
+    public void initialize()
     {
+        stats.export(exporter);
+    }
+
+    @PreDestroy
+    public void destroy()
+    {
+        stats.unexport(exporter);
+    }
+
+    public PlanOptimizers(Metadata metadata, SqlParser sqlParser, FeaturesConfig featuresConfig, boolean forceSingleNode, MBeanExporter exporter)
+    {
+        this.exporter = exporter;
         ImmutableList.Builder<PlanOptimizer> builder = ImmutableList.builder();
 
         builder.add(
                 new DesugaringOptimizer(metadata, sqlParser), // Clean up all the sugar in expressions, e.g. AtTimeZone, must be run before all the other optimizers
                 new CanonicalizeExpressions(),
-                new IterativeOptimizer(ImmutableSet.of(
-                        new EvaluateZeroLimit(),
-                        new PushLimitThroughProject(),
-                        new MergeLimits(),
+                new IterativeOptimizer(
+                        stats,
+                        ImmutableSet.of(
+                                new RemoveRedundantIdentityProjections(),
+                                new EvaluateZeroLimit(),
+                                new PushLimitThroughProject(),
+                                new MergeLimits(),
+                                new MergeLimitWithSort(),
+                                new MergeLimitWithTopN(),
+                                new PushLimitThroughMarkDistinct(),
+                                new PushLimitThroughSemiJoin(),
+                                new MergeLimitWithDistinct(),
 
-                        new PruneValuesColumns(),
-                        new PruneTableScanColumns(),
-
-                        new SimplifyCountOverConstant(),
-                        new ImplementBernoulliSampleAsFilter(),
-                        new com.facebook.presto.sql.planner.iterative.rule.ImplementFilteredAggregations(),
-                        new SingleMarkDistinctToGroupBy()
-                )),
-                new ImplementFilteredAggregations(),
-                new ImplementSampleAsFilter(),
+                                new PruneValuesColumns(),
+                                new PruneTableScanColumns()
+                        )),
+                new IterativeOptimizer(
+                        stats,
+                        ImmutableList.of(
+                                new ImplementFilteredAggregations(),
+                                new ImplementSampleAsFilter()),
+                        ImmutableSet.of(
+                                new com.facebook.presto.sql.planner.iterative.rule.ImplementFilteredAggregations(),
+                                new ImplementBernoulliSampleAsFilter())),
                 new SimplifyExpressions(metadata, sqlParser),
                 new UnaliasSymbolReferences(),
-                new PruneIdentityProjections(),
+                new IterativeOptimizer(
+                        stats,
+                        ImmutableList.of(new PruneIdentityProjections()),
+                        ImmutableSet.of(new RemoveRedundantIdentityProjections())
+                ),
                 new SetFlatteningOptimizer(),
                 new ImplementIntersectAndExceptAsUnion(),
                 new LimitPushDown(), // Run the LimitPushDown after flattening set operators to make it easier to do the set flattening
@@ -124,21 +161,32 @@ public class PlanOptimizers
                 new UnaliasSymbolReferences(), // Run again because predicate pushdown and projection pushdown might add more projections
                 new PruneUnreferencedOutputs(), // Make sure to run this before index join. Filtered projections may not have all the columns.
                 new IndexJoinOptimizer(metadata), // Run this after projections and filters have been fully simplified and pushed down
-                new CountConstantOptimizer(),
+                new IterativeOptimizer(
+                        stats,
+                        ImmutableList.of(new CountConstantOptimizer()),
+                        ImmutableSet.of(new SimplifyCountOverConstant())),
                 new WindowFilterPushDown(metadata), // This must run after PredicatePushDown and LimitPushDown so that it squashes any successive filter nodes and limits
                 new MergeWindows(),
                 new ReorderWindows(), // Should be after MergeWindows to avoid unnecessary reordering of mergeable windows
                 new MergeProjections(),
                 new PruneUnreferencedOutputs(), // Make sure to run this at the end to help clean the plan for logging/execution and not remove info that other optimizers might need at an earlier point
-                new PruneIdentityProjections(), // This MUST run after PruneUnreferencedOutputs as it may introduce new redundant projections
+                new IterativeOptimizer(
+                        stats,
+                        ImmutableList.of(new PruneIdentityProjections()), // This MUST run after PruneUnreferencedOutputs as it may introduce new redundant projections
+                        ImmutableSet.of(new RemoveRedundantIdentityProjections())
+                ),
                 new MetadataQueryOptimizer(metadata),
                 new EliminateCrossJoins(), // This can pull up Filter and Project nodes from between Joins, so we need to push them down again
                 new PredicatePushDown(metadata, sqlParser),
                 new ProjectionPushDown());
 
         if (featuresConfig.isOptimizeSingleDistinct()) {
-            builder.add(new SingleDistinctOptimizer());
-            builder.add(new PruneUnreferencedOutputs());
+            builder.add(
+                    new IterativeOptimizer(
+                            stats,
+                            ImmutableList.of(new SingleDistinctOptimizer()),
+                            ImmutableSet.of(new SingleMarkDistinctToGroupBy())),
+                    new PruneUnreferencedOutputs());
         }
 
         builder.add(new OptimizeMixedDistinctAggregations(metadata));
@@ -157,7 +205,10 @@ public class PlanOptimizers
         builder.add(new MergeProjections());
         builder.add(new UnaliasSymbolReferences()); // Run unalias after merging projections to simplify projections more efficiently
         builder.add(new PruneUnreferencedOutputs());
-        builder.add(new PruneIdentityProjections());
+        builder.add(new IterativeOptimizer(
+                stats,
+                ImmutableList.of(new PruneIdentityProjections()),
+                ImmutableSet.of(new RemoveRedundantIdentityProjections())));
 
         // Optimizers above this don't understand local exchanges, so be careful moving this.
         builder.add(new AddLocalExchanges(metadata, sqlParser));
@@ -165,7 +216,10 @@ public class PlanOptimizers
         // Optimizers above this do not need to care about aggregations with the type other than SINGLE
         // This optimizer must be run after all exchange-related optimizers
         builder.add(new PartialAggregationPushDown(metadata.getFunctionRegistry()));
-        builder.add(new PruneIdentityProjections());
+        builder.add(new IterativeOptimizer(
+                stats,
+                ImmutableList.of(new PruneIdentityProjections()),
+                ImmutableSet.of(new RemoveRedundantIdentityProjections())));
 
         // DO NOT add optimizers that change the plan shape (computations) after this point
 

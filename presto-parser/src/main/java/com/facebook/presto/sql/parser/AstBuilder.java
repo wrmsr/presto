@@ -66,6 +66,7 @@ import com.facebook.presto.sql.tree.Grant;
 import com.facebook.presto.sql.tree.GroupBy;
 import com.facebook.presto.sql.tree.GroupingElement;
 import com.facebook.presto.sql.tree.GroupingSets;
+import com.facebook.presto.sql.tree.Identifier;
 import com.facebook.presto.sql.tree.IfExpression;
 import com.facebook.presto.sql.tree.InListExpression;
 import com.facebook.presto.sql.tree.InPredicate;
@@ -94,7 +95,6 @@ import com.facebook.presto.sql.tree.NullLiteral;
 import com.facebook.presto.sql.tree.Parameter;
 import com.facebook.presto.sql.tree.Prepare;
 import com.facebook.presto.sql.tree.QualifiedName;
-import com.facebook.presto.sql.tree.QualifiedNameReference;
 import com.facebook.presto.sql.tree.QuantifiedComparisonExpression;
 import com.facebook.presto.sql.tree.Query;
 import com.facebook.presto.sql.tree.QueryBody;
@@ -620,6 +620,8 @@ class AstBuilder
                 return new ExplainType(getLocation(context), ExplainType.Type.LOGICAL);
             case SqlBaseLexer.DISTRIBUTED:
                 return new ExplainType(getLocation(context), ExplainType.Type.DISTRIBUTED);
+            case SqlBaseLexer.VALIDATE:
+                return new ExplainType(getLocation(context), ExplainType.Type.VALIDATE);
         }
 
         throw new IllegalArgumentException("Unsupported EXPLAIN type: " + context.value.getText());
@@ -1151,7 +1153,7 @@ class AstBuilder
     @Override
     public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context)
     {
-        return new QualifiedNameReference(getLocation(context), QualifiedName.of(context.getText()));
+        return new Identifier(getLocation(context), context.getText());
     }
 
     @Override
