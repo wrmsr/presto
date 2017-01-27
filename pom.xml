@@ -53,7 +53,8 @@
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.slice.version>0.28</dep.slice.version>
         <dep.aws-sdk.version>1.11.30</dep.aws-sdk.version>
-        <dep.tempto.version>1.23</dep.tempto.version>
+        <dep.tempto.version>1.24</dep.tempto.version>
+        <dep.testng.version>6.10</dep.testng.version>
 
         <cli.skip-execute>true</cli.skip-execute>
         <cli.main-class>None</cli.main-class>
@@ -122,6 +123,13 @@
                 <groupId>com.facebook.presto</groupId>
                 <artifactId>presto-spi</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.facebook.presto</groupId>
+                <artifactId>presto-spi</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
             </dependency>
 
             <dependency>
@@ -870,12 +878,14 @@
                 <plugin>
                     <groupId>org.gaul</groupId>
                     <artifactId>modernizer-maven-plugin</artifactId>
-                    <version>1.4.0</version>
+                    <version>1.5.0</version>
                     <configuration>
                         <skip>${air.check.skip-modernizer}</skip>
                         <javaVersion>1.8</javaVersion>
                         <failOnViolations>true</failOnViolations>
-                        <exclusionsFile>${air.main.basedir}/src/modernizer/exclusions.txt</exclusionsFile>
+                        <exclusionPatterns>
+                            <exclusionPattern>org/joda/time/.*</exclusionPattern>
+                        </exclusionPatterns>
                     </configuration>
                 </plugin>
 
