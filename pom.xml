@@ -10,7 +10,7 @@
 
     <groupId>com.facebook.presto</groupId>
     <artifactId>presto-root</artifactId>
-    <version>0.166-SNAPSHOT</version>
+    <version>0.167-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>presto-root</name>
@@ -49,12 +49,13 @@
         <air.maven.version>3.3.9</air.maven.version>
 
         <dep.antlr.version>4.6</dep.antlr.version>
-        <dep.airlift.version>0.141</dep.airlift.version>
+        <dep.airlift.version>0.142</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.slice.version>0.28</dep.slice.version>
         <dep.aws-sdk.version>1.11.30</dep.aws-sdk.version>
-        <dep.tempto.version>1.26</dep.tempto.version>
+        <dep.tempto.version>1.27</dep.tempto.version>
         <dep.testng.version>6.10</dep.testng.version>
+        <dep.datastax.version>3.0.5</dep.datastax.version>
 
         <cli.skip-execute>true</cli.skip-execute>
         <cli.main-class>None</cli.main-class>
@@ -827,6 +828,18 @@
                         <artifactId>commons-logging</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>com.datastax.cassandra</groupId>
+                <artifactId>cassandra-driver-core</artifactId>
+                <version>${dep.datastax.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.datastax.cassandra</groupId>
+                <artifactId>cassandra-driver-mapping</artifactId>
+                <version>${dep.datastax.version}</version>
             </dependency>
 
         </dependencies>

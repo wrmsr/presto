@@ -14,18 +14,15 @@
 package com.facebook.presto.operator.aggregation.state;
 
 import com.facebook.presto.spi.block.Block;
-import com.facebook.presto.spi.function.AccumulatorState;
-import com.facebook.presto.spi.function.AccumulatorStateMetadata;
 
-@AccumulatorStateMetadata(stateFactoryClass = MaxOrMinByStateFactory.class, stateSerializerClass = MaxOrMinByStateSerializer.class)
-public interface MaxOrMinByState
-    extends AccumulatorState
+public interface BooleanBlockState
+        extends TwoNullableValueState
 {
-    Block getKey();
+    boolean getFirst();
 
-    void setKey(Block key);
+    void setFirst(boolean first);
 
-    Block getValue();
+    Block getSecond();
 
-    void setValue(Block value);
+    void setSecond(Block second);
 }

@@ -11,23 +11,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.facebook.presto.plugin.blackhole;
+package com.facebook.presto.hive.util;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
+import org.apache.hadoop.conf.Configuration;
 
-public final class Types
+import java.util.Map;
+
+public final class ConfigurationUtils
 {
-    private Types() {}
+    private ConfigurationUtils() {}
 
-    public static <A, B extends A> B checkType(A value, Class<B> target, String name)
+    public static void copy(Configuration from, Configuration to)
     {
-        requireNonNull(value, "value is null");
-        checkArgument(target.isInstance(value),
-                "%s must be of type %s, not %s",
-                name,
-                target.getName(),
-                value.getClass().getName());
-        return target.cast(value);
+        for (Map.Entry<String, String> entry : from) {
+            to.set(entry.getKey(), entry.getValue());
+        }
     }
 }
