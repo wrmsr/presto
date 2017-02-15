@@ -18,8 +18,10 @@ import com.facebook.presto.operator.DriverFactory;
 import com.facebook.presto.operator.HashBuilderOperator.HashBuilderOperatorFactory;
 import com.facebook.presto.operator.LookupJoinOperators;
 import com.facebook.presto.operator.OperatorFactory;
+import com.facebook.presto.operator.PagesIndex;
 import com.facebook.presto.operator.TaskContext;
 import com.facebook.presto.operator.ValuesOperator.ValuesOperatorFactory;
+import com.facebook.presto.sql.gen.JoinProbeCompiler;
 import com.facebook.presto.sql.planner.plan.PlanNodeId;
 import com.facebook.presto.testing.LocalQueryRunner;
 import com.facebook.presto.testing.NullOutputOperator.NullOutputOperatorFactory;
@@ -37,6 +39,7 @@ import static com.facebook.presto.spi.type.BigintType.BIGINT;
 public class HashBuildBenchmark
         extends AbstractOperatorBenchmark
 {
+    private static final LookupJoinOperators LOOKUP_JOIN_OPERATORS = new LookupJoinOperators(new JoinProbeCompiler());
     public HashBuildBenchmark(LocalQueryRunner localQueryRunner)
     {
         super(localQueryRunner, "hash_build", 4, 5);
@@ -58,7 +61,8 @@ public class HashBuildBenchmark
                 false,
                 Optional.empty(),
                 1_500_000,
-                1);
+                1,
+                new PagesIndex.TestingFactory());
         DriverFactory hashBuildDriverFactory = new DriverFactory(true, true, ImmutableList.of(ordersTableScan, hashBuilder), OptionalInt.empty());
         Driver hashBuildDriver = hashBuildDriverFactory.createDriver(taskContext.addPipelineContext(true, true).addDriverContext());
         hashBuildDriverFactory.close();
@@ -66,7 +70,7 @@ public class HashBuildBenchmark
         // empty join so build finishes
         ImmutableList.Builder<OperatorFactory> joinDriversBuilder = ImmutableList.builder();
         joinDriversBuilder.add(new ValuesOperatorFactory(0, new PlanNodeId("values"), ImmutableList.of(BIGINT), ImmutableList.of()));
-        OperatorFactory joinOperator = LookupJoinOperators.innerJoin(2, new PlanNodeId("test"),
+        OperatorFactory joinOperator = LOOKUP_JOIN_OPERATORS.innerJoin(2, new PlanNodeId("test"),
                 hashBuilder.getLookupSourceFactory(),
                 ImmutableList.of(BIGINT),
                 Ints.asList(0),

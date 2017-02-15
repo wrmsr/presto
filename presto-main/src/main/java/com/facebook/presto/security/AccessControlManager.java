@@ -18,6 +18,7 @@ import com.facebook.presto.metadata.QualifiedObjectName;
 import com.facebook.presto.spi.CatalogSchemaName;
 import com.facebook.presto.spi.CatalogSchemaTableName;
 import com.facebook.presto.spi.PrestoException;
+import com.facebook.presto.spi.SchemaTableName;
 import com.facebook.presto.spi.connector.ConnectorAccessControl;
 import com.facebook.presto.spi.connector.ConnectorTransactionHandle;
 import com.facebook.presto.spi.security.Identity;
@@ -41,6 +42,7 @@ import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -163,6 +165,15 @@ public class AccessControlManager
     }
 
     @Override
+    public Set<String> filterCatalogs(Identity identity, Set<String> catalogs)
+    {
+        requireNonNull(identity, "identity is null");
+        requireNonNull(catalogs, "catalogs is null");
+
+        return systemAccessControl.get().filterCatalogs(identity, catalogs);
+    }
+
+    @Override
     public void checkCanCreateSchema(TransactionId transactionId, Identity identity, CatalogSchemaName schemaName)
     {
         requireNonNull(identity, "identity is null");
@@ -202,6 +213,36 @@ public class AccessControlManager
         if (entry != null) {
             authorizationCheck(() -> entry.getAccessControl().checkCanRenameSchema(entry.getTransactionHandle(transactionId), identity, schemaName.getSchemaName(), newSchemaName));
         }
+    }
+
+    @Override
+    public void checkCanShowSchemas(TransactionId transactionId, Identity identity, String catalogName)
+    {
+        requireNonNull(identity, "identity is null");
+        requireNonNull(catalogName, "catalogName is null");
+
+        authorizationCheck(() -> systemAccessControl.get().checkCanShowSchemas(identity, catalogName));
+
+        CatalogAccessControlEntry entry = getConnectorAccessControl(transactionId, catalogName);
+        if (entry != null) {
+            authorizationCheck(() -> entry.getAccessControl().checkCanShowSchemas(entry.getTransactionHandle(transactionId), identity));
+        }
+    }
+
+    @Override
+    public Set<String> filterSchemas(TransactionId transactionId, Identity identity, String catalogName, Set<String> schemaNames)
+    {
+        requireNonNull(identity, "identity is null");
+        requireNonNull(catalogName, "catalogName is null");
+        requireNonNull(schemaNames, "schemaNames is null");
+
+        schemaNames = systemAccessControl.get().filterSchemas(identity, catalogName, schemaNames);
+
+        CatalogAccessControlEntry entry = getConnectorAccessControl(transactionId, catalogName);
+        if (entry != null) {
+            schemaNames = entry.getAccessControl().filterSchemas(entry.getTransactionHandle(transactionId), identity, schemaNames);
+        }
+        return schemaNames;
     }
 
     @Override
@@ -245,6 +286,36 @@ public class AccessControlManager
         if (entry != null) {
             authorizationCheck(() -> entry.getAccessControl().checkCanRenameTable(entry.getTransactionHandle(transactionId), identity, tableName.asSchemaTableName(), newTableName.asSchemaTableName()));
         }
+    }
+
+    @Override
+    public void checkCanShowTables(TransactionId transactionId, Identity identity, CatalogSchemaName schema)
+    {
+        requireNonNull(identity, "identity is null");
+        requireNonNull(schema, "schema is null");
+
+        authorizationCheck(() -> systemAccessControl.get().checkCanShowTables(identity, schema));
+
+        CatalogAccessControlEntry entry = getConnectorAccessControl(transactionId, schema.getCatalogName());
+        if (entry != null) {
+            authorizationCheck(() -> entry.getAccessControl().checkCanShowTables(entry.getTransactionHandle(transactionId), identity, schema.getSchemaName()));
+        }
+    }
+
+    @Override
+    public Set<SchemaTableName> filterTables(TransactionId transactionId, Identity identity, String catalogName, Set<SchemaTableName> tableNames)
+    {
+        requireNonNull(identity, "identity is null");
+        requireNonNull(catalogName, "catalogName is null");
+        requireNonNull(tableNames, "tableNames is null");
+
+        tableNames =  systemAccessControl.get().filterTables(identity, catalogName, tableNames);
+
+        CatalogAccessControlEntry entry = getConnectorAccessControl(transactionId, catalogName);
+        if (entry != null) {
+            tableNames = entry.getAccessControl().filterTables(entry.getTransactionHandle(transactionId), identity, tableNames);
+        }
+        return tableNames;
     }
 
     @Override
@@ -564,6 +635,12 @@ public class AccessControlManager
         }
 
         @Override
+        public Set<String> filterCatalogs(Identity identity, Set<String> catalogs)
+        {
+            return catalogs;
+        }
+
+        @Override
         public void checkCanSetSystemSessionProperty(Identity identity, String propertyName)
         {
         }
@@ -584,6 +661,17 @@ public class AccessControlManager
         }
 
         @Override
+        public void checkCanShowSchemas(Identity identity, String catalogName)
+        {
+        }
+
+        @Override
+        public Set<String> filterSchemas(Identity identity, String catalogName, Set<String> schemaNames)
+        {
+            return schemaNames;
+        }
+
+        @Override
         public void checkCanCreateTable(Identity identity, CatalogSchemaTableName table)
         {
         }
@@ -596,6 +684,17 @@ public class AccessControlManager
         @Override
         public void checkCanRenameTable(Identity identity, CatalogSchemaTableName table, CatalogSchemaTableName newTable)
         {
+        }
+
+        @Override
+        public void checkCanShowTables(Identity identity, CatalogSchemaName schema)
+        {
+        }
+
+        @Override
+        public Set<SchemaTableName> filterTables(Identity identity, String catalogName, Set<SchemaTableName> tableNames)
+        {
+            return tableNames;
         }
 
         @Override
