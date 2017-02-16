@@ -18,6 +18,7 @@ import com.facebook.presto.OutputBuffers.OutputBufferId;
 import com.facebook.presto.execution.StateMachine;
 import com.facebook.presto.execution.StateMachine.StateChangeListener;
 import com.facebook.presto.execution.SystemMemoryUsageListener;
+import com.facebook.presto.execution.buffer.ClientBuffer.PagesSupplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -25,18 +26,22 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.airlift.units.DataSize;
 
 import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.ThreadSafe;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.facebook.presto.OutputBuffers.BufferType.BROADCAST;
+import static com.facebook.presto.OutputBuffers.BufferType.ARBITRARY;
+import static com.facebook.presto.OutputBuffers.createInitialEmptyOutputBuffers;
 import static com.facebook.presto.execution.buffer.BufferState.FAILED;
 import static com.facebook.presto.execution.buffer.BufferState.FINISHED;
 import static com.facebook.presto.execution.buffer.BufferState.FLUSHING;
@@ -44,32 +49,35 @@ import static com.facebook.presto.execution.buffer.BufferState.NO_MORE_BUFFERS;
 import static com.facebook.presto.execution.buffer.BufferState.NO_MORE_PAGES;
 import static com.facebook.presto.execution.buffer.BufferState.OPEN;
 import static com.facebook.presto.util.ImmutableCollectors.toImmutableList;
+import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static java.util.Objects.requireNonNull;
 
-public class BroadcastOutputBuffer
+/**
+ * A buffer that assigns pages to queues based on a first come, first served basis.
+ */
+public class ArbitraryOutputBuffer
         implements OutputBuffer
 {
-    private final String taskInstanceId;
-    private final StateMachine<BufferState> state;
     private final OutputBufferMemoryManager memoryManager;
 
     @GuardedBy("this")
-    private OutputBuffers outputBuffers = OutputBuffers.createInitialEmptyOutputBuffers(BROADCAST);
+    private OutputBuffers outputBuffers = createInitialEmptyOutputBuffers(ARBITRARY);
+
+    private final MasterBuffer masterBuffer;
 
     @GuardedBy("this")
-    private final Map<OutputBufferId, ClientBuffer> buffers = new ConcurrentHashMap<>();
+    private final ConcurrentMap<OutputBufferId, ClientBuffer> buffers = new ConcurrentHashMap<>();
 
-    @GuardedBy("this")
-    private final List<SerializedPageReference> initialPagesForNewBuffers = new ArrayList<>();
+    private final StateMachine<BufferState> state;
+    private final String taskInstanceId;
 
     private final AtomicLong totalPagesAdded = new AtomicLong();
     private final AtomicLong totalRowsAdded = new AtomicLong();
-    private final AtomicLong totalBufferedPages = new AtomicLong();
 
-    public BroadcastOutputBuffer(
+    public ArbitraryOutputBuffer(
             String taskInstanceId,
             StateMachine<BufferState> state,
             DataSize maxBufferSize,
@@ -78,10 +86,13 @@ public class BroadcastOutputBuffer
     {
         this.taskInstanceId = requireNonNull(taskInstanceId, "taskInstanceId is null");
         this.state = requireNonNull(state, "state is null");
+        requireNonNull(maxBufferSize, "maxBufferSize is null");
+        checkArgument(maxBufferSize.toBytes() > 0, "maxBufferSize must be at least 1");
         this.memoryManager = new OutputBufferMemoryManager(
-                requireNonNull(maxBufferSize, "maxBufferSize is null").toBytes(),
+                maxBufferSize.toBytes(),
                 requireNonNull(systemMemoryUsageListener, "systemMemoryUsageListener is null"),
                 requireNonNull(notificationExecutor, "notificationExecutor is null"));
+        this.masterBuffer = new MasterBuffer();
     }
 
     @Override
@@ -112,23 +123,31 @@ public class BroadcastOutputBuffer
         // always get the state first before any other stats
         BufferState state = this.state.get();
 
-        // buffer it a concurrent collection so it is safe to access out side of guard
+        // buffers it a concurrent collection so it is safe to access out side of guard
         // in this case we only want a snapshot of the current buffers
         @SuppressWarnings("FieldAccessNotGuarded")
         Collection<ClientBuffer> buffers = this.buffers.values();
 
+        int totalBufferedPages = masterBuffer.getBufferedPages();
+        ImmutableList.Builder<BufferInfo> infos = ImmutableList.builder();
+        for (ClientBuffer buffer : buffers) {
+            BufferInfo bufferInfo = buffer.getInfo();
+            infos.add(bufferInfo);
+
+            PageBufferInfo pageBufferInfo = bufferInfo.getPageBufferInfo();
+            totalBufferedPages += pageBufferInfo.getBufferedPages();
+        }
+
         return new OutputBufferInfo(
-                "BROADCAST",
+                "ARBITRARY",
                 state,
                 state.canAddBuffers(),
                 state.canAddPages(),
                 memoryManager.getBufferedBytes(),
-                totalBufferedPages.get(),
+                totalBufferedPages,
                 totalRowsAdded.get(),
                 totalPagesAdded.get(),
-                buffers.stream()
-                        .map(ClientBuffer::getInfo)
-                        .collect(toImmutableList()));
+                infos.build());
     }
 
     @Override
@@ -149,13 +168,8 @@ public class BroadcastOutputBuffer
             outputBuffers = newOutputBuffers;
 
             // add the new buffers
-            for (Entry<OutputBufferId, Integer> entry : outputBuffers.getBuffers().entrySet()) {
-                if (!buffers.containsKey(entry.getKey())) {
-                    ClientBuffer buffer = getBuffer(entry.getKey());
-                    if (!state.canAddPages()) {
-                        buffer.setNoMorePages();
-                    }
-                }
+            for (OutputBufferId outputBufferId : outputBuffers.getBuffers().keySet()) {
+                getBuffer(outputBufferId);
             }
 
             // update state if no more buffers is set
@@ -175,7 +189,7 @@ public class BroadcastOutputBuffer
     @Override
     public ListenableFuture<?> enqueue(List<SerializedPage> pages)
     {
-        requireNonNull(pages, "pages is null");
+        requireNonNull(pages, "page is null");
 
         // ignore pages after "no more pages" is set
         // this can happen with a limit query
@@ -191,51 +205,40 @@ public class BroadcastOutputBuffer
         long rowCount = pages.stream().mapToLong(SerializedPage::getPositionCount).sum();
         totalRowsAdded.addAndGet(rowCount);
         totalPagesAdded.addAndGet(pages.size());
-        totalBufferedPages.addAndGet(pages.size());
 
         // create page reference counts with an initial single reference
         List<SerializedPageReference> serializedPageReferences = pages.stream()
-                .map(pageSplit -> new SerializedPageReference(pageSplit, 1, () -> {
-                    checkState(totalBufferedPages.decrementAndGet() >= 0);
-                    memoryManager.updateMemoryUsage(-pageSplit.getRetainedSizeInBytes());
-                }))
+                .map(pageSplit -> new SerializedPageReference(pageSplit, 1, () -> memoryManager.updateMemoryUsage(-pageSplit.getRetainedSizeInBytes())))
                 .collect(toImmutableList());
 
-        // if we can still add buffers, remember the pages for the future buffers
-        Collection<ClientBuffer> buffers;
-        synchronized (this) {
-            if (state.get().canAddBuffers()) {
-                serializedPageReferences.forEach(SerializedPageReference::addReference);
-                initialPagesForNewBuffers.addAll(serializedPageReferences);
+        // add pages to the buffer (this will increase the reference count by one)
+        masterBuffer.addPages(serializedPageReferences);
+
+        // process any pending reads from the client buffers
+        for (ClientBuffer clientBuffer : safeGetBuffersSnapshot()) {
+            if (masterBuffer.isEmpty()) {
+                break;
             }
-
-            // make a copy while holding the lock to avoid race with initialPagesForNewBuffers.addAll above
-            buffers = safeGetBuffersSnapshot();
+            clientBuffer.loadPagesIfNecessary(masterBuffer);
         }
-
-        // add pages to all existing buffers (each buffer will increment the reference count)
-        buffers.forEach(partition -> partition.enqueuePages(serializedPageReferences));
-
-        // drop the initial reference
-        serializedPageReferences.forEach(SerializedPageReference::dereferencePage);
 
         return memoryManager.getNotFullFuture();
     }
 
     @Override
-    public ListenableFuture<?> enqueue(int partitionNumber, List<SerializedPage> pages)
+    public ListenableFuture<?> enqueue(int partition, List<SerializedPage> pages)
     {
-        checkState(partitionNumber == 0, "Expected partition number to be zero");
+        checkState(partition == 0, "Expected partition number to be zero");
         return enqueue(pages);
     }
 
     @Override
-    public CompletableFuture<BufferResult> get(OutputBufferId outputBufferId, long startingSequenceId, DataSize maxSize)
+    public CompletableFuture<BufferResult> get(OutputBufferId bufferId, long startingSequenceId, DataSize maxSize)
     {
-        requireNonNull(outputBufferId, "outputBufferId is null");
+        requireNonNull(bufferId, "bufferId is null");
         checkArgument(maxSize.toBytes() > 0, "maxSize must be at least 1 byte");
 
-        return getBuffer(outputBufferId).getPages(startingSequenceId, maxSize);
+        return getBuffer(bufferId).getPages(startingSequenceId, maxSize, Optional.of(masterBuffer));
     }
 
     @Override
@@ -255,7 +258,7 @@ public class BroadcastOutputBuffer
         state.compareAndSet(NO_MORE_BUFFERS, FLUSHING);
         memoryManager.setNoBlockOnFull();
 
-        safeGetBuffersSnapshot().forEach(ClientBuffer::setNoMorePages);
+        masterBuffer.setNoMorePages();
 
         checkFlushComplete();
     }
@@ -266,6 +269,8 @@ public class BroadcastOutputBuffer
         // ignore destroy if the buffer already in a terminal state.
         if (state.setIf(FINISHED, oldState -> !oldState.isTerminal())) {
             noMoreBuffers();
+
+            masterBuffer.destroy();
 
             safeGetBuffersSnapshot().forEach(ClientBuffer::destroy);
 
@@ -296,14 +301,6 @@ public class BroadcastOutputBuffer
         // When no-more-buffers is set, we verify that all created buffers have been declared
         buffer = new ClientBuffer(taskInstanceId, id);
 
-        // add initial pages
-        buffer.enqueuePages(initialPagesForNewBuffers);
-
-        // update state
-        if (!state.get().canAddPages()) {
-            buffer.setNoMorePages();
-        }
-
         // buffer may have finished immediately before calling this method
         if (state.get() == FINISHED) {
             buffer.destroy();
@@ -318,23 +315,14 @@ public class BroadcastOutputBuffer
         return ImmutableList.copyOf(this.buffers.values());
     }
 
-    private void noMoreBuffers()
+    private synchronized void noMoreBuffers()
     {
-        checkState(!Thread.holdsLock(this), "Can not set no more buffers while holding a lock on this");
-        List<SerializedPageReference> pages;
-        synchronized (this) {
-            pages = ImmutableList.copyOf(initialPagesForNewBuffers);
-            initialPagesForNewBuffers.clear();
-
-            // verify all created buffers have been declared
-            SetView<OutputBufferId> undeclaredCreatedBuffers = Sets.difference(buffers.keySet(), outputBuffers.getBuffers().keySet());
-            checkState(undeclaredCreatedBuffers.isEmpty(), "Final output buffers does not contain all created buffer ids: %s", undeclaredCreatedBuffers);
-        }
-
-        // dereference outside of synchronized to avoid making a callback while holding a lock
-        pages.forEach(SerializedPageReference::dereferencePage);
+        // verify all created buffers have been declared
+        SetView<OutputBufferId> undeclaredCreatedBuffers = Sets.difference(buffers.keySet(), outputBuffers.getBuffers().keySet());
+        checkState(undeclaredCreatedBuffers.isEmpty(), "Final output buffers does not contain all created buffer ids: %s", undeclaredCreatedBuffers);
     }
 
+    @GuardedBy("this")
     private void checkFlushComplete()
     {
         if (state.get() != FLUSHING) {
@@ -343,6 +331,95 @@ public class BroadcastOutputBuffer
 
         if (safeGetBuffersSnapshot().stream().allMatch(ClientBuffer::isDestroyed)) {
             destroy();
+        }
+    }
+
+    @ThreadSafe
+    private static class MasterBuffer
+            implements PagesSupplier
+    {
+        @GuardedBy("this")
+        private final LinkedList<SerializedPageReference> masterBuffer = new LinkedList<>();
+
+        @GuardedBy("this")
+        private boolean noMorePages;
+
+        private final AtomicInteger bufferedPages = new AtomicInteger();
+
+        public synchronized void addPages(List<SerializedPageReference> pages)
+        {
+            masterBuffer.addAll(pages);
+            bufferedPages.set(masterBuffer.size());
+        }
+
+        public synchronized boolean isEmpty()
+        {
+            return masterBuffer.isEmpty();
+        }
+
+        @Override
+        public synchronized boolean mayHaveMorePages()
+        {
+            return !noMorePages || !masterBuffer.isEmpty();
+        }
+
+        public synchronized void setNoMorePages()
+        {
+            this.noMorePages = true;
+        }
+
+        @Override
+        public synchronized List<SerializedPageReference> getPages(DataSize maxSize)
+        {
+            long maxBytes = maxSize.toBytes();
+            List<SerializedPageReference> pages = new ArrayList<>();
+            long bytesRemoved = 0;
+
+            while (true) {
+                SerializedPageReference page = masterBuffer.peek();
+                if (page == null) {
+                    break;
+                }
+                bytesRemoved += page.getRetainedSizeInBytes();
+                // break (and don't add) if this page would exceed the limit
+                if (!pages.isEmpty() && bytesRemoved > maxBytes) {
+                    break;
+                }
+                // this should not happen since we have a lock
+                checkState(masterBuffer.poll() == page, "Master buffer corrupted");
+                pages.add(page);
+            }
+
+            bufferedPages.set(masterBuffer.size());
+
+            return ImmutableList.copyOf(pages);
+        }
+
+        public void destroy()
+        {
+            checkState(!Thread.holdsLock(this), "Can not destroy master buffer while holding a lock on this");
+            List<SerializedPageReference> pages;
+            synchronized (this) {
+                pages = ImmutableList.copyOf(masterBuffer);
+                masterBuffer.clear();
+                bufferedPages.set(0);
+            }
+
+            // dereference outside of synchronized to avoid making a callback while holding a lock
+            pages.forEach(SerializedPageReference::dereferencePage);
+        }
+
+        public int getBufferedPages()
+        {
+            return bufferedPages.get();
+        }
+
+        @Override
+        public String toString()
+        {
+            return toStringHelper(this)
+                    .add("bufferedPages", bufferedPages.get())
+                    .toString();
         }
     }
 }
